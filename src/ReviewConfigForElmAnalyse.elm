@@ -17,6 +17,7 @@ when inside the directory containing this file.
 
 import NoAddingListLiterals
 import NoBooleanCaseOf
+import NoMissingTypeAnnotation
 import NoPrefixOperator
 import Review.Rule exposing (Rule)
 
@@ -27,6 +28,7 @@ config =
     , NoBooleanCaseOf.rule
 
     -- , NoDebug.rule
+    , NoMissingTypeAnnotation.rule
     , NoPrefixOperator.rule
 
     -- , NoUnused.CustomTypeConstructors.rule
