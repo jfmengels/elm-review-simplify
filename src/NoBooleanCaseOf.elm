@@ -14,6 +14,9 @@ import Review.Rule as Rule exposing (Error, Rule)
 
 {-| Reports when pattern matching is used for a boolean value.
 
+The idiomatic way to check for a condition is to use an `if` expression.
+Read more about it at: <https://guide.elm-lang.org/core_language.html#if-expressions>
+
     config =
         [ NoBooleanCaseOf.rule
         ]
