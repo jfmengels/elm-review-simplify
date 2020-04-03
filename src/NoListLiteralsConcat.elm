@@ -1,6 +1,6 @@
-module NoAddingListLiterals exposing (rule)
+module NoListLiteralsConcat exposing (rule)
 
-{-| TODO Rename this to NoUnnecessaryListConcat?
+{-| Reports when an operation on lists could be simplified to a single literal list.
 
 @docs rule
 
@@ -12,12 +12,10 @@ import Elm.Syntax.Range exposing (Range)
 import Review.Rule as Rule exposing (Error, Rule)
 
 
-{-| Forbids concatenating list literals.
-
-This can be combined into one list.
+{-| Reports when an operation on lists could be simplified to a single literal list.
 
     config =
-        [ NoAddingListLiterals.rule
+        [ NoListLiteralsConcat.rule
         ]
 
 
@@ -26,7 +24,6 @@ This can be combined into one list.
     _ =
         [ 1, 2, 3 ] ++ [ 4, mysteryNumber, 6 ]
 
-    -- TODO
     _ =
         List.concat
             [ [ 1, 2, 3 ]
@@ -63,16 +60,10 @@ This can be combined into one list.
             , [ 4, mysteryNumber, 6 ]
             ]
 
-
-# When (not) to use this rule
-
-You should not use this rule if you do not care about your boolean values are
-evaluated.
-
 -}
 rule : Rule
 rule =
-    Rule.newSchema "NoAddingListLiterals"
+    Rule.newSchema "NoListLiteralsConcat"
         |> Rule.withSimpleExpressionVisitor expressionVisitor
         |> Rule.fromSchema
 
@@ -80,10 +71,8 @@ rule =
 error : Range -> Error
 error range =
     Rule.error
-        { message = "TODO"
-        , details =
-            [ "TODO"
-            ]
+        { message = "Expression could be simplified to be a single List"
+        , details = [ "Try moving all the elements into a single list." ]
         }
         range
 

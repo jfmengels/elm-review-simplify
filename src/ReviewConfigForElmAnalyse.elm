@@ -15,7 +15,7 @@ when inside the directory containing this file.
 -- import NoUnused.CustomTypeConstructors
 -- import NoUnused.Variables
 
-import NoAddingListLiterals
+import NoListLiteralsConcat
 import NoBooleanCaseOf
 import NoImportingEverything
 import NoMissingTypeAnnotation
@@ -25,7 +25,7 @@ import Review.Rule exposing (Rule)
 
 config : List Rule
 config =
-    [ NoAddingListLiterals.rule
+    [ NoListLiteralsConcat.rule
     , NoBooleanCaseOf.rule
 
     -- , NoDebug.rule

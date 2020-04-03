@@ -52,7 +52,7 @@ This won't report pattern matching when a boolean is part of the evaluated value
 
 # When (not) to use this rule
 
-You should not use this rule if you do not care about your boolean values are
+You should not use this rule if you do not care about how your boolean values are
 evaluated.
 
 -}
