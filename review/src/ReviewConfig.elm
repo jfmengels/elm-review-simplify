@@ -24,6 +24,6 @@ config =
     [ NoBooleanCaseOf.rule
     , NoFullyAppliedPrefixOperator.rule
     , NoListLiteralsConcat.rule
-    , NoUnused.Variables.rule
     , NoUnused.CustomTypeConstructors.rule
+    , NoUnused.Variables.rule
     ]
