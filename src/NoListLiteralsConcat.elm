@@ -1,6 +1,6 @@
 module NoListLiteralsConcat exposing (rule)
 
-{-| Reports when an operation on lists could be simplified to a single literal list.
+{-|
 
 @docs rule
 

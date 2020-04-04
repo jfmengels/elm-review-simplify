@@ -6,8 +6,8 @@
     "version": "1.0.0",
     "exposed-modules": [
         "NoBooleanCaseOf",
-        "NoListLiteralsConcat",
-        "NoPrefixOperator"
+        "NoFullyAppliedPrefixOperator",
+        "NoListLiteralsConcat"
     ],
     "elm-version": "0.19.1 <= v < 0.20.0",
     "dependencies": {

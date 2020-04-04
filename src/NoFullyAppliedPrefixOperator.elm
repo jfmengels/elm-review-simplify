@@ -1,6 +1,6 @@
-module NoPrefixOperator exposing (rule)
+module NoFullyAppliedPrefixOperator exposing (rule)
 
-{-| TODO Rename to something that doesn't make you think that `(+) 1` is forbidden.
+{-|
 
 @docs rule
 
@@ -12,10 +12,10 @@ import Elm.Syntax.Range exposing (Range)
 import Review.Rule as Rule exposing (Error, Rule)
 
 
-{-| TODO
+{-| Reports when an operator is used as a prefix operator and all the operands are already given.
 
     config =
-        [ NoPrefixOperator.rule
+        [ NoFullyAppliedPrefixOperator.rule
         ]
 
 
@@ -36,15 +36,10 @@ import Review.Rule as Rule exposing (Error, Rule)
     _ =
         (+)
 
-
-# When (not) to use this rule
-
-TODO
-
 -}
 rule : Rule
 rule =
-    Rule.newSchema "NoPrefixOperator"
+    Rule.newSchema "NoFullyAppliedPrefixOperator"
         |> Rule.withSimpleExpressionVisitor expressionVisitor
         |> Rule.fromSchema
 

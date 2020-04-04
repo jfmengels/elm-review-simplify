@@ -12,8 +12,8 @@ when inside the directory containing this file.
 -}
 
 import NoBooleanCaseOf
+import NoFullyAppliedPrefixOperator
 import NoListLiteralsConcat
-import NoPrefixOperator
 import NoUnused.CustomTypeConstructors
 import NoUnused.Variables
 import Review.Rule exposing (Rule)
@@ -22,8 +22,8 @@ import Review.Rule exposing (Rule)
 config : List Rule
 config =
     [ NoBooleanCaseOf.rule
+    , NoFullyAppliedPrefixOperator.rule
     , NoListLiteralsConcat.rule
-    , NoPrefixOperator.rule
     , NoUnused.Variables.rule
     , NoUnused.CustomTypeConstructors.rule
     ]
