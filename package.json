@@ -4,7 +4,7 @@
   "description": "Provides elm-review rules to detect debug code",
   "main": "index.js",
   "scripts": {
-    "test": "elm make && elm-format src/ --validate && elm-test && elm-review . && elm-xref"
+    "test": "elm make && elm-format src/ --validate && elm-test && elm-review && elm-xref"
   },
   "repository": {
     "type": "git",
