@@ -7,12 +7,12 @@ import Test exposing (Test, describe, test)
 
 message : String
 message =
-    "TODO"
+    "Prefer using the infix form (`a + b`) over the prefix form (`(+) a b`) when possible"
 
 
 details : List String
 details =
-    [ "TODO"
+    [ "The prefix form is generally harder to read over the infix form."
     ]
 
 

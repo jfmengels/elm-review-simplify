@@ -47,10 +47,8 @@ rule =
 error : Range -> Error
 error range =
     Rule.error
-        { message = "TODO"
-        , details =
-            [ "TODO"
-            ]
+        { message = "Prefer using the infix form (`a + b`) over the prefix form (`(+) a b`) when possible"
+        , details = [ "The prefix form is generally harder to read over the infix form." ]
         }
         range
 
