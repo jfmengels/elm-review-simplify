@@ -63,12 +63,12 @@ import Review.Rule as Rule exposing (Error, Rule)
 -}
 rule : Rule
 rule =
-    Rule.newSchema "NoListLiteralsConcat"
+    Rule.newModuleRuleSchema "NoListLiteralsConcat" ()
         |> Rule.withSimpleExpressionVisitor expressionVisitor
-        |> Rule.fromSchema
+        |> Rule.fromModuleRuleSchema
 
 
-error : Range -> Error
+error : Range -> Error {}
 error range =
     Rule.error
         { message = "Expression could be simplified to be a single List"
@@ -77,7 +77,7 @@ error range =
         range
 
 
-expressionVisitor : Node Expression -> List Error
+expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.OperatorApplication "++" _ (Node.Node _ (Expression.ListExpr _)) (Node.Node _ (Expression.ListExpr _)) ->

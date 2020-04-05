@@ -39,12 +39,12 @@ import Review.Rule as Rule exposing (Error, Rule)
 -}
 rule : Rule
 rule =
-    Rule.newSchema "NoFullyAppliedPrefixOperator"
+    Rule.newModuleRuleSchema "NoFullyAppliedPrefixOperator" ()
         |> Rule.withSimpleExpressionVisitor expressionVisitor
-        |> Rule.fromSchema
+        |> Rule.fromModuleRuleSchema
 
 
-error : Range -> Error
+error : Range -> Error {}
 error range =
     Rule.error
         { message = "Prefer using the infix form (`a + b`) over the prefix form (`(+) a b`) when possible"
@@ -53,7 +53,7 @@ error range =
         range
 
 
-expressionVisitor : Node Expression -> List Error
+expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.Application [ Node.Node range (Expression.PrefixOperator _), _, _ ] ->

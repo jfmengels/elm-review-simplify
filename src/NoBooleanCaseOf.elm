@@ -61,12 +61,12 @@ evaluated.
 -}
 rule : Rule
 rule =
-    Rule.newSchema "NoBooleanCaseOf"
+    Rule.newModuleRuleSchema "NoBooleanCaseOf" ()
         |> Rule.withSimpleExpressionVisitor expressionVisitor
-        |> Rule.fromSchema
+        |> Rule.fromModuleRuleSchema
 
 
-error : Node a -> Error
+error : Node a -> Error {}
 error node =
     Rule.error
         { message = "Replace `case..of` by an `if` condition"
@@ -78,7 +78,7 @@ error node =
         (Node.range node)
 
 
-expressionVisitor : Node Expression -> List Error
+expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.CaseExpression { expression, cases } ->
