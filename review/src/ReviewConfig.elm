@@ -11,11 +11,12 @@ when inside the directory containing this file.
 
 -}
 
+-- import NoUnused.CustomTypeConstructors
+-- import NoUnused.Variables
+
 import NoBooleanCaseOf
 import NoFullyAppliedPrefixOperator
 import NoListLiteralsConcat
-import NoUnused.CustomTypeConstructors
-import NoUnused.Variables
 import Review.Rule exposing (Rule)
 
 
@@ -24,6 +25,7 @@ config =
     [ NoBooleanCaseOf.rule
     , NoFullyAppliedPrefixOperator.rule
     , NoListLiteralsConcat.rule
-    , NoUnused.CustomTypeConstructors.rule
-    , NoUnused.Variables.rule
+
+    -- , NoUnused.CustomTypeConstructors.rule []
+    -- , NoUnused.Variables.rule
     ]
