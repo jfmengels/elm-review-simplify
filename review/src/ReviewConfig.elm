@@ -11,21 +11,35 @@ when inside the directory containing this file.
 
 -}
 
--- import NoUnused.CustomTypeConstructors
--- import NoUnused.Variables
-
 import NoBooleanCaseOf
+import NoDebug.Log
+import NoDebug.TodoOrToString
+import NoExposingEverything
 import NoFullyAppliedPrefixOperator
+import NoImportingEverything
 import NoListLiteralsConcat
+import NoMissingTypeAnnotation
+import NoUnused.CustomTypeConstructors
+import NoUnused.Dependencies
+import NoUnused.Exports
+import NoUnused.Modules
+import NoUnused.Variables
 import Review.Rule exposing (Rule)
 
 
 config : List Rule
 config =
     [ NoBooleanCaseOf.rule
+    , NoDebug.Log.rule
+    , NoDebug.TodoOrToString.rule
+    , NoExposingEverything.rule
     , NoFullyAppliedPrefixOperator.rule
+    , NoImportingEverything.rule []
     , NoListLiteralsConcat.rule
-
-    -- , NoUnused.CustomTypeConstructors.rule []
-    -- , NoUnused.Variables.rule
+    , NoMissingTypeAnnotation.rule
+    , NoUnused.CustomTypeConstructors.rule []
+    , NoUnused.Dependencies.rule
+    , NoUnused.Exports.rule
+    , NoUnused.Modules.rule
+    , NoUnused.Variables.rule
     ]
