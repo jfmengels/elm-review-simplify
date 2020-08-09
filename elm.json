@@ -1,7 +1,7 @@
 {
     "type": "package",
-    "name": "jfmengels/review-simplification",
-    "summary": "Provides elm-review rules to detect ways to simplify Elm code",
+    "name": "jfmengels/elm-review-simplification",
+    "summary": "Provides elm-review rules to simplify Elm code",
     "license": "BSD-3-Clause",
     "version": "1.0.0",
     "exposed-modules": [
