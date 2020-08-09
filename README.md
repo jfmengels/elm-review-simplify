@@ -2,7 +2,7 @@
 
 Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-review/latest/) rules to simplify Elm code.
 
-**UNMAINTAINED** I do not feel like maintaining this set of rules and have therefore not published these as an Elm package. You can copy them into your project, try and find another package that has published these, or publish them yourself. You can check out https://github.com/jfmengels/elm-review-rule-ideas/ for similar ideas.
+**UNMAINTAINED** I do not feel like maintaining this set of rules and have therefore not published these as an Elm package. You can copy them into your project, find another package that has published these, or publish them yourself. You can check out https://github.com/jfmengels/elm-review-rule-ideas/ for similar ideas. Check out the [Try it out](#try-it-out) section below to run the rules.
 
 ## Provided rules
 
@@ -27,4 +27,13 @@ config =
     , NoFullyAppliedPrefixOperator.rule
     , NoListLiteralsConcat.rule
     ]
+```
+
+
+## Try it out
+
+You can try the example configuration above out by running the following command:
+
+```bash
+elm-review --template jfmengels/elm-review-simplification/example
 ```

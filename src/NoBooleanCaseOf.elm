@@ -58,6 +58,15 @@ This won't report pattern matching when a boolean is part of the evaluated value
 You should not use this rule if you do not care about how your boolean values are
 evaluated.
 
+
+## Try it out
+
+You can try this rule out by running the following command:
+
+```bash
+elm-review --template jfmengels/elm-review-simplification/example --rules NoBooleanCaseOf
+```
+
 -}
 rule : Rule
 rule =
