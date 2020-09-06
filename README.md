@@ -16,10 +16,10 @@ Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-revi
 ```elm
 module ReviewConfig exposing (config)
 
-import Review.Rule exposing (Rule)
 import NoBooleanCaseOf
 import NoFullyAppliedPrefixOperator
 import NoListLiteralsConcat
+import Review.Rule exposing (Rule)
 
 config : List Rule
 config =
