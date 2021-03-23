@@ -8,7 +8,7 @@ module Simplify.Ifs exposing (rule)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
-import Elm.Syntax.Range exposing (Range)
+import Elm.Syntax.Range exposing (Location, Range)
 import Review.Fix as Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
@@ -65,7 +65,15 @@ expressionVisitor node =
                         , details = [ "REPLACEME" ]
                         }
                         (targetIf node)
-                        []
+                        [ Fix.removeRange
+                            { start = (Node.range node).start
+                            , end = (Node.range trueBranch).start
+                            }
+                        , Fix.removeRange
+                            { start = (Node.range trueBranch).end
+                            , end = (Node.range node).end
+                            }
+                        ]
                     ]
 
                 Expression.FunctionOrValue [] "False" ->
@@ -74,7 +82,11 @@ expressionVisitor node =
                         , details = [ "REPLACEME" ]
                         }
                         (targetIf node)
-                        []
+                        [ Fix.removeRange
+                            { start = (Node.range node).start
+                            , end = (Node.range falseBranch).start
+                            }
+                        ]
                     ]
 
                 _ ->
