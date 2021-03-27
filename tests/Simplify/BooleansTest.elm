@@ -110,6 +110,27 @@ a = True && x
                             , details = [ "REPLACEME" ]
                             , under = "True && x"
                             }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should simplify 'x && True' to x" <|
+            \() ->
+                """module A exposing (..)
+a = x && True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "x && True"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
                         ]
         , test "should simplify 'False && x' to False" <|
             \() ->
@@ -123,5 +144,26 @@ a = False && x
                             , details = [ "REPLACEME" ]
                             , under = "False && x"
                             }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify 'x && False' to False" <|
+            \() ->
+                """module A exposing (..)
+a = x && False
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "x && False"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
                         ]
         ]
