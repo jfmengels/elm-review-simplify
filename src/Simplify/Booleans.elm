@@ -70,7 +70,7 @@ expressionVisitor node =
                     ]
                 ]
 
-            else
+            else if isFalse left then
                 [ Rule.errorWithFix
                     { message = "REPLACEME"
                     , details = [ "REPLACEME" ]
@@ -83,13 +83,27 @@ expressionVisitor node =
                     ]
                 ]
 
+            else
+                []
+
         _ ->
             []
 
 
+isTrue : Node Expression -> Bool
 isTrue node =
     case Node.value node of
         Expression.FunctionOrValue [] "True" ->
+            True
+
+        _ ->
+            False
+
+
+isFalse : Node Expression -> Bool
+isFalse node =
+    case Node.value node of
+        Expression.FunctionOrValue [] "False" ->
             True
 
         _ ->

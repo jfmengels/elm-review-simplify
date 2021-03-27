@@ -8,7 +8,15 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Simplify.Booleans"
-        [ test "should simplify 'True || x' to True" <|
+        [ test "should not report unsimplifiable condition" <|
+            \() ->
+                """module A exposing (..)
+a = x || y
+b = y && z
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify 'True || x' to True" <|
             \() ->
                 """module A exposing (..)
 a = True || x
