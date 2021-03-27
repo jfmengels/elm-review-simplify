@@ -92,6 +92,40 @@ a = x || False
 a = x
 """
                         ]
+        , test "should ignore parens around False" <|
+            \() ->
+                """module A exposing (..)
+a = x || (False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "x || (False)"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should ignore parens around True" <|
+            \() ->
+                """module A exposing (..)
+a = (True) || x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "(True) || x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
+"""
+                        ]
         ]
 
 
