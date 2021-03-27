@@ -11,6 +11,17 @@ alwaysSameDetails =
     ]
 
 
+unnecessaryMessage : String
+unnecessaryMessage =
+    "Part of the expression is unnecessary"
+
+
+unnecessaryDetails : List String
+unnecessaryDetails =
+    [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
+    ]
+
+
 all : Test
 all =
     describe "Simplify.Booleans"
@@ -55,8 +66,8 @@ a = x || True
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = alwaysSameDetails
+                            { message = unnecessaryMessage
+                            , details = unnecessaryDetails
                             , under = "x || True"
                             }
                             |> Review.Test.whenFixed
@@ -72,8 +83,8 @@ a = False || x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = alwaysSameDetails
+                            { message = unnecessaryMessage
+                            , details = unnecessaryDetails
                             , under = "False || x"
                             }
                             |> Review.Test.whenFixed
@@ -89,8 +100,8 @@ a = x || False
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = alwaysSameDetails
+                            { message = unnecessaryMessage
+                            , details = unnecessaryDetails
                             , under = "x || False"
                             }
                             |> Review.Test.whenFixed
@@ -106,8 +117,8 @@ a = x || (False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = alwaysSameDetails
+                            { message = unnecessaryMessage
+                            , details = unnecessaryDetails
                             , under = "x || (False)"
                             }
                             |> Review.Test.whenFixed
@@ -146,8 +157,8 @@ a = True && x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = alwaysSameDetails
+                            { message = unnecessaryMessage
+                            , details = unnecessaryDetails
                             , under = "True && x"
                             }
                             |> Review.Test.whenFixed
@@ -163,8 +174,8 @@ a = x && True
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = alwaysSameDetails
+                            { message = unnecessaryMessage
+                            , details = unnecessaryDetails
                             , under = "x && True"
                             }
                             |> Review.Test.whenFixed

@@ -91,8 +91,8 @@ or_isLeftSimplifiableError node left right =
 
     else if isFalse left then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
-            , details = alwaysSameDetails
+            { message = unnecessaryMessage
+            , details = unnecessaryDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -110,8 +110,8 @@ or_isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule.
 or_isRightSimplifiableError node left right =
     if isTrue right then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
-            , details = alwaysSameDetails
+            { message = unnecessaryMessage
+            , details = unnecessaryDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -123,8 +123,8 @@ or_isRightSimplifiableError node left right =
 
     else if isFalse right then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
-            , details = alwaysSameDetails
+            { message = unnecessaryMessage
+            , details = unnecessaryDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -142,8 +142,8 @@ and_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.
 and_isLeftSimplifiableError node left right =
     if isTrue left then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
-            , details = alwaysSameDetails
+            { message = unnecessaryMessage
+            , details = unnecessaryDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -174,8 +174,8 @@ and_isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule
 and_isRightSimplifiableError node left right =
     if isTrue right then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
-            , details = alwaysSameDetails
+            { message = unnecessaryMessage
+            , details = unnecessaryDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -231,4 +231,15 @@ isFalse node =
 alwaysSameDetails : List String
 alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
+    ]
+
+
+unnecessaryMessage : String
+unnecessaryMessage =
+    "Part of the expression is unnecessary"
+
+
+unnecessaryDetails : List String
+unnecessaryDetails =
+    [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
     ]
