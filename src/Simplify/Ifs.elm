@@ -13,13 +13,11 @@ import Review.Fix as Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
 
-{-| Reports unnecessary if conditions, because the branch that will be taken is always the same and can be determined at compile-time.
+{-| Reports and fixes unnecessary `if` conditions, because the branch that will be taken is always the same and can be determined at compile-time.
 
     config =
         [ Simplify.Ifs.rule
         ]
-
-This rule provides an automatic fix to remove the unnecessary condition check and branch.
 
 
 ## Fail

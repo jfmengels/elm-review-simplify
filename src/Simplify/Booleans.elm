@@ -12,7 +12,7 @@ import Review.Fix as Fix
 import Review.Rule as Rule exposing (Rule)
 
 
-{-| Reports... REPLACEME
+{-| Reports and fixes conditionals that can be made simpler.
 
     config =
         [ Simplify.Booleans.rule
@@ -22,19 +22,21 @@ import Review.Rule as Rule exposing (Rule)
 ## Fail
 
     a =
-        "REPLACEME example to replace"
+        -- Simplifiable as: True
+        True || x
+
+    b =
+        -- Simplifiable as: x
+        x || False
 
 
 ## Success
 
     a =
-        "REPLACEME example to replace"
+        x || y
 
-
-## When (not) to enable this rule
-
-This rule is useful when REPLACEME.
-This rule is not useful when REPLACEME.
+    b =
+        w && z
 
 
 ## Try it out
