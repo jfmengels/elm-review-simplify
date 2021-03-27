@@ -5,8 +5,8 @@ import Simplify.Booleans exposing (rule)
 import Test exposing (Test, describe, test)
 
 
-details : List String
-details =
+alwaysSameDetails : List String
+alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
     ]
 
@@ -39,7 +39,7 @@ a = True || x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "True || x"
                             }
                             |> Review.Test.whenFixed
@@ -56,7 +56,7 @@ a = x || True
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "REPLACEME"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "x || True"
                             }
                             |> Review.Test.whenFixed
@@ -73,7 +73,7 @@ a = False || x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "REPLACEME"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "False || x"
                             }
                             |> Review.Test.whenFixed
@@ -90,7 +90,7 @@ a = x || False
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "REPLACEME"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "x || False"
                             }
                             |> Review.Test.whenFixed
@@ -107,7 +107,7 @@ a = x || (False)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "REPLACEME"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "x || (False)"
                             }
                             |> Review.Test.whenFixed
@@ -124,7 +124,7 @@ a = (True) || x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "(True) || x"
                             }
                             |> Review.Test.whenFixed
@@ -147,7 +147,7 @@ a = True && x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "REPLACEME"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "True && x"
                             }
                             |> Review.Test.whenFixed
@@ -164,7 +164,7 @@ a = x && True
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "REPLACEME"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "x && True"
                             }
                             |> Review.Test.whenFixed
@@ -181,7 +181,7 @@ a = False && x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always False"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "False && x"
                             }
                             |> Review.Test.whenFixed
@@ -198,7 +198,7 @@ a = x && False
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always False"
-                            , details = details
+                            , details = alwaysSameDetails
                             , under = "x && False"
                             }
                             |> Review.Test.whenFixed

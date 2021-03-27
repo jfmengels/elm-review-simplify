@@ -79,7 +79,7 @@ or_isLeftSimplifiableError node left right =
     if isTrue left then
         [ Rule.errorWithFix
             { message = "Condition is always True"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -92,7 +92,7 @@ or_isLeftSimplifiableError node left right =
     else if isFalse left then
         [ Rule.errorWithFix
             { message = "REPLACEME"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -111,7 +111,7 @@ or_isRightSimplifiableError node left right =
     if isTrue right then
         [ Rule.errorWithFix
             { message = "REPLACEME"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -124,7 +124,7 @@ or_isRightSimplifiableError node left right =
     else if isFalse right then
         [ Rule.errorWithFix
             { message = "REPLACEME"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -143,7 +143,7 @@ and_isLeftSimplifiableError node left right =
     if isTrue left then
         [ Rule.errorWithFix
             { message = "REPLACEME"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -156,7 +156,7 @@ and_isLeftSimplifiableError node left right =
     else if isFalse left then
         [ Rule.errorWithFix
             { message = "Condition is always False"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -175,7 +175,7 @@ and_isRightSimplifiableError node left right =
     if isTrue right then
         [ Rule.errorWithFix
             { message = "REPLACEME"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -188,7 +188,7 @@ and_isRightSimplifiableError node left right =
     else if isFalse right then
         [ Rule.errorWithFix
             { message = "Condition is always False"
-            , details = details
+            , details = alwaysSameDetails
             }
             (Node.range node)
             [ Fix.removeRange
@@ -228,7 +228,7 @@ isFalse node =
             False
 
 
-details : List String
-details =
+alwaysSameDetails : List String
+alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
     ]
