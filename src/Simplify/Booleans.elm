@@ -206,6 +206,9 @@ isTrue node =
         Expression.FunctionOrValue [] "True" ->
             True
 
+        Expression.ParenthesizedExpression expr ->
+            isTrue expr
+
         _ ->
             False
 
@@ -215,6 +218,9 @@ isFalse node =
     case Node.value node of
         Expression.FunctionOrValue [] "False" ->
             True
+
+        Expression.ParenthesizedExpression expr ->
+            isFalse expr
 
         _ ->
             False

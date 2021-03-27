@@ -123,7 +123,7 @@ a = (True) || x
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
-a = True
+a = (True)
 """
                         ]
         ]
