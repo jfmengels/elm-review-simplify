@@ -16,8 +16,8 @@ a = if True then 1 else 2
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
                             , under = "if"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -32,8 +32,8 @@ a = if False then 1 else 2
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
                             , under = "if"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

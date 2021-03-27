@@ -74,8 +74,8 @@ expressionVisitor node =
             case Node.value cond of
                 Expression.FunctionOrValue [] "True" ->
                     [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
+                        { message = "The condition will always evaluate to True"
+                        , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
                         }
                         (targetIf node)
                         [ Fix.removeRange
@@ -91,8 +91,8 @@ expressionVisitor node =
 
                 Expression.FunctionOrValue [] "False" ->
                     [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
+                        { message = "The condition will always evaluate to False"
+                        , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
                         }
                         (targetIf node)
                         [ Fix.removeRange
