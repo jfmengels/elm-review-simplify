@@ -6,6 +6,8 @@ module Simplify.Booleans exposing (rule)
 
 -}
 
+import Elm.Syntax.Expression exposing (Expression)
+import Elm.Syntax.Node as Node exposing (Node)
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -46,5 +48,12 @@ elm-review --template jfmengels/elm-review-simplification/example --rules Simpli
 rule : Rule
 rule =
     Rule.newModuleRuleSchema "Simplify.Booleans" ()
-        -- Add your visitors
+        |> Rule.withSimpleExpressionVisitor expressionVisitor
         |> Rule.fromModuleRuleSchema
+
+
+expressionVisitor : Node Expression -> List (Rule.Error {})
+expressionVisitor node =
+    case Node.value node of
+        _ ->
+            []
