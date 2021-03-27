@@ -57,37 +57,42 @@ expressionVisitor : Node Expression -> List (Rule.Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.OperatorApplication "||" _ left right ->
-            if isTrue left then
-                [ Rule.errorWithFix
-                    { message = "REPLACEME"
-                    , details = [ "REPLACEME" ]
-                    }
-                    (Node.range node)
-                    [ Fix.removeRange
-                        { start = (Node.range left).end
-                        , end = (Node.range right).end
-                        }
-                    ]
-                ]
-
-            else if isFalse left then
-                [ Rule.errorWithFix
-                    { message = "REPLACEME"
-                    , details = [ "REPLACEME" ]
-                    }
-                    (Node.range node)
-                    [ Fix.removeRange
-                        { start = (Node.range left).start
-                        , end = (Node.range right).start
-                        }
-                    ]
-                ]
-
-            else
-                []
+            isLeftSimplifiableError node left right
 
         _ ->
             []
+
+
+isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
+isLeftSimplifiableError node left right =
+    if isTrue left then
+        [ Rule.errorWithFix
+            { message = "REPLACEME"
+            , details = [ "REPLACEME" ]
+            }
+            (Node.range node)
+            [ Fix.removeRange
+                { start = (Node.range left).end
+                , end = (Node.range right).end
+                }
+            ]
+        ]
+
+    else if isFalse left then
+        [ Rule.errorWithFix
+            { message = "REPLACEME"
+            , details = [ "REPLACEME" ]
+            }
+            (Node.range node)
+            [ Fix.removeRange
+                { start = (Node.range left).start
+                , end = (Node.range right).start
+                }
+            ]
+        ]
+
+    else
+        []
 
 
 isTrue : Node Expression -> Bool
