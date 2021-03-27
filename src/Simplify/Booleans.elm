@@ -155,7 +155,7 @@ and_isLeftSimplifiableError node left right =
 
     else if isFalse left then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
+            { message = "Condition is always False"
             , details = details
             }
             (Node.range node)
@@ -187,7 +187,7 @@ and_isRightSimplifiableError node left right =
 
     else if isFalse right then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
+            { message = "Condition is always False"
             , details = details
             }
             (Node.range node)

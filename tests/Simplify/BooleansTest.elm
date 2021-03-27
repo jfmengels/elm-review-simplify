@@ -180,7 +180,7 @@ a = False && x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
+                            { message = "Condition is always False"
                             , details = details
                             , under = "False && x"
                             }
@@ -197,7 +197,7 @@ a = x && False
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
+                            { message = "Condition is always False"
                             , details = details
                             , under = "x && False"
                             }
