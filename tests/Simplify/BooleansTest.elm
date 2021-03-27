@@ -18,7 +18,7 @@ a = True || x
                         [ Review.Test.error
                             { message = "REPLACEME"
                             , details = [ "REPLACEME" ]
-                            , under = "True ||"
+                            , under = "True || x"
                             }
                         ]
         , test "should simplify 'True && x' to x" <|
@@ -31,7 +31,7 @@ a = True && x
                         [ Review.Test.error
                             { message = "REPLACEME"
                             , details = [ "REPLACEME" ]
-                            , under = "True &&"
+                            , under = "True && x"
                             }
                         ]
         , test "should simplify 'False && x' to False" <|
@@ -44,7 +44,7 @@ a = False && x
                         [ Review.Test.error
                             { message = "REPLACEME"
                             , details = [ "REPLACEME" ]
-                            , under = "False &&"
+                            , under = "False && x"
                             }
                         ]
         , test "should simplify 'False || x' to x" <|
@@ -57,7 +57,7 @@ a = False || x
                         [ Review.Test.error
                             { message = "REPLACEME"
                             , details = [ "REPLACEME" ]
-                            , under = "False ||"
+                            , under = "False || x"
                             }
                         ]
         ]

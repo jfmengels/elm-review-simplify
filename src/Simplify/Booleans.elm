@@ -56,7 +56,12 @@ expressionVisitor : Node Expression -> List (Rule.Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.OperatorApplication "||" _ left right ->
-            []
+            [ Rule.error
+                { message = "REPLACEME"
+                , details = [ "REPLACEME" ]
+                }
+                (Node.range node)
+            ]
 
         _ ->
             []
