@@ -9,7 +9,7 @@ all : Test
 all =
     describe "Simplify.Booleans"
         [ orTests
-        , Test.skip andTests
+        , andTests
         ]
 
 
