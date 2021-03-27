@@ -8,6 +8,14 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Simplify.Booleans"
+        [ orTests
+        , Test.skip andTests
+        ]
+
+
+orTests : Test
+orTests =
+    describe "||"
         [ test "should not report unsimplifiable condition" <|
             \() ->
                 """module A exposing (..)
@@ -33,34 +41,6 @@ a = True || x
 a = True
 """
                         ]
-        , Test.skip <|
-            test "should simplify 'True && x' to x" <|
-                \() ->
-                    """module A exposing (..)
-a = True && x
-"""
-                        |> Review.Test.run rule
-                        |> Review.Test.expectErrors
-                            [ Review.Test.error
-                                { message = "REPLACEME"
-                                , details = [ "REPLACEME" ]
-                                , under = "True && x"
-                                }
-                            ]
-        , Test.skip <|
-            test "should simplify 'False && x' to False" <|
-                \() ->
-                    """module A exposing (..)
-a = False && x
-"""
-                        |> Review.Test.run rule
-                        |> Review.Test.expectErrors
-                            [ Review.Test.error
-                                { message = "REPLACEME"
-                                , details = [ "REPLACEME" ]
-                                , under = "False && x"
-                                }
-                            ]
         , test "should simplify 'False || x' to x" <|
             \() ->
                 """module A exposing (..)
@@ -77,5 +57,37 @@ a = False || x
                                 """module A exposing (..)
 a = x
 """
+                        ]
+        ]
+
+
+andTests : Test
+andTests =
+    describe "&&"
+        [ test "should simplify 'True && x' to x" <|
+            \() ->
+                """module A exposing (..)
+a = True && x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "True && x"
+                            }
+                        ]
+        , test "should simplify 'False && x' to False" <|
+            \() ->
+                """module A exposing (..)
+a = False && x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "False && x"
+                            }
                         ]
         ]
