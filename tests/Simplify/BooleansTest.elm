@@ -123,7 +123,7 @@ a = (True) || x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
+                            { message = "Condition is always True"
                             , details = details
                             , under = "(True) || x"
                             }

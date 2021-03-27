@@ -78,7 +78,7 @@ or_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.E
 or_isLeftSimplifiableError node left right =
     if isTrue left then
         [ Rule.errorWithFix
-            { message = "REPLACEME"
+            { message = "Condition is always True"
             , details = details
             }
             (Node.range node)
