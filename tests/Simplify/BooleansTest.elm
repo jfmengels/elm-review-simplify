@@ -20,6 +20,10 @@ a = True || x
                             , details = [ "REPLACEME" ]
                             , under = "True || x"
                             }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
+"""
                         ]
         , Test.skip <|
             test "should simplify 'True && x' to x" <|

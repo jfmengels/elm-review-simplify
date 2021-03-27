@@ -8,6 +8,7 @@ module Simplify.Booleans exposing (rule)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
+import Review.Fix as Fix
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -56,11 +57,16 @@ expressionVisitor : Node Expression -> List (Rule.Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.OperatorApplication "||" _ left right ->
-            [ Rule.error
+            [ Rule.errorWithFix
                 { message = "REPLACEME"
                 , details = [ "REPLACEME" ]
                 }
                 (Node.range node)
+                [ Fix.removeRange
+                    { start = (Node.range left).end
+                    , end = (Node.range right).end
+                    }
+                ]
             ]
 
         _ ->
