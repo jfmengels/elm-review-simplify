@@ -6,11 +6,11 @@ Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-revi
 
 ## Provided rules
 
-- [`Simplify.Booleans`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplification/1.0.0/Simplify-Booleans) - Reports and fixes conditionals that can be made simpler.
-- [`Simplify.Ifs`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplification/1.0.0/Simplify-Ifs) - Reports and fix unnecessary `if` conditions.
 - [`NoBooleanCaseOf`](https://elm-doc-preview.netlify.app/NoBooleanCaseOf?repo=jfmengels%2Freview-simplification&version=master) - Reports when pattern matching is used for a boolean value.
 - [`NoFullyAppliedPrefixOperator`](https://elm-doc-preview.netlify.app/NoFullyAppliedPrefixOperator?repo=jfmengels%2Freview-simplification&version=master) - Reports when an operator is used as a prefix operator and all the operands are already given.
 - [`NoListLiteralsConcat`](https://elm-doc-preview.netlify.app/NoListLiteralsConcat?repo=jfmengels%2Freview-simplification&version=master) - Reports when an operation on lists could be simplified to a single literal list.
+- [`Simplify.Booleans`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplification/1.0.0/Simplify-Booleans) - Reports and fixes conditionals that can be made simpler.
+- [`Simplify.Ifs`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplification/1.0.0/Simplify-Ifs) - Reports and fix unnecessary `if` conditions.
 
 
 ## Configuration
@@ -28,10 +28,10 @@ import Simplify.Ifs
 config : List Rule
 config =
     [ NoBooleanCaseOf.rule
-    , Simplify.Booleans.rule
-    , Simplify.Ifs.rule
     , NoFullyAppliedPrefixOperator.rule
     , NoListLiteralsConcat.rule
+    , Simplify.Booleans.rule
+    , Simplify.Ifs.rule
     ]
 ```
 
