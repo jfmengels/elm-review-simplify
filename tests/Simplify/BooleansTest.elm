@@ -21,32 +21,34 @@ a = True || x
                             , under = "True || x"
                             }
                         ]
-        , test "should simplify 'True && x' to x" <|
-            \() ->
-                """module A exposing (..)
+        , Test.skip <|
+            test "should simplify 'True && x' to x" <|
+                \() ->
+                    """module A exposing (..)
 a = True && x
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
-                            , under = "True && x"
-                            }
-                        ]
-        , test "should simplify 'False && x' to False" <|
-            \() ->
-                """module A exposing (..)
+                        |> Review.Test.run rule
+                        |> Review.Test.expectErrors
+                            [ Review.Test.error
+                                { message = "REPLACEME"
+                                , details = [ "REPLACEME" ]
+                                , under = "True && x"
+                                }
+                            ]
+        , Test.skip <|
+            test "should simplify 'False && x' to False" <|
+                \() ->
+                    """module A exposing (..)
 a = False && x
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
-                            , under = "False && x"
-                            }
-                        ]
+                        |> Review.Test.run rule
+                        |> Review.Test.expectErrors
+                            [ Review.Test.error
+                                { message = "REPLACEME"
+                                , details = [ "REPLACEME" ]
+                                , under = "False && x"
+                                }
+                            ]
         , test "should simplify 'False || x' to x" <|
             \() ->
                 """module A exposing (..)
