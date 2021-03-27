@@ -65,5 +65,9 @@ a = False || x
                             , details = [ "REPLACEME" ]
                             , under = "False || x"
                             }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
                         ]
         ]

@@ -57,17 +57,40 @@ expressionVisitor : Node Expression -> List (Rule.Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.OperatorApplication "||" _ left right ->
-            [ Rule.errorWithFix
-                { message = "REPLACEME"
-                , details = [ "REPLACEME" ]
-                }
-                (Node.range node)
-                [ Fix.removeRange
-                    { start = (Node.range left).end
-                    , end = (Node.range right).end
+            if isTrue left then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
                     }
+                    (Node.range node)
+                    [ Fix.removeRange
+                        { start = (Node.range left).end
+                        , end = (Node.range right).end
+                        }
+                    ]
                 ]
-            ]
+
+            else
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.removeRange
+                        { start = (Node.range left).start
+                        , end = (Node.range right).start
+                        }
+                    ]
+                ]
 
         _ ->
             []
+
+
+isTrue node =
+    case Node.value node of
+        Expression.FunctionOrValue [] "True" ->
+            True
+
+        _ ->
+            False
