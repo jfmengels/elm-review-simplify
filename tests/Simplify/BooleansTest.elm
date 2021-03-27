@@ -41,6 +41,23 @@ a = True || x
 a = True
 """
                         ]
+        , test "should simplify 'x || True' to x" <|
+            \() ->
+                """module A exposing (..)
+a = x || True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "x || True"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify 'False || x' to x" <|
             \() ->
                 """module A exposing (..)
@@ -52,6 +69,23 @@ a = False || x
                             { message = "REPLACEME"
                             , details = [ "REPLACEME" ]
                             , under = "False || x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should simplify 'x || False' to x" <|
+            \() ->
+                """module A exposing (..)
+a = x || False
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "x || False"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
