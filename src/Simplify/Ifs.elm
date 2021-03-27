@@ -13,29 +13,42 @@ import Review.Fix as Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
 
-{-| Reports... REPLACEME
+{-| Reports unnecessary if conditions, because the branch that will be taken is always the same and can be determined at compile-time.
 
     config =
         [ Simplify.Ifs.rule
         ]
 
+This rule provides an automatic fix to remove the unnecessary condition check and branch.
+
 
 ## Fail
 
     a =
-        "REPLACEME example to replace"
+        if True then
+            1
+
+        else
+            -- Unnecessary branch
+            2
+
+    b =
+        if False then
+            -- Unnecessary branch
+            1
+
+        else
+            2
 
 
 ## Success
 
     a =
-        "REPLACEME example to replace"
+        if condition then
+            1
 
-
-## When (not) to enable this rule
-
-This rule is useful when REPLACEME.
-This rule is not useful when REPLACEME.
+        else
+            2
 
 
 ## Try it out
