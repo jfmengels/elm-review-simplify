@@ -8,14 +8,6 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Simplify.Booleans"
-        [ orTests
-        , andTests
-        ]
-
-
-orTests : Test
-orTests =
-    describe "||"
         [ test "should not report unsimplifiable condition" <|
             \() ->
                 """module A exposing (..)
@@ -24,7 +16,15 @@ b = y && z
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
-        , test "should simplify 'True || x' to True" <|
+        , orTests
+        , andTests
+        ]
+
+
+orTests : Test
+orTests =
+    describe "||"
+        [ test "should simplify 'True || x' to True" <|
             \() ->
                 """module A exposing (..)
 a = True || x
