@@ -58,16 +58,16 @@ expressionVisitor node =
     case Node.value node of
         Expression.OperatorApplication "||" _ left right ->
             List.concat
-                [ isLeftSimplifiableError node left right
-                , isRightSimplifiableError node left right
+                [ or_isLeftSimplifiableError node left right
+                , or_isRightSimplifiableError node left right
                 ]
 
         _ ->
             []
 
 
-isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
-isLeftSimplifiableError node left right =
+or_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
+or_isLeftSimplifiableError node left right =
     if isTrue left then
         [ Rule.errorWithFix
             { message = "REPLACEME"
@@ -98,8 +98,8 @@ isLeftSimplifiableError node left right =
         []
 
 
-isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule.Error {})
-isRightSimplifiableError node left right =
+or_isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule.Error {})
+or_isRightSimplifiableError node left right =
     if isTrue right then
         [ Rule.errorWithFix
             { message = "REPLACEME"
