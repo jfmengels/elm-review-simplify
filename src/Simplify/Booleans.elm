@@ -62,6 +62,12 @@ expressionVisitor node =
                 , or_isRightSimplifiableError node left right
                 ]
 
+        Expression.OperatorApplication "&&" _ left right ->
+            List.concat
+                [ and_isLeftSimplifiableError node left right
+                , and_isRightSimplifiableError node left right
+                ]
+
         _ ->
             []
 
@@ -122,6 +128,70 @@ or_isRightSimplifiableError node left right =
             [ Fix.removeRange
                 { start = (Node.range left).end
                 , end = (Node.range right).end
+                }
+            ]
+        ]
+
+    else
+        []
+
+
+and_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
+and_isLeftSimplifiableError node left right =
+    if isTrue left then
+        [ Rule.errorWithFix
+            { message = "REPLACEME"
+            , details = [ "REPLACEME" ]
+            }
+            (Node.range node)
+            [ Fix.removeRange
+                { start = (Node.range left).start
+                , end = (Node.range right).start
+                }
+            ]
+        ]
+
+    else if isFalse left then
+        [ Rule.errorWithFix
+            { message = "REPLACEME"
+            , details = [ "REPLACEME" ]
+            }
+            (Node.range node)
+            [ Fix.removeRange
+                { start = (Node.range left).end
+                , end = (Node.range right).end
+                }
+            ]
+        ]
+
+    else
+        []
+
+
+and_isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule.Error {})
+and_isRightSimplifiableError node left right =
+    if isTrue right then
+        [ Rule.errorWithFix
+            { message = "REPLACEME"
+            , details = [ "REPLACEME" ]
+            }
+            (Node.range node)
+            [ Fix.removeRange
+                { start = (Node.range left).end
+                , end = (Node.range right).end
+                }
+            ]
+        ]
+
+    else if isFalse right then
+        [ Rule.errorWithFix
+            { message = "REPLACEME"
+            , details = [ "REPLACEME" ]
+            }
+            (Node.range node)
+            [ Fix.removeRange
+                { start = (Node.range left).start
+                , end = (Node.range right).start
                 }
             ]
         ]
