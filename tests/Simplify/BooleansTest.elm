@@ -288,4 +288,21 @@ a = x /= x
 a = False
 """
                         ]
+        , test "should simplify more complex calls (function call and lambda)" <|
+            \() ->
+                """module A exposing (..)
+a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "List.map (\\a -> a.value) things == List.map (\\a -> a.value) things"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
+"""
+                        ]
         ]

@@ -8,6 +8,7 @@ module Simplify.Booleans exposing (rule)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range
 import Review.Fix as Fix
 import Review.Rule as Rule exposing (Rule)
@@ -286,23 +287,23 @@ normalize node =
             normalize expr
 
         Expression.Application nodes ->
-            Node Range.emptyRange (Expression.Application (List.map normalize nodes))
+            toNode (Expression.Application (List.map normalize nodes))
 
         Expression.OperatorApplication string infixDirection left right ->
-            Node Range.emptyRange (Expression.OperatorApplication string infixDirection (normalize left) (normalize right))
+            toNode (Expression.OperatorApplication string infixDirection (normalize left) (normalize right))
 
         Expression.FunctionOrValue moduleName string ->
             -- TODO Normalize module name
-            Node Range.emptyRange (Expression.FunctionOrValue moduleName string)
+            toNode (Expression.FunctionOrValue moduleName string)
 
         Expression.IfBlock cond then_ else_ ->
-            Node Range.emptyRange (Expression.IfBlock (normalize cond) (normalize then_) (normalize else_))
+            toNode (Expression.IfBlock (normalize cond) (normalize then_) (normalize else_))
 
         Expression.Negation expr ->
-            Node Range.emptyRange (Expression.Negation (normalize expr))
+            toNode (Expression.Negation (normalize expr))
 
         Expression.TupledExpression nodes ->
-            Node Range.emptyRange (Expression.TupledExpression (List.map normalize nodes))
+            toNode (Expression.TupledExpression (List.map normalize nodes))
 
         Expression.LetExpression letBlock ->
             -- TODO
@@ -313,25 +314,62 @@ normalize node =
             node
 
         Expression.LambdaExpression lambda ->
-            -- TODO
-            node
+            toNode
+                (Expression.LambdaExpression
+                    { args = List.map normalizePattern lambda.args
+                    , expression = normalize lambda.expression
+                    }
+                )
 
         Expression.RecordExpr nodes ->
             -- TODO
             node
 
         Expression.ListExpr nodes ->
-            Node Range.emptyRange (Expression.ListExpr (List.map normalize nodes))
+            toNode (Expression.ListExpr (List.map normalize nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
-            Node Range.emptyRange (Expression.RecordAccess expr (Node Range.emptyRange field))
+            toNode (Expression.RecordAccess expr (toNode field))
 
         Expression.RecordUpdateExpression value nodes ->
             -- TODO
             node
 
         expr ->
-            Node Range.emptyRange expr
+            toNode expr
+
+
+normalizePattern : Node Pattern -> Node Pattern
+normalizePattern node =
+    case Node.value node of
+        Pattern.TuplePattern patterns ->
+            toNode (Pattern.TuplePattern (List.map normalizePattern patterns))
+
+        Pattern.RecordPattern fields ->
+            toNode (Pattern.RecordPattern (List.map (\(Node _ field) -> toNode field) fields))
+
+        Pattern.UnConsPattern element list ->
+            toNode (Pattern.UnConsPattern (normalizePattern element) (normalizePattern list))
+
+        Pattern.ListPattern patterns ->
+            toNode (Pattern.ListPattern (List.map normalizePattern patterns))
+
+        Pattern.NamedPattern qualifiedNameRef patterns ->
+            toNode (Pattern.NamedPattern qualifiedNameRef (List.map normalizePattern patterns))
+
+        Pattern.AsPattern pattern (Node _ asName) ->
+            toNode (Pattern.AsPattern (normalizePattern pattern) (toNode asName))
+
+        Pattern.ParenthesizedPattern pattern ->
+            normalizePattern pattern
+
+        pattern ->
+            toNode pattern
+
+
+toNode : a -> Node a
+toNode =
+    Node Range.emptyRange
 
 
 sameThingOnBothSidesDetails : Bool -> List String
