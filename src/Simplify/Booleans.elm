@@ -285,6 +285,51 @@ normalize node =
         Expression.ParenthesizedExpression expr ->
             normalize expr
 
+        Expression.Application nodes ->
+            Node Range.emptyRange (Expression.Application (List.map normalize nodes))
+
+        Expression.OperatorApplication string infixDirection left right ->
+            Node Range.emptyRange (Expression.OperatorApplication string infixDirection (normalize left) (normalize right))
+
+        Expression.FunctionOrValue moduleName string ->
+            -- TODO Normalize module name
+            Node Range.emptyRange (Expression.FunctionOrValue moduleName string)
+
+        Expression.IfBlock cond then_ else_ ->
+            Node Range.emptyRange (Expression.IfBlock (normalize cond) (normalize then_) (normalize else_))
+
+        Expression.Negation expr ->
+            Node Range.emptyRange (Expression.Negation (normalize expr))
+
+        Expression.TupledExpression nodes ->
+            Node Range.emptyRange (Expression.TupledExpression (List.map normalize nodes))
+
+        Expression.LetExpression letBlock ->
+            -- TODO
+            node
+
+        Expression.CaseExpression caseBlock ->
+            -- TODO
+            node
+
+        Expression.LambdaExpression lambda ->
+            -- TODO
+            node
+
+        Expression.RecordExpr nodes ->
+            -- TODO
+            node
+
+        Expression.ListExpr nodes ->
+            Node Range.emptyRange (Expression.ListExpr (List.map normalize nodes))
+
+        Expression.RecordAccess expr (Node _ field) ->
+            Node Range.emptyRange (Expression.RecordAccess expr (Node Range.emptyRange field))
+
+        Expression.RecordUpdateExpression value nodes ->
+            -- TODO
+            node
+
         expr ->
             Node Range.emptyRange expr
 
