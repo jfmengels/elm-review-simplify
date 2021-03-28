@@ -7,7 +7,8 @@ module Simplify.Booleans exposing (rule)
 -}
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.Node as Node exposing (Node)
+import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Range as Range
 import Review.Fix as Fix
 import Review.Rule as Rule exposing (Rule)
 
@@ -275,7 +276,17 @@ unnecessaryDetails =
 
 areTheSame : Node Expression -> Node Expression -> Bool
 areTheSame left right =
-    Node.value left == Node.value right
+    Node.value (normalize left) == Node.value (normalize right)
+
+
+normalize : Node Expression -> Node Expression
+normalize node =
+    case Node.value node of
+        Expression.ParenthesizedExpression expr ->
+            normalize expr
+
+        _ ->
+            node
 
 
 sameThingOnBothSidesDetails : Bool -> List String
