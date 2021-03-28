@@ -230,7 +230,14 @@ a = False
 sameThingOnBothSidesTests : Test
 sameThingOnBothSidesTests =
     describe "Same thing on both sides"
-        [ test "should simplify x == x to True" <|
+        [ test "should not simplify values that can't be determined" <|
+            \() ->
+                """module A exposing (..)
+a = x == y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify x == x to True" <|
             \() ->
                 """module A exposing (..)
 a = x == x
