@@ -285,8 +285,8 @@ normalize node =
         Expression.ParenthesizedExpression expr ->
             normalize expr
 
-        _ ->
-            node
+        expr ->
+            Node Range.emptyRange expr
 
 
 sameThingOnBothSidesDetails : Bool -> List String
