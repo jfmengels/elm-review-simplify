@@ -254,4 +254,21 @@ a = x == x
 a = True
 """
                         ]
+        , test "should simplify x /= x to False" <|
+            \() ->
+                """module A exposing (..)
+a = x /= x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "x /= x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
         ]
