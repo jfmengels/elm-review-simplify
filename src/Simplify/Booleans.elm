@@ -84,6 +84,20 @@ expressionVisitor node =
             else
                 []
 
+        Expression.OperatorApplication "/=" _ left right ->
+            if areTheSame left right then
+                [ Rule.errorWithFix
+                    { message = "Condition is always False"
+                    , details = sameThingOnBothSidesDetails False
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "False"
+                    ]
+                ]
+
+            else
+                []
+
         _ ->
             []
 
