@@ -71,14 +71,18 @@ expressionVisitor node =
                 ]
 
         Expression.OperatorApplication "==" _ left right ->
-            [ Rule.errorWithFix
-                { message = "Condition is always True"
-                , details = sameThingOnBothSidesDetails True
-                }
-                (Node.range node)
-                [ Fix.replaceRangeBy (Node.range node) "True"
+            if areTheSame left right then
+                [ Rule.errorWithFix
+                    { message = "Condition is always True"
+                    , details = sameThingOnBothSidesDetails True
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "True"
+                    ]
                 ]
-            ]
+
+            else
+                []
 
         _ ->
             []
@@ -253,6 +257,11 @@ unnecessaryDetails : List String
 unnecessaryDetails =
     [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
     ]
+
+
+areTheSame : Node Expression -> Node Expression -> Bool
+areTheSame left right =
+    Node.value left == Node.value right
 
 
 sameThingOnBothSidesDetails : Bool -> List String
