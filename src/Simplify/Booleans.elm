@@ -276,7 +276,7 @@ unnecessaryDetails =
 
 areTheSame : Node Expression -> Node Expression -> Bool
 areTheSame left right =
-    Node.value (normalize left) == Node.value (normalize right)
+    normalize left == normalize right
 
 
 normalize : Node Expression -> Node Expression
