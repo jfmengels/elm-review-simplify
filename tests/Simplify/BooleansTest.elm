@@ -22,6 +22,12 @@ unnecessaryDetails =
     ]
 
 
+sameThingOnBothSidesDetails : String -> List String
+sameThingOnBothSidesDetails value =
+    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ value ++ "."
+    ]
+
+
 all : Test
 all =
     describe "Simplify.Booleans"
@@ -35,6 +41,7 @@ b = y && z
                     |> Review.Test.expectNoErrors
         , orTests
         , andTests
+        , sameThingOnBothSidesTests
         ]
 
 
@@ -215,6 +222,29 @@ a = x && False
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
 a = False
+"""
+                        ]
+        ]
+
+
+sameThingOnBothSidesTests : Test
+sameThingOnBothSidesTests =
+    describe "Same thing on both sides"
+        [ test "should simplify x == x to True" <|
+            \() ->
+                """module A exposing (..)
+a = x == x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "x == x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
 """
                         ]
         ]
