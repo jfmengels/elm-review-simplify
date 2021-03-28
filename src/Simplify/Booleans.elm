@@ -70,6 +70,16 @@ expressionVisitor node =
                 , and_isRightSimplifiableError node left right
                 ]
 
+        Expression.OperatorApplication "==" _ left right ->
+            [ Rule.errorWithFix
+                { message = "Condition is always True"
+                , details = sameThingOnBothSidesDetails True
+                }
+                (Node.range node)
+                [ Fix.replaceRangeBy (Node.range node) "True"
+                ]
+            ]
+
         _ ->
             []
 
@@ -242,4 +252,19 @@ unnecessaryMessage =
 unnecessaryDetails : List String
 unnecessaryDetails =
     [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
+    ]
+
+
+sameThingOnBothSidesDetails : Bool -> List String
+sameThingOnBothSidesDetails computedResult =
+    let
+        computedResultString : String
+        computedResultString =
+            if computedResult then
+                "True"
+
+            else
+                "False"
+    in
+    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ computedResultString ++ "."
     ]
