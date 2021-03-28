@@ -329,7 +329,7 @@ normalize node =
             toNode (Expression.ListExpr (List.map normalize nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
-            toNode (Expression.RecordAccess expr (toNode field))
+            toNode (Expression.RecordAccess (normalize expr) (toNode field))
 
         Expression.RecordUpdateExpression value nodes ->
             -- TODO
