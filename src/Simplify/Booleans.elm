@@ -306,8 +306,38 @@ normalize node =
             toNode (Expression.TupledExpression (List.map normalize nodes))
 
         Expression.LetExpression letBlock ->
-            -- TODO
-            node
+            toNode
+                (Expression.LetExpression
+                    { declarations =
+                        List.map
+                            (\decl ->
+                                case Node.value decl of
+                                    Expression.LetFunction function ->
+                                        let
+                                            declaration : Expression.FunctionImplementation
+                                            declaration =
+                                                Node.value function.declaration
+                                        in
+                                        toNode
+                                            (Expression.LetFunction
+                                                { documentation = Nothing
+                                                , signature = Nothing
+                                                , declaration =
+                                                    toNode
+                                                        { name = toNode (Node.value declaration.name)
+                                                        , arguments = List.map normalizePattern declaration.arguments
+                                                        , expression = normalize declaration.expression
+                                                        }
+                                                }
+                                            )
+
+                                    Expression.LetDestructuring pattern expr ->
+                                        toNode (Expression.LetDestructuring (normalizePattern pattern) (normalize expr))
+                            )
+                            letBlock.declarations
+                    , expression = normalize letBlock.expression
+                    }
+                )
 
         Expression.CaseExpression caseBlock ->
             -- TODO
