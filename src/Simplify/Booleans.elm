@@ -88,7 +88,7 @@ expressionVisitor node { lookupTable } =
                 ]
 
         Expression.OperatorApplication "==" _ left right ->
-            if areTheSame left right then
+            if areTheSame lookupTable left right then
                 [ Rule.errorWithFix
                     { message = "Condition is always True"
                     , details = sameThingOnBothSidesDetails True
@@ -102,7 +102,7 @@ expressionVisitor node { lookupTable } =
                 []
 
         Expression.OperatorApplication "/=" _ left right ->
-            if areTheSame left right then
+            if areTheSame lookupTable left right then
                 [ Rule.errorWithFix
                     { message = "Condition is always False"
                     , details = sameThingOnBothSidesDetails False
@@ -290,35 +290,35 @@ unnecessaryDetails =
     ]
 
 
-areTheSame : Node Expression -> Node Expression -> Bool
-areTheSame left right =
-    normalize left == normalize right
+areTheSame : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool
+areTheSame lookupTable left right =
+    normalize lookupTable left == normalize lookupTable right
 
 
-normalize : Node Expression -> Node Expression
-normalize node =
+normalize : ModuleNameLookupTable -> Node Expression -> Node Expression
+normalize lookupTable node =
     case Node.value node of
         Expression.ParenthesizedExpression expr ->
-            normalize expr
+            normalize lookupTable expr
 
         Expression.Application nodes ->
-            toNode (Expression.Application (List.map normalize nodes))
+            toNode (Expression.Application (List.map (normalize lookupTable) nodes))
 
         Expression.OperatorApplication string infixDirection left right ->
-            toNode (Expression.OperatorApplication string infixDirection (normalize left) (normalize right))
+            toNode (Expression.OperatorApplication string infixDirection (normalize lookupTable left) (normalize lookupTable right))
 
         Expression.FunctionOrValue moduleName string ->
             -- TODO Normalize module name
             toNode (Expression.FunctionOrValue moduleName string)
 
         Expression.IfBlock cond then_ else_ ->
-            toNode (Expression.IfBlock (normalize cond) (normalize then_) (normalize else_))
+            toNode (Expression.IfBlock (normalize lookupTable cond) (normalize lookupTable then_) (normalize lookupTable else_))
 
         Expression.Negation expr ->
-            toNode (Expression.Negation (normalize expr))
+            toNode (Expression.Negation (normalize lookupTable expr))
 
         Expression.TupledExpression nodes ->
-            toNode (Expression.TupledExpression (List.map normalize nodes))
+            toNode (Expression.TupledExpression (List.map (normalize lookupTable) nodes))
 
         Expression.LetExpression letBlock ->
             toNode
@@ -341,16 +341,16 @@ normalize node =
                                                     toNode
                                                         { name = toNode (Node.value declaration.name)
                                                         , arguments = List.map normalizePattern declaration.arguments
-                                                        , expression = normalize declaration.expression
+                                                        , expression = normalize lookupTable declaration.expression
                                                         }
                                                 }
                                             )
 
                                     Expression.LetDestructuring pattern expr ->
-                                        toNode (Expression.LetDestructuring (normalizePattern pattern) (normalize expr))
+                                        toNode (Expression.LetDestructuring (normalizePattern pattern) (normalize lookupTable expr))
                             )
                             letBlock.declarations
-                    , expression = normalize letBlock.expression
+                    , expression = normalize lookupTable letBlock.expression
                     }
                 )
 
@@ -362,7 +362,7 @@ normalize node =
             toNode
                 (Expression.LambdaExpression
                     { args = List.map normalizePattern lambda.args
-                    , expression = normalize lambda.expression
+                    , expression = normalize lookupTable lambda.expression
                     }
                 )
 
@@ -371,10 +371,10 @@ normalize node =
             node
 
         Expression.ListExpr nodes ->
-            toNode (Expression.ListExpr (List.map normalize nodes))
+            toNode (Expression.ListExpr (List.map (normalize lookupTable) nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
-            toNode (Expression.RecordAccess (normalize expr) (toNode field))
+            toNode (Expression.RecordAccess (normalize lookupTable expr) (toNode field))
 
         Expression.RecordUpdateExpression value nodes ->
             -- TODO
