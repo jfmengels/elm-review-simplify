@@ -11,6 +11,7 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range
 import Review.Fix as Fix
+import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -52,13 +53,27 @@ elm-review --template jfmengels/elm-review-simplification/example --rules Simpli
 -}
 rule : Rule
 rule =
-    Rule.newModuleRuleSchema "Simplify.Booleans" ()
-        |> Rule.withSimpleExpressionVisitor expressionVisitor
+    Rule.newModuleRuleSchemaUsingContextCreator "Simplify.Booleans" initialContext
+        |> Rule.withExpressionEnterVisitor (\node context -> ( expressionVisitor node context, context ))
         |> Rule.fromModuleRuleSchema
 
 
-expressionVisitor : Node Expression -> List (Rule.Error {})
-expressionVisitor node =
+type alias Context =
+    { lookupTable : ModuleNameLookupTable
+    }
+
+
+initialContext : Rule.ContextCreator () Context
+initialContext =
+    Rule.initContextCreator
+        (\lookupTable () ->
+            { lookupTable = lookupTable }
+        )
+        |> Rule.withModuleNameLookupTable
+
+
+expressionVisitor : Node Expression -> Context -> List (Rule.Error {})
+expressionVisitor node { lookupTable } =
     case Node.value node of
         Expression.OperatorApplication "||" _ left right ->
             List.concat
