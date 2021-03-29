@@ -305,4 +305,27 @@ a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
 a = True
 """
                         ]
+        , test "should normalize module names" <|
+            \() ->
+                [ """module A exposing (..)
+import B exposing (b)
+a = B.b == b
+""", """module Other exposing (..)
+b = 1
+""" ]
+                    |> Review.Test.runOnModules rule
+                    |> Review.Test.expectErrorsForModules
+                        [ ( "A"
+                          , [ Review.Test.error
+                                { message = "Condition is always True"
+                                , details = sameThingOnBothSidesDetails "True"
+                                , under = "B.b == b"
+                                }
+                                |> Review.Test.whenFixed
+                                    """module A exposing (..)
+a = True
+"""
+                            ]
+                          )
+                        ]
         ]
