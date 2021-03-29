@@ -323,6 +323,7 @@ b = 1
                                 }
                                 |> Review.Test.whenFixed
                                     """module A exposing (..)
+import B exposing (b)
 a = True
 """
                             ]

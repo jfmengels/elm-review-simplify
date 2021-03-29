@@ -7,11 +7,12 @@ module Simplify.Booleans exposing (rule)
 -}
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range
 import Review.Fix as Fix
-import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Rule)
 
 
@@ -307,8 +308,13 @@ normalize lookupTable node =
         Expression.OperatorApplication string infixDirection left right ->
             toNode (Expression.OperatorApplication string infixDirection (normalize lookupTable left) (normalize lookupTable right))
 
-        Expression.FunctionOrValue moduleName string ->
-            -- TODO Normalize module name
+        Expression.FunctionOrValue rawModuleName string ->
+            let
+                moduleName : ModuleName
+                moduleName =
+                    ModuleNameLookupTable.moduleNameFor lookupTable node
+                        |> Maybe.withDefault rawModuleName
+            in
             toNode (Expression.FunctionOrValue moduleName string)
 
         Expression.IfBlock cond then_ else_ ->
