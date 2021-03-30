@@ -376,17 +376,17 @@ normalize lookupTable node =
                     }
                 )
 
-        Expression.RecordExpr nodes ->
-            nodes
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
-                |> Expression.RecordExpr
-                |> toNode
-
         Expression.ListExpr nodes ->
             toNode (Expression.ListExpr (List.map (normalize lookupTable) nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
             toNode (Expression.RecordAccess (normalize lookupTable expr) (toNode field))
+
+        Expression.RecordExpr nodes ->
+            nodes
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
+                |> Expression.RecordExpr
+                |> toNode
 
         Expression.RecordUpdateExpression value nodes ->
             -- TODO
