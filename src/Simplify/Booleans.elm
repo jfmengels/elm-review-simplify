@@ -388,9 +388,11 @@ normalize lookupTable node =
                 |> Expression.RecordExpr
                 |> toNode
 
-        Expression.RecordUpdateExpression value nodes ->
-            -- TODO
-            node
+        Expression.RecordUpdateExpression (Node _ value) nodes ->
+            nodes
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
+                |> Expression.RecordUpdateExpression (toNode value)
+                |> toNode
 
         expr ->
             toNode expr
