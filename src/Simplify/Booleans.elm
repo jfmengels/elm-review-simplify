@@ -361,8 +361,12 @@ normalize lookupTable node =
                 )
 
         Expression.CaseExpression caseBlock ->
-            -- TODO
-            node
+            toNode
+                (Expression.CaseExpression
+                    { cases = List.map (\( pattern, expr ) -> ( normalizePattern pattern, normalize lookupTable expr )) caseBlock.cases
+                    , expression = toNode <| Node.value caseBlock.expression
+                    }
+                )
 
         Expression.LambdaExpression lambda ->
             toNode
