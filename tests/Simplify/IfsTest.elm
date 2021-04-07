@@ -79,4 +79,20 @@ a = if condition then False else True
 a = not (condition)
 """
                         ]
+        , test "should replace the expression by the branch if both branches have the same value" <|
+            \() ->
+                """module A exposing (..)
+a = if condition then x else x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The values in both branches is the same."
+                            , details = [ "The expression can be replaced by the contents of either branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]

@@ -10,7 +10,9 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
 import Elm.Syntax.Range exposing (Range)
 import Review.Fix as Fix
+import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Error, Rule)
+import Simplify.Normalize as Normalize
 
 
 {-| Reports and fixes unnecessary `if` conditions, because the branch that will be taken is always the same and can be determined at compile-time.
@@ -60,13 +62,19 @@ elm-review --template jfmengels/elm-review-simplification/example --rules Simpli
 -}
 rule : Rule
 rule =
-    Rule.newModuleRuleSchema "Simplify.Ifs" ()
-        |> Rule.withSimpleExpressionVisitor expressionVisitor
+    Rule.newModuleRuleSchemaUsingContextCreator "Simplify.Ifs" initialContext
+        |> Rule.withExpressionEnterVisitor (\node lookupTable -> ( expressionVisitor node lookupTable, lookupTable ))
         |> Rule.fromModuleRuleSchema
 
 
-expressionVisitor : Node Expression -> List (Error {})
-expressionVisitor node =
+initialContext : Rule.ContextCreator () ModuleNameLookupTable
+initialContext =
+    Rule.initContextCreator (\lookupTable () -> lookupTable)
+        |> Rule.withModuleNameLookupTable
+
+
+expressionVisitor : Node Expression -> ModuleNameLookupTable -> List (Error {})
+expressionVisitor node lookupTable =
     case Node.value node of
         Expression.IfBlock cond trueBranch falseBranch ->
             case Node.value cond of
@@ -139,7 +147,25 @@ expressionVisitor node =
                             ]
 
                         _ ->
-                            []
+                            if Normalize.areTheSame lookupTable trueBranch falseBranch then
+                                [ Rule.errorWithFix
+                                    { message = "The values in both branches is the same."
+                                    , details = [ "The expression can be replaced by the contents of either branch." ]
+                                    }
+                                    (targetIf node)
+                                    [ Fix.removeRange
+                                        { start = (Node.range node).start
+                                        , end = (Node.range trueBranch).start
+                                        }
+                                    , Fix.removeRange
+                                        { start = (Node.range trueBranch).end
+                                        , end = (Node.range node).end
+                                        }
+                                    ]
+                                ]
+
+                            else
+                                []
 
         _ ->
             []
