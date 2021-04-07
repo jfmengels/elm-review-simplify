@@ -40,4 +40,11 @@ a = if False then 1 else 2
 a = 2
 """
                         ]
+        , test "should not remove anything if the condition is not statically knowable" <|
+            \() ->
+                """module A exposing (..)
+a = if condition then 1 else 2
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
         ]
