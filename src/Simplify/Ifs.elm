@@ -119,6 +119,25 @@ expressionVisitor node =
                                 ]
                             ]
 
+                        ( Expression.FunctionOrValue [] "False", Expression.FunctionOrValue [] "True" ) ->
+                            [ Rule.errorWithFix
+                                { message = "The if expression's value is the inverse of the condition"
+                                , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                                }
+                                (targetIf node)
+                                [ Fix.replaceRangeBy
+                                    { start = (Node.range node).start
+                                    , end = (Node.range cond).start
+                                    }
+                                    "not ("
+                                , Fix.replaceRangeBy
+                                    { start = (Node.range cond).end
+                                    , end = (Node.range node).end
+                                    }
+                                    ")"
+                                ]
+                            ]
+
                         _ ->
                             []
 

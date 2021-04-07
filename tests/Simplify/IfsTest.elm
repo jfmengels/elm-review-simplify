@@ -63,4 +63,20 @@ a = if condition then True else False
 a = condition
 """
                         ]
+        , test "should only keep the negated condition if then is False and else is True" <|
+            \() ->
+                """module A exposing (..)
+a = if condition then False else True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The if expression's value is the inverse of the condition"
+                            , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (condition)
+"""
+                        ]
         ]
