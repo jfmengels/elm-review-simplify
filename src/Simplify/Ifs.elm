@@ -101,7 +101,26 @@ expressionVisitor node =
                     ]
 
                 _ ->
-                    []
+                    case ( Node.value trueBranch, Node.value falseBranch ) of
+                        ( Expression.FunctionOrValue [] "True", Expression.FunctionOrValue [] "False" ) ->
+                            [ Rule.errorWithFix
+                                { message = "The if expression's value is the same as the condition"
+                                , details = [ "The expression can be replaced by the condition." ]
+                                }
+                                (targetIf node)
+                                [ Fix.removeRange
+                                    { start = (Node.range node).start
+                                    , end = (Node.range cond).start
+                                    }
+                                , Fix.removeRange
+                                    { start = (Node.range cond).end
+                                    , end = (Node.range node).end
+                                    }
+                                ]
+                            ]
+
+                        _ ->
+                            []
 
         _ ->
             []

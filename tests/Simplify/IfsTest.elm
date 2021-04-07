@@ -47,4 +47,20 @@ a = if condition then 1 else 2
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        , test "should only keep the condition if then is True and else is False" <|
+            \() ->
+                """module A exposing (..)
+a = if condition then True else False
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The if expression's value is the same as the condition"
+                            , details = [ "The expression can be replaced by the condition." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = condition
+"""
+                        ]
         ]
