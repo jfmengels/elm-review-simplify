@@ -243,14 +243,58 @@ expressionVisitor node =
             else
                 []
 
-        Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
+        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
             [ Rule.errorWithFix
                 { message = "Using List.filter on an empty list will results in a empty list"
                 , details = [ "You can replace this call by en empty list" ]
                 }
-                listMapRange
+                listFn
                 [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
             ]
+
+        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filter")) :: firstArg :: restOfArgs) ->
+            case isAlways firstArg of
+                Just True ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
+                        , details = [ "You can remove this call and replace it by the list itself" ]
+                        }
+                        listFn
+                        [ case restOfArgs of
+                            [] ->
+                                Review.Fix.replaceRangeBy
+                                    (Node.range node)
+                                    "identity"
+
+                            listArg :: _ ->
+                                Review.Fix.removeRange
+                                    { start = listFn.start
+                                    , end = (Node.range listArg).start
+                                    }
+                        ]
+                    ]
+
+                Just False ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filter with a function that will always return False will result in an empty list"
+                        , details = [ "You can remove this call and replace it by an empty list" ]
+                        }
+                        listFn
+                        [ case restOfArgs of
+                            [] ->
+                                Review.Fix.replaceRangeBy
+                                    (Node.range node)
+                                    "(always [])"
+
+                            _ ->
+                                Review.Fix.replaceRangeBy
+                                    (Node.range node)
+                                    "[]"
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
         _ ->
             []
@@ -341,3 +385,44 @@ isListLiteral node =
 
         _ ->
             False
+
+
+isAlways : Node Expression -> Maybe Bool
+isAlways node =
+    case Node.value node of
+        Expression.Application ((Node _ (Expression.FunctionOrValue [] "always")) :: boolean :: []) ->
+            getBoolean boolean
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: boolean :: []) ->
+            getBoolean boolean
+
+        Expression.LambdaExpression { expression } ->
+            Nothing
+
+        Expression.ParenthesizedExpression expr ->
+            isAlways expr
+
+        _ ->
+            Nothing
+
+
+getBoolean : Node Expression -> Maybe Bool
+getBoolean node =
+    case Node.value node of
+        Expression.FunctionOrValue [] "True" ->
+            Just True
+
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            Just True
+
+        Expression.FunctionOrValue [] "False" ->
+            Just False
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            Just False
+
+        Expression.ParenthesizedExpression expr ->
+            getBoolean expr
+
+        _ ->
+            Nothing

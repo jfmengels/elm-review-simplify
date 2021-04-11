@@ -354,10 +354,26 @@ a = List.filter (always True) x
 a = x
 """
                         ]
+        , test "should replace List.filter (always True) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter (always True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         , test "should replace List.filter (always False) x by []" <|
             \() ->
                 """module A exposing (..)
-a = List.filter (always False) []
+a = List.filter (always False) x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -368,6 +384,22 @@ a = List.filter (always False) []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.filter (always False) by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
 """
                         ]
         ]
