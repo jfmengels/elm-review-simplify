@@ -12,6 +12,7 @@ all =
         , usingConsTests
         , usingListConcatTests
         , listConcatMapIdentityTests
+        , listMapIdentityTests
         ]
 
 
@@ -246,4 +247,33 @@ a = List.concatMap f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        ]
+
+
+listMapIdentityTests : Test
+listMapIdentityTests =
+    describe "Using List.map"
+        [ test "should not report List.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.map fn x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.map f [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map fn []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map on an empty list will results in a empty list"
+                            , details = [ "You can replace this call by en empty list" ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         ]
