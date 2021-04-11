@@ -9,6 +9,9 @@ all : Test
 all =
     describe "NoListLiteralsConcat"
         [ usingPlusPlusTests
+        , usingConsTests
+        , usingListConcatTests
+        , listConcatMapIdentityTests
         ]
 
 
@@ -98,7 +101,13 @@ a = something ++ []
 a = something
 """
                         ]
-        , test "should not report using :: to a variable or expression" <|
+        ]
+
+
+usingConsTests : Test
+usingConsTests =
+    describe "Using (::)"
+        [ test "should not report using :: to a variable or expression" <|
             \() ->
                 """module A exposing (..)
 a = 1 :: list
@@ -122,7 +131,13 @@ a = 1 :: [ 2, 3]
 a = [ 1, 2, 3]
 """
                         ]
-        , test "should not report List.concat that contains a variable or expression" <|
+        ]
+
+
+usingListConcatTests : Test
+usingListConcatTests =
+    describe "Using List.concat"
+        [ test "should not report List.concat that contains a variable or expression" <|
             \() ->
                 """module A exposing (..)
 a = List.concat [ foo, bar ]
@@ -179,7 +194,13 @@ a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
 a =  [  1, 2, 3 ,  4, 5, 6 ]
 """
                         ]
-        , test "should replace List.concatMap identity by List.concat" <|
+        ]
+
+
+listConcatMapIdentityTests : Test
+listConcatMapIdentityTests =
+    describe "Using List.concatMap"
+        [ test "should replace List.concatMap identity by List.concat" <|
             \() ->
                 """module A exposing (..)
 a = List.concatMap identity x
