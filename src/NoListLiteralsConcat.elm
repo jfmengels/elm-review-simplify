@@ -93,6 +93,16 @@ error range rangeLeft rangeRight =
         ]
 
 
+errorForAddingEmptyLists : Range -> Range -> Error {}
+errorForAddingEmptyLists range rangeToRemove =
+    Rule.errorWithFix
+        { message = "Concatenating with a single list doesn't have any effect"
+        , details = [ "You should remove the concatenation with the empty list." ]
+        }
+        range
+        [ Review.Fix.removeRange rangeToRemove ]
+
+
 error2 : Range -> Error {}
 error2 range =
     Rule.error
@@ -105,11 +115,19 @@ error2 range =
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
-        Expression.OperatorApplication "++" _ (Node.Node range (Expression.ListExpr [])) _ ->
-            [ error2 range ]
+        Expression.OperatorApplication "++" _ (Node.Node range (Expression.ListExpr [])) other ->
+            [ errorForAddingEmptyLists range
+                { start = range.start
+                , end = (Node.range other).start
+                }
+            ]
 
-        Expression.OperatorApplication "++" _ _ (Node.Node range (Expression.ListExpr [])) ->
-            [ error2 range ]
+        Expression.OperatorApplication "++" _ other (Node.Node range (Expression.ListExpr [])) ->
+            [ errorForAddingEmptyLists range
+                { start = (Node.range other).end
+                , end = range.end
+                }
+            ]
 
         Expression.OperatorApplication "++" _ (Node.Node rangeLeft (Expression.ListExpr _)) (Node.Node rangeRight (Expression.ListExpr _)) ->
             [ error (Node.range node) rangeLeft rangeRight ]

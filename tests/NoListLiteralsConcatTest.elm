@@ -74,10 +74,13 @@ a = [] ++ something
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Concatenating with a single list doesn't have any effect"
+                            , details = [ "You should remove the concatenation with the empty list." ]
                             , under = "[]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = something
+"""
                         ]
         , test "should report concatenating something and an empty list" <|
             \() ->
@@ -87,10 +90,13 @@ a = something ++ []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Concatenating with a single list doesn't have any effect"
+                            , details = [ "You should remove the concatenation with the empty list." ]
                             , under = "[]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = something
+"""
                         ]
         , test "should not report using :: to a variable or expression" <|
             \() ->
