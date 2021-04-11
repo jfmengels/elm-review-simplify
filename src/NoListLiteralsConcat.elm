@@ -7,7 +7,7 @@ module NoListLiteralsConcat exposing (rule)
 -}
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.Node as Node exposing (Node)
+import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Range exposing (Range)
 import Review.Fix exposing (Fix)
 import Review.Rule as Rule exposing (Error, Rule)
@@ -91,21 +91,21 @@ errorForAddingEmptyLists range rangeToRemove =
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
-        Expression.OperatorApplication "++" _ (Node.Node range (Expression.ListExpr [])) other ->
+        Expression.OperatorApplication "++" _ (Node range (Expression.ListExpr [])) other ->
             [ errorForAddingEmptyLists range
                 { start = range.start
                 , end = (Node.range other).start
                 }
             ]
 
-        Expression.OperatorApplication "++" _ other (Node.Node range (Expression.ListExpr [])) ->
+        Expression.OperatorApplication "++" _ other (Node range (Expression.ListExpr [])) ->
             [ errorForAddingEmptyLists range
                 { start = (Node.range other).end
                 , end = range.end
                 }
             ]
 
-        Expression.OperatorApplication "++" _ (Node.Node rangeLeft (Expression.ListExpr _)) (Node.Node rangeRight (Expression.ListExpr _)) ->
+        Expression.OperatorApplication "++" _ (Node rangeLeft (Expression.ListExpr _)) (Node rangeRight (Expression.ListExpr _)) ->
             [ Rule.errorWithFix
                 { message = "Expression could be simplified to be a single List"
                 , details = [ "Try moving all the elements into a single list." ]
@@ -119,7 +119,7 @@ expressionVisitor node =
                 ]
             ]
 
-        Expression.OperatorApplication "::" _ (Node.Node rangeLeft _) (Node.Node rangeRight (Expression.ListExpr _)) ->
+        Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr _)) ->
             [ Rule.errorWithFix
                 { message = "Element added to the beginning of the list could be included in the list"
                 , details = [ "Try moving the element inside single list." ]
@@ -134,7 +134,7 @@ expressionVisitor node =
                 ]
             ]
 
-        Expression.Application [ Node.Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
+        Expression.Application [ Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concat"), Node _ (Expression.ListExpr list) ] ->
             case list of
                 [] ->
                     [ Rule.errorWithFix
@@ -148,7 +148,7 @@ expressionVisitor node =
                         ]
                     ]
 
-                [ Node.Node elementRange _ ] ->
+                [ Node elementRange _ ] ->
                     let
                         parentRange : Range
                         parentRange =
