@@ -78,21 +78,6 @@ rule =
         |> Rule.fromModuleRuleSchema
 
 
-error : Range -> Range -> Range -> Error {}
-error range rangeLeft rangeRight =
-    Rule.errorWithFix
-        { message = "Expression could be simplified to be a single List"
-        , details = [ "Try moving all the elements into a single list." ]
-        }
-        range
-        [ Review.Fix.replaceRangeBy
-            { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
-            , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
-            }
-            ","
-        ]
-
-
 errorForAddingEmptyLists : Range -> Range -> Error {}
 errorForAddingEmptyLists range rangeToRemove =
     Rule.errorWithFix
@@ -130,7 +115,18 @@ expressionVisitor node =
             ]
 
         Expression.OperatorApplication "++" _ (Node.Node rangeLeft (Expression.ListExpr _)) (Node.Node rangeRight (Expression.ListExpr _)) ->
-            [ error (Node.range node) rangeLeft rangeRight ]
+            [ Rule.errorWithFix
+                { message = "Expression could be simplified to be a single List"
+                , details = [ "Try moving all the elements into a single list." ]
+                }
+                (Node.range node)
+                [ Review.Fix.replaceRangeBy
+                    { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
+                    , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+                    }
+                    ","
+                ]
+            ]
 
         Expression.OperatorApplication "::" _ _ (Node.Node _ (Expression.ListExpr _)) ->
             [ error2 (Node.range node) ]
