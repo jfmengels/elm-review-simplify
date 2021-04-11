@@ -139,8 +139,8 @@ a = List.concat []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Unnecessary use of List.concat"
+                            , details = [ "The value of the operation will be []. You should replace this expression by that." ]
                             , under = "List.concat []"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -144,7 +144,16 @@ expressionVisitor node =
             ]
 
         Expression.Application [ Node.Node _ (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
-            if List.length list < 2 then
+            if List.isEmpty list then
+                [ Rule.errorWithFix
+                    { message = "Unnecessary use of List.concat"
+                    , details = [ "The value of the operation will be []. You should replace this expression by that." ]
+                    }
+                    (Node.range node)
+                    []
+                ]
+
+            else if List.length list < 2 then
                 [ error2 (Node.range node) ]
 
             else if List.all isListLiteral list then
