@@ -269,7 +269,7 @@ a = List.map fn []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on an empty list will results in a empty list"
+                            { message = "Using List.map on an empty list will result in a empty list"
                             , details = [ "You can replace this call by en empty list" ]
                             , under = "List.map"
                             }
@@ -330,7 +330,7 @@ a = List.filter fn []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on an empty list will results in a empty list"
+                            { message = "Using List.filter on an empty list will result in a empty list"
                             , details = [ "You can replace this call by en empty list" ]
                             , under = "List.filter"
                             }
