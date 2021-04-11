@@ -160,14 +160,8 @@ expressionVisitor node =
                         , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
                         }
                         parentRange
-                        [ Review.Fix.removeRange
-                            { start = parentRange.start
-                            , end = elementRange.start
-                            }
-                        , Review.Fix.removeRange
-                            { start = elementRange.end
-                            , end = parentRange.end
-                            }
+                        [ Review.Fix.removeRange { start = parentRange.start, end = elementRange.start }
+                        , Review.Fix.removeRange { start = elementRange.end, end = parentRange.end }
                         ]
                     ]
 
@@ -198,12 +192,7 @@ expressionVisitor node =
                     , details = [ "You can replace this call by List.concat" ]
                     }
                     listConcatRange
-                    [ Review.Fix.replaceRangeBy
-                        { start = listConcatRange.start
-                        , end = (Node.range firstArg).end
-                        }
-                        "List.concat"
-                    ]
+                    [ Review.Fix.replaceRangeBy { start = listConcatRange.start, end = (Node.range firstArg).end } "List.concat" ]
                 ]
 
             else
@@ -227,16 +216,10 @@ expressionVisitor node =
                     listMapRange
                     [ case restOfArgs of
                         [] ->
-                            Review.Fix.removeRange
-                                { start = listMapRange.start
-                                , end = (Node.range firstArg).start
-                                }
+                            Review.Fix.removeRange { start = listMapRange.start, end = (Node.range firstArg).start }
 
                         listArg :: _ ->
-                            Review.Fix.removeRange
-                                { start = listMapRange.start
-                                , end = (Node.range listArg).start
-                                }
+                            Review.Fix.removeRange { start = listMapRange.start, end = (Node.range listArg).start }
                     ]
                 ]
 
@@ -262,15 +245,10 @@ expressionVisitor node =
                         listFn
                         [ case restOfArgs of
                             [] ->
-                                Review.Fix.replaceRangeBy
-                                    (Node.range node)
-                                    "identity"
+                                Review.Fix.replaceRangeBy (Node.range node) "identity"
 
                             listArg :: _ ->
-                                Review.Fix.removeRange
-                                    { start = listFn.start
-                                    , end = (Node.range listArg).start
-                                    }
+                                Review.Fix.removeRange { start = listFn.start, end = (Node.range listArg).start }
                         ]
                     ]
 
@@ -282,14 +260,10 @@ expressionVisitor node =
                         listFn
                         [ case restOfArgs of
                             [] ->
-                                Review.Fix.replaceRangeBy
-                                    (Node.range node)
-                                    "(always [])"
+                                Review.Fix.replaceRangeBy (Node.range node) "(always [])"
 
                             _ ->
-                                Review.Fix.replaceRangeBy
-                                    (Node.range node)
-                                    "[]"
+                                Review.Fix.replaceRangeBy (Node.range node) "[]"
                         ]
                     ]
 
