@@ -143,19 +143,25 @@ a = List.concat []
                             , details = details
                             , under = "List.concat []"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
                         ]
         , test "should report List.concat with a single item" <|
             \() ->
                 """module A exposing (..)
-a = List.concat [ a ]
+a = List.concat [ b ]
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
                             , details = details
-                            , under = "List.concat [ a ]"
+                            , under = "List.concat [ b ]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b
+"""
                         ]
         , test "should report List.concat that only contains list literals" <|
             \() ->
