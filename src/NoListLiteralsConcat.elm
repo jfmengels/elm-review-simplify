@@ -8,6 +8,7 @@ module NoListLiteralsConcat exposing (rule)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
 import Review.Fix exposing (Fix)
 import Review.Rule as Rule exposing (Error, Rule)
@@ -190,8 +191,86 @@ expressionVisitor node =
                     else
                         []
 
+        Expression.Application ((Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concatMap")) :: firstArg :: _) ->
+            if isAlways firstArg then
+                [ Rule.errorWithFix
+                    { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                    , details = [ "You can replace this call by List.concat" ]
+                    }
+                    listConcatRange
+                    [ Review.Fix.replaceRangeBy
+                        { start = listConcatRange.start
+                        , end = (Node.range firstArg).end
+                        }
+                        "List.concat"
+                    ]
+                ]
+
+            else
+                []
+
         _ ->
             []
+
+
+isAlways : Node Expression -> Bool
+isAlways node =
+    case Node.value node of
+        Expression.FunctionOrValue [] "identity" ->
+            True
+
+        Expression.FunctionOrValue [ "Basics" ] "identity" ->
+            True
+
+        Expression.LambdaExpression { args, expression } ->
+            case args of
+                arg :: [] ->
+                    case getVarPattern arg of
+                        Just patternName ->
+                            case getExpressionName expression of
+                                Just expressionName ->
+                                    patternName == expressionName
+
+                                _ ->
+                                    False
+
+                        _ ->
+                            False
+
+                _ ->
+                    False
+
+        Expression.ParenthesizedExpression expr ->
+            isAlways expr
+
+        _ ->
+            False
+
+
+getVarPattern : Node Pattern -> Maybe String
+getVarPattern node =
+    case Node.value node of
+        Pattern.VarPattern name ->
+            Just name
+
+        Pattern.ParenthesizedPattern pattern ->
+            getVarPattern pattern
+
+        _ ->
+            Nothing
+
+
+getExpressionName : Node Expression -> Maybe String
+getExpressionName node =
+    case Node.value node of
+        Expression.FunctionOrValue [] name ->
+            Just name
+
+        Expression.ParenthesizedExpression pattern ->
+            getExpressionName pattern
+
+        _ ->
+            Nothing
 
 
 removeBoundaries : Node a -> List Fix

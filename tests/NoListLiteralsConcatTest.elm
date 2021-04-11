@@ -179,4 +179,50 @@ a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
 a =  [  1, 2, 3 ,  4, 5, 6 ]
 """
                         ]
+        , test "should replace List.concatMap identity by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap identity x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            , details = [ "You can replace this call by List.concat" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat x
+"""
+                        ]
+        , test "should replace List.concatMap (\\x->x) by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap (\\x->x) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            , details = [ "You can replace this call by List.concat" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat x
+"""
+                        ]
+        , test "should not report List.concatMap with a non-identity lambda" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap (\\x->y) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.concatMap without an identity function by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap f x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
         ]
