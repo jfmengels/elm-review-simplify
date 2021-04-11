@@ -9,6 +9,7 @@ module NoListLiteralsConcat exposing (rule)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
 import Elm.Syntax.Range exposing (Range)
+import Review.Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -77,8 +78,23 @@ rule =
         |> Rule.fromModuleRuleSchema
 
 
-error : Range -> Error {}
-error range =
+error : Range -> Range -> Range -> Error {}
+error range rangeLeft rangeRight =
+    Rule.errorWithFix
+        { message = "Expression could be simplified to be a single List"
+        , details = [ "Try moving all the elements into a single list." ]
+        }
+        range
+        [ Review.Fix.replaceRangeBy
+            { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
+            , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+            }
+            ","
+        ]
+
+
+error2 : Range -> Error {}
+error2 range =
     Rule.error
         { message = "Expression could be simplified to be a single List"
         , details = [ "Try moving all the elements into a single list." ]
@@ -89,24 +105,24 @@ error range =
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
-        Expression.OperatorApplication "++" _ (Node.Node _ (Expression.ListExpr _)) (Node.Node _ (Expression.ListExpr _)) ->
-            [ error (Node.range node) ]
+        Expression.OperatorApplication "++" _ (Node.Node rangeLeft (Expression.ListExpr _)) (Node.Node rangeRight (Expression.ListExpr _)) ->
+            [ error (Node.range node) rangeLeft rangeRight ]
 
         Expression.OperatorApplication "++" _ (Node.Node range (Expression.ListExpr [])) _ ->
-            [ error range ]
+            [ error2 range ]
 
         Expression.OperatorApplication "++" _ _ (Node.Node range (Expression.ListExpr [])) ->
-            [ error range ]
+            [ error2 range ]
 
         Expression.OperatorApplication "::" _ _ (Node.Node _ (Expression.ListExpr _)) ->
-            [ error (Node.range node) ]
+            [ error2 (Node.range node) ]
 
         Expression.Application [ Node.Node _ (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
             if List.length list < 2 then
-                [ error (Node.range node) ]
+                [ error2 (Node.range node) ]
 
             else if List.all isListLiteral list then
-                [ error (Node.range node) ]
+                [ error2 (Node.range node) ]
 
             else
                 []

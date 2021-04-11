@@ -46,6 +46,9 @@ a = [ 1 ] ++ [ 2, 3 ]
                             , details = details
                             , under = "[ 1 ] ++ [ 2, 3 ]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ 1 , 2, 3 ]
+"""
                         ]
         , test "should report concatenating two list literals, even they contain variables" <|
             \() ->
@@ -59,6 +62,9 @@ a = [ a, 1 ] ++ [ b, 2 ]
                             , details = details
                             , under = "[ a, 1 ] ++ [ b, 2 ]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ a, 1 , b, 2 ]
+"""
                         ]
         , test "should report concatenating an empty list and something" <|
             \() ->
