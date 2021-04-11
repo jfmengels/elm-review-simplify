@@ -276,4 +276,20 @@ a = List.map fn []
 a = []
 """
                         ]
+        , test "should replace List.map identity x by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.map identity x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map with an identity function is the same as not using List.map"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
