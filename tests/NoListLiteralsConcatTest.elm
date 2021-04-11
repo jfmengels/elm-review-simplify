@@ -171,9 +171,12 @@ a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =  [  1, 2, 3 ,  4, 5, 6 ]
+"""
                         ]
         ]

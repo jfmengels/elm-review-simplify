@@ -9,7 +9,7 @@ module NoListLiteralsConcat exposing (rule)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
 import Elm.Syntax.Range exposing (Range)
-import Review.Fix
+import Review.Fix exposing (Fix)
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -88,15 +88,6 @@ errorForAddingEmptyLists range rangeToRemove =
         [ Review.Fix.removeRange rangeToRemove ]
 
 
-error2 : Range -> Error {}
-error2 range =
-    Rule.error
-        { message = "Expression could be simplified to be a single List"
-        , details = [ "Try moving all the elements into a single list." ]
-        }
-        range
-
-
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
@@ -143,7 +134,7 @@ expressionVisitor node =
                 ]
             ]
 
-        Expression.Application [ Node.Node _ (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
+        Expression.Application [ Node.Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
             case list of
                 [] ->
                     [ Rule.errorWithFix
@@ -179,15 +170,45 @@ expressionVisitor node =
                         ]
                     ]
 
-                _ ->
+                args ->
                     if List.all isListLiteral list then
-                        [ error2 (Node.range node) ]
+                        let
+                            parentRange : Range
+                            parentRange =
+                                Node.range node
+                        in
+                        [ Rule.errorWithFix
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            }
+                            parentRange
+                            (Review.Fix.removeRange listConcatRange
+                                :: List.concatMap removeBoundaries args
+                            )
+                        ]
 
                     else
                         []
 
         _ ->
             []
+
+
+removeBoundaries : Node a -> List Fix
+removeBoundaries node =
+    let
+        { start, end } =
+            Node.range node
+    in
+    [ Review.Fix.removeRange
+        { start = { row = start.row, column = start.column }
+        , end = { row = start.row, column = start.column + 1 }
+        }
+    , Review.Fix.removeRange
+        { start = { row = end.row, column = end.column - 1 }
+        , end = { row = end.row, column = end.column }
+        }
+    ]
 
 
 isListLiteral : Node Expression -> Bool
