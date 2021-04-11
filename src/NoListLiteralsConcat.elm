@@ -144,8 +144,8 @@ expressionVisitor node =
             ]
 
         Expression.Application [ Node.Node _ (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
-            case List.length list of
-                0 ->
+            case list of
+                [] ->
                     [ Rule.errorWithFix
                         { message = "Unnecessary use of List.concat on an empty list"
                         , details = [ "The value of the operation will be []. You should replace this expression by that." ]
@@ -157,13 +157,26 @@ expressionVisitor node =
                         ]
                     ]
 
-                1 ->
+                [ Node.Node elementRange _ ] ->
+                    let
+                        parentRange : Range
+                        parentRange =
+                            Node.range node
+                    in
                     [ Rule.errorWithFix
                         { message = "Unnecessary use of List.concat on a list with 1 element"
                         , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
                         }
-                        (Node.range node)
-                        []
+                        parentRange
+                        [ Review.Fix.removeRange
+                            { start = parentRange.start
+                            , end = elementRange.start
+                            }
+                        , Review.Fix.removeRange
+                            { start = elementRange.end
+                            , end = parentRange.end
+                            }
+                        ]
                     ]
 
                 _ ->
