@@ -114,10 +114,13 @@ a = 1 :: [ 2, 3]
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "Try moving the element inside single list." ]
                             , under = "1 :: [ 2, 3]"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ 1, 2, 3]
+"""
                         ]
         , test "should not report List.concat that contains a variable or expression" <|
             \() ->

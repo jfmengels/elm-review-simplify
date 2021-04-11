@@ -128,8 +128,20 @@ expressionVisitor node =
                 ]
             ]
 
-        Expression.OperatorApplication "::" _ _ (Node.Node _ (Expression.ListExpr _)) ->
-            [ error2 (Node.range node) ]
+        Expression.OperatorApplication "::" _ (Node.Node rangeLeft _) (Node.Node rangeRight (Expression.ListExpr _)) ->
+            [ Rule.errorWithFix
+                { message = "Element added to the beginning of the list could be included in the list"
+                , details = [ "Try moving the element inside single list." ]
+                }
+                (Node.range node)
+                [ Review.Fix.insertAt rangeLeft.start "[ "
+                , Review.Fix.replaceRangeBy
+                    { start = rangeLeft.end
+                    , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+                    }
+                    ","
+                ]
+            ]
 
         Expression.Application [ Node.Node _ (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
             if List.length list < 2 then
