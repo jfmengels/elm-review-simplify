@@ -243,6 +243,15 @@ expressionVisitor node =
             else
                 []
 
+        Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
+            [ Rule.errorWithFix
+                { message = "Using List.filter on an empty list will results in a empty list"
+                , details = [ "You can replace this call by en empty list" ]
+                }
+                listMapRange
+                [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
+            ]
+
         _ ->
             []
 
