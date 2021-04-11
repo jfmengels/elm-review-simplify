@@ -218,17 +218,25 @@ expressionVisitor node =
                 [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
             ]
 
-        Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "map")) :: firstArg :: secondArg :: []) ->
+        Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "map")) :: firstArg :: restOfArgs) ->
             if isAlways firstArg then
                 [ Rule.errorWithFix
                     { message = "Using List.map with an identity function is the same as not using List.map"
                     , details = [ "You can remove this call and replace it by the list itself" ]
                     }
                     listMapRange
-                    [ Review.Fix.removeRange
-                        { start = listMapRange.start
-                        , end = (Node.range secondArg).start
-                        }
+                    [ case restOfArgs of
+                        [] ->
+                            Review.Fix.removeRange
+                                { start = listMapRange.start
+                                , end = (Node.range firstArg).start
+                                }
+
+                        listArg :: _ ->
+                            Review.Fix.removeRange
+                                { start = listMapRange.start
+                                , end = (Node.range listArg).start
+                                }
                     ]
                 ]
 
