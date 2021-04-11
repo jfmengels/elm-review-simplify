@@ -192,7 +192,7 @@ expressionVisitor node =
                         []
 
         Expression.Application ((Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concatMap")) :: firstArg :: _) ->
-            if isAlways firstArg then
+            if isIdentity firstArg then
                 [ Rule.errorWithFix
                     { message = "Using List.concatMap with an identity function is the same as using List.concat"
                     , details = [ "You can replace this call by List.concat" ]
@@ -219,7 +219,7 @@ expressionVisitor node =
             ]
 
         Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "map")) :: firstArg :: restOfArgs) ->
-            if isAlways firstArg then
+            if isIdentity firstArg then
                 [ Rule.errorWithFix
                     { message = "Using List.map with an identity function is the same as not using List.map"
                     , details = [ "You can remove this call and replace it by the list itself" ]
@@ -247,8 +247,8 @@ expressionVisitor node =
             []
 
 
-isAlways : Node Expression -> Bool
-isAlways node =
+isIdentity : Node Expression -> Bool
+isIdentity node =
     case Node.value node of
         Expression.FunctionOrValue [] "identity" ->
             True
@@ -275,7 +275,7 @@ isAlways node =
                     False
 
         Expression.ParenthesizedExpression expr ->
-            isAlways expr
+            isIdentity expr
 
         _ ->
             False
