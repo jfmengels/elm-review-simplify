@@ -5,13 +5,6 @@ import Review.Test exposing (ReviewResult)
 import Test exposing (Test, describe, test)
 
 
-testRule : String -> ReviewResult
-testRule string =
-    "module A exposing (..)\n\n"
-        ++ string
-        |> Review.Test.run rule
-
-
 all : Test
 all =
     describe "NoListLiteralsConcat"
@@ -34,17 +27,19 @@ usingPlusPlusTests =
     describe "Using (++)"
         [ test "should not report a single list literal" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = []
 b = [1]
 c = [ "string", "foo", "bar" ]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should report concatenating two list literals" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = [ 1 ] ++ [ 2, 3 ]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -54,9 +49,10 @@ a = [ 1 ] ++ [ 2, 3 ]
                         ]
         , test "should report concatenating two list literals, even they contain variables" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = [ a, 1 ] ++ [ b, 2 ]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -66,9 +62,10 @@ a = [ a, 1 ] ++ [ b, 2 ]
                         ]
         , test "should report concatenating an empty list and something" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = [] ++ something
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -78,9 +75,10 @@ a = [] ++ something
                         ]
         , test "should report concatenating something and an empty list" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = something ++ []
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -90,16 +88,18 @@ a = something ++ []
                         ]
         , test "should not report using :: to a variable or expression" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = 1 :: list
 b = 1 :: foo bar
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should report using :: to a list literal" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = 1 :: [ 2, 3]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -109,17 +109,19 @@ a = 1 :: [ 2, 3]
                         ]
         , test "should not report List.concat that contains a variable or expression" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = List.concat [ foo, bar ]
 b = List.concat [ [ 1 ], foo ]
 c = List.concat [ foo, [ 1 ] ]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should report List.concat with no items" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = List.concat []
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -129,9 +131,10 @@ a = List.concat []
                         ]
         , test "should report List.concat with a single item" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = List.concat [ a ]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
@@ -141,9 +144,10 @@ a = List.concat [ a ]
                         ]
         , test "should report List.concat that only contains list literals" <|
             \() ->
-                testRule """
+                """module A exposing (..)
 a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
 """
+                    |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = message
