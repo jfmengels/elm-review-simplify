@@ -105,14 +105,14 @@ error2 range =
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
-        Expression.OperatorApplication "++" _ (Node.Node rangeLeft (Expression.ListExpr _)) (Node.Node rangeRight (Expression.ListExpr _)) ->
-            [ error (Node.range node) rangeLeft rangeRight ]
-
         Expression.OperatorApplication "++" _ (Node.Node range (Expression.ListExpr [])) _ ->
             [ error2 range ]
 
         Expression.OperatorApplication "++" _ _ (Node.Node range (Expression.ListExpr [])) ->
             [ error2 range ]
+
+        Expression.OperatorApplication "++" _ (Node.Node rangeLeft (Expression.ListExpr _)) (Node.Node rangeRight (Expression.ListExpr _)) ->
+            [ error (Node.range node) rangeLeft rangeRight ]
 
         Expression.OperatorApplication "::" _ _ (Node.Node _ (Expression.ListExpr _)) ->
             [ error2 (Node.range node) ]
