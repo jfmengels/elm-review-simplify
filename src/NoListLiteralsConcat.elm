@@ -144,23 +144,34 @@ expressionVisitor node =
             ]
 
         Expression.Application [ Node.Node _ (Expression.FunctionOrValue [ "List" ] "concat"), Node.Node _ (Expression.ListExpr list) ] ->
-            if List.isEmpty list then
-                [ Rule.errorWithFix
-                    { message = "Unnecessary use of List.concat"
-                    , details = [ "The value of the operation will be []. You should replace this expression by that." ]
-                    }
-                    (Node.range node)
-                    []
-                ]
+            case List.length list of
+                0 ->
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary use of List.concat on an empty list"
+                        , details = [ "The value of the operation will be []. You should replace this expression by that." ]
+                        }
+                        (Node.range node)
+                        [ Review.Fix.replaceRangeBy
+                            (Node.range node)
+                            "[]"
+                        ]
+                    ]
 
-            else if List.length list < 2 then
-                [ error2 (Node.range node) ]
+                1 ->
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary use of List.concat on a list with 1 element"
+                        , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
+                        }
+                        (Node.range node)
+                        []
+                    ]
 
-            else if List.all isListLiteral list then
-                [ error2 (Node.range node) ]
+                _ ->
+                    if List.all isListLiteral list then
+                        [ error2 (Node.range node) ]
 
-            else
-                []
+                    else
+                        []
 
         _ ->
             []

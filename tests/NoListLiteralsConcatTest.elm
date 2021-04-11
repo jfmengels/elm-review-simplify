@@ -139,7 +139,7 @@ a = List.concat []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary use of List.concat"
+                            { message = "Unnecessary use of List.concat on an empty list"
                             , details = [ "The value of the operation will be []. You should replace this expression by that." ]
                             , under = "List.concat []"
                             }
@@ -155,8 +155,8 @@ a = List.concat [ b ]
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Unnecessary use of List.concat on a list with 1 element"
+                            , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
                             , under = "List.concat [ b ]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
