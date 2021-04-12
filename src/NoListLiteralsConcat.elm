@@ -385,7 +385,7 @@ isAlways node =
         Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: boolean :: []) ->
             getBoolean boolean
 
-        Expression.LambdaExpression { expression } ->
+        Expression.LambdaExpression _ ->
             Nothing
 
         Expression.ParenthesizedExpression expr ->
