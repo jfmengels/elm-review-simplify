@@ -133,6 +133,22 @@ a = 1 :: [ 2, 3]
 a = [ 1, 2, 3]
 """
                         ]
+        , test "should report using :: to an empty list literal" <|
+            \() ->
+                """module A exposing (..)
+a = 1 :: []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "Try moving the element inside the list it is being added to." ]
+                            , under = "1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ 1 ]
+"""
+                        ]
         ]
 
 

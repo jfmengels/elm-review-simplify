@@ -120,6 +120,21 @@ expressionVisitor node =
                 ]
             ]
 
+        Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Element added to the beginning of the list could be included in the list"
+                , details = [ "Try moving the element inside the list it is being added to." ]
+                }
+                rangeLeft
+                [ Review.Fix.insertAt rangeLeft.start "[ "
+                , Review.Fix.replaceRangeBy
+                    { start = rangeLeft.end
+                    , end = rangeRight.end
+                    }
+                    " ]"
+                ]
+            ]
+
         Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr _)) ->
             [ Rule.errorWithFix
                 { message = "Element added to the beginning of the list could be included in the list"
