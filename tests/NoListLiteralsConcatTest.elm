@@ -126,8 +126,8 @@ a = 1 :: [ 2, 3]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Element added to the beginning of the list could be included in the list"
-                            , details = [ "Try moving the element inside single list." ]
-                            , under = "1 :: [ 2, 3]"
+                            , details = [ "Try moving the element inside the list it is being added to." ]
+                            , under = "1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ 1, 2, 3]
