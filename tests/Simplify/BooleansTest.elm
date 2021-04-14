@@ -41,6 +41,7 @@ b = y && z
                     |> Review.Test.expectNoErrors
         , orTests
         , andTests
+        , notTests
         , sameThingOnBothSidesTests
         ]
 
@@ -221,6 +222,92 @@ a = x && False
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
+a = False
+"""
+                        ]
+        ]
+
+
+notTests : Test
+notTests =
+    describe "not calls"
+        [ test "should simplify 'not True' to False" <|
+            \() ->
+                """module A exposing (..)
+a = not True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "not True"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify 'not False' to True" <|
+            \() ->
+                """module A exposing (..)
+a = not False
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "not False"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify 'not (True)' to False" <|
+            \() ->
+                """module A exposing (..)
+a = not (True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "not (True)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify 'not <| True' to False" <|
+            \() ->
+                """module A exposing (..)
+a = not <| True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "not <| True"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify 'True |> not' to False" <|
+            \() ->
+                """module A exposing (..)
+a = True |> not
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "True |> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]

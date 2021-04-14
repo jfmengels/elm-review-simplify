@@ -7,7 +7,7 @@ module Simplify.Booleans exposing (rule)
 -}
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.Node as Node exposing (Node)
+import Elm.Syntax.Node as Node exposing (Node(..))
 import Review.Fix as Fix
 import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Rule)
@@ -108,6 +108,78 @@ expressionVisitor node { lookupTable } =
                     }
                     (Node.range node)
                     [ Fix.replaceRangeBy (Node.range node) "False"
+                    ]
+                ]
+
+            else
+                []
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue [] "not")) :: argument :: []) ->
+            if isTrue argument then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "False"
+                    ]
+                ]
+
+            else if isFalse argument then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "True"
+                    ]
+                ]
+
+            else
+                []
+
+        Expression.OperatorApplication "<|" _ (Node _ (Expression.FunctionOrValue [] "not")) argument ->
+            if isTrue argument then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "False"
+                    ]
+                ]
+
+            else if isFalse argument then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "True"
+                    ]
+                ]
+
+            else
+                []
+
+        Expression.OperatorApplication "|>" _ argument (Node _ (Expression.FunctionOrValue [] "not")) ->
+            if isTrue argument then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "False"
+                    ]
+                ]
+
+            else if isFalse argument then
+                [ Rule.errorWithFix
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range node)
+                    [ Fix.replaceRangeBy (Node.range node) "True"
                     ]
                 ]
 
