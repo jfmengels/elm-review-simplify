@@ -11,6 +11,7 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
 import Review.Fix exposing (Fix)
+import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -120,9 +121,15 @@ elm-review --template jfmengels/elm-review-simplification/example --rules NoList
 -}
 rule : Rule
 rule =
-    Rule.newModuleRuleSchema "NoListLiteralsConcat" ()
-        |> Rule.withSimpleExpressionVisitor expressionVisitor
+    Rule.newModuleRuleSchemaUsingContextCreator "NoListLiteralsConcat" initialContext
+        |> Rule.withExpressionEnterVisitor (\node lookupTable -> ( expressionVisitor node lookupTable, lookupTable ))
         |> Rule.fromModuleRuleSchema
+
+
+initialContext : Rule.ContextCreator () ModuleNameLookupTable
+initialContext =
+    Rule.initContextCreator (\lookupTable () -> lookupTable)
+        |> Rule.withModuleNameLookupTable
 
 
 errorForAddingEmptyLists : Range -> Range -> Error {}
@@ -135,8 +142,8 @@ errorForAddingEmptyLists range rangeToRemove =
         [ Review.Fix.removeRange rangeToRemove ]
 
 
-expressionVisitor : Node Expression -> List (Error {})
-expressionVisitor node =
+expressionVisitor : Node Expression -> ModuleNameLookupTable -> List (Error {})
+expressionVisitor node lookupTable =
     case Node.value node of
         Expression.OperatorApplication "++" _ (Node range (Expression.ListExpr [])) other ->
             [ errorForAddingEmptyLists range
