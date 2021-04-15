@@ -277,42 +277,10 @@ expressionVisitor node lookupTable =
                 _ ->
                     []
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: firstArgument :: restOfArgs) ->
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    case isAlwaysMaybe lookupTable firstArgument of
-                        Just (Just ()) ->
-                            [ Rule.errorWithFix
-                                { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                                , details = [ "You can remove this call and replace it by the list itself" ]
-                                }
-                                listFnRange
-                                [ case restOfArgs of
-                                    [] ->
-                                        Review.Fix.replaceRangeBy (Node.range node) "identity"
-
-                                    listArg :: _ ->
-                                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
-                                ]
-                            ]
-
-                        Just Nothing ->
-                            [ Rule.errorWithFix
-                                { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                                , details = [ "You can remove this call and replace it by an empty list" ]
-                                }
-                                listFnRange
-                                [ case restOfArgs of
-                                    [] ->
-                                        Review.Fix.replaceRangeBy (Node.range node) "(always [])"
-
-                                    _ ->
-                                        Review.Fix.replaceRangeBy (Node.range node) "[]"
-                                ]
-                            ]
-
-                        Nothing ->
-                            []
+                    filterMapChecks lookupTable (Node.range node) listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -429,6 +397,43 @@ filterChecks lookupTable parentRange listFnRange ( firstArg, restOfArgs ) =
         Just False ->
             [ Rule.errorWithFix
                 { message = "Using List.filter with a function that will always return False will result in an empty list"
+                , details = [ "You can remove this call and replace it by an empty list" ]
+                }
+                listFnRange
+                [ case restOfArgs of
+                    [] ->
+                        Review.Fix.replaceRangeBy parentRange "(always [])"
+
+                    _ ->
+                        Review.Fix.replaceRangeBy parentRange "[]"
+                ]
+            ]
+
+        Nothing ->
+            []
+
+
+filterMapChecks : ModuleNameLookupTable -> Range -> Range -> ( Node Expression, List (Node Expression) ) -> List (Error {})
+filterMapChecks lookupTable parentRange listFnRange ( firstArg, restOfArgs ) =
+    case isAlwaysMaybe lookupTable firstArg of
+        Just (Just ()) ->
+            [ Rule.errorWithFix
+                { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                , details = [ "You can remove this call and replace it by the list itself" ]
+                }
+                listFnRange
+                [ case restOfArgs of
+                    [] ->
+                        Review.Fix.replaceRangeBy parentRange "identity"
+
+                    listArg :: _ ->
+                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                ]
+            ]
+
+        Just Nothing ->
+            [ Rule.errorWithFix
+                { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
                 listFnRange
