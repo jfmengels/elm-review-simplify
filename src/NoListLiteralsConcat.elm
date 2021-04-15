@@ -6,6 +6,7 @@ module NoListLiteralsConcat exposing (rule)
 
 -}
 
+import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
@@ -203,114 +204,21 @@ expressionVisitor node lookupTable =
                 ]
             ]
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.map on an empty list will result in a empty list"
-                        , details = [ "You can replace this call by an empty list" ]
-                        }
-                        listFnRange
-                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
-                    ]
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArgs) ->
+            case Dict.get fnName checkList of
+                Just checkFn ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
+                        Just [ "List" ] ->
+                            checkFn
+                                { lookupTable = lookupTable
+                                , parentRange = Node.range node
+                                , listFnRange = fnRange
+                                , firstArg = firstArg
+                                , restOfArgs = restOfArgs
+                                }
 
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.filter on an empty list will result in a empty list"
-                        , details = [ "You can replace this call by an empty list" ]
-                        }
-                        listFnRange
-                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
-                    ]
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.filterMap on an empty list will result in a empty list"
-                        , details = [ "You can replace this call by an empty list" ]
-                        }
-                        listFnRange
-                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
-                    ]
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    concatChecks
-                        { lookupTable = lookupTable
-                        , parentRange = Node.range node
-                        , listFnRange = listFnRange
-                        , firstArg = firstArg
-                        , restOfArgs = restOfArgs
-                        }
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    concatMapChecks
-                        { lookupTable = lookupTable
-                        , parentRange = Node.range node
-                        , listFnRange = listFnRange
-                        , firstArg = firstArg
-                        , restOfArgs = restOfArgs
-                        }
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    mapChecks
-                        { lookupTable = lookupTable
-                        , parentRange = Node.range node
-                        , listFnRange = listFnRange
-                        , firstArg = firstArg
-                        , restOfArgs = restOfArgs
-                        }
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    filterChecks
-                        { lookupTable = lookupTable
-                        , parentRange = Node.range node
-                        , listFnRange = listFnRange
-                        , firstArg = firstArg
-                        , restOfArgs = restOfArgs
-                        }
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    filterMapChecks
-                        { lookupTable = lookupTable
-                        , parentRange = Node.range node
-                        , listFnRange = listFnRange
-                        , firstArg = firstArg
-                        , restOfArgs = restOfArgs
-                        }
+                        _ ->
+                            []
 
                 _ ->
                     []
@@ -328,14 +236,15 @@ type alias CheckInfo =
     }
 
 
-checkList : List ( String, CheckInfo -> List (Error {}) )
+checkList : Dict String (CheckInfo -> List (Error {}))
 checkList =
-    [ reportEmptyList ( "map", mapChecks )
-    , reportEmptyList ( "filter", filterChecks )
-    , reportEmptyList ( "filterMap", filterMapChecks )
-    , ( "concat", concatChecks )
-    , ( "concatMap", concatMapChecks )
-    ]
+    Dict.fromList
+        [ reportEmptyList ( "map", mapChecks )
+        , reportEmptyList ( "filter", filterChecks )
+        , reportEmptyList ( "filterMap", filterMapChecks )
+        , ( "concat", concatChecks )
+        , ( "concatMap", concatMapChecks )
+        ]
 
 
 reportEmptyList : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
