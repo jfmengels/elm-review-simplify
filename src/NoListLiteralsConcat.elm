@@ -261,7 +261,7 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: _) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    if isIdentity firstArg then
+                    if isIdentity lookupTable firstArg then
                         [ Rule.errorWithFix
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
                             , details = [ "You can replace this call by List.concat" ]
@@ -293,7 +293,7 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    if isIdentity firstArg then
+                    if isIdentity lookupTable firstArg then
                         [ Rule.errorWithFix
                             { message = "Using List.map with an identity function is the same as not using List.map"
                             , details = [ "You can remove this call and replace it by the list itself" ]
@@ -426,14 +426,11 @@ expressionVisitor node lookupTable =
             []
 
 
-isIdentity : Node Expression -> Bool
-isIdentity node =
+isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
+isIdentity lookupTable node =
     case Node.value node of
-        Expression.FunctionOrValue [] "identity" ->
-            True
-
-        Expression.FunctionOrValue [ "Basics" ] "identity" ->
-            True
+        Expression.FunctionOrValue _ "identity" ->
+            ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ]
 
         Expression.LambdaExpression { args, expression } ->
             case args of
@@ -454,7 +451,7 @@ isIdentity node =
                     False
 
         Expression.ParenthesizedExpression expr ->
-            isIdentity expr
+            isIdentity lookupTable expr
 
         _ ->
             False
