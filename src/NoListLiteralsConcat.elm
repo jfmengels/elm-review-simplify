@@ -211,20 +211,10 @@ expressionVisitor node lookupTable =
                 _ ->
                     []
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: _) ->
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: arguments) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    if isIdentity lookupTable firstArg then
-                        [ Rule.errorWithFix
-                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                            , details = [ "You can replace this call by List.concat" ]
-                            }
-                            listFnRange
-                            [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
-                        ]
-
-                    else
-                        []
+                    concatMapChecks lookupTable listFnRange arguments
 
                 _ ->
                     []
@@ -425,6 +415,26 @@ concatChecks parentRange listFnRange arguments =
 
                     else
                         []
+
+        _ ->
+            []
+
+
+concatMapChecks : ModuleNameLookupTable -> Range -> List (Node Expression) -> List (Error {})
+concatMapChecks lookupTable listFnRange arguments =
+    case arguments of
+        firstArg :: _ ->
+            if isIdentity lookupTable firstArg then
+                [ Rule.errorWithFix
+                    { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                    , details = [ "You can replace this call by List.concat" ]
+                    }
+                    listFnRange
+                    [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
+                ]
+
+            else
+                []
 
         _ ->
             []
