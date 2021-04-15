@@ -229,6 +229,25 @@ expressionVisitor node lookupTable =
                 _ ->
                     []
 
+        Expression.OperatorApplication "<|" _ (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
+            case Dict.get fnName checkList of
+                Just checkFn ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
+                        Just [ "List" ] ->
+                            checkFn
+                                { lookupTable = lookupTable
+                                , parentRange = Node.range node
+                                , listFnRange = fnRange
+                                , firstArg = firstArg
+                                , secondArg = Just secondArgument
+                                }
+
+                        _ ->
+                            []
+
+                _ ->
+                    []
+
         Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
             case Dict.get fnName checkList of
                 Just checkFn ->
