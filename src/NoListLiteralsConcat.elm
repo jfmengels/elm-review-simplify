@@ -385,7 +385,7 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: firstArgument :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    case isAlwaysMaybe firstArgument of
+                    case isAlwaysMaybe lookupTable firstArgument of
                         Just (Just ()) ->
                             [ Rule.errorWithFix
                                 { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -557,17 +557,24 @@ getBoolean lookupTable node =
             Nothing
 
 
-isAlwaysMaybe : Node Expression -> Maybe (Maybe ())
-isAlwaysMaybe node =
+isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
+isAlwaysMaybe lookupTable node =
     case Node.value node of
-        Expression.FunctionOrValue [] "Just" ->
-            Just (Just ())
+        Expression.FunctionOrValue _ "Just" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Maybe" ] ->
+                    Just (Just ())
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue [] "always")) :: value :: []) ->
-            getMaybeValue value
+                _ ->
+                    Nothing
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: value :: []) ->
-            getMaybeValue value
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    getMaybeValue value
+
+                _ ->
+                    Nothing
 
         Expression.LambdaExpression { args, expression } ->
             case Node.value expression of
@@ -586,17 +593,19 @@ isAlwaysMaybe node =
                 Expression.Application ((Node _ (Expression.FunctionOrValue [ "Maybe" ] "Just")) :: _) ->
                     Just (Just ())
 
-                Expression.FunctionOrValue [] "Nothing" ->
-                    Just Nothing
+                Expression.FunctionOrValue _ "Nothing" ->
+                    case ModuleNameLookupTable.moduleNameFor lookupTable expression of
+                        Just [ "Maybe" ] ->
+                            Just Nothing
 
-                Expression.FunctionOrValue [ "Maybe" ] "Nothing" ->
-                    Just Nothing
+                        _ ->
+                            Nothing
 
                 _ ->
                     Nothing
 
         Expression.ParenthesizedExpression expr ->
-            isAlwaysMaybe expr
+            isAlwaysMaybe lookupTable expr
 
         _ ->
             Nothing
