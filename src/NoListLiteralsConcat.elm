@@ -255,7 +255,6 @@ expressionVisitor node lookupTable =
                         , firstArg = firstArg
                         , restOfArgs = restOfArgs
                         }
-                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -270,7 +269,6 @@ expressionVisitor node lookupTable =
                         , firstArg = firstArg
                         , restOfArgs = restOfArgs
                         }
-                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -285,7 +283,6 @@ expressionVisitor node lookupTable =
                         , firstArg = firstArg
                         , restOfArgs = restOfArgs
                         }
-                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -300,7 +297,6 @@ expressionVisitor node lookupTable =
                         , firstArg = firstArg
                         , restOfArgs = restOfArgs
                         }
-                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -315,7 +311,6 @@ expressionVisitor node lookupTable =
                         , firstArg = firstArg
                         , restOfArgs = restOfArgs
                         }
-                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -333,7 +328,7 @@ type alias CheckInfo =
     }
 
 
-checkList : List ( String, CheckInfo -> ( Node Expression, List (Node Expression) ) -> List (Error {}) )
+checkList : List ( String, CheckInfo -> List (Error {}) )
 checkList =
     [ ( "map", mapChecks )
     , ( "filter", filterChecks )
@@ -347,8 +342,8 @@ checkList =
 -- LIST FUNCTIONS
 
 
-concatChecks : CheckInfo -> ( Node Expression, a ) -> List (Error {})
-concatChecks { parentRange, listFnRange } ( firstArg, _ ) =
+concatChecks : CheckInfo -> List (Error {})
+concatChecks { parentRange, listFnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr list ->
             case list of
@@ -394,8 +389,8 @@ concatChecks { parentRange, listFnRange } ( firstArg, _ ) =
             []
 
 
-concatMapChecks : CheckInfo -> ( Node Expression, a ) -> List (Error {})
-concatMapChecks { lookupTable, listFnRange } ( firstArg, _ ) =
+concatMapChecks : CheckInfo -> List (Error {})
+concatMapChecks { lookupTable, listFnRange, firstArg } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -409,8 +404,8 @@ concatMapChecks { lookupTable, listFnRange } ( firstArg, _ ) =
         []
 
 
-mapChecks : CheckInfo -> ( Node Expression, List (Node a) ) -> List (Error {})
-mapChecks { lookupTable, listFnRange } ( firstArg, restOfArgs ) =
+mapChecks : CheckInfo -> List (Error {})
+mapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -430,8 +425,8 @@ mapChecks { lookupTable, listFnRange } ( firstArg, restOfArgs ) =
         []
 
 
-filterChecks : CheckInfo -> ( Node Expression, List (Node Expression) ) -> List (Error {})
-filterChecks { lookupTable, parentRange, listFnRange } ( firstArg, restOfArgs ) =
+filterChecks : CheckInfo -> List (Error {})
+filterChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
@@ -467,8 +462,8 @@ filterChecks { lookupTable, parentRange, listFnRange } ( firstArg, restOfArgs ) 
             []
 
 
-filterMapChecks : CheckInfo -> ( Node Expression, List (Node Expression) ) -> List (Error {})
-filterMapChecks { lookupTable, parentRange, listFnRange } ( firstArg, restOfArgs ) =
+filterMapChecks : CheckInfo -> List (Error {})
+filterMapChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just ()) ->
             [ Rule.errorWithFix
