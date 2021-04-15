@@ -560,4 +560,18 @@ a = List.filterMap (\\a -> Just a) x
 a = x
 """
                         ]
+        , test "should not report List.filterMap (\\a -> Just b) x" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap (\\a -> Just b) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.filterMap (\\a b -> Just a) x" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap (\\a b -> Just a) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
         ]

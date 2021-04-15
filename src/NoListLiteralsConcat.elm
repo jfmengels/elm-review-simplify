@@ -519,10 +519,19 @@ isAlwaysMaybe node =
         Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: value :: []) ->
             getMaybeValue value
 
-        Expression.LambdaExpression { expression } ->
+        Expression.LambdaExpression { args, expression } ->
             case Node.value expression of
-                Expression.Application ((Node _ (Expression.FunctionOrValue [] "Just")) :: _) ->
-                    Just (Just ())
+                Expression.Application ((Node _ (Expression.FunctionOrValue [] "Just")) :: (Node _ (Expression.FunctionOrValue [] justArgName)) :: []) ->
+                    case args of
+                        (Node _ (Pattern.VarPattern lambdaArgName)) :: [] ->
+                            if lambdaArgName == justArgName then
+                                Just (Just ())
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
 
                 Expression.Application ((Node _ (Expression.FunctionOrValue [ "Maybe" ] "Just")) :: _) ->
                     Just (Just ())
