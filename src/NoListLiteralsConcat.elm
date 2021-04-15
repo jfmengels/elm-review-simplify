@@ -252,6 +252,8 @@ expressionVisitor node lookupTable =
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
                         , listFnRange = listFnRange
+                        , firstArg = firstArg
+                        , restOfArgs = restOfArgs
                         }
                         ( firstArg, restOfArgs )
 
@@ -265,6 +267,8 @@ expressionVisitor node lookupTable =
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
                         , listFnRange = listFnRange
+                        , firstArg = firstArg
+                        , restOfArgs = restOfArgs
                         }
                         ( firstArg, restOfArgs )
 
@@ -278,6 +282,8 @@ expressionVisitor node lookupTable =
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
                         , listFnRange = listFnRange
+                        , firstArg = firstArg
+                        , restOfArgs = restOfArgs
                         }
                         ( firstArg, restOfArgs )
 
@@ -291,6 +297,8 @@ expressionVisitor node lookupTable =
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
                         , listFnRange = listFnRange
+                        , firstArg = firstArg
+                        , restOfArgs = restOfArgs
                         }
                         ( firstArg, restOfArgs )
 
@@ -304,6 +312,8 @@ expressionVisitor node lookupTable =
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
                         , listFnRange = listFnRange
+                        , firstArg = firstArg
+                        , restOfArgs = restOfArgs
                         }
                         ( firstArg, restOfArgs )
 
@@ -318,7 +328,19 @@ type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , parentRange : Range
     , listFnRange : Range
+    , firstArg : Node Expression
+    , restOfArgs : List (Node Expression)
     }
+
+
+checkList : List ( String, CheckInfo -> ( Node Expression, List (Node Expression) ) -> List (Error {}) )
+checkList =
+    [ ( "map", mapChecks )
+    , ( "filter", filterChecks )
+    , ( "filterMap", filterMapChecks )
+    , ( "concat", concatChecks )
+    , ( "concatMap", concatMapChecks )
+    ]
 
 
 
