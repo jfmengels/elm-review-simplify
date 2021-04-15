@@ -516,7 +516,7 @@ isAlwaysBoolean lookupTable node =
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getBoolean boolean
+                    getBoolean lookupTable boolean
 
                 _ ->
                     Nothing
@@ -531,23 +531,27 @@ isAlwaysBoolean lookupTable node =
             Nothing
 
 
-getBoolean : Node Expression -> Maybe Bool
-getBoolean node =
+getBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+getBoolean lookupTable node =
     case Node.value node of
-        Expression.FunctionOrValue [] "True" ->
-            Just True
+        Expression.FunctionOrValue _ "True" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Basics" ] ->
+                    Just True
 
-        Expression.FunctionOrValue [ "Basics" ] "True" ->
-            Just True
+                _ ->
+                    Nothing
 
-        Expression.FunctionOrValue [] "False" ->
-            Just False
+        Expression.FunctionOrValue _ "False" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Basics" ] ->
+                    Just False
 
-        Expression.FunctionOrValue [ "Basics" ] "False" ->
-            Just False
+                _ ->
+                    Nothing
 
         Expression.ParenthesizedExpression expr ->
-            getBoolean expr
+            getBoolean lookupTable expr
 
         _ ->
             Nothing
