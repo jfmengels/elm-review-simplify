@@ -45,19 +45,40 @@ import Review.Rule as Rule exposing (Error, Rule)
     --> [ a, b, c ]
 
     List.concatMap identity x
-    --> List.concat x
+    --> List.concat list
 
     List.concatMap identity
     --> List.concat
 
-    List.concatMap (\a -> a) x
-    --> List.concat x
+    List.concatMap (\a -> a) list
+    --> List.concat list
 
     List.map fn []
     --> []
 
-    List.map identity x
-    --> x
+    List.map identity list
+    --> list
+
+    List.map identity
+    --> identity
+
+    List.filter fn []
+    --> []
+
+    List.filter (always True) list
+    --> list
+
+    List.filter (\a -> True) list
+    --> list
+
+    List.filter (always False) list
+    --> []
+
+    List.filter (always True)
+    --> identity
+
+    List.filter (always False)
+    --> always []
 
 
 ## Success
