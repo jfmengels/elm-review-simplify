@@ -471,7 +471,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
 
 
 concatMapChecks : CheckInfo -> List (Error {})
-concatMapChecks { lookupTable, listFnRange, firstArg, secondArg } =
+concatMapChecks { lookupTable, listFnRange, firstArg, secondArg, usingRightPizza } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -489,10 +489,18 @@ concatMapChecks { lookupTable, listFnRange, firstArg, secondArg } =
                     , details = [ "You can replace this call by a call to the function directly" ]
                     }
                     listFnRange
-                    [ Review.Fix.replaceRangeBy listFnRange "("
-                    , Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                    , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } "))"
-                    ]
+                    (if usingRightPizza then
+                        [ Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                        , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                        , Review.Fix.removeRange listFnRange
+                        ]
+
+                     else
+                        [ Review.Fix.replaceRangeBy listFnRange "("
+                        , Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                        , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } "))"
+                        ]
+                    )
                 ]
 
             _ ->

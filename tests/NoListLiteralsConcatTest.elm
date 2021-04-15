@@ -345,10 +345,10 @@ a = List.concatMap fn [ a ]
 a = ( fn (a))
 """
                         ]
-        , test "should replace List.concatMap fn <| [ a b ] by (fn <| (a b))" <|
+        , test "should replace List.concatMap fn <| [ b c ] by (fn <| (b c))" <|
             \() ->
                 """module A exposing (..)
-a = List.concatMap fn <| [ a b ]
+a = List.concatMap fn <| [ b c ]
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -358,7 +358,23 @@ a = List.concatMap fn <| [ a b ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( fn <| (a b))
+a = ( fn <| (b c))
+"""
+                        ]
+        , test "should replace List.concatMap fn <| [ b c ] by (b c) |> fn" <|
+            \() ->
+                """module A exposing (..)
+a = [ b c ] |> List.concatMap fn
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b c) |>  fn
 """
                         ]
         ]
