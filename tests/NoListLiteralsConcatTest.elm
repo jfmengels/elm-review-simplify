@@ -345,6 +345,22 @@ a = List.concatMap fn [ a ]
 a = ( fn (a))
 """
                         ]
+        , test "should replace List.concatMap fn <| [ a b ] by (fn <| (a b))" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap fn <| [ a b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( fn <| (a b))
+"""
+                        ]
         ]
 
 
