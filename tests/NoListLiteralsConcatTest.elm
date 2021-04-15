@@ -14,6 +14,7 @@ all =
         , listConcatMapIdentityTests
         , listMapIdentityTests
         , listFilterTests
+        , listFilterMapTests
         ]
 
 
@@ -432,6 +433,35 @@ a = List.filter (always False)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (always [])
+"""
+                        ]
+        ]
+
+
+listFilterMapTests : Test
+listFilterMapTests =
+    describe "Using List.filterMap"
+        [ test "should not report List.filterMap used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap fn x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.filterMap f [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap fn []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by en empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]

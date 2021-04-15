@@ -53,7 +53,7 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.concatMap (\a -> a) list
     --> List.concat list
 
-    List.map fn []
+    List.map fn [] -- same for List.filter, List.filterMap
     --> []
 
     List.map identity list
@@ -61,9 +61,6 @@ import Review.Rule as Rule exposing (Error, Rule)
 
     List.map identity
     --> identity
-
-    List.filter fn []
-    --> []
 
     List.filter (always True) list
     --> list
@@ -318,6 +315,15 @@ expressionVisitor node =
 
                 Nothing ->
                     []
+
+        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filterMap")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
+            [ Rule.errorWithFix
+                { message = "Using List.filterMap on an empty list will result in a empty list"
+                , details = [ "You can replace this call by en empty list" ]
+                }
+                listFn
+                [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
+            ]
 
         _ ->
             []
