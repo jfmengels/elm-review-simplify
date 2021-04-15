@@ -656,6 +656,38 @@ a = List.filterMap (always Nothing)
 a = (always [])
 """
                         ]
+        , test "should replace List.filterMap <| always Nothing by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap <| always Nothing
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
+"""
+                        ]
+        , test "should replace always Nothing |> List.filterMap by always []" <|
+            \() ->
+                """module A exposing (..)
+a = always Nothing |> List.filterMap
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
+"""
+                        ]
         , test "should replace List.filterMap Just x by x" <|
             \() ->
                 """module A exposing (..)
