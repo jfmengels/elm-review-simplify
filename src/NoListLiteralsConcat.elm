@@ -77,6 +77,18 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.filter (always False)
     --> always []
 
+    List.filterMap Just list
+    --> list
+
+    List.filterMap Just
+    --> identity
+
+    List.filterMap (always Nothing) list
+    --> []
+
+    List.filterMap (always Nothing)
+    --> (always [])
+
 
 ## Success
 
@@ -327,13 +339,34 @@ expressionVisitor node =
 
         Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filterMap")) :: firstArgument :: restOfArgs) ->
             case isAlwaysMaybe firstArgument of
-                Just _ ->
+                Just (Just ()) ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                        , details = [ "You can remove this call and replace it by the list itself" ]
+                        }
+                        listFn
+                        [ case restOfArgs of
+                            [] ->
+                                Review.Fix.replaceRangeBy (Node.range node) "identity"
+
+                            listArg :: _ ->
+                                Review.Fix.removeRange { start = listFn.start, end = (Node.range listArg).start }
+                        ]
+                    ]
+
+                Just Nothing ->
                     [ Rule.errorWithFix
                         { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
                         , details = [ "You can remove this call and replace it by an empty list" ]
                         }
                         listFn
-                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
+                        [ case restOfArgs of
+                            [] ->
+                                Review.Fix.replaceRangeBy (Node.range node) "(always [])"
+
+                            _ ->
+                                Review.Fix.replaceRangeBy (Node.range node) "[]"
+                        ]
                     ]
 
                 Nothing ->
@@ -474,6 +507,9 @@ getBoolean node =
 isAlwaysMaybe : Node Expression -> Maybe (Maybe ())
 isAlwaysMaybe node =
     case Node.value node of
+        Expression.FunctionOrValue [] "Just" ->
+            Just (Just ())
+
         Expression.Application ((Node _ (Expression.FunctionOrValue [] "always")) :: value :: []) ->
             getMaybeValue value
 

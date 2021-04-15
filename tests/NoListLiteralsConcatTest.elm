@@ -480,7 +480,23 @@ a = List.filterMap (always Nothing) x
 a = []
 """
                         ]
-        , test "should replace List.filterMap Just x by []" <|
+        , test "should replace List.filterMap (always Nothing) by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap (always Nothing)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
+"""
+                        ]
+        , test "should replace List.filterMap Just x by x" <|
             \() ->
                 """module A exposing (..)
 a = List.filterMap Just x
@@ -494,6 +510,22 @@ a = List.filterMap Just x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
+"""
+                        ]
+        , test "should replace List.filterMap Just by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap Just
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
