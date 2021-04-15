@@ -331,7 +331,7 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    case isAlwaysBoolean firstArg of
+                    case isAlwaysBoolean lookupTable firstArg of
                         Just True ->
                             [ Rule.errorWithFix
                                 { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -510,20 +510,22 @@ isListLiteral node =
             False
 
 
-isAlwaysBoolean : Node Expression -> Maybe Bool
-isAlwaysBoolean node =
+isAlwaysBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+isAlwaysBoolean lookupTable node =
     case Node.value node of
-        Expression.Application ((Node _ (Expression.FunctionOrValue [] "always")) :: boolean :: []) ->
-            getBoolean boolean
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    getBoolean boolean
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: boolean :: []) ->
-            getBoolean boolean
+                _ ->
+                    Nothing
 
         Expression.LambdaExpression _ ->
             Nothing
 
         Expression.ParenthesizedExpression expr ->
-            isAlwaysBoolean expr
+            isAlwaysBoolean lookupTable expr
 
         _ ->
             Nothing
