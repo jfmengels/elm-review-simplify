@@ -218,7 +218,7 @@ a =  [  1, 2, 3 ,  4, 5, 6 ]
 listConcatMapIdentityTests : Test
 listConcatMapIdentityTests =
     describe "Using List.concatMap"
-        [ test "should replace List.concatMap identity by List.concat" <|
+        [ test "should replace List.concatMap identity x by List.concat x" <|
             \() ->
                 """module A exposing (..)
 a = List.concatMap identity x
@@ -232,6 +232,22 @@ a = List.concatMap identity x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.concat x
+"""
+                        ]
+        , test "should replace List.concatMap identity by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            , details = [ "You can replace this call by List.concat" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat
 """
                         ]
         , test "should replace List.concatMap (\\x->x) by List.concat" <|

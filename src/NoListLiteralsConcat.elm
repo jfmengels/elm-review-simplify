@@ -23,28 +23,41 @@ import Review.Rule as Rule exposing (Error, Rule)
 
 ## Fail
 
-    _ =
-        [ 1, 2, 3 ] ++ [ 4, mysteryNumber, 6 ]
+    a :: []
+    --> [ a ]
 
-    _ =
-        List.concat
-            [ [ 1, 2, 3 ]
-            , [ 4, mysteryNumber, 6 ]
-            ]
+    a :: [ b ]
+    --> [ a, b ]
 
-    _ =
-        List.concat
-            [ [ 1, 2, 3 ]
-            ]
+    [] ++ list
+    --> list
 
-    _ =
-        1 :: [ 2, 3 ]
+    [ a, b ] ++ [ c ]
+    --> [ a, b, c ]
 
-    _ =
-        [] ++ list
+    [ a, b ] ++ [ c ]
+    --> [ a, b, c ]
 
-    _ =
-        list ++ []
+    List.concat []
+    --> []
+
+    List.concat [ [ a, b ], [ c ] ]
+    --> [ a, b, c ]
+
+    List.concatMap identity x
+    --> List.concat x
+
+    List.concatMap identity
+    --> List.concat
+
+    List.concatMap (\a -> a) x
+    --> List.concat x
+
+    List.map fn []
+    --> []
+
+    List.map identity x
+    --> x
 
 
 ## Success
