@@ -330,12 +330,31 @@ type alias CheckInfo =
 
 checkList : List ( String, CheckInfo -> List (Error {}) )
 checkList =
-    [ ( "map", mapChecks )
-    , ( "filter", filterChecks )
-    , ( "filterMap", filterMapChecks )
+    [ reportEmptyList ( "map", mapChecks )
+    , reportEmptyList ( "filter", filterChecks )
+    , reportEmptyList ( "filterMap", filterMapChecks )
     , ( "concat", concatChecks )
     , ( "concatMap", concatMapChecks )
     ]
+
+
+reportEmptyList : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
+reportEmptyList ( name, function ) =
+    ( name
+    , \checkInfo ->
+        case checkInfo.restOfArgs of
+            (Node _ (Expression.ListExpr [])) :: _ ->
+                [ Rule.errorWithFix
+                    { message = "Using List." ++ name ++ " on an empty list will result in a empty list"
+                    , details = [ "You can replace this call by an empty list" ]
+                    }
+                    checkInfo.listFnRange
+                    [ Review.Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                ]
+
+            _ ->
+                function checkInfo
+    )
 
 
 
