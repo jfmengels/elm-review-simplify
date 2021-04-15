@@ -454,6 +454,22 @@ a = List.map identity <| x
 a = x
 """
                         ]
+        , test "should replace x |> List.map identity by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map with an identity function is the same as not using List.map"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         , test "should replace List.map identity by identity" <|
             \() ->
                 """module A exposing (..)
@@ -535,6 +551,22 @@ a = []
             \() ->
                 """module A exposing (..)
 a = List.filter fn <| []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filter on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace [] |> List.filter fn by []" <|
+            \() ->
+                """module A exposing (..)
+a = [] |> List.filter fn
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -643,6 +675,22 @@ a = List.filter (always False) <| x
 a = []
 """
                         ]
+        , test "should replace x |> List.filter (always False) by []" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.filter (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         , test "should replace List.filter (always False) by always []" <|
             \() ->
                 """module A exposing (..)
@@ -736,6 +784,22 @@ a = List.filterMap fn <| []
 a = []
 """
                         ]
+        , test "should replace [] |> List.filterMap fn by []" <|
+            \() ->
+                """module A exposing (..)
+a = [] |> List.filterMap fn
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         , test "should replace List.filterMap (always Nothing) x by []" <|
             \() ->
                 """module A exposing (..)
@@ -756,6 +820,22 @@ a = []
             \() ->
                 """module A exposing (..)
 a = List.filterMap (always Nothing) <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace x |> List.filterMap (always Nothing) by []" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.filterMap (always Nothing)
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -836,6 +916,22 @@ a = x
             \() ->
                 """module A exposing (..)
 a = List.filterMap Just <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace x |> List.filterMap Just by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.filterMap Just
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors

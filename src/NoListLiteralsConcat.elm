@@ -269,6 +269,7 @@ expressionVisitorHelp node { lookupTable } =
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Nothing
+                                , usingRightPizza = False
                                 }
                             , []
                             )
@@ -290,6 +291,7 @@ expressionVisitorHelp node { lookupTable } =
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Just secondArgument
+                                , usingRightPizza = False
                                 }
                             , [ applicationRange ]
                             )
@@ -311,6 +313,7 @@ expressionVisitorHelp node { lookupTable } =
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Nothing
+                                , usingRightPizza = True
                                 }
                             , []
                             )
@@ -332,6 +335,7 @@ expressionVisitorHelp node { lookupTable } =
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Just secondArgument
+                                , usingRightPizza = True
                                 }
                             , [ applicationRange ]
                             )
@@ -353,6 +357,7 @@ expressionVisitorHelp node { lookupTable } =
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = List.head restOfArguments
+                                , usingRightPizza = False
                                 }
                             , []
                             )
@@ -373,6 +378,7 @@ type alias CheckInfo =
     , listFnRange : Range
     , firstArg : Node Expression
     , secondArg : Maybe (Node Expression)
+    , usingRightPizza : Bool
     }
 
 
@@ -580,10 +586,14 @@ removeBoundariesFix node =
 
 
 noopFix : CheckInfo -> List Fix
-noopFix { listFnRange, parentRange, secondArg } =
+noopFix { listFnRange, parentRange, secondArg, usingRightPizza } =
     [ case secondArg of
         Just listArg ->
-            Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+            if usingRightPizza then
+                Review.Fix.removeRange { start = (Node.range listArg).end, end = parentRange.end }
+
+            else
+                Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
 
         Nothing ->
             Review.Fix.replaceRangeBy parentRange "identity"
