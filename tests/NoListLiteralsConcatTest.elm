@@ -406,6 +406,22 @@ a = List.map fn <| []
 a = []
 """
                         ]
+        , test "should replace [] |> List.map f by []" <|
+            \() ->
+                """module A exposing (..)
+a = [] |> List.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         , test "should replace List.map identity x by x" <|
             \() ->
                 """module A exposing (..)
