@@ -248,7 +248,12 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    concatChecks (Node.range node) listFnRange ( firstArg, restOfArgs )
+                    concatChecks
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = listFnRange
+                        }
+                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -256,7 +261,12 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    concatMapChecks lookupTable listFnRange ( firstArg, restOfArgs )
+                    concatMapChecks
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = listFnRange
+                        }
+                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -264,7 +274,12 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    mapChecks lookupTable listFnRange ( firstArg, restOfArgs )
+                    mapChecks
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = listFnRange
+                        }
+                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -272,7 +287,12 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    filterChecks lookupTable (Node.range node) listFnRange ( firstArg, restOfArgs )
+                    filterChecks
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = listFnRange
+                        }
+                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -280,7 +300,12 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    filterMapChecks lookupTable (Node.range node) listFnRange ( firstArg, restOfArgs )
+                    filterMapChecks
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = listFnRange
+                        }
+                        ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -289,17 +314,19 @@ expressionVisitor node lookupTable =
             []
 
 
-checkList =
-    [ ( "map", mapChecks )
-    ]
+type alias CheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , parentRange : Range
+    , listFnRange : Range
+    }
 
 
 
 -- LIST FUNCTIONS
 
 
-concatChecks : Range -> Range -> ( Node Expression, a ) -> List (Error {})
-concatChecks parentRange listFnRange ( firstArg, _ ) =
+concatChecks : CheckInfo -> ( Node Expression, a ) -> List (Error {})
+concatChecks { parentRange, listFnRange } ( firstArg, _ ) =
     case Node.value firstArg of
         Expression.ListExpr list ->
             case list of
@@ -345,8 +372,8 @@ concatChecks parentRange listFnRange ( firstArg, _ ) =
             []
 
 
-concatMapChecks : ModuleNameLookupTable -> Range -> ( Node Expression, a ) -> List (Error {})
-concatMapChecks lookupTable listFnRange ( firstArg, _ ) =
+concatMapChecks : CheckInfo -> ( Node Expression, a ) -> List (Error {})
+concatMapChecks { lookupTable, listFnRange } ( firstArg, _ ) =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -360,8 +387,8 @@ concatMapChecks lookupTable listFnRange ( firstArg, _ ) =
         []
 
 
-mapChecks : ModuleNameLookupTable -> Range -> ( Node Expression, List (Node a) ) -> List (Error {})
-mapChecks lookupTable listFnRange ( firstArg, restOfArgs ) =
+mapChecks : CheckInfo -> ( Node Expression, List (Node a) ) -> List (Error {})
+mapChecks { lookupTable, listFnRange } ( firstArg, restOfArgs ) =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -381,8 +408,8 @@ mapChecks lookupTable listFnRange ( firstArg, restOfArgs ) =
         []
 
 
-filterChecks : ModuleNameLookupTable -> Range -> Range -> ( Node Expression, List (Node Expression) ) -> List (Error {})
-filterChecks lookupTable parentRange listFnRange ( firstArg, restOfArgs ) =
+filterChecks : CheckInfo -> ( Node Expression, List (Node Expression) ) -> List (Error {})
+filterChecks { lookupTable, parentRange, listFnRange } ( firstArg, restOfArgs ) =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
@@ -418,8 +445,8 @@ filterChecks lookupTable parentRange listFnRange ( firstArg, restOfArgs ) =
             []
 
 
-filterMapChecks : ModuleNameLookupTable -> Range -> Range -> ( Node Expression, List (Node Expression) ) -> List (Error {})
-filterMapChecks lookupTable parentRange listFnRange ( firstArg, restOfArgs ) =
+filterMapChecks : CheckInfo -> ( Node Expression, List (Node Expression) ) -> List (Error {})
+filterMapChecks { lookupTable, parentRange, listFnRange } ( firstArg, restOfArgs ) =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just ()) ->
             [ Rule.errorWithFix
