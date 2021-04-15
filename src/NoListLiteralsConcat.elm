@@ -289,6 +289,11 @@ expressionVisitor node lookupTable =
             []
 
 
+checkList =
+    [ ( "map", mapChecks )
+    ]
+
+
 
 -- LIST FUNCTIONS
 
