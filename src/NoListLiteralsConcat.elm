@@ -80,6 +80,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.filterMap Just list
     --> list
 
+    List.filterMap (\a -> Just a) list
+    --> list
+
     List.filterMap Just
     --> identity
 
@@ -518,6 +521,12 @@ isAlwaysMaybe node =
 
         Expression.LambdaExpression { expression } ->
             case Node.value expression of
+                Expression.Application ((Node _ (Expression.FunctionOrValue [] "Just")) :: _) ->
+                    Just (Just ())
+
+                Expression.Application ((Node _ (Expression.FunctionOrValue [ "Maybe" ] "Just")) :: _) ->
+                    Just (Just ())
+
                 Expression.FunctionOrValue [] "Nothing" ->
                     Just Nothing
 
