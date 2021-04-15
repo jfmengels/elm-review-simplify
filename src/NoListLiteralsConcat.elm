@@ -516,8 +516,16 @@ isAlwaysMaybe node =
         Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: value :: []) ->
             getMaybeValue value
 
-        Expression.LambdaExpression _ ->
-            Nothing
+        Expression.LambdaExpression { expression } ->
+            case Node.value expression of
+                Expression.FunctionOrValue [] "Nothing" ->
+                    Just Nothing
+
+                Expression.FunctionOrValue [ "Maybe" ] "Nothing" ->
+                    Just Nothing
+
+                _ ->
+                    Nothing
 
         Expression.ParenthesizedExpression expr ->
             isAlwaysMaybe expr

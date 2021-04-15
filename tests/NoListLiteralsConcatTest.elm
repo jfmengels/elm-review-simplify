@@ -528,4 +528,20 @@ a = List.filterMap Just
 a = identity
 """
                         ]
+        , test "should replace List.filterMap (\\a -> Nothing) x by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap (\\a -> Nothing) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         ]
