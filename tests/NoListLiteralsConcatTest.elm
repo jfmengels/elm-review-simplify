@@ -197,6 +197,22 @@ a = List.concat [ b ]
 a = b
 """
                         ]
+        , test "should report List.concat with a single item, using (<|)" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat <| [ b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary use of List.concat on a list with 1 element"
+                            , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
+                            , under = "List.concat <| [ b ]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b
+"""
+                        ]
         , test "should report List.concat that only contains list literals" <|
             \() ->
                 """module A exposing (..)
