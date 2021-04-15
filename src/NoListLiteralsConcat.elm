@@ -11,7 +11,7 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
 import Review.Fix exposing (Fix)
-import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -203,183 +203,223 @@ expressionVisitor node lookupTable =
                 ]
             ]
 
-        Expression.Application [ Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concat"), Node _ (Expression.ListExpr list) ] ->
-            case list of
-                [] ->
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary use of List.concat on an empty list"
-                        , details = [ "The value of the operation will be []. You should replace this expression by that." ]
-                        }
-                        (Node.range node)
-                        [ Review.Fix.replaceRangeBy
-                            (Node.range node)
-                            "[]"
-                        ]
-                    ]
+        Expression.Application [ Node listFnRange (Expression.FunctionOrValue _ "concat"), Node _ (Expression.ListExpr list) ] ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    case list of
+                        [] ->
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary use of List.concat on an empty list"
+                                , details = [ "The value of the operation will be []. You should replace this expression by that." ]
+                                }
+                                (Node.range node)
+                                [ Review.Fix.replaceRangeBy
+                                    (Node.range node)
+                                    "[]"
+                                ]
+                            ]
 
-                [ Node elementRange _ ] ->
-                    let
-                        parentRange : Range
-                        parentRange =
-                            Node.range node
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary use of List.concat on a list with 1 element"
-                        , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                        }
-                        parentRange
-                        [ Review.Fix.removeRange { start = parentRange.start, end = elementRange.start }
-                        , Review.Fix.removeRange { start = elementRange.end, end = parentRange.end }
-                        ]
-                    ]
+                        [ Node elementRange _ ] ->
+                            let
+                                parentRange : Range
+                                parentRange =
+                                    Node.range node
+                            in
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary use of List.concat on a list with 1 element"
+                                , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
+                                }
+                                parentRange
+                                [ Review.Fix.removeRange { start = parentRange.start, end = elementRange.start }
+                                , Review.Fix.removeRange { start = elementRange.end, end = parentRange.end }
+                                ]
+                            ]
 
-                args ->
-                    if List.all isListLiteral list then
-                        let
-                            parentRange : Range
-                            parentRange =
-                                Node.range node
-                        in
+                        args ->
+                            if List.all isListLiteral list then
+                                let
+                                    parentRange : Range
+                                    parentRange =
+                                        Node.range node
+                                in
+                                [ Rule.errorWithFix
+                                    { message = "Expression could be simplified to be a single List"
+                                    , details = [ "Try moving all the elements into a single list." ]
+                                    }
+                                    parentRange
+                                    (Review.Fix.removeRange listFnRange
+                                        :: List.concatMap removeBoundaries args
+                                    )
+                                ]
+
+                            else
+                                []
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: _) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    if isIdentity firstArg then
                         [ Rule.errorWithFix
-                            { message = "Expression could be simplified to be a single List"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            , details = [ "You can replace this call by List.concat" ]
                             }
-                            parentRange
-                            (Review.Fix.removeRange listConcatRange
-                                :: List.concatMap removeBoundaries args
-                            )
+                            listFnRange
+                            [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
                         ]
 
                     else
                         []
 
-        Expression.Application ((Node listConcatRange (Expression.FunctionOrValue [ "List" ] "concatMap")) :: firstArg :: _) ->
-            if isIdentity firstArg then
-                [ Rule.errorWithFix
-                    { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                    , details = [ "You can replace this call by List.concat" ]
-                    }
-                    listConcatRange
-                    [ Review.Fix.replaceRangeBy { start = listConcatRange.start, end = (Node.range firstArg).end } "List.concat" ]
-                ]
-
-            else
-                []
-
-        Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "map")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
-            [ Rule.errorWithFix
-                { message = "Using List.map on an empty list will result in a empty list"
-                , details = [ "You can replace this call by an empty list" ]
-                }
-                listMapRange
-                [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
-            ]
-
-        Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "map")) :: firstArg :: restOfArgs) ->
-            if isIdentity firstArg then
-                [ Rule.errorWithFix
-                    { message = "Using List.map with an identity function is the same as not using List.map"
-                    , details = [ "You can remove this call and replace it by the list itself" ]
-                    }
-                    listMapRange
-                    [ case restOfArgs of
-                        [] ->
-                            Review.Fix.removeRange { start = listMapRange.start, end = (Node.range firstArg).start }
-
-                        listArg :: _ ->
-                            Review.Fix.removeRange { start = listMapRange.start, end = (Node.range listArg).start }
-                    ]
-                ]
-
-            else
-                []
-
-        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
-            [ Rule.errorWithFix
-                { message = "Using List.filter on an empty list will result in a empty list"
-                , details = [ "You can replace this call by an empty list" ]
-                }
-                listFn
-                [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
-            ]
-
-        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filter")) :: firstArg :: restOfArgs) ->
-            case isAlwaysBoolean firstArg of
-                Just True ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                        , details = [ "You can remove this call and replace it by the list itself" ]
-                        }
-                        listFn
-                        [ case restOfArgs of
-                            [] ->
-                                Review.Fix.replaceRangeBy (Node.range node) "identity"
-
-                            listArg :: _ ->
-                                Review.Fix.removeRange { start = listFn.start, end = (Node.range listArg).start }
-                        ]
-                    ]
-
-                Just False ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.filter with a function that will always return False will result in an empty list"
-                        , details = [ "You can remove this call and replace it by an empty list" ]
-                        }
-                        listFn
-                        [ case restOfArgs of
-                            [] ->
-                                Review.Fix.replaceRangeBy (Node.range node) "(always [])"
-
-                            _ ->
-                                Review.Fix.replaceRangeBy (Node.range node) "[]"
-                        ]
-                    ]
-
-                Nothing ->
+                _ ->
                     []
 
-        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filterMap")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
-            [ Rule.errorWithFix
-                { message = "Using List.filterMap on an empty list will result in a empty list"
-                , details = [ "You can replace this call by an empty list" ]
-                }
-                listFn
-                [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
-            ]
-
-        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filterMap")) :: firstArgument :: restOfArgs) ->
-            case isAlwaysMaybe firstArgument of
-                Just (Just ()) ->
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
                     [ Rule.errorWithFix
-                        { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                        , details = [ "You can remove this call and replace it by the list itself" ]
+                        { message = "Using List.map on an empty list will result in a empty list"
+                        , details = [ "You can replace this call by an empty list" ]
                         }
-                        listFn
-                        [ case restOfArgs of
-                            [] ->
-                                Review.Fix.replaceRangeBy (Node.range node) "identity"
-
-                            listArg :: _ ->
-                                Review.Fix.removeRange { start = listFn.start, end = (Node.range listArg).start }
-                        ]
+                        listFnRange
+                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
                     ]
 
-                Just Nothing ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                        , details = [ "You can remove this call and replace it by an empty list" ]
-                        }
-                        listFn
-                        [ case restOfArgs of
-                            [] ->
-                                Review.Fix.replaceRangeBy (Node.range node) "(always [])"
+                _ ->
+                    []
 
-                            _ ->
-                                Review.Fix.replaceRangeBy (Node.range node) "[]"
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    if isIdentity firstArg then
+                        [ Rule.errorWithFix
+                            { message = "Using List.map with an identity function is the same as not using List.map"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            }
+                            listFnRange
+                            [ case restOfArgs of
+                                [] ->
+                                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
+
+                                listArg :: _ ->
+                                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                            ]
                         ]
+
+                    else
+                        []
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filter on an empty list will result in a empty list"
+                        , details = [ "You can replace this call by an empty list" ]
+                        }
+                        listFnRange
+                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
                     ]
 
-                Nothing ->
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    case isAlwaysBoolean firstArg of
+                        Just True ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
+                                , details = [ "You can remove this call and replace it by the list itself" ]
+                                }
+                                listFnRange
+                                [ case restOfArgs of
+                                    [] ->
+                                        Review.Fix.replaceRangeBy (Node.range node) "identity"
+
+                                    listArg :: _ ->
+                                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                                ]
+                            ]
+
+                        Just False ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.filter with a function that will always return False will result in an empty list"
+                                , details = [ "You can remove this call and replace it by an empty list" ]
+                                }
+                                listFnRange
+                                [ case restOfArgs of
+                                    [] ->
+                                        Review.Fix.replaceRangeBy (Node.range node) "(always [])"
+
+                                    _ ->
+                                        Review.Fix.replaceRangeBy (Node.range node) "[]"
+                                ]
+                            ]
+
+                        Nothing ->
+                            []
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filterMap on an empty list will result in a empty list"
+                        , details = [ "You can replace this call by an empty list" ]
+                        }
+                        listFnRange
+                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
+                    ]
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: firstArgument :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    case isAlwaysMaybe firstArgument of
+                        Just (Just ()) ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                                , details = [ "You can remove this call and replace it by the list itself" ]
+                                }
+                                listFnRange
+                                [ case restOfArgs of
+                                    [] ->
+                                        Review.Fix.replaceRangeBy (Node.range node) "identity"
+
+                                    listArg :: _ ->
+                                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                                ]
+                            ]
+
+                        Just Nothing ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                                , details = [ "You can remove this call and replace it by an empty list" ]
+                                }
+                                listFnRange
+                                [ case restOfArgs of
+                                    [] ->
+                                        Review.Fix.replaceRangeBy (Node.range node) "(always [])"
+
+                                    _ ->
+                                        Review.Fix.replaceRangeBy (Node.range node) "[]"
+                                ]
+                            ]
+
+                        Nothing ->
+                            []
+
+                _ ->
                     []
 
         _ ->
