@@ -203,22 +203,6 @@ expressionVisitor node lookupTable =
                 ]
             ]
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    concatChecks (Node.range node) listFnRange ( firstArg, restOfArgs )
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    concatMapChecks lookupTable listFnRange ( firstArg, restOfArgs )
-
-                _ ->
-                    []
-
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
@@ -229,14 +213,6 @@ expressionVisitor node lookupTable =
                         listFnRange
                         [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
                     ]
-
-                _ ->
-                    []
-
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    mapChecks lookupTable listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -255,14 +231,6 @@ expressionVisitor node lookupTable =
                 _ ->
                     []
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
-                Just [ "List" ] ->
-                    filterChecks lookupTable (Node.range node) listFnRange ( firstArg, restOfArgs )
-
-                _ ->
-                    []
-
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filterMap")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
@@ -273,6 +241,38 @@ expressionVisitor node lookupTable =
                         listFnRange
                         [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
                     ]
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: firstArg :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    concatChecks (Node.range node) listFnRange ( firstArg, restOfArgs )
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    concatMapChecks lookupTable listFnRange ( firstArg, restOfArgs )
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    mapChecks lookupTable listFnRange ( firstArg, restOfArgs )
+
+                _ ->
+                    []
+
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
+                Just [ "List" ] ->
+                    filterChecks lookupTable (Node.range node) listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
