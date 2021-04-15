@@ -701,8 +701,8 @@ isAlwaysBoolean lookupTable node =
                 _ ->
                     Nothing
 
-        Expression.LambdaExpression _ ->
-            Nothing
+        Expression.LambdaExpression { expression } ->
+            getBoolean lookupTable expression
 
         Expression.ParenthesizedExpression expr ->
             isAlwaysBoolean lookupTable expr

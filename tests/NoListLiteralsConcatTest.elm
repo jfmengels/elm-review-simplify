@@ -611,6 +611,22 @@ a = List.filter (always True) x
 a = x
 """
                         ]
+        , test "should replace List.filter (\\x -> True) x by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter (\\x -> True) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         , test "should replace List.filter (always True) by identity" <|
             \() ->
                 """module A exposing (..)
@@ -663,6 +679,22 @@ a = identity
             \() ->
                 """module A exposing (..)
 a = List.filter (always False) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.filter (\\x -> False) x by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter (\\x -> False) x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
