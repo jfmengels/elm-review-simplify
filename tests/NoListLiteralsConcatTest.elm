@@ -480,4 +480,20 @@ a = List.filterMap (always Nothing) x
 a = []
 """
                         ]
+        , test "should replace List.filterMap Just x by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap Just x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
