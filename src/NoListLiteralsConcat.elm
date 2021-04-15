@@ -203,57 +203,10 @@ expressionVisitor node lookupTable =
                 ]
             ]
 
-        Expression.Application [ Node listFnRange (Expression.FunctionOrValue _ "concat"), Node _ (Expression.ListExpr list) ] ->
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: arguments) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    case list of
-                        [] ->
-                            [ Rule.errorWithFix
-                                { message = "Unnecessary use of List.concat on an empty list"
-                                , details = [ "The value of the operation will be []. You should replace this expression by that." ]
-                                }
-                                (Node.range node)
-                                [ Review.Fix.replaceRangeBy
-                                    (Node.range node)
-                                    "[]"
-                                ]
-                            ]
-
-                        [ Node elementRange _ ] ->
-                            let
-                                parentRange : Range
-                                parentRange =
-                                    Node.range node
-                            in
-                            [ Rule.errorWithFix
-                                { message = "Unnecessary use of List.concat on a list with 1 element"
-                                , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                                }
-                                parentRange
-                                [ Review.Fix.removeRange { start = parentRange.start, end = elementRange.start }
-                                , Review.Fix.removeRange { start = elementRange.end, end = parentRange.end }
-                                ]
-                            ]
-
-                        args ->
-                            if List.all isListLiteral list then
-                                let
-                                    parentRange : Range
-                                    parentRange =
-                                        Node.range node
-                                in
-                                [ Rule.errorWithFix
-                                    { message = "Expression could be simplified to be a single List"
-                                    , details = [ "Try moving all the elements into a single list." ]
-                                    }
-                                    parentRange
-                                    (Review.Fix.removeRange listFnRange
-                                        :: List.concatMap removeBoundaries args
-                                    )
-                                ]
-
-                            else
-                                []
+                    concatChecks (Node.range node) listFnRange arguments
 
                 _ ->
                     []
@@ -424,6 +377,61 @@ expressionVisitor node lookupTable =
 
         _ ->
             []
+
+
+
+-- LIST FUNCTIONS
+
+
+concatChecks : Range -> Range -> List (Node Expression) -> List (Error {})
+concatChecks parentRange listFnRange arguments =
+    case arguments of
+        [ Node _ (Expression.ListExpr list) ] ->
+            case list of
+                [] ->
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary use of List.concat on an empty list"
+                        , details = [ "The value of the operation will be []. You should replace this expression by that." ]
+                        }
+                        parentRange
+                        [ Review.Fix.replaceRangeBy
+                            parentRange
+                            "[]"
+                        ]
+                    ]
+
+                [ Node elementRange _ ] ->
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary use of List.concat on a list with 1 element"
+                        , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
+                        }
+                        parentRange
+                        [ Review.Fix.removeRange { start = parentRange.start, end = elementRange.start }
+                        , Review.Fix.removeRange { start = elementRange.end, end = parentRange.end }
+                        ]
+                    ]
+
+                args ->
+                    if List.all isListLiteral list then
+                        [ Rule.errorWithFix
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            }
+                            parentRange
+                            (Review.Fix.removeRange listFnRange
+                                :: List.concatMap removeBoundaries args
+                            )
+                        ]
+
+                    else
+                        []
+
+        _ ->
+            []
+
+
+
+-- MATCHERS
 
 
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
