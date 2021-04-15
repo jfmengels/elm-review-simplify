@@ -236,23 +236,7 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "map")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    if isIdentity lookupTable firstArg then
-                        [ Rule.errorWithFix
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
-                            }
-                            listFnRange
-                            [ case restOfArgs of
-                                [] ->
-                                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
-
-                                listArg :: _ ->
-                                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
-                            ]
-                        ]
-
-                    else
-                        []
+                    mapChecks lookupTable listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -429,6 +413,27 @@ concatMapChecks lookupTable listFnRange ( firstArg, _ ) =
             }
             listFnRange
             [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
+        ]
+
+    else
+        []
+
+
+mapChecks : ModuleNameLookupTable -> Range -> ( Node Expression, List (Node a) ) -> List (Error {})
+mapChecks lookupTable listFnRange ( firstArg, restOfArgs ) =
+    if isIdentity lookupTable firstArg then
+        [ Rule.errorWithFix
+            { message = "Using List.map with an identity function is the same as not using List.map"
+            , details = [ "You can remove this call and replace it by the list itself" ]
+            }
+            listFnRange
+            [ case restOfArgs of
+                [] ->
+                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
+
+                listArg :: _ ->
+                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+            ]
         ]
 
     else
