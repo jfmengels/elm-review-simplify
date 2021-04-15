@@ -992,6 +992,22 @@ a = List.filterMap (\\a -> Just a) x
 a = x
 """
                         ]
+        , test "should replace List.filterMap (\\a -> Just a) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap (\\a -> Just a)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         , test "should not report List.filterMap (\\a -> Just b) x" <|
             \() ->
                 """module A exposing (..)
