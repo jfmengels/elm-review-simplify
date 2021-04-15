@@ -210,7 +210,7 @@ expressionVisitor node lookupTable =
                 ]
             ]
 
-        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArgs) ->
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
             case Dict.get fnName checkList of
                 Just checkFn ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
@@ -220,7 +220,7 @@ expressionVisitor node lookupTable =
                                 , parentRange = Node.range node
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
-                                , restOfArgs = restOfArgs
+                                , secondArg = List.head restOfArguments
                                 }
 
                         _ ->
@@ -238,7 +238,7 @@ type alias CheckInfo =
     , parentRange : Range
     , listFnRange : Range
     , firstArg : Node Expression
-    , restOfArgs : List (Node Expression)
+    , secondArg : Maybe (Node Expression)
     }
 
 
@@ -257,8 +257,8 @@ reportEmptyListSecondArgument : ( String, CheckInfo -> List (Error {}) ) -> ( St
 reportEmptyListSecondArgument ( name, function ) =
     ( name
     , \checkInfo ->
-        case checkInfo.restOfArgs of
-            (Node _ (Expression.ListExpr [])) :: _ ->
+        case checkInfo.secondArg of
+            Just (Node _ (Expression.ListExpr [])) ->
                 [ Rule.errorWithFix
                     { message = "Using List." ++ name ++ " on an empty list will result in a empty list"
                     , details = [ "You can replace this call by an empty list" ]
@@ -331,7 +331,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
 
 
 concatMapChecks : CheckInfo -> List (Error {})
-concatMapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
+concatMapChecks { lookupTable, listFnRange, firstArg, secondArg } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -342,8 +342,8 @@ concatMapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
         ]
 
     else
-        case restOfArgs of
-            [ Node listRange (Expression.ListExpr [ Node singleElementRange _ ]) ] ->
+        case secondArg of
+            Just (Node listRange (Expression.ListExpr [ Node singleElementRange _ ])) ->
                 [ Rule.errorWithFix
                     { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
                     , details = [ "You can replace this call by a call to the function directly" ]
@@ -360,19 +360,19 @@ concatMapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
 
 
 mapChecks : CheckInfo -> List (Error {})
-mapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
+mapChecks { lookupTable, listFnRange, firstArg, secondArg } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.map with an identity function is the same as not using List.map"
             , details = [ "You can remove this call and replace it by the list itself" ]
             }
             listFnRange
-            [ case restOfArgs of
-                [] ->
-                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
-
-                listArg :: _ ->
+            [ case secondArg of
+                Just listArg ->
                     Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+
+                Nothing ->
+                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
             ]
         ]
 
@@ -381,7 +381,7 @@ mapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
 
 
 filterChecks : CheckInfo -> List (Error {})
-filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs } as checkInfo) =
+filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
@@ -398,7 +398,7 @@ filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs } as
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
                 listFnRange
-                (replaceByEmptyListFix parentRange restOfArgs)
+                (replaceByEmptyListFix parentRange secondArg)
             ]
 
         Nothing ->
@@ -406,7 +406,7 @@ filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs } as
 
 
 filterMapChecks : CheckInfo -> List (Error {})
-filterMapChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs } as checkInfo) =
+filterMapChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just ()) ->
             [ Rule.errorWithFix
@@ -423,7 +423,7 @@ filterMapChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs }
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
                 listFnRange
-                (replaceByEmptyListFix parentRange restOfArgs)
+                (replaceByEmptyListFix parentRange secondArg)
             ]
 
         Nothing ->
@@ -452,24 +452,24 @@ removeBoundariesFix node =
 
 
 noopFix : CheckInfo -> List Fix
-noopFix { listFnRange, parentRange, restOfArgs } =
-    [ case restOfArgs of
-        [] ->
-            Review.Fix.replaceRangeBy parentRange "identity"
-
-        listArg :: _ ->
+noopFix { listFnRange, parentRange, secondArg } =
+    [ case secondArg of
+        Just listArg ->
             Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+
+        Nothing ->
+            Review.Fix.replaceRangeBy parentRange "identity"
     ]
 
 
-replaceByEmptyListFix : Range -> List a -> List Fix
-replaceByEmptyListFix parentRange restOfArgs =
-    [ case restOfArgs of
-        [] ->
-            Review.Fix.replaceRangeBy parentRange "(always [])"
-
-        _ ->
+replaceByEmptyListFix : Range -> Maybe a -> List Fix
+replaceByEmptyListFix parentRange secondArg =
+    [ case secondArg of
+        Just _ ->
             Review.Fix.replaceRangeBy parentRange "[]"
+
+        Nothing ->
+            Review.Fix.replaceRangeBy parentRange "(always [])"
     ]
 
 
