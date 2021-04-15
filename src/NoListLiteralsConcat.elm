@@ -247,7 +247,7 @@ expressionVisitor node =
         Expression.Application ((Node listMapRange (Expression.FunctionOrValue [ "List" ] "map")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
             [ Rule.errorWithFix
                 { message = "Using List.map on an empty list will result in a empty list"
-                , details = [ "You can replace this call by en empty list" ]
+                , details = [ "You can replace this call by an empty list" ]
                 }
                 listMapRange
                 [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
@@ -275,14 +275,14 @@ expressionVisitor node =
         Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filter")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
             [ Rule.errorWithFix
                 { message = "Using List.filter on an empty list will result in a empty list"
-                , details = [ "You can replace this call by en empty list" ]
+                , details = [ "You can replace this call by an empty list" ]
                 }
                 listFn
                 [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
             ]
 
         Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filter")) :: firstArg :: restOfArgs) ->
-            case isAlways firstArg of
+            case isAlwaysBoolean firstArg of
                 Just True ->
                     [ Rule.errorWithFix
                         { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -319,11 +319,25 @@ expressionVisitor node =
         Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filterMap")) :: _ :: (Node _ (Expression.ListExpr [])) :: []) ->
             [ Rule.errorWithFix
                 { message = "Using List.filterMap on an empty list will result in a empty list"
-                , details = [ "You can replace this call by en empty list" ]
+                , details = [ "You can replace this call by an empty list" ]
                 }
                 listFn
                 [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
             ]
+
+        Expression.Application ((Node listFn (Expression.FunctionOrValue [ "List" ] "filterMap")) :: firstArgument :: restOfArgs) ->
+            case isAlwaysMaybe firstArgument of
+                Just _ ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                        , details = [ "You can remove this call and replace it by an empty list" ]
+                        }
+                        listFn
+                        [ Review.Fix.replaceRangeBy (Node.range node) "[]" ]
+                    ]
+
+                Nothing ->
+                    []
 
         _ ->
             []
@@ -416,8 +430,8 @@ isListLiteral node =
             False
 
 
-isAlways : Node Expression -> Maybe Bool
-isAlways node =
+isAlwaysBoolean : Node Expression -> Maybe Bool
+isAlwaysBoolean node =
     case Node.value node of
         Expression.Application ((Node _ (Expression.FunctionOrValue [] "always")) :: boolean :: []) ->
             getBoolean boolean
@@ -429,7 +443,7 @@ isAlways node =
             Nothing
 
         Expression.ParenthesizedExpression expr ->
-            isAlways expr
+            isAlwaysBoolean expr
 
         _ ->
             Nothing
@@ -452,6 +466,47 @@ getBoolean node =
 
         Expression.ParenthesizedExpression expr ->
             getBoolean expr
+
+        _ ->
+            Nothing
+
+
+isAlwaysMaybe : Node Expression -> Maybe (Maybe ())
+isAlwaysMaybe node =
+    case Node.value node of
+        Expression.Application ((Node _ (Expression.FunctionOrValue [] "always")) :: value :: []) ->
+            getMaybeValue value
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue [ "Basics" ] "always")) :: value :: []) ->
+            getMaybeValue value
+
+        Expression.LambdaExpression _ ->
+            Nothing
+
+        Expression.ParenthesizedExpression expr ->
+            isAlwaysMaybe expr
+
+        _ ->
+            Nothing
+
+
+getMaybeValue : Node Expression -> Maybe (Maybe ())
+getMaybeValue node =
+    case Node.value node of
+        Expression.FunctionOrValue [] "Just" ->
+            Just (Just ())
+
+        Expression.FunctionOrValue [ "Maybe" ] "Just" ->
+            Just (Just ())
+
+        Expression.FunctionOrValue [] "Nothing" ->
+            Just Nothing
+
+        Expression.FunctionOrValue [ "Maybe" ] "Nothing" ->
+            Just Nothing
+
+        Expression.ParenthesizedExpression expr ->
+            getMaybeValue expr
 
         _ ->
             Nothing

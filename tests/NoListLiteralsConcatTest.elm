@@ -303,7 +303,7 @@ a = List.map fn []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by en empty list" ]
+                            , details = [ "You can replace this call by an empty list" ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -364,7 +364,7 @@ a = List.filter fn []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by en empty list" ]
+                            , details = [ "You can replace this call by an empty list" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -457,7 +457,23 @@ a = List.filterMap fn []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by en empty list" ]
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.filterMap (always Nothing) x by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap (always Nothing) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
