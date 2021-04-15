@@ -496,9 +496,9 @@ concatMapChecks { lookupTable, listFnRange, firstArg, secondArg, usingRightPizza
                         ]
 
                      else
-                        [ Review.Fix.replaceRangeBy listFnRange "("
+                        [ Review.Fix.removeRange listFnRange
                         , Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                        , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } "))"
+                        , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
                         ]
                     )
                 ]

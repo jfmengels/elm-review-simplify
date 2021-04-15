@@ -342,10 +342,10 @@ a = List.concatMap fn [ a ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( fn (a))
+a =  fn (a)
 """
                         ]
-        , test "should replace List.concatMap fn <| [ b c ] by (fn <| (b c))" <|
+        , test "should replace List.concatMap fn <| [ b c ] by fn <| (b c)" <|
             \() ->
                 """module A exposing (..)
 a = List.concatMap fn <| [ b c ]
@@ -358,7 +358,7 @@ a = List.concatMap fn <| [ b c ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( fn <| (b c))
+a =  fn <| (b c)
 """
                         ]
         , test "should replace List.concatMap fn <| [ b c ] by (b c) |> fn" <|
