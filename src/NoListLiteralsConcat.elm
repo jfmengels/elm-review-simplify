@@ -58,6 +58,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.concatMap fn []
     --> []
 
+    List.concatMap fn [ x ]
+    --> fn x
+
     List.map fn [] -- same for List.filter, List.filterMap
     --> []
 
@@ -328,7 +331,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
 
 
 concatMapChecks : CheckInfo -> List (Error {})
-concatMapChecks { lookupTable, listFnRange, firstArg } =
+concatMapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -339,7 +342,21 @@ concatMapChecks { lookupTable, listFnRange, firstArg } =
         ]
 
     else
-        []
+        case restOfArgs of
+            [ Node listRange (Expression.ListExpr [ Node singleElementRange _ ]) ] ->
+                [ Rule.errorWithFix
+                    { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                    , details = [ "You can replace this call by a call to the function directly" ]
+                    }
+                    listFnRange
+                    [ Review.Fix.replaceRangeBy listFnRange "("
+                    , Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                    , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } "))"
+                    ]
+                ]
+
+            _ ->
+                []
 
 
 mapChecks : CheckInfo -> List (Error {})
