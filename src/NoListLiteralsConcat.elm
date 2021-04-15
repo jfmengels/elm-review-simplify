@@ -258,39 +258,7 @@ expressionVisitor node lookupTable =
         Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "filter")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    case isAlwaysBoolean lookupTable firstArg of
-                        Just True ->
-                            [ Rule.errorWithFix
-                                { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                                , details = [ "You can remove this call and replace it by the list itself" ]
-                                }
-                                listFnRange
-                                [ case restOfArgs of
-                                    [] ->
-                                        Review.Fix.replaceRangeBy (Node.range node) "identity"
-
-                                    listArg :: _ ->
-                                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
-                                ]
-                            ]
-
-                        Just False ->
-                            [ Rule.errorWithFix
-                                { message = "Using List.filter with a function that will always return False will result in an empty list"
-                                , details = [ "You can remove this call and replace it by an empty list" ]
-                                }
-                                listFnRange
-                                [ case restOfArgs of
-                                    [] ->
-                                        Review.Fix.replaceRangeBy (Node.range node) "(always [])"
-
-                                    _ ->
-                                        Review.Fix.replaceRangeBy (Node.range node) "[]"
-                                ]
-                            ]
-
-                        Nothing ->
-                            []
+                    filterChecks lookupTable (Node.range node) listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -438,6 +406,43 @@ mapChecks lookupTable listFnRange ( firstArg, restOfArgs ) =
 
     else
         []
+
+
+filterChecks : ModuleNameLookupTable -> Range -> Range -> ( Node Expression, List (Node Expression) ) -> List (Error {})
+filterChecks lookupTable parentRange listFnRange ( firstArg, restOfArgs ) =
+    case isAlwaysBoolean lookupTable firstArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
+                , details = [ "You can remove this call and replace it by the list itself" ]
+                }
+                listFnRange
+                [ case restOfArgs of
+                    [] ->
+                        Review.Fix.replaceRangeBy parentRange "identity"
+
+                    listArg :: _ ->
+                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                ]
+            ]
+
+        Just False ->
+            [ Rule.errorWithFix
+                { message = "Using List.filter with a function that will always return False will result in an empty list"
+                , details = [ "You can remove this call and replace it by an empty list" ]
+                }
+                listFnRange
+                [ case restOfArgs of
+                    [] ->
+                        Review.Fix.replaceRangeBy parentRange "(always [])"
+
+                    _ ->
+                        Review.Fix.replaceRangeBy parentRange "[]"
+                ]
+            ]
+
+        Nothing ->
+            []
 
 
 
