@@ -398,20 +398,14 @@ concatMapChecks { lookupTable, listFnRange, firstArg, secondArg } =
 
 
 mapChecks : CheckInfo -> List (Error {})
-mapChecks { lookupTable, listFnRange, firstArg, secondArg } =
+mapChecks ({ lookupTable, listFnRange, firstArg } as checkInfo) =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.map with an identity function is the same as not using List.map"
             , details = [ "You can remove this call and replace it by the list itself" ]
             }
             listFnRange
-            [ case secondArg of
-                Just listArg ->
-                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
-
-                Nothing ->
-                    Review.Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
-            ]
+            (noopFix checkInfo)
         ]
 
     else

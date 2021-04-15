@@ -406,6 +406,38 @@ a = List.map identity
 a = identity
 """
                         ]
+        , test "should replace List.map <| identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.map <| identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map with an identity function is the same as not using List.map"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace identity |> List.map by identity" <|
+            \() ->
+                """module A exposing (..)
+a = identity |> List.map
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map with an identity function is the same as not using List.map"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         ]
 
 
