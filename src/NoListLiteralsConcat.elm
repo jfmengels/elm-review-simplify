@@ -203,18 +203,18 @@ expressionVisitor node lookupTable =
                 ]
             ]
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: arguments) ->
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concat")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    concatChecks (Node.range node) listFnRange arguments
+                    concatChecks (Node.range node) listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
 
-        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: arguments) ->
+        Expression.Application ((Node listFnRange (Expression.FunctionOrValue _ "concatMap")) :: firstArg :: restOfArgs) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable listFnRange of
                 Just [ "List" ] ->
-                    concatMapChecks lookupTable listFnRange arguments
+                    concatMapChecks lookupTable listFnRange ( firstArg, restOfArgs )
 
                 _ ->
                     []
@@ -373,10 +373,10 @@ expressionVisitor node lookupTable =
 -- LIST FUNCTIONS
 
 
-concatChecks : Range -> Range -> List (Node Expression) -> List (Error {})
-concatChecks parentRange listFnRange arguments =
-    case arguments of
-        [ Node _ (Expression.ListExpr list) ] ->
+concatChecks : Range -> Range -> ( Node Expression, a ) -> List (Error {})
+concatChecks parentRange listFnRange ( firstArg, _ ) =
+    case Node.value firstArg of
+        Expression.ListExpr list ->
             case list of
                 [] ->
                     [ Rule.errorWithFix
@@ -420,24 +420,19 @@ concatChecks parentRange listFnRange arguments =
             []
 
 
-concatMapChecks : ModuleNameLookupTable -> Range -> List (Node Expression) -> List (Error {})
-concatMapChecks lookupTable listFnRange arguments =
-    case arguments of
-        firstArg :: _ ->
-            if isIdentity lookupTable firstArg then
-                [ Rule.errorWithFix
-                    { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                    , details = [ "You can replace this call by List.concat" ]
-                    }
-                    listFnRange
-                    [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
-                ]
+concatMapChecks : ModuleNameLookupTable -> Range -> ( Node Expression, a ) -> List (Error {})
+concatMapChecks lookupTable listFnRange ( firstArg, _ ) =
+    if isIdentity lookupTable firstArg then
+        [ Rule.errorWithFix
+            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+            , details = [ "You can replace this call by List.concat" ]
+            }
+            listFnRange
+            [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
+        ]
 
-            else
-                []
-
-        _ ->
-            []
+    else
+        []
 
 
 
