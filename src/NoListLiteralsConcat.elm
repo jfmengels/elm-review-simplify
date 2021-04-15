@@ -129,13 +129,25 @@ elm-review --template jfmengels/elm-review-simplification/example --rules NoList
 rule : Rule
 rule =
     Rule.newModuleRuleSchemaUsingContextCreator "NoListLiteralsConcat" initialContext
-        |> Rule.withExpressionEnterVisitor (\node lookupTable -> ( expressionVisitor node lookupTable, lookupTable ))
+        |> Rule.withDeclarationEnterVisitor declarationVisitor
+        |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.fromModuleRuleSchema
 
 
-initialContext : Rule.ContextCreator () ModuleNameLookupTable
+type alias Context =
+    { lookupTable : ModuleNameLookupTable
+    , rangesToIgnore : List Range
+    }
+
+
+initialContext : Rule.ContextCreator () Context
 initialContext =
-    Rule.initContextCreator (\lookupTable () -> lookupTable)
+    Rule.initContextCreator
+        (\lookupTable () ->
+            { lookupTable = lookupTable
+            , rangesToIgnore = []
+            }
+        )
         |> Rule.withModuleNameLookupTable
 
 
@@ -149,145 +161,189 @@ errorForAddingEmptyLists range rangeToRemove =
         [ Review.Fix.removeRange rangeToRemove ]
 
 
-expressionVisitor : Node Expression -> ModuleNameLookupTable -> List (Error {})
-expressionVisitor node lookupTable =
+
+-- DECLARATION VISITOR
+
+
+declarationVisitor : Node a -> Context -> ( List nothing, Context )
+declarationVisitor _ context =
+    ( [], { context | rangesToIgnore = [] } )
+
+
+
+-- EXPRESSION VISITOR
+
+
+expressionVisitor : Node Expression -> Context -> ( List (Error {}), Context )
+expressionVisitor node context =
+    if List.member (Node.range node) context.rangesToIgnore then
+        ( [], context )
+
+    else
+        let
+            ( errors, rangesToIgnore ) =
+                expressionVisitorHelp node context
+        in
+        ( errors, { context | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore } )
+
+
+expressionVisitorHelp : Node Expression -> Context -> ( List (Error {}), List Range )
+expressionVisitorHelp node { lookupTable } =
     case Node.value node of
         Expression.OperatorApplication "++" _ (Node range (Expression.ListExpr [])) other ->
-            [ errorForAddingEmptyLists range
-                { start = range.start
-                , end = (Node.range other).start
-                }
-            ]
+            ( [ errorForAddingEmptyLists range
+                    { start = range.start
+                    , end = (Node.range other).start
+                    }
+              ]
+            , []
+            )
 
         Expression.OperatorApplication "++" _ other (Node range (Expression.ListExpr [])) ->
-            [ errorForAddingEmptyLists range
-                { start = (Node.range other).end
-                , end = range.end
-                }
-            ]
+            ( [ errorForAddingEmptyLists range
+                    { start = (Node.range other).end
+                    , end = range.end
+                    }
+              ]
+            , []
+            )
 
         Expression.OperatorApplication "++" _ (Node rangeLeft (Expression.ListExpr _)) (Node rangeRight (Expression.ListExpr _)) ->
-            [ Rule.errorWithFix
-                { message = "Expression could be simplified to be a single List"
-                , details = [ "Try moving all the elements into a single list." ]
-                }
-                (Node.range node)
-                [ Review.Fix.replaceRangeBy
-                    { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
-                    , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+            ( [ Rule.errorWithFix
+                    { message = "Expression could be simplified to be a single List"
+                    , details = [ "Try moving all the elements into a single list." ]
                     }
-                    ","
-                ]
-            ]
+                    (Node.range node)
+                    [ Review.Fix.replaceRangeBy
+                        { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
+                        , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+                        }
+                        ","
+                    ]
+              ]
+            , []
+            )
 
         Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr [])) ->
-            [ Rule.errorWithFix
-                { message = "Element added to the beginning of the list could be included in the list"
-                , details = [ "Try moving the element inside the list it is being added to." ]
-                }
-                rangeLeft
-                [ Review.Fix.insertAt rangeLeft.start "[ "
-                , Review.Fix.replaceRangeBy
-                    { start = rangeLeft.end
-                    , end = rangeRight.end
+            ( [ Rule.errorWithFix
+                    { message = "Element added to the beginning of the list could be included in the list"
+                    , details = [ "Try moving the element inside the list it is being added to." ]
                     }
-                    " ]"
-                ]
-            ]
+                    rangeLeft
+                    [ Review.Fix.insertAt rangeLeft.start "[ "
+                    , Review.Fix.replaceRangeBy
+                        { start = rangeLeft.end
+                        , end = rangeRight.end
+                        }
+                        " ]"
+                    ]
+              ]
+            , []
+            )
 
         Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr _)) ->
-            [ Rule.errorWithFix
-                { message = "Element added to the beginning of the list could be included in the list"
-                , details = [ "Try moving the element inside the list it is being added to." ]
-                }
-                rangeLeft
-                [ Review.Fix.insertAt rangeLeft.start "[ "
-                , Review.Fix.replaceRangeBy
-                    { start = rangeLeft.end
-                    , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+            ( [ Rule.errorWithFix
+                    { message = "Element added to the beginning of the list could be included in the list"
+                    , details = [ "Try moving the element inside the list it is being added to." ]
                     }
-                    ","
-                ]
-            ]
+                    rangeLeft
+                    [ Review.Fix.insertAt rangeLeft.start "[ "
+                    , Review.Fix.replaceRangeBy
+                        { start = rangeLeft.end
+                        , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
+                        }
+                        ","
+                    ]
+              ]
+            , []
+            )
 
         Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
             case Dict.get fnName checkList of
                 Just checkFn ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
                         Just [ "List" ] ->
-                            checkFn
+                            ( checkFn
                                 { lookupTable = lookupTable
                                 , parentRange = Node.range node
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Nothing
                                 }
+                            , []
+                            )
 
                         _ ->
-                            []
+                            ( [], [] )
 
                 _ ->
-                    []
+                    ( [], [] )
 
-        Expression.OperatorApplication "<|" _ (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
+        Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
             case Dict.get fnName checkList of
                 Just checkFn ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
                         Just [ "List" ] ->
-                            checkFn
+                            ( checkFn
                                 { lookupTable = lookupTable
                                 , parentRange = Node.range node
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Just secondArgument
                                 }
+                            , [ applicationRange ]
+                            )
 
                         _ ->
-                            []
+                            ( [], [] )
 
                 _ ->
-                    []
+                    ( [], [] )
 
         Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
             case Dict.get fnName checkList of
                 Just checkFn ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
                         Just [ "List" ] ->
-                            checkFn
+                            ( checkFn
                                 { lookupTable = lookupTable
                                 , parentRange = Node.range node
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = Nothing
                                 }
+                            , []
+                            )
 
                         _ ->
-                            []
+                            ( [], [] )
 
                 _ ->
-                    []
+                    ( [], [] )
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
             case Dict.get fnName checkList of
                 Just checkFn ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
                         Just [ "List" ] ->
-                            checkFn
+                            ( checkFn
                                 { lookupTable = lookupTable
                                 , parentRange = Node.range node
                                 , listFnRange = fnRange
                                 , firstArg = firstArg
                                 , secondArg = List.head restOfArguments
                                 }
+                            , []
+                            )
 
                         _ ->
-                            []
+                            ( [], [] )
 
                 _ ->
-                    []
+                    ( [], [] )
 
         _ ->
-            []
+            ( [], [] )
 
 
 type alias CheckInfo =
