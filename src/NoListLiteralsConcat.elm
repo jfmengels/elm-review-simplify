@@ -319,7 +319,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
                             }
                             parentRange
                             (Review.Fix.removeRange listFnRange
-                                :: List.concatMap removeBoundaries args
+                                :: List.concatMap removeBoundariesFix args
                             )
                         ]
 
@@ -381,7 +381,7 @@ mapChecks { lookupTable, listFnRange, firstArg, restOfArgs } =
 
 
 filterChecks : CheckInfo -> List (Error {})
-filterChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
+filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs } as checkInfo) =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
@@ -389,13 +389,7 @@ filterChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
                 , details = [ "You can remove this call and replace it by the list itself" ]
                 }
                 listFnRange
-                [ case restOfArgs of
-                    [] ->
-                        Review.Fix.replaceRangeBy parentRange "identity"
-
-                    listArg :: _ ->
-                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
-                ]
+                (noopFix checkInfo)
             ]
 
         Just False ->
@@ -404,13 +398,7 @@ filterChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
                 listFnRange
-                [ case restOfArgs of
-                    [] ->
-                        Review.Fix.replaceRangeBy parentRange "(always [])"
-
-                    _ ->
-                        Review.Fix.replaceRangeBy parentRange "[]"
-                ]
+                (replaceByEmptyListFix parentRange restOfArgs)
             ]
 
         Nothing ->
@@ -418,7 +406,7 @@ filterChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
 
 
 filterMapChecks : CheckInfo -> List (Error {})
-filterMapChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } =
+filterMapChecks ({ lookupTable, parentRange, listFnRange, firstArg, restOfArgs } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just ()) ->
             [ Rule.errorWithFix
@@ -426,13 +414,7 @@ filterMapChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } 
                 , details = [ "You can remove this call and replace it by the list itself" ]
                 }
                 listFnRange
-                [ case restOfArgs of
-                    [] ->
-                        Review.Fix.replaceRangeBy parentRange "identity"
-
-                    listArg :: _ ->
-                        Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
-                ]
+                (noopFix checkInfo)
             ]
 
         Just Nothing ->
@@ -441,17 +423,54 @@ filterMapChecks { lookupTable, parentRange, listFnRange, firstArg, restOfArgs } 
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
                 listFnRange
-                [ case restOfArgs of
-                    [] ->
-                        Review.Fix.replaceRangeBy parentRange "(always [])"
-
-                    _ ->
-                        Review.Fix.replaceRangeBy parentRange "[]"
-                ]
+                (replaceByEmptyListFix parentRange restOfArgs)
             ]
 
         Nothing ->
             []
+
+
+
+-- FIX HELPERS
+
+
+removeBoundariesFix : Node a -> List Fix
+removeBoundariesFix node =
+    let
+        { start, end } =
+            Node.range node
+    in
+    [ Review.Fix.removeRange
+        { start = { row = start.row, column = start.column }
+        , end = { row = start.row, column = start.column + 1 }
+        }
+    , Review.Fix.removeRange
+        { start = { row = end.row, column = end.column - 1 }
+        , end = { row = end.row, column = end.column }
+        }
+    ]
+
+
+noopFix : CheckInfo -> List Fix
+noopFix { listFnRange, parentRange, restOfArgs } =
+    [ case restOfArgs of
+        [] ->
+            Review.Fix.replaceRangeBy parentRange "identity"
+
+        listArg :: _ ->
+            Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+    ]
+
+
+replaceByEmptyListFix : Range -> List a -> List Fix
+replaceByEmptyListFix parentRange restOfArgs =
+    [ case restOfArgs of
+        [] ->
+            Review.Fix.replaceRangeBy parentRange "(always [])"
+
+        _ ->
+            Review.Fix.replaceRangeBy parentRange "[]"
+    ]
 
 
 
@@ -513,23 +532,6 @@ getExpressionName node =
 
         _ ->
             Nothing
-
-
-removeBoundaries : Node a -> List Fix
-removeBoundaries node =
-    let
-        { start, end } =
-            Node.range node
-    in
-    [ Review.Fix.removeRange
-        { start = { row = start.row, column = start.column }
-        , end = { row = start.row, column = start.column + 1 }
-        }
-    , Review.Fix.removeRange
-        { start = { row = end.row, column = end.column - 1 }
-        , end = { row = end.row, column = end.column }
-        }
-    ]
 
 
 isListLiteral : Node Expression -> Bool
