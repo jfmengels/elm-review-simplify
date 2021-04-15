@@ -12,7 +12,7 @@ all =
         , usingConsTests
         , usingListConcatTests
         , listConcatMapTests
-        , listMapIdentityTests
+        , listMapTests
         , listFilterTests
         , listFilterMapTests
         ]
@@ -348,8 +348,8 @@ a = ( fn (a))
         ]
 
 
-listMapIdentityTests : Test
-listMapIdentityTests =
+listMapTests : Test
+listMapTests =
     describe "Using List.map"
         [ test "should not report List.map used with okay arguments" <|
             \() ->
