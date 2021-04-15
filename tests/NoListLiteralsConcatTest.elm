@@ -11,7 +11,7 @@ all =
         [ usingPlusPlusTests
         , usingConsTests
         , usingListConcatTests
-        , listConcatMapIdentityTests
+        , listConcatMapTests
         , listMapIdentityTests
         , listFilterTests
         , listFilterMapTests
@@ -173,9 +173,9 @@ a = List.concat []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary use of List.concat on an empty list"
-                            , details = [ "The value of the operation will be []. You should replace this expression by that." ]
-                            , under = "List.concat []"
+                            { message = "Using List.concat on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
@@ -216,8 +216,8 @@ a =  [  1, 2, 3 ,  4, 5, 6 ]
         ]
 
 
-listConcatMapIdentityTests : Test
-listConcatMapIdentityTests =
+listConcatMapTests : Test
+listConcatMapTests =
     describe "Using List.concatMap"
         [ test "should replace List.concatMap identity x by List.concat x" <|
             \() ->
@@ -281,6 +281,22 @@ a = List.concatMap f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        , test "should report List.concatMap with no items" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap fn []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         ]
 
 

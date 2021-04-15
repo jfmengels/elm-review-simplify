@@ -55,6 +55,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.concatMap (\a -> a) list
     --> List.concat list
 
+    List.concatMap fn []
+    --> []
+
     List.map fn [] -- same for List.filter, List.filterMap
     --> []
 
@@ -239,20 +242,39 @@ type alias CheckInfo =
 checkList : Dict String (CheckInfo -> List (Error {}))
 checkList =
     Dict.fromList
-        [ reportEmptyList ( "map", mapChecks )
-        , reportEmptyList ( "filter", filterChecks )
-        , reportEmptyList ( "filterMap", filterMapChecks )
-        , ( "concat", concatChecks )
-        , ( "concatMap", concatMapChecks )
+        [ reportEmptyListSecondArgument ( "map", mapChecks )
+        , reportEmptyListSecondArgument ( "filter", filterChecks )
+        , reportEmptyListSecondArgument ( "filterMap", filterMapChecks )
+        , reportEmptyListFirstArgument ( "concat", concatChecks )
+        , reportEmptyListSecondArgument ( "concatMap", concatMapChecks )
         ]
 
 
-reportEmptyList : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
-reportEmptyList ( name, function ) =
+reportEmptyListSecondArgument : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
+reportEmptyListSecondArgument ( name, function ) =
     ( name
     , \checkInfo ->
         case checkInfo.restOfArgs of
             (Node _ (Expression.ListExpr [])) :: _ ->
+                [ Rule.errorWithFix
+                    { message = "Using List." ++ name ++ " on an empty list will result in a empty list"
+                    , details = [ "You can replace this call by an empty list" ]
+                    }
+                    checkInfo.listFnRange
+                    [ Review.Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                ]
+
+            _ ->
+                function checkInfo
+    )
+
+
+reportEmptyListFirstArgument : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
+reportEmptyListFirstArgument ( name, function ) =
+    ( name
+    , \checkInfo ->
+        case checkInfo.firstArg of
+            Node _ (Expression.ListExpr []) ->
                 [ Rule.errorWithFix
                     { message = "Using List." ++ name ++ " on an empty list will result in a empty list"
                     , details = [ "You can replace this call by an empty list" ]
@@ -275,18 +297,6 @@ concatChecks { parentRange, listFnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr list ->
             case list of
-                [] ->
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary use of List.concat on an empty list"
-                        , details = [ "The value of the operation will be []. You should replace this expression by that." ]
-                        }
-                        parentRange
-                        [ Review.Fix.replaceRangeBy
-                            parentRange
-                            "[]"
-                        ]
-                    ]
-
                 [ Node elementRange _ ] ->
                     [ Rule.errorWithFix
                         { message = "Unnecessary use of List.concat on a list with 1 element"
