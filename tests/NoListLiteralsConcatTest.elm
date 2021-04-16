@@ -107,6 +107,22 @@ a = something ++ []
 a = something
 """
                         ]
+        , test "should replace [b] ++ c by b :: c" <|
+            \() ->
+                """module A exposing (..)
+a = [ b ] ++ c
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Should use (::) instead of (++)"
+                            , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                            , under = "[ b ] ++ c"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( b ) :: c
+"""
+                        ]
         ]
 
 

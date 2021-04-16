@@ -31,6 +31,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     a :: [ b ]
     --> [ a, b ]
 
+    [a] ++ list
+    --> a :: list
+
     [] ++ list
     --> list
 
@@ -58,16 +61,13 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.concatMap (\a -> a) list
     --> List.concat list
 
-    List.concatMap fn []
-    --> []
-
     List.concatMap fn [ x ]
     --> fn x
 
     List.concatMap (always []) list
     --> []
 
-    List.map fn [] -- same for List.filter, List.filterMap
+    List.map fn [] -- same for List.filter, List.filterMap, List.concatMap
     --> []
 
     List.map identity list
@@ -246,6 +246,27 @@ expressionVisitorHelp node { lookupTable } =
                         , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
                         }
                         ","
+                    ]
+              ]
+            , []
+            )
+
+        Expression.OperatorApplication "++" _ (Node rangeLeft (Expression.ListExpr [ _ ])) list ->
+            ( [ Rule.errorWithFix
+                    { message = "Should use (::) instead of (++)"
+                    , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                    }
+                    (Node.range node)
+                    [ Review.Fix.replaceRangeBy
+                        { start = rangeLeft.start
+                        , end = { row = rangeLeft.start.row, column = rangeLeft.start.column + 1 }
+                        }
+                        "("
+                    , Review.Fix.replaceRangeBy
+                        { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
+                        , end = (Node.range list).start
+                        }
+                        ") :: "
                     ]
               ]
             , []
