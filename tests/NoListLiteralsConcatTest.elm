@@ -1178,4 +1178,36 @@ a = List.all fn []
 a = True
 """
                         ]
+        , test "should replace List.all (always True) x by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.all (always True) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.all will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.all (always True) by always True" <|
+            \() ->
+                """module A exposing (..)
+a = List.all (always True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.all will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always True)
+"""
+                        ]
         ]

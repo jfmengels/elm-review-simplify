@@ -112,6 +112,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.all fn []
     --> True
 
+    List.all (always True) list
+    --> True
+
 
 ## Success
 
@@ -572,7 +575,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
 
 
 allChecks : CheckInfo -> List (Error {})
-allChecks { parentRange, lookupTable, listFnRange, firstArg, secondArg } =
+allChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -584,7 +587,18 @@ allChecks { parentRange, lookupTable, listFnRange, firstArg, secondArg } =
             ]
 
         _ ->
-            []
+            case isAlwaysBoolean lookupTable firstArg of
+                Just True ->
+                    [ Rule.errorWithFix
+                        { message = "The call to List.all will result in True"
+                        , details = [ "You can replace this call by True." ]
+                        }
+                        listFnRange
+                        (replaceByBoolFix parentRange secondArg True)
+                    ]
+
+                _ ->
+                    []
 
 
 filterChecks : CheckInfo -> List (Error {})
@@ -682,6 +696,26 @@ replaceByEmptyListFix parentRange secondArg =
         Nothing ->
             Review.Fix.replaceRangeBy parentRange "(always [])"
     ]
+
+
+replaceByBoolFix : Range -> Maybe a -> Bool -> List Fix
+replaceByBoolFix parentRange secondArg replacementValue =
+    [ case secondArg of
+        Just _ ->
+            Review.Fix.replaceRangeBy parentRange (boolToString replacementValue)
+
+        Nothing ->
+            Review.Fix.replaceRangeBy parentRange ("(always " ++ boolToString replacementValue ++ ")")
+    ]
+
+
+boolToString : Bool -> String
+boolToString bool =
+    if bool then
+        "True"
+
+    else
+        "False"
 
 
 
