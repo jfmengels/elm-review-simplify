@@ -15,6 +15,7 @@ all =
         , listMapTests
         , listFilterTests
         , listFilterMapTests
+        , listIsEmptyTests
         ]
 
 
@@ -1070,4 +1071,81 @@ a = List.filterMap (\\a b -> Just a) x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        ]
+
+
+listIsEmptyTests : Test
+listIsEmptyTests =
+    describe "Using List.isEmpty"
+        [ test "should not report List.isEmpty with a non-literal argument" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.isEmpty [] by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.isEmpty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.isEmpty [x] by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty [x]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace List.isEmpty (x :: xs) by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (x :: xs)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace x :: xs |> List.isEmpty by False" <|
+            \() ->
+                """module A exposing (..)
+a = x :: xs |> List.isEmpty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]

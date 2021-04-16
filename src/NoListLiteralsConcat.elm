@@ -100,6 +100,15 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.filterMap (always Nothing)
     --> (always [])
 
+    List.isEmpty []
+    --> True
+
+    List.isEmpty [ a ]
+    --> False
+
+    List.isEmpty (x :: xs)
+    --> False
+
 
 ## Success
 
@@ -390,6 +399,7 @@ checkList =
         , reportEmptyListSecondArgument ( "filterMap", filterMapChecks )
         , reportEmptyListFirstArgument ( "concat", concatChecks )
         , reportEmptyListSecondArgument ( "concatMap", concatMapChecks )
+        , ( "isEmpty", isEmptyChecks )
         ]
 
 
@@ -520,6 +530,44 @@ mapChecks ({ lookupTable, listFnRange, firstArg } as checkInfo) =
 
     else
         []
+
+
+isEmptyChecks : CheckInfo -> List (Error {})
+isEmptyChecks ({ parentRange, lookupTable, listFnRange, firstArg } as checkInfo) =
+    case Node.value firstArg of
+        Expression.ListExpr list ->
+            if List.isEmpty list then
+                [ Rule.errorWithFix
+                    { message = "The call to List.isEmpty will result in True"
+                    , details = [ "You can replace this call by True." ]
+                    }
+                    listFnRange
+                    [ Review.Fix.replaceRangeBy parentRange "True" ]
+                ]
+
+            else
+                [ Rule.errorWithFix
+                    { message = "The call to List.isEmpty will result in False"
+                    , details = [ "You can replace this call by False." ]
+                    }
+                    listFnRange
+                    [ Review.Fix.replaceRangeBy parentRange "False" ]
+                ]
+
+        Expression.OperatorApplication "::" _ _ _ ->
+            [ Rule.errorWithFix
+                { message = "The call to List.isEmpty will result in False"
+                , details = [ "You can replace this call by False." ]
+                }
+                listFnRange
+                [ Review.Fix.replaceRangeBy parentRange "False" ]
+            ]
+
+        Expression.ParenthesizedExpression expr ->
+            isEmptyChecks { checkInfo | firstArg = expr }
+
+        _ ->
+            []
 
 
 filterChecks : CheckInfo -> List (Error {})
