@@ -751,27 +751,29 @@ isAlwaysMaybe lookupTable node =
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getMaybeValue value
+                    getMaybeValue lookupTable value
 
                 _ ->
                     Nothing
 
         Expression.LambdaExpression { args, expression } ->
             case Node.value expression of
-                Expression.Application ((Node _ (Expression.FunctionOrValue [] "Just")) :: (Node _ (Expression.FunctionOrValue [] justArgName)) :: []) ->
-                    case args of
-                        (Node _ (Pattern.VarPattern lambdaArgName)) :: [] ->
-                            if lambdaArgName == justArgName then
-                                Just (Just ())
+                Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: (Node _ (Expression.FunctionOrValue [] justArgName)) :: []) ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                        Just [ "Maybe" ] ->
+                            case args of
+                                (Node _ (Pattern.VarPattern lambdaArgName)) :: [] ->
+                                    if lambdaArgName == justArgName then
+                                        Just (Just ())
 
-                            else
-                                Nothing
+                                    else
+                                        Nothing
+
+                                _ ->
+                                    Nothing
 
                         _ ->
                             Nothing
-
-                Expression.Application ((Node _ (Expression.FunctionOrValue [ "Maybe" ] "Just")) :: _) ->
-                    Just (Just ())
 
                 Expression.FunctionOrValue _ "Nothing" ->
                     case ModuleNameLookupTable.moduleNameFor lookupTable expression of
@@ -791,23 +793,27 @@ isAlwaysMaybe lookupTable node =
             Nothing
 
 
-getMaybeValue : Node Expression -> Maybe (Maybe ())
-getMaybeValue node =
+getMaybeValue : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
+getMaybeValue lookupTable node =
     case Node.value node of
-        Expression.FunctionOrValue [] "Just" ->
-            Just (Just ())
+        Expression.FunctionOrValue _ "Just" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Maybe" ] ->
+                    Just (Just ())
 
-        Expression.FunctionOrValue [ "Maybe" ] "Just" ->
-            Just (Just ())
+                _ ->
+                    Nothing
 
-        Expression.FunctionOrValue [] "Nothing" ->
-            Just Nothing
+        Expression.FunctionOrValue _ "Nothing" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Maybe" ] ->
+                    Just Nothing
 
-        Expression.FunctionOrValue [ "Maybe" ] "Nothing" ->
-            Just Nothing
+                _ ->
+                    Nothing
 
         Expression.ParenthesizedExpression expr ->
-            getMaybeValue expr
+            getMaybeValue lookupTable expr
 
         _ ->
             Nothing
