@@ -115,6 +115,12 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.all (always True) list
     --> True
 
+    List.any fn []
+    --> True
+
+    List.any (always False) list
+    --> True
+
 
 ## Success
 
@@ -407,6 +413,7 @@ checkList =
         , reportEmptyListSecondArgument ( "concatMap", concatMapChecks )
         , ( "isEmpty", isEmptyChecks )
         , ( "all", allChecks )
+        , ( "any", anyChecks )
         ]
 
 
@@ -595,6 +602,33 @@ allChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
                         }
                         listFnRange
                         (replaceByBoolFix parentRange secondArg True)
+                    ]
+
+                _ ->
+                    []
+
+
+anyChecks : CheckInfo -> List (Error {})
+anyChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
+    case Maybe.map (removeParens >> Node.value) secondArg of
+        Just (Expression.ListExpr []) ->
+            [ Rule.errorWithFix
+                { message = "The call to List.any will result in False"
+                , details = [ "You can replace this call by False." ]
+                }
+                listFnRange
+                [ Review.Fix.replaceRangeBy parentRange "False" ]
+            ]
+
+        _ ->
+            case isAlwaysBoolean lookupTable firstArg of
+                Just False ->
+                    [ Rule.errorWithFix
+                        { message = "The call to List.any will result in False"
+                        , details = [ "You can replace this call by False." ]
+                        }
+                        listFnRange
+                        (replaceByBoolFix parentRange secondArg False)
                     ]
 
                 _ ->

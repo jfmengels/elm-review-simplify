@@ -17,6 +17,7 @@ all =
         , listFilterMapTests
         , listIsEmptyTests
         , listAllTests
+        , listAnyTests
         ]
 
 
@@ -1208,6 +1209,67 @@ a = List.all (always True)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (always True)
+"""
+                        ]
+        ]
+
+
+listAnyTests : Test
+listAnyTests =
+    describe "Using List.any"
+        [ test "should not report List.any used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.any fn list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.any fn [] by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.any fn []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.any will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace List.any (always False) x by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (always False) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.any will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace List.any (always False) by always False" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.any will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always False)
 """
                         ]
         ]
