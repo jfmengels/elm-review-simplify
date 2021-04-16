@@ -16,6 +16,7 @@ all =
         , listFilterTests
         , listFilterMapTests
         , listIsEmptyTests
+        , listAllTests
         ]
 
 
@@ -1146,6 +1147,35 @@ a = x :: xs |> List.isEmpty
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
+"""
+                        ]
+        ]
+
+
+listAllTests : Test
+listAllTests =
+    describe "Using List.all"
+        [ test "should not report List.all used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.all fn list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.all fn [] by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.all fn []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.all will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
 """
                         ]
         ]

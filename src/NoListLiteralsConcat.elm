@@ -109,6 +109,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.isEmpty (x :: xs)
     --> False
 
+    List.all fn []
+    --> True
+
 
 ## Success
 
@@ -400,6 +403,7 @@ checkList =
         , reportEmptyListFirstArgument ( "concat", concatChecks )
         , reportEmptyListSecondArgument ( "concatMap", concatMapChecks )
         , ( "isEmpty", isEmptyChecks )
+        , ( "all", allChecks )
         ]
 
 
@@ -561,6 +565,22 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                 }
                 listFnRange
                 [ Review.Fix.replaceRangeBy parentRange "False" ]
+            ]
+
+        _ ->
+            []
+
+
+allChecks : CheckInfo -> List (Error {})
+allChecks { parentRange, lookupTable, listFnRange, firstArg, secondArg } =
+    case Maybe.map (removeParens >> Node.value) secondArg of
+        Just (Expression.ListExpr []) ->
+            [ Rule.errorWithFix
+                { message = "The call to List.all will result in True"
+                , details = [ "You can replace this call by True." ]
+                }
+                listFnRange
+                [ Review.Fix.replaceRangeBy parentRange "True" ]
             ]
 
         _ ->
