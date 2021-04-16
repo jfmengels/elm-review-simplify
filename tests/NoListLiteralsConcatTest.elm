@@ -248,6 +248,22 @@ a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
 a =  [  1, 2, 3 ,  4, 5, 6 ]
 """
                         ]
+        , test "should concatenate consecutive list literals in passed to List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ], [ 4, 5, 6], [7], c, [8], [9 ] ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Consecutive literal lists should be merged"
+                            , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ,  4, 5, 6, 7], c, [8, 9 ] ]
+"""
+                        ]
         ]
 
 

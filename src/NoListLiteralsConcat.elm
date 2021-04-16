@@ -46,6 +46,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.concat [ [ a, b ], [ c ] ]
     --> [ a, b, c ]
 
+    List.concat [ a, [ 1 ], [ 2 ] ]
+    --> List.concat [ a, [ 1, 2 ] ]
+
     List.concatMap identity x
     --> List.concat list
 
@@ -475,7 +478,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
                         ]
                     ]
 
-                args ->
+                (firstListElement :: restOfListElements) as args ->
                     if List.all isListLiteral list then
                         [ Rule.errorWithFix
                             { message = "Expression could be simplified to be a single List"
@@ -488,7 +491,39 @@ concatChecks { parentRange, listFnRange, firstArg } =
                         ]
 
                     else
-                        []
+                        case findConsecutiveListLiterals firstListElement restOfListElements of
+                            [] ->
+                                []
+
+                            fixes ->
+                                [ Rule.errorWithFix
+                                    { message = "Consecutive literal lists should be merged"
+                                    , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                    }
+                                    listFnRange
+                                    fixes
+                                ]
+
+                _ ->
+                    []
+
+        _ ->
+            []
+
+
+findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix
+findConsecutiveListLiterals firstListElement restOfListElements =
+    case ( firstListElement, restOfListElements ) of
+        ( Node firstRange (Expression.ListExpr _), ((Node secondRange (Expression.ListExpr _)) as second) :: rest ) ->
+            Review.Fix.replaceRangeBy
+                { start = { row = firstRange.end.row, column = firstRange.end.column - 1 }
+                , end = { row = secondRange.start.row, column = secondRange.start.column + 1 }
+                }
+                ", "
+                :: findConsecutiveListLiterals second rest
+
+        ( _, x :: xs ) ->
+            findConsecutiveListLiterals x xs
 
         _ ->
             []
