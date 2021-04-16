@@ -348,6 +348,38 @@ a = List.concatMap fn []
 a = []
 """
                         ]
+        , test "should replace List.concatMap (always []) x by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap (always []) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.concatMap will result in on an empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.concatMap (always []) by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap (always [])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.concatMap will result in on an empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
+"""
+                        ]
         , test "should replace List.concatMap fn [ a ] by fn a" <|
             \() ->
                 """module A exposing (..)

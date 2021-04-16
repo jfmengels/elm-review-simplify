@@ -64,6 +64,9 @@ import Review.Rule as Rule exposing (Error, Rule)
     List.concatMap fn [ x ]
     --> fn x
 
+    List.concatMap (always []) list
+    --> []
+
     List.map fn [] -- same for List.filter, List.filterMap
     --> []
 
@@ -530,7 +533,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 
 concatMapChecks : CheckInfo -> List (Error {})
-concatMapChecks { lookupTable, listFnRange, firstArg, secondArg, usingRightPizza } =
+concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, usingRightPizza } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -538,6 +541,15 @@ concatMapChecks { lookupTable, listFnRange, firstArg, secondArg, usingRightPizza
             }
             listFnRange
             [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
+        ]
+
+    else if isAlwaysEmptyList lookupTable firstArg then
+        [ Rule.errorWithFix
+            { message = "List.concatMap will result in on an empty list"
+            , details = [ "You can replace this call by an empty list" ]
+            }
+            listFnRange
+            (replaceByEmptyListFix parentRange secondArg)
         ]
 
     else
@@ -977,3 +989,31 @@ getMaybeValue lookupTable node =
 
         _ ->
             Nothing
+
+
+isAlwaysEmptyList : ModuleNameLookupTable -> Node Expression -> Bool
+isAlwaysEmptyList lookupTable node =
+    case Node.value (removeParens node) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: alwaysValue :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    isEmptyList alwaysValue
+
+                _ ->
+                    False
+
+        Expression.LambdaExpression { expression } ->
+            isEmptyList expression
+
+        _ ->
+            False
+
+
+isEmptyList : Node Expression -> Bool
+isEmptyList node =
+    case Node.value (removeParens node) of
+        Expression.ListExpr [] ->
+            True
+
+        _ ->
+            False
