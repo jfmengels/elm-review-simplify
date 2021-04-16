@@ -533,8 +533,8 @@ mapChecks ({ lookupTable, listFnRange, firstArg } as checkInfo) =
 
 
 isEmptyChecks : CheckInfo -> List (Error {})
-isEmptyChecks ({ parentRange, lookupTable, listFnRange, firstArg } as checkInfo) =
-    case Node.value firstArg of
+isEmptyChecks { parentRange, listFnRange, firstArg } =
+    case Node.value (removeParens firstArg) of
         Expression.ListExpr list ->
             if List.isEmpty list then
                 [ Rule.errorWithFix
@@ -562,9 +562,6 @@ isEmptyChecks ({ parentRange, lookupTable, listFnRange, firstArg } as checkInfo)
                 listFnRange
                 [ Review.Fix.replaceRangeBy parentRange "False" ]
             ]
-
-        Expression.ParenthesizedExpression expr ->
-            isEmptyChecks { checkInfo | firstArg = expr }
 
         _ ->
             []
@@ -673,7 +670,7 @@ replaceByEmptyListFix parentRange secondArg =
 
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
 isIdentity lookupTable node =
-    case Node.value node of
+    case Node.value (removeParens node) of
         Expression.FunctionOrValue _ "identity" ->
             ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ]
 
@@ -695,9 +692,6 @@ isIdentity lookupTable node =
                 _ ->
                     False
 
-        Expression.ParenthesizedExpression expr ->
-            isIdentity lookupTable expr
-
         _ ->
             False
 
@@ -717,12 +711,9 @@ getVarPattern node =
 
 getExpressionName : Node Expression -> Maybe String
 getExpressionName node =
-    case Node.value node of
+    case Node.value (removeParens node) of
         Expression.FunctionOrValue [] name ->
             Just name
-
-        Expression.ParenthesizedExpression pattern ->
-            getExpressionName pattern
 
         _ ->
             Nothing
@@ -738,9 +729,19 @@ isListLiteral node =
             False
 
 
+removeParens : Node Expression -> Node Expression
+removeParens node =
+    case Node.value node of
+        Expression.ParenthesizedExpression expr ->
+            removeParens expr
+
+        _ ->
+            node
+
+
 isAlwaysBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
 isAlwaysBoolean lookupTable node =
-    case Node.value node of
+    case Node.value (removeParens node) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
@@ -752,16 +753,13 @@ isAlwaysBoolean lookupTable node =
         Expression.LambdaExpression { expression } ->
             getBoolean lookupTable expression
 
-        Expression.ParenthesizedExpression expr ->
-            isAlwaysBoolean lookupTable expr
-
         _ ->
             Nothing
 
 
 getBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
 getBoolean lookupTable node =
-    case Node.value node of
+    case Node.value (removeParens node) of
         Expression.FunctionOrValue _ "True" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Basics" ] ->
@@ -778,16 +776,13 @@ getBoolean lookupTable node =
                 _ ->
                     Nothing
 
-        Expression.ParenthesizedExpression expr ->
-            getBoolean lookupTable expr
-
         _ ->
             Nothing
 
 
 isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
 isAlwaysMaybe lookupTable node =
-    case Node.value node of
+    case Node.value (removeParens node) of
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
@@ -834,16 +829,13 @@ isAlwaysMaybe lookupTable node =
                 _ ->
                     Nothing
 
-        Expression.ParenthesizedExpression expr ->
-            isAlwaysMaybe lookupTable expr
-
         _ ->
             Nothing
 
 
 getMaybeValue : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
 getMaybeValue lookupTable node =
-    case Node.value node of
+    case Node.value (removeParens node) of
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
@@ -859,9 +851,6 @@ getMaybeValue lookupTable node =
 
                 _ ->
                     Nothing
-
-        Expression.ParenthesizedExpression expr ->
-            getMaybeValue lookupTable expr
 
         _ ->
             Nothing
