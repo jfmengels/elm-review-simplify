@@ -327,90 +327,6 @@ expressionVisitorHelp node { lookupTable } =
             else
                 ( [], [] )
 
-        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "not")) :: argument :: []) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && getBoolean lookupTable argument == Just True then
-                ( [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "False"
-                        ]
-                  ]
-                , []
-                )
-
-            else if isFalse argument then
-                ( [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "True"
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
-
-        Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ "not")) argument ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && getBoolean lookupTable argument == Just True then
-                ( [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "False"
-                        ]
-                  ]
-                , []
-                )
-
-            else if isFalse argument then
-                ( [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "True"
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
-
-        Expression.OperatorApplication "|>" _ argument (Node fnRange (Expression.FunctionOrValue _ "not")) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && getBoolean lookupTable argument == Just True then
-                ( [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "False"
-                        ]
-                  ]
-                , []
-                )
-
-            else if isFalse argument then
-                ( [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "True"
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
-
         -------------------
         -- IF EXPRESSION --
         -------------------
@@ -741,6 +657,33 @@ type alias CheckInfo =
 -- BOOLEAN
 
 
+notChecks : CheckInfo -> List (Error {})
+notChecks { lookupTable, parentRange, fnRange, firstArg, usingRightPizza } =
+    case getBoolean lookupTable firstArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "REPLACEME"
+                , details = [ "REPLACEME" ]
+                }
+                parentRange
+                [ Fix.replaceRangeBy parentRange "False"
+                ]
+            ]
+
+        Just False ->
+            [ Rule.errorWithFix
+                { message = "REPLACEME"
+                , details = [ "REPLACEME" ]
+                }
+                parentRange
+                [ Fix.replaceRangeBy parentRange "True"
+                ]
+            ]
+
+        Nothing ->
+            []
+
+
 or_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
 or_isLeftSimplifiableError node left right =
     if isTrue left then
@@ -970,6 +913,7 @@ checkList : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
 checkList =
     Dict.fromList
         [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
+        , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), notChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
