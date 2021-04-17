@@ -1,7 +1,7 @@
-module NoListLiteralsConcatTest exposing (all)
+module SimplifyTest exposing (all)
 
-import NoListLiteralsConcat exposing (rule)
 import Review.Test
+import Simplify exposing (rule)
 import Test exposing (Test, describe, test)
 
 

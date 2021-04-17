@@ -1,4 +1,4 @@
-module NoListLiteralsConcat exposing (rule)
+module Simplify exposing (rule)
 
 {-|
 
@@ -20,7 +20,7 @@ import Simplify.Normalize as Normalize
 {-| Reports when an operation on lists could be simplified to a single literal list.
 
     config =
-        [ NoListLiteralsConcat.rule
+        [ Simplify.rule
         ]
 
 
@@ -177,13 +177,13 @@ import Simplify.Normalize as Normalize
 You can try this rule out by running the following command:
 
 ```bash
-elm-review --template jfmengels/elm-review-simplification/example --rules NoListLiteralsConcat
+elm-review --template jfmengels/elm-review-simplification/example --rules Simplify
 ```
 
 -}
 rule : Rule
 rule =
-    Rule.newModuleRuleSchemaUsingContextCreator "NoListLiteralsConcat" initialContext
+    Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.fromModuleRuleSchema

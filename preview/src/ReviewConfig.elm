@@ -13,17 +13,15 @@ when inside the directory containing this file.
 
 import NoBooleanCaseOf
 import NoFullyAppliedPrefixOperator
-import NoListLiteralsConcat
 import Review.Rule exposing (Rule)
-import Simplify.Booleans
+import Simplify
 import Simplify.Ifs
 
 
 config : List Rule
 config =
     [ NoBooleanCaseOf.rule
-    , Simplify.Booleans.rule
+    , Simplify.rule
     , Simplify.Ifs.rule
     , NoFullyAppliedPrefixOperator.rule
-    , NoListLiteralsConcat.rule
     ]

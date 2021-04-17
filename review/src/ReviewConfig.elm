@@ -19,7 +19,6 @@ import NoExposingEverything
 import NoForbiddenWords
 import NoFullyAppliedPrefixOperator
 import NoImportingEverything
-import NoListLiteralsConcat
 import NoMissingTypeAnnotation
 import NoMissingTypeAnnotationInLetIn
 import NoMissingTypeExpose
@@ -32,6 +31,7 @@ import NoUnused.Parameters
 import NoUnused.Patterns
 import NoUnused.Variables
 import Review.Rule as Rule exposing (Rule)
+import Simplify
 
 
 config : List Rule
@@ -45,7 +45,7 @@ config =
     , NoFullyAppliedPrefixOperator.rule
     , NoForbiddenWords.rule [ "REPLACEME" ]
     , NoImportingEverything.rule []
-    , NoListLiteralsConcat.rule
+    , Simplify.rule
     , NoMissingTypeAnnotation.rule
     , NoMissingTypeAnnotationInLetIn.rule
     , NoMissingTypeExpose.rule
