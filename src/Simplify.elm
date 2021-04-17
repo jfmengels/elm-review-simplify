@@ -660,24 +660,13 @@ type alias CheckInfo =
 notChecks : CheckInfo -> List (Error {})
 notChecks { lookupTable, parentRange, fnRange, firstArg, usingRightPizza } =
     case getBoolean lookupTable firstArg of
-        Just True ->
+        Just bool ->
             [ Rule.errorWithFix
-                { message = "REPLACEME"
-                , details = [ "REPLACEME" ]
+                { message = "Expression is equal to " ++ boolToString (not bool)
+                , details = [ "You can replace the call to `not` by the boolean value directly." ]
                 }
                 parentRange
-                [ Fix.replaceRangeBy parentRange "False"
-                ]
-            ]
-
-        Just False ->
-            [ Rule.errorWithFix
-                { message = "REPLACEME"
-                , details = [ "REPLACEME" ]
-                }
-                parentRange
-                [ Fix.replaceRangeBy parentRange "True"
-                ]
+                [ Fix.replaceRangeBy parentRange (boolToString (not bool)) ]
             ]
 
         Nothing ->

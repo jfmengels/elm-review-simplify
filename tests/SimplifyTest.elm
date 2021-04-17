@@ -319,8 +319,8 @@ a = not True
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression is equal to False"
+                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
                             , under = "not True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -335,8 +335,8 @@ a = not False
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression is equal to True"
+                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
                             , under = "not False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -351,8 +351,8 @@ a = not (True)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression is equal to False"
+                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
                             , under = "not (True)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -367,8 +367,8 @@ a = not <| True
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression is equal to False"
+                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
                             , under = "not <| True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -383,8 +383,8 @@ a = True |> not
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression is equal to False"
+                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
                             , under = "True |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
