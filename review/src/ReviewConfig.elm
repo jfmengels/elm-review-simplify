@@ -17,7 +17,6 @@ import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoExposingEverything
 import NoForbiddenWords
-import NoFullyAppliedPrefixOperator
 import NoImportingEverything
 import NoMissingTypeAnnotation
 import NoMissingTypeAnnotationInLetIn
@@ -42,7 +41,6 @@ config =
     , NoDebug.TodoOrToString.rule
         |> Rule.ignoreErrorsForDirectories [ "tests/" ]
     , NoExposingEverything.rule
-    , NoFullyAppliedPrefixOperator.rule
     , NoForbiddenWords.rule [ "REPLACEME" ]
     , NoImportingEverything.rule []
     , Simplify.rule

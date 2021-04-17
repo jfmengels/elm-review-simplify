@@ -12,7 +12,6 @@ when inside the directory containing this file.
 -}
 
 import NoBooleanCaseOf
-import NoFullyAppliedPrefixOperator
 import Review.Rule exposing (Rule)
 import Simplify
 
@@ -21,5 +20,4 @@ config : List Rule
 config =
     [ NoBooleanCaseOf.rule
     , Simplify.rule
-    , NoFullyAppliedPrefixOperator.rule
     ]

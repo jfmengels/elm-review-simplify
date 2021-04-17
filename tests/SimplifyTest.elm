@@ -547,7 +547,7 @@ fullyAppliedPrefixOperatorDetails =
 
 fullyAppliedPrefixOperatorTests : Test
 fullyAppliedPrefixOperatorTests =
-    describe "NoFullyAppliedPrefixOperator"
+    describe "Fully applied prefix operators"
         [ test "should not report a lonely operator" <|
             \() ->
                 """
