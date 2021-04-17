@@ -245,6 +245,9 @@ expressionVisitor node context =
 expressionVisitorHelp : Node Expression -> Context -> ( List (Error {}), List Range )
 expressionVisitorHelp node { lookupTable } =
     case Node.value node of
+        -------------------
+        -- BOOLEAN LOGIC --
+        -------------------
         Expression.OperatorApplication "||" _ left right ->
             ( List.concat
                 [ or_isLeftSimplifiableError node left right
@@ -377,6 +380,113 @@ expressionVisitorHelp node { lookupTable } =
             else
                 ( [], [] )
 
+        --------------------
+        --  IF EXPRESSION --
+        --------------------
+        Expression.IfBlock cond trueBranch falseBranch ->
+            case Node.value cond of
+                Expression.FunctionOrValue [] "True" ->
+                    ( [ Rule.errorWithFix
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            }
+                            (targetIf node)
+                            [ Fix.removeRange
+                                { start = (Node.range node).start
+                                , end = (Node.range trueBranch).start
+                                }
+                            , Fix.removeRange
+                                { start = (Node.range trueBranch).end
+                                , end = (Node.range node).end
+                                }
+                            ]
+                      ]
+                    , []
+                    )
+
+                Expression.FunctionOrValue [] "False" ->
+                    ( [ Rule.errorWithFix
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            }
+                            (targetIf node)
+                            [ Fix.removeRange
+                                { start = (Node.range node).start
+                                , end = (Node.range falseBranch).start
+                                }
+                            ]
+                      ]
+                    , []
+                    )
+
+                _ ->
+                    case ( Node.value trueBranch, Node.value falseBranch ) of
+                        ( Expression.FunctionOrValue [] "True", Expression.FunctionOrValue [] "False" ) ->
+                            ( [ Rule.errorWithFix
+                                    { message = "The if expression's value is the same as the condition"
+                                    , details = [ "The expression can be replaced by the condition." ]
+                                    }
+                                    (targetIf node)
+                                    [ Fix.removeRange
+                                        { start = (Node.range node).start
+                                        , end = (Node.range cond).start
+                                        }
+                                    , Fix.removeRange
+                                        { start = (Node.range cond).end
+                                        , end = (Node.range node).end
+                                        }
+                                    ]
+                              ]
+                            , []
+                            )
+
+                        ( Expression.FunctionOrValue [] "False", Expression.FunctionOrValue [] "True" ) ->
+                            ( [ Rule.errorWithFix
+                                    { message = "The if expression's value is the inverse of the condition"
+                                    , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                                    }
+                                    (targetIf node)
+                                    [ Fix.replaceRangeBy
+                                        { start = (Node.range node).start
+                                        , end = (Node.range cond).start
+                                        }
+                                        "not ("
+                                    , Fix.replaceRangeBy
+                                        { start = (Node.range cond).end
+                                        , end = (Node.range node).end
+                                        }
+                                        ")"
+                                    ]
+                              ]
+                            , []
+                            )
+
+                        _ ->
+                            if Normalize.areTheSame lookupTable trueBranch falseBranch then
+                                ( [ Rule.errorWithFix
+                                        { message = "The values in both branches is the same."
+                                        , details = [ "The expression can be replaced by the contents of either branch." ]
+                                        }
+                                        (targetIf node)
+                                        [ Fix.removeRange
+                                            { start = (Node.range node).start
+                                            , end = (Node.range trueBranch).start
+                                            }
+                                        , Fix.removeRange
+                                            { start = (Node.range trueBranch).end
+                                            , end = (Node.range node).end
+                                            }
+                                        ]
+                                  ]
+                                , []
+                                )
+
+                            else
+                                ( [], [] )
+
+        -------------
+        --  LISTS  --
+        -------------
         Expression.OperatorApplication "++" _ (Node range (Expression.ListExpr [])) other ->
             ( [ errorForAddingEmptyLists range
                     { start = range.start
@@ -778,6 +888,21 @@ sameThingOnBothSidesDetails computedResult =
     in
     [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ computedResultString ++ "."
     ]
+
+
+
+-- IF EXPRESSIONS
+
+
+targetIf : Node a -> Range
+targetIf node =
+    let
+        { start } =
+            Node.range node
+    in
+    { start = start
+    , end = { start | column = start.column + 2 }
+    }
 
 
 
