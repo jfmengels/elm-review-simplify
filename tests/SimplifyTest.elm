@@ -62,6 +62,22 @@ a = identity <| x
 a = x
 """
                         ]
+        , test "should replace x |> identity by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+                            , under = "identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
 
 

@@ -947,13 +947,17 @@ targetIf node =
 
 
 identityChecks : CheckInfo -> List (Error {})
-identityChecks { parentRange, fnRange, firstArg } =
+identityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
     [ Rule.errorWithFix
         { message = "`identity` should be removed"
         , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
         }
         fnRange
-        [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
+        [ if usingRightPizza then
+            Fix.removeRange { start = (Node.range firstArg).end, end = parentRange.end }
+
+          else
+            Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
         ]
     ]
 
