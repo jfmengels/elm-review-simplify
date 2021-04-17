@@ -70,10 +70,16 @@ import Simplify.Normalize as Normalize
     --> not condition
 
 
+### Basics functions
+
+    identity x
+    --> x
+
+
 ### Operators
 
     (++) a b
-    -- a ++ b
+    --> a ++ b
 
 
 ### Lists
@@ -405,9 +411,9 @@ expressionVisitorHelp node { lookupTable } =
             else
                 ( [], [] )
 
-        --------------------
-        --  IF EXPRESSION --
-        --------------------
+        -------------------
+        -- IF EXPRESSION --
+        -------------------
         Expression.IfBlock cond trueBranch falseBranch ->
             case getBoolean lookupTable cond of
                 Just True ->
@@ -937,13 +943,30 @@ targetIf node =
 
 
 
+-- BASICS
+
+
+identityChecks : CheckInfo -> List (Error {})
+identityChecks { parentRange, listFnRange, firstArg } =
+    [ Rule.errorWithFix
+        { message = "`identity` should be removed"
+        , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+        }
+        listFnRange
+        [ Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
+        ]
+    ]
+
+
+
 -- LIST
 
 
 checkList : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
 checkList =
     Dict.fromList
-        [ reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
+        [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
