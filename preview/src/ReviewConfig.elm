@@ -15,13 +15,11 @@ import NoBooleanCaseOf
 import NoFullyAppliedPrefixOperator
 import Review.Rule exposing (Rule)
 import Simplify
-import Simplify.Ifs
 
 
 config : List Rule
 config =
     [ NoBooleanCaseOf.rule
     , Simplify.rule
-    , Simplify.Ifs.rule
     , NoFullyAppliedPrefixOperator.rule
     ]
