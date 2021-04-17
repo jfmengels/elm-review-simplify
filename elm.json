@@ -1,6 +1,6 @@
 {
     "type": "package",
-    "name": "jfmengels/elm-review-simplification",
+    "name": "jfmengels/elm-review-simplify",
     "summary": "Provides elm-review rules to simplify Elm code",
     "license": "BSD-3-Clause",
     "version": "1.0.0",

@@ -42,7 +42,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 You can try this rule out by running the following command:
 
 ```bash
-elm-review --template jfmengels/elm-review-simplification/example --rules NoFullyAppliedPrefixOperator
+elm-review --template jfmengels/elm-review-simplify/example --rules NoFullyAppliedPrefixOperator
 ```
 
 -}

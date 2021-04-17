@@ -195,7 +195,7 @@ import Simplify.Normalize as Normalize
 You can try this rule out by running the following command:
 
 ```bash
-elm-review --template jfmengels/elm-review-simplification/example --rules Simplify
+elm-review --template jfmengels/elm-review-simplify/example --rules Simplify
 ```
 
 -}

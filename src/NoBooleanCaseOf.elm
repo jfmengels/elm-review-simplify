@@ -64,7 +64,7 @@ evaluated.
 You can try this rule out by running the following command:
 
 ```bash
-elm-review --template jfmengels/elm-review-simplification/example --rules NoBooleanCaseOf
+elm-review --template jfmengels/elm-review-simplify/example --rules NoBooleanCaseOf
 ```
 
 -}
