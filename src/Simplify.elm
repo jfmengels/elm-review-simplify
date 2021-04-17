@@ -320,8 +320,8 @@ expressionVisitorHelp node { lookupTable } =
             else
                 ( [], [] )
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue [] "not")) :: argument :: []) ->
-            if isTrue argument then
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "not")) :: argument :: []) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && isTrue argument then
                 ( [ Rule.errorWithFix
                         { message = "REPLACEME"
                         , details = [ "REPLACEME" ]
@@ -348,8 +348,8 @@ expressionVisitorHelp node { lookupTable } =
             else
                 ( [], [] )
 
-        Expression.OperatorApplication "<|" _ (Node _ (Expression.FunctionOrValue [] "not")) argument ->
-            if isTrue argument then
+        Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ "not")) argument ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && isTrue argument then
                 ( [ Rule.errorWithFix
                         { message = "REPLACEME"
                         , details = [ "REPLACEME" ]
@@ -376,8 +376,8 @@ expressionVisitorHelp node { lookupTable } =
             else
                 ( [], [] )
 
-        Expression.OperatorApplication "|>" _ argument (Node _ (Expression.FunctionOrValue [] "not")) ->
-            if isTrue argument then
+        Expression.OperatorApplication "|>" _ argument (Node fnRange (Expression.FunctionOrValue _ "not")) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && isTrue argument then
                 ( [ Rule.errorWithFix
                         { message = "REPLACEME"
                         , details = [ "REPLACEME" ]
