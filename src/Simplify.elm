@@ -69,6 +69,12 @@ import Simplify.Normalize as Normalize
     --> not condition
 
 
+### Operators
+
+    (++) a b
+    -- a ++ b
+
+
 ### Lists
 
     a :: []
