@@ -632,7 +632,7 @@ expressionVisitorHelp node { lookupTable } =
                     ( checkFn
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
-                        , listFnRange = fnRange
+                        , fnRange = fnRange
                         , firstArg = firstArg
                         , secondArg = Nothing
                         , usingRightPizza = False
@@ -652,7 +652,7 @@ expressionVisitorHelp node { lookupTable } =
                     ( checkFn
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
-                        , listFnRange = fnRange
+                        , fnRange = fnRange
                         , firstArg = firstArg
                         , secondArg = Just secondArgument
                         , usingRightPizza = False
@@ -672,7 +672,7 @@ expressionVisitorHelp node { lookupTable } =
                     ( checkFn
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
-                        , listFnRange = fnRange
+                        , fnRange = fnRange
                         , firstArg = firstArg
                         , secondArg = Nothing
                         , usingRightPizza = True
@@ -692,7 +692,7 @@ expressionVisitorHelp node { lookupTable } =
                     ( checkFn
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
-                        , listFnRange = fnRange
+                        , fnRange = fnRange
                         , firstArg = firstArg
                         , secondArg = Just secondArgument
                         , usingRightPizza = True
@@ -712,7 +712,7 @@ expressionVisitorHelp node { lookupTable } =
                     ( checkFn
                         { lookupTable = lookupTable
                         , parentRange = Node.range node
-                        , listFnRange = fnRange
+                        , fnRange = fnRange
                         , firstArg = firstArg
                         , secondArg = List.head restOfArguments
                         , usingRightPizza = False
@@ -730,7 +730,7 @@ expressionVisitorHelp node { lookupTable } =
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , parentRange : Range
-    , listFnRange : Range
+    , fnRange : Range
     , firstArg : Node Expression
     , secondArg : Maybe (Node Expression)
     , usingRightPizza : Bool
@@ -947,13 +947,13 @@ targetIf node =
 
 
 identityChecks : CheckInfo -> List (Error {})
-identityChecks { parentRange, listFnRange, firstArg } =
+identityChecks { parentRange, fnRange, firstArg } =
     [ Rule.errorWithFix
         { message = "`identity` should be removed"
         , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
         }
-        listFnRange
-        [ Fix.removeRange { start = listFnRange.start, end = (Node.range firstArg).start }
+        fnRange
+        [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
         ]
     ]
 
@@ -987,7 +987,7 @@ reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
                     { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
                     , details = [ "You can replace this call by an empty list" ]
                     }
-                    checkInfo.listFnRange
+                    checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
                 ]
 
@@ -1006,7 +1006,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
                     { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
                     , details = [ "You can replace this call by an empty list" ]
                     }
-                    checkInfo.listFnRange
+                    checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
                 ]
 
@@ -1020,7 +1020,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 
 concatChecks : CheckInfo -> List (Error {})
-concatChecks { parentRange, listFnRange, firstArg } =
+concatChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr list ->
             case list of
@@ -1042,7 +1042,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
                             , details = [ "Try moving all the elements into a single list." ]
                             }
                             parentRange
-                            (Fix.removeRange listFnRange
+                            (Fix.removeRange fnRange
                                 :: List.concatMap removeBoundariesFix args
                             )
                         ]
@@ -1057,7 +1057,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
                                     { message = "Consecutive literal lists should be merged"
                                     , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
                                     }
-                                    listFnRange
+                                    fnRange
                                     fixes
                                 ]
 
@@ -1087,14 +1087,14 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 
 concatMapChecks : CheckInfo -> List (Error {})
-concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, usingRightPizza } =
+concatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
             , details = [ "You can replace this call by List.concat" ]
             }
-            listFnRange
-            [ Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
+            fnRange
+            [ Fix.replaceRangeBy { start = fnRange.start, end = (Node.range firstArg).end } "List.concat" ]
         ]
 
     else if isAlwaysEmptyList lookupTable firstArg then
@@ -1102,7 +1102,7 @@ concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, us
             { message = "List.concatMap will result in on an empty list"
             , details = [ "You can replace this call by an empty list" ]
             }
-            listFnRange
+            fnRange
             (replaceByEmptyListFix parentRange secondArg)
         ]
 
@@ -1113,15 +1113,15 @@ concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, us
                     { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
                     , details = [ "You can replace this call by a call to the function directly" ]
                     }
-                    listFnRange
+                    fnRange
                     (if usingRightPizza then
                         [ Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
                         , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                        , Fix.removeRange listFnRange
+                        , Fix.removeRange fnRange
                         ]
 
                      else
-                        [ Fix.removeRange listFnRange
+                        [ Fix.removeRange fnRange
                         , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
                         , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
                         ]
@@ -1133,13 +1133,13 @@ concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, us
 
 
 mapChecks : CheckInfo -> List (Error {})
-mapChecks ({ lookupTable, listFnRange, firstArg } as checkInfo) =
+mapChecks ({ lookupTable, fnRange, firstArg } as checkInfo) =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.map with an identity function is the same as not using List.map"
             , details = [ "You can remove this call and replace it by the list itself" ]
             }
-            listFnRange
+            fnRange
             (noopFix checkInfo)
         ]
 
@@ -1148,7 +1148,7 @@ mapChecks ({ lookupTable, listFnRange, firstArg } as checkInfo) =
 
 
 isEmptyChecks : CheckInfo -> List (Error {})
-isEmptyChecks { parentRange, listFnRange, firstArg } =
+isEmptyChecks { parentRange, fnRange, firstArg } =
     case Node.value (removeParens firstArg) of
         Expression.ListExpr list ->
             if List.isEmpty list then
@@ -1156,7 +1156,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                     { message = "The call to List.isEmpty will result in True"
                     , details = [ "You can replace this call by True." ]
                     }
-                    listFnRange
+                    fnRange
                     [ Fix.replaceRangeBy parentRange "True" ]
                 ]
 
@@ -1165,7 +1165,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                     { message = "The call to List.isEmpty will result in False"
                     , details = [ "You can replace this call by False." ]
                     }
-                    listFnRange
+                    fnRange
                     [ Fix.replaceRangeBy parentRange "False" ]
                 ]
 
@@ -1174,7 +1174,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                 { message = "The call to List.isEmpty will result in False"
                 , details = [ "You can replace this call by False." ]
                 }
-                listFnRange
+                fnRange
                 [ Fix.replaceRangeBy parentRange "False" ]
             ]
 
@@ -1183,14 +1183,14 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
 
 
 allChecks : CheckInfo -> List (Error {})
-allChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
+allChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
                 { message = "The call to List.all will result in True"
                 , details = [ "You can replace this call by True." ]
                 }
-                listFnRange
+                fnRange
                 [ Fix.replaceRangeBy parentRange "True" ]
             ]
 
@@ -1201,7 +1201,7 @@ allChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
                         { message = "The call to List.all will result in True"
                         , details = [ "You can replace this call by True." ]
                         }
-                        listFnRange
+                        fnRange
                         (replaceByBoolFix parentRange secondArg True)
                     ]
 
@@ -1210,14 +1210,14 @@ allChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
 
 
 anyChecks : CheckInfo -> List (Error {})
-anyChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
+anyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
                 { message = "The call to List.any will result in False"
                 , details = [ "You can replace this call by False." ]
                 }
-                listFnRange
+                fnRange
                 [ Fix.replaceRangeBy parentRange "False" ]
             ]
 
@@ -1228,7 +1228,7 @@ anyChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
                         { message = "The call to List.any will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
-                        listFnRange
+                        fnRange
                         (replaceByBoolFix parentRange secondArg False)
                     ]
 
@@ -1237,14 +1237,14 @@ anyChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
 
 
 filterChecks : CheckInfo -> List (Error {})
-filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } as checkInfo) =
+filterChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
                 { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
                 , details = [ "You can remove this call and replace it by the list itself" ]
                 }
-                listFnRange
+                fnRange
                 (noopFix checkInfo)
             ]
 
@@ -1253,7 +1253,7 @@ filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } as 
                 { message = "Using List.filter with a function that will always return False will result in an empty list"
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
-                listFnRange
+                fnRange
                 (replaceByEmptyListFix parentRange secondArg)
             ]
 
@@ -1262,14 +1262,14 @@ filterChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } as 
 
 
 filterMapChecks : CheckInfo -> List (Error {})
-filterMapChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } as checkInfo) =
+filterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just ()) ->
             [ Rule.errorWithFix
                 { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
                 , details = [ "You can remove this call and replace it by the list itself" ]
                 }
-                listFnRange
+                fnRange
                 (noopFix checkInfo)
             ]
 
@@ -1278,7 +1278,7 @@ filterMapChecks ({ lookupTable, parentRange, listFnRange, firstArg, secondArg } 
                 { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
-                listFnRange
+                fnRange
                 (replaceByEmptyListFix parentRange secondArg)
             ]
 
@@ -1308,14 +1308,14 @@ removeBoundariesFix node =
 
 
 noopFix : CheckInfo -> List Fix
-noopFix { listFnRange, parentRange, secondArg, usingRightPizza } =
+noopFix { fnRange, parentRange, secondArg, usingRightPizza } =
     [ case secondArg of
         Just listArg ->
             if usingRightPizza then
                 Fix.removeRange { start = (Node.range listArg).end, end = parentRange.end }
 
             else
-                Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                Fix.removeRange { start = fnRange.start, end = (Node.range listArg).start }
 
         Nothing ->
             Fix.replaceRangeBy parentRange "identity"
