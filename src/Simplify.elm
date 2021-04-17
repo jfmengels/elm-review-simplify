@@ -30,25 +30,43 @@ import Simplify.Normalize as Normalize
 ### Booleans
 
     x || True
-    -- True
+    --> True
 
     x || False
-    -- x
+    --> x
 
     x && True
-    -- x
+    --> x
 
     x && False
-    -- False
+    --> False
 
     not True
-    -- False
+    --> False
 
     anything == anything
-    -- True
+    --> True
 
     anything /= anything
-    -- False
+    --> False
+
+
+### If expressions
+
+    if True then x else y
+    --> x
+
+    if False then x else y
+    --> y
+
+    if condition then x else x
+    --> x
+
+    if condition then True else False
+    --> condition
+
+    if condition then False else True
+    --> not condition
 
 
 ### Lists
