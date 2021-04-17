@@ -11,7 +11,7 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
-import Review.Fix exposing (Fix)
+import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Error, Rule)
 
@@ -185,7 +185,7 @@ errorForAddingEmptyLists range rangeToRemove =
         , details = [ "You should remove the concatenation with the empty list." ]
         }
         range
-        [ Review.Fix.removeRange rangeToRemove ]
+        [ Fix.removeRange rangeToRemove ]
 
 
 
@@ -241,7 +241,7 @@ expressionVisitorHelp node { lookupTable } =
                     , details = [ "Try moving all the elements into a single list." ]
                     }
                     (Node.range node)
-                    [ Review.Fix.replaceRangeBy
+                    [ Fix.replaceRangeBy
                         { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
                         , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
                         }
@@ -257,12 +257,12 @@ expressionVisitorHelp node { lookupTable } =
                     , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
                     }
                     (Node.range node)
-                    [ Review.Fix.replaceRangeBy
+                    [ Fix.replaceRangeBy
                         { start = rangeLeft.start
                         , end = { row = rangeLeft.start.row, column = rangeLeft.start.column + 1 }
                         }
                         "("
-                    , Review.Fix.replaceRangeBy
+                    , Fix.replaceRangeBy
                         { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
                         , end = (Node.range list).start
                         }
@@ -278,8 +278,8 @@ expressionVisitorHelp node { lookupTable } =
                     , details = [ "Try moving the element inside the list it is being added to." ]
                     }
                     rangeLeft
-                    [ Review.Fix.insertAt rangeLeft.start "[ "
-                    , Review.Fix.replaceRangeBy
+                    [ Fix.insertAt rangeLeft.start "[ "
+                    , Fix.replaceRangeBy
                         { start = rangeLeft.end
                         , end = rangeRight.end
                         }
@@ -295,8 +295,8 @@ expressionVisitorHelp node { lookupTable } =
                     , details = [ "Try moving the element inside the list it is being added to." ]
                     }
                     rangeLeft
-                    [ Review.Fix.insertAt rangeLeft.start "[ "
-                    , Review.Fix.replaceRangeBy
+                    [ Fix.insertAt rangeLeft.start "[ "
+                    , Fix.replaceRangeBy
                         { start = rangeLeft.end
                         , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
                         }
@@ -455,7 +455,7 @@ reportEmptyListSecondArgument ( name, function ) =
                     , details = [ "You can replace this call by an empty list" ]
                     }
                     checkInfo.listFnRange
-                    [ Review.Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
                 ]
 
             _ ->
@@ -474,7 +474,7 @@ reportEmptyListFirstArgument ( name, function ) =
                     , details = [ "You can replace this call by an empty list" ]
                     }
                     checkInfo.listFnRange
-                    [ Review.Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
                 ]
 
             _ ->
@@ -497,8 +497,8 @@ concatChecks { parentRange, listFnRange, firstArg } =
                         , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
                         }
                         parentRange
-                        [ Review.Fix.removeRange { start = parentRange.start, end = elementRange.start }
-                        , Review.Fix.removeRange { start = elementRange.end, end = parentRange.end }
+                        [ Fix.removeRange { start = parentRange.start, end = elementRange.start }
+                        , Fix.removeRange { start = elementRange.end, end = parentRange.end }
                         ]
                     ]
 
@@ -509,7 +509,7 @@ concatChecks { parentRange, listFnRange, firstArg } =
                             , details = [ "Try moving all the elements into a single list." ]
                             }
                             parentRange
-                            (Review.Fix.removeRange listFnRange
+                            (Fix.removeRange listFnRange
                                 :: List.concatMap removeBoundariesFix args
                             )
                         ]
@@ -539,7 +539,7 @@ findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List 
 findConsecutiveListLiterals firstListElement restOfListElements =
     case ( firstListElement, restOfListElements ) of
         ( Node firstRange (Expression.ListExpr _), ((Node secondRange (Expression.ListExpr _)) as second) :: rest ) ->
-            Review.Fix.replaceRangeBy
+            Fix.replaceRangeBy
                 { start = { row = firstRange.end.row, column = firstRange.end.column - 1 }
                 , end = { row = secondRange.start.row, column = secondRange.start.column + 1 }
                 }
@@ -561,7 +561,7 @@ concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, us
             , details = [ "You can replace this call by List.concat" ]
             }
             listFnRange
-            [ Review.Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
+            [ Fix.replaceRangeBy { start = listFnRange.start, end = (Node.range firstArg).end } "List.concat" ]
         ]
 
     else if isAlwaysEmptyList lookupTable firstArg then
@@ -582,15 +582,15 @@ concatMapChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg, us
                     }
                     listFnRange
                     (if usingRightPizza then
-                        [ Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                        , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                        , Review.Fix.removeRange listFnRange
+                        [ Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                        , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                        , Fix.removeRange listFnRange
                         ]
 
                      else
-                        [ Review.Fix.removeRange listFnRange
-                        , Review.Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                        , Review.Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                        [ Fix.removeRange listFnRange
+                        , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                        , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
                         ]
                     )
                 ]
@@ -624,7 +624,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                     , details = [ "You can replace this call by True." ]
                     }
                     listFnRange
-                    [ Review.Fix.replaceRangeBy parentRange "True" ]
+                    [ Fix.replaceRangeBy parentRange "True" ]
                 ]
 
             else
@@ -633,7 +633,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                     , details = [ "You can replace this call by False." ]
                     }
                     listFnRange
-                    [ Review.Fix.replaceRangeBy parentRange "False" ]
+                    [ Fix.replaceRangeBy parentRange "False" ]
                 ]
 
         Expression.OperatorApplication "::" _ _ _ ->
@@ -642,7 +642,7 @@ isEmptyChecks { parentRange, listFnRange, firstArg } =
                 , details = [ "You can replace this call by False." ]
                 }
                 listFnRange
-                [ Review.Fix.replaceRangeBy parentRange "False" ]
+                [ Fix.replaceRangeBy parentRange "False" ]
             ]
 
         _ ->
@@ -658,7 +658,7 @@ allChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
                 , details = [ "You can replace this call by True." ]
                 }
                 listFnRange
-                [ Review.Fix.replaceRangeBy parentRange "True" ]
+                [ Fix.replaceRangeBy parentRange "True" ]
             ]
 
         _ ->
@@ -685,7 +685,7 @@ anyChecks { lookupTable, parentRange, listFnRange, firstArg, secondArg } =
                 , details = [ "You can replace this call by False." ]
                 }
                 listFnRange
-                [ Review.Fix.replaceRangeBy parentRange "False" ]
+                [ Fix.replaceRangeBy parentRange "False" ]
             ]
 
         _ ->
@@ -763,11 +763,11 @@ removeBoundariesFix node =
         { start, end } =
             Node.range node
     in
-    [ Review.Fix.removeRange
+    [ Fix.removeRange
         { start = { row = start.row, column = start.column }
         , end = { row = start.row, column = start.column + 1 }
         }
-    , Review.Fix.removeRange
+    , Fix.removeRange
         { start = { row = end.row, column = end.column - 1 }
         , end = { row = end.row, column = end.column }
         }
@@ -779,13 +779,13 @@ noopFix { listFnRange, parentRange, secondArg, usingRightPizza } =
     [ case secondArg of
         Just listArg ->
             if usingRightPizza then
-                Review.Fix.removeRange { start = (Node.range listArg).end, end = parentRange.end }
+                Fix.removeRange { start = (Node.range listArg).end, end = parentRange.end }
 
             else
-                Review.Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
+                Fix.removeRange { start = listFnRange.start, end = (Node.range listArg).start }
 
         Nothing ->
-            Review.Fix.replaceRangeBy parentRange "identity"
+            Fix.replaceRangeBy parentRange "identity"
     ]
 
 
@@ -793,10 +793,10 @@ replaceByEmptyListFix : Range -> Maybe a -> List Fix
 replaceByEmptyListFix parentRange secondArg =
     [ case secondArg of
         Just _ ->
-            Review.Fix.replaceRangeBy parentRange "[]"
+            Fix.replaceRangeBy parentRange "[]"
 
         Nothing ->
-            Review.Fix.replaceRangeBy parentRange "(always [])"
+            Fix.replaceRangeBy parentRange "(always [])"
     ]
 
 
@@ -804,10 +804,10 @@ replaceByBoolFix : Range -> Maybe a -> Bool -> List Fix
 replaceByBoolFix parentRange secondArg replacementValue =
     [ case secondArg of
         Just _ ->
-            Review.Fix.replaceRangeBy parentRange (boolToString replacementValue)
+            Fix.replaceRangeBy parentRange (boolToString replacementValue)
 
         Nothing ->
-            Review.Fix.replaceRangeBy parentRange ("(always " ++ boolToString replacementValue ++ ")")
+            Fix.replaceRangeBy parentRange ("(always " ++ boolToString replacementValue ++ ")")
     ]
 
 
