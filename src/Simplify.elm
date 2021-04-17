@@ -8,6 +8,7 @@ module Simplify exposing (rule)
 
 import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
@@ -617,111 +618,101 @@ expressionVisitorHelp node { lookupTable } =
             )
 
         Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
-            case Dict.get fnName checkList of
+            case
+                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+            of
                 Just checkFn ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
-                        Just [ "List" ] ->
-                            ( checkFn
-                                { lookupTable = lookupTable
-                                , parentRange = Node.range node
-                                , listFnRange = fnRange
-                                , firstArg = firstArg
-                                , secondArg = Nothing
-                                , usingRightPizza = False
-                                }
-                            , []
-                            )
-
-                        _ ->
-                            ( [], [] )
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = fnRange
+                        , firstArg = firstArg
+                        , secondArg = Nothing
+                        , usingRightPizza = False
+                        }
+                    , []
+                    )
 
                 _ ->
                     ( [], [] )
 
         Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
-            case Dict.get fnName checkList of
+            case
+                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+            of
                 Just checkFn ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
-                        Just [ "List" ] ->
-                            ( checkFn
-                                { lookupTable = lookupTable
-                                , parentRange = Node.range node
-                                , listFnRange = fnRange
-                                , firstArg = firstArg
-                                , secondArg = Just secondArgument
-                                , usingRightPizza = False
-                                }
-                            , [ applicationRange ]
-                            )
-
-                        _ ->
-                            ( [], [] )
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = fnRange
+                        , firstArg = firstArg
+                        , secondArg = Just secondArgument
+                        , usingRightPizza = False
+                        }
+                    , [ applicationRange ]
+                    )
 
                 _ ->
                     ( [], [] )
 
         Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
-            case Dict.get fnName checkList of
+            case
+                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+            of
                 Just checkFn ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
-                        Just [ "List" ] ->
-                            ( checkFn
-                                { lookupTable = lookupTable
-                                , parentRange = Node.range node
-                                , listFnRange = fnRange
-                                , firstArg = firstArg
-                                , secondArg = Nothing
-                                , usingRightPizza = True
-                                }
-                            , []
-                            )
-
-                        _ ->
-                            ( [], [] )
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = fnRange
+                        , firstArg = firstArg
+                        , secondArg = Nothing
+                        , usingRightPizza = True
+                        }
+                    , []
+                    )
 
                 _ ->
                     ( [], [] )
 
         Expression.OperatorApplication "|>" _ secondArgument (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) ->
-            case Dict.get fnName checkList of
+            case
+                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+            of
                 Just checkFn ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
-                        Just [ "List" ] ->
-                            ( checkFn
-                                { lookupTable = lookupTable
-                                , parentRange = Node.range node
-                                , listFnRange = fnRange
-                                , firstArg = firstArg
-                                , secondArg = Just secondArgument
-                                , usingRightPizza = True
-                                }
-                            , [ applicationRange ]
-                            )
-
-                        _ ->
-                            ( [], [] )
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = fnRange
+                        , firstArg = firstArg
+                        , secondArg = Just secondArgument
+                        , usingRightPizza = True
+                        }
+                    , [ applicationRange ]
+                    )
 
                 _ ->
                     ( [], [] )
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
-            case Dict.get fnName checkList of
+            case
+                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+            of
                 Just checkFn ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
-                        Just [ "List" ] ->
-                            ( checkFn
-                                { lookupTable = lookupTable
-                                , parentRange = Node.range node
-                                , listFnRange = fnRange
-                                , firstArg = firstArg
-                                , secondArg = List.head restOfArguments
-                                , usingRightPizza = False
-                                }
-                            , []
-                            )
-
-                        _ ->
-                            ( [], [] )
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , listFnRange = fnRange
+                        , firstArg = firstArg
+                        , secondArg = List.head restOfArguments
+                        , usingRightPizza = False
+                        }
+                    , []
+                    )
 
                 _ ->
                     ( [], [] )
@@ -949,28 +940,28 @@ targetIf node =
 -- LIST
 
 
-checkList : Dict String (CheckInfo -> List (Error {}))
+checkList : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
 checkList =
     Dict.fromList
-        [ reportEmptyListSecondArgument ( "map", mapChecks )
-        , reportEmptyListSecondArgument ( "filter", filterChecks )
-        , reportEmptyListSecondArgument ( "filterMap", filterMapChecks )
-        , reportEmptyListFirstArgument ( "concat", concatChecks )
-        , reportEmptyListSecondArgument ( "concatMap", concatMapChecks )
-        , ( "isEmpty", isEmptyChecks )
-        , ( "all", allChecks )
-        , ( "any", anyChecks )
+        [ reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
+        , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
+        , ( ( [ "List" ], "isEmpty" ), isEmptyChecks )
+        , ( ( [ "List" ], "all" ), allChecks )
+        , ( ( [ "List" ], "any" ), anyChecks )
         ]
 
 
-reportEmptyListSecondArgument : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
-reportEmptyListSecondArgument ( name, function ) =
-    ( name
+reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
+reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
+    ( ( moduleName, name )
     , \checkInfo ->
         case checkInfo.secondArg of
             Just (Node _ (Expression.ListExpr [])) ->
                 [ Rule.errorWithFix
-                    { message = "Using List." ++ name ++ " on an empty list will result in a empty list"
+                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
                     , details = [ "You can replace this call by an empty list" ]
                     }
                     checkInfo.listFnRange
@@ -982,14 +973,14 @@ reportEmptyListSecondArgument ( name, function ) =
     )
 
 
-reportEmptyListFirstArgument : ( String, CheckInfo -> List (Error {}) ) -> ( String, CheckInfo -> List (Error {}) )
-reportEmptyListFirstArgument ( name, function ) =
-    ( name
+reportEmptyListFirstArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
+reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
+    ( ( moduleName, name )
     , \checkInfo ->
         case checkInfo.firstArg of
             Node _ (Expression.ListExpr []) ->
                 [ Rule.errorWithFix
-                    { message = "Using List." ++ name ++ " on an empty list will result in a empty list"
+                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
                     , details = [ "You can replace this call by an empty list" ]
                     }
                     checkInfo.listFnRange
