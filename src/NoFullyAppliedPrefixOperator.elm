@@ -57,8 +57,8 @@ rule =
 error : String -> Range -> Range -> Range -> Error {}
 error operator operatorRange left right =
     Rule.errorWithFix
-        { message = "Prefer using the infix form (`a + b`) over the prefix form (`(+) a b`) when possible"
-        , details = [ "The prefix form is generally harder to read over the infix form." ]
+        { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+        , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
         }
         operatorRange
         [ Fix.removeRange { start = operatorRange.start, end = left.start }

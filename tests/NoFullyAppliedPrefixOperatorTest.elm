@@ -5,14 +5,14 @@ import Review.Test
 import Test exposing (Test, describe, test)
 
 
-message : String
-message =
-    "Prefer using the infix form (`a + b`) over the prefix form (`(+) a b`) when possible"
+fullyAppliedPrefixOperatorMessage : String
+fullyAppliedPrefixOperatorMessage =
+    "Use the infix form (a + b) over the prefix form ((+) a b)"
 
 
-details : List String
-details =
-    [ "The prefix form is generally harder to read over the infix form."
+fullyAppliedPrefixOperatorDetails : List String
+fullyAppliedPrefixOperatorDetails =
+    [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used."
     ]
 
 
@@ -63,8 +63,8 @@ a = (++) y z
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(++)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -79,8 +79,8 @@ a = (::) y z
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(::)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -95,8 +95,8 @@ a = (//) y z
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(//)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -111,8 +111,8 @@ a = (+) y z
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(+)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -127,8 +127,8 @@ a = (/) y z
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(/)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -146,8 +146,8 @@ a =
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(++)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -166,8 +166,8 @@ a =
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = fullyAppliedPrefixOperatorMessage
+                            , details = fullyAppliedPrefixOperatorDetails
                             , under = "(++)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
