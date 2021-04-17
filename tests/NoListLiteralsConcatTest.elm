@@ -21,16 +21,6 @@ all =
         ]
 
 
-message : String
-message =
-    "Expression could be simplified to be a single List"
-
-
-details : List String
-details =
-    [ "Try moving all the elements into a single list." ]
-
-
 usingPlusPlusTests : Test
 usingPlusPlusTests =
     describe "Using (++)"
@@ -51,8 +41,8 @@ a = [ 1 ] ++ [ 2, 3 ]
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
                             , under = "[ 1 ] ++ [ 2, 3 ]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -67,8 +57,8 @@ a = [ a, 1 ] ++ [ b, 2 ]
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = message
-                            , details = details
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
                             , under = "[ a, 1 ] ++ [ b, 2 ]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
