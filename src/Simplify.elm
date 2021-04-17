@@ -1344,8 +1344,13 @@ boolToString bool =
 
 
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
-isIdentity lookupTable node =
-    case Node.value (removeParens node) of
+isIdentity lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            removeParens baseNode
+    in
+    case Node.value node of
         Expression.FunctionOrValue _ "identity" ->
             ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ]
 
@@ -1461,8 +1466,13 @@ getBoolean lookupTable baseNode =
 
 
 isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
-isAlwaysMaybe lookupTable node =
-    case Node.value (removeParens node) of
+isAlwaysMaybe lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            removeParens baseNode
+    in
+    case Node.value node of
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
@@ -1514,8 +1524,13 @@ isAlwaysMaybe lookupTable node =
 
 
 getMaybeValue : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
-getMaybeValue lookupTable node =
-    case Node.value (removeParens node) of
+getMaybeValue lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            removeParens baseNode
+    in
+    case Node.value node of
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
