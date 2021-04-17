@@ -9,6 +9,7 @@ module NoFullyAppliedPrefixOperator exposing (rule)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
 import Elm.Syntax.Range exposing (Range)
+import Review.Fix as Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -53,20 +54,23 @@ rule =
         |> Rule.fromModuleRuleSchema
 
 
-error : Range -> Error {}
-error range =
-    Rule.error
+error : String -> Range -> Range -> Range -> Error {}
+error operator operatorRange left right =
+    Rule.errorWithFix
         { message = "Prefer using the infix form (`a + b`) over the prefix form (`(+) a b`) when possible"
         , details = [ "The prefix form is generally harder to read over the infix form." ]
         }
-        range
+        operatorRange
+        [ Fix.removeRange { start = operatorRange.start, end = left.start }
+        , Fix.insertAt right.start (operator ++ " ")
+        ]
 
 
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
-        Expression.Application [ Node.Node range (Expression.PrefixOperator _), _, _ ] ->
-            [ error range ]
+        Expression.Application [ Node.Node range (Expression.PrefixOperator operator), left, right ] ->
+            [ error operator range (Node.range left) (Node.range right) ]
 
         _ ->
             []
