@@ -7,7 +7,18 @@ import Test exposing (Test, describe, test)
 
 all : Test
 all =
-    describe "NoListLiteralsConcat"
+    describe "Simplify"
+        [ listSimplificationTests
+        ]
+
+
+
+-- LIST
+
+
+listSimplificationTests : Test
+listSimplificationTests =
+    describe "List"
         [ usingPlusPlusTests
         , usingConsTests
         , usingListConcatTests
