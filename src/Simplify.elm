@@ -502,6 +502,22 @@ expressionVisitorHelp node { lookupTable } =
                             else
                                 ( [], [] )
 
+        -------------------------------------
+        --  FULLY APPLIED PREFIX OPERATOR  --
+        -------------------------------------
+        Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), left, right ] ->
+            ( [ Rule.errorWithFix
+                    { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+                    , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+                    }
+                    operatorRange
+                    [ Fix.removeRange { start = operatorRange.start, end = (Node.range left).start }
+                    , Fix.insertAt (Node.range right).start (operator ++ " ")
+                    ]
+              ]
+            , []
+            )
+
         -------------
         --  LISTS  --
         -------------
