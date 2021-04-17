@@ -408,8 +408,8 @@ expressionVisitorHelp node { lookupTable } =
         --  IF EXPRESSION --
         --------------------
         Expression.IfBlock cond trueBranch falseBranch ->
-            case Node.value cond of
-                Expression.FunctionOrValue [] "True" ->
+            case getBoolean lookupTable cond of
+                Just True ->
                     ( [ Rule.errorWithFix
                             { message = "The condition will always evaluate to True"
                             , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
@@ -428,7 +428,7 @@ expressionVisitorHelp node { lookupTable } =
                     , []
                     )
 
-                Expression.FunctionOrValue [] "False" ->
+                Just False ->
                     ( [ Rule.errorWithFix
                             { message = "The condition will always evaluate to False"
                             , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
@@ -443,9 +443,9 @@ expressionVisitorHelp node { lookupTable } =
                     , []
                     )
 
-                _ ->
-                    case ( Node.value trueBranch, Node.value falseBranch ) of
-                        ( Expression.FunctionOrValue [] "True", Expression.FunctionOrValue [] "False" ) ->
+                Nothing ->
+                    case ( getBoolean lookupTable trueBranch, getBoolean lookupTable falseBranch ) of
+                        ( Just True, Just False ) ->
                             ( [ Rule.errorWithFix
                                     { message = "The if expression's value is the same as the condition"
                                     , details = [ "The expression can be replaced by the condition." ]
@@ -464,7 +464,7 @@ expressionVisitorHelp node { lookupTable } =
                             , []
                             )
 
-                        ( Expression.FunctionOrValue [] "False", Expression.FunctionOrValue [] "True" ) ->
+                        ( Just False, Just True ) ->
                             ( [ Rule.errorWithFix
                                     { message = "The if expression's value is the inverse of the condition"
                                     , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
