@@ -54,23 +54,19 @@ rule =
         |> Rule.fromModuleRuleSchema
 
 
-error : String -> Range -> Range -> Range -> Error {}
-error operator operatorRange left right =
-    Rule.errorWithFix
-        { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
-        , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
-        }
-        operatorRange
-        [ Fix.removeRange { start = operatorRange.start, end = left.start }
-        , Fix.insertAt right.start (operator ++ " ")
-        ]
-
-
 expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
-        Expression.Application [ Node.Node range (Expression.PrefixOperator operator), left, right ] ->
-            [ error operator range (Node.range left) (Node.range right) ]
+        Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), left, right ] ->
+            [ Rule.errorWithFix
+                { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+                , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+                }
+                operatorRange
+                [ Fix.removeRange { start = operatorRange.start, end = (Node.range left).start }
+                , Fix.insertAt (Node.range right).start (operator ++ " ")
+                ]
+            ]
 
         _ ->
             []
