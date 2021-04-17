@@ -76,6 +76,10 @@ import Simplify.Normalize as Normalize
     --> x
 
 
+    always x y
+    --> x
+
+
 ### Operators
 
     (++) a b
@@ -658,7 +662,7 @@ type alias CheckInfo =
 
 
 notChecks : CheckInfo -> List (Error {})
-notChecks { lookupTable, parentRange, fnRange, firstArg, usingRightPizza } =
+notChecks { lookupTable, parentRange, firstArg } =
     case getBoolean lookupTable firstArg of
         Just bool ->
             [ Rule.errorWithFix
@@ -894,6 +898,30 @@ identityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
     ]
 
 
+alwaysChecks : CheckInfo -> List (Error {})
+alwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
+    case secondArg of
+        Just (Node secondArgRange _) ->
+            [ Rule.errorWithFix
+                { message = "Expression can be replaced by the first argument to `always`"
+                , details = [ "REPLACEME" ]
+                }
+                fnRange
+                (if usingRightPizza then
+                    [ Fix.removeRange { start = secondArgRange.start, end = (Node.range firstArg).start }
+                    ]
+
+                 else
+                    [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
+                    , Fix.removeRange { start = (Node.range firstArg).end, end = secondArgRange.end }
+                    ]
+                )
+            ]
+
+        Nothing ->
+            []
+
+
 
 -- LIST
 
@@ -902,6 +930,7 @@ checkList : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
 checkList =
     Dict.fromList
         [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
+        , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), alwaysChecks )
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), notChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )

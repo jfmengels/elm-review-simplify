@@ -8,7 +8,8 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Simplify"
-        [ basicsTests
+        [ identityTests
+        , alwaysTests
         , booleanTests
         , ifTests
         , fullyAppliedPrefixOperatorTests
@@ -20,9 +21,9 @@ all =
 -- BASICS
 
 
-basicsTests : Test
-basicsTests =
-    describe "Basics"
+identityTests : Test
+identityTests =
+    describe "Basics.identity"
         [ test "should not report identity function on its own" <|
             \() ->
                 """module A exposing (..)
@@ -73,6 +74,74 @@ a = x |> identity
                             { message = "`identity` should be removed"
                             , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
                             , under = "identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        ]
+
+
+alwaysTests : Test
+alwaysTests =
+    describe "Basics.always"
+        [ test "should not report always function on its own" <|
+            \() ->
+                """module A exposing (..)
+a = always
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should not report always with 1 argument" <|
+            \() ->
+                """module A exposing (..)
+a = always x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace always x y by x" <|
+            \() ->
+                """module A exposing (..)
+a = always x y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Expression can be replaced by the first argument to `always`"
+                            , details = [ "REPLACEME" ]
+                            , under = "always"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace always x <| y by x" <|
+            \() ->
+                """module A exposing (..)
+a = always x <| y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Expression can be replaced by the first argument to `always`"
+                            , details = [ "REPLACEME" ]
+                            , under = "always"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace y |> always x by x" <|
+            \() ->
+                """module A exposing (..)
+a = y |> always x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Expression can be replaced by the first argument to `always`"
+                            , details = [ "REPLACEME" ]
+                            , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
