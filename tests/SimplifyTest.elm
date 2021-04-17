@@ -8,10 +8,28 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Simplify"
-        [ booleanTests
+        [ basicsTests
+        , booleanTests
         , ifTests
         , fullyAppliedPrefixOperatorTests
         , listSimplificationTests
+        ]
+
+
+
+-- BASICS
+
+
+basicsTests : Test
+basicsTests =
+    describe "Basics"
+        [ test "should not report identity function on its own" <|
+            \() ->
+                """module A exposing (..)
+a = identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
         ]
 
 
