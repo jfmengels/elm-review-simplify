@@ -321,7 +321,7 @@ expressionVisitorHelp node { lookupTable } =
                 ( [], [] )
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "not")) :: argument :: []) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && isTrue argument then
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && getBoolean lookupTable argument == Just True then
                 ( [ Rule.errorWithFix
                         { message = "REPLACEME"
                         , details = [ "REPLACEME" ]
@@ -349,7 +349,7 @@ expressionVisitorHelp node { lookupTable } =
                 ( [], [] )
 
         Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ "not")) argument ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && isTrue argument then
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && getBoolean lookupTable argument == Just True then
                 ( [ Rule.errorWithFix
                         { message = "REPLACEME"
                         , details = [ "REPLACEME" ]
@@ -377,7 +377,7 @@ expressionVisitorHelp node { lookupTable } =
                 ( [], [] )
 
         Expression.OperatorApplication "|>" _ argument (Node fnRange (Expression.FunctionOrValue _ "not")) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && isTrue argument then
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "Basics" ] && getBoolean lookupTable argument == Just True then
                 ( [ Rule.errorWithFix
                         { message = "REPLACEME"
                         , details = [ "REPLACEME" ]
@@ -1433,8 +1433,13 @@ isAlwaysBoolean lookupTable node =
 
 
 getBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
-getBoolean lookupTable node =
-    case Node.value (removeParens node) of
+getBoolean lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            removeParens baseNode
+    in
+    case Node.value node of
         Expression.FunctionOrValue _ "True" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Basics" ] ->
