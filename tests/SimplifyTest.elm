@@ -861,6 +861,7 @@ listSimplificationTests =
         , listAllTests
         , listAnyTests
         , listRangeTests
+        , listLengthTests
         ]
 
 
@@ -2231,6 +2232,52 @@ a = 5 |> List.range 10
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        ]
+
+
+listLengthTests : Test
+listLengthTests =
+    describe "Using List.length"
+        [ test "should not report List.length used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.length
+a = List.length b
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.length [] by 0" <|
+            \() ->
+                """module A exposing (..)
+a = List.length []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the list is 0"
+                            , details = [ "The length of the list can be determined by looking at the code." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace [] |> List.length by 0" <|
+            \() ->
+                """module A exposing (..)
+a = [] |> List.length
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the list is 0"
+                            , details = [ "The length of the list can be determined by looking at the code." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
 """
                         ]
         ]

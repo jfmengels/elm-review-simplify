@@ -193,6 +193,9 @@ import Simplify.Normalize as Normalize
     List.range 6 3
     --> []
 
+    List.length [ a ]
+    --> 1
+
 
 ## Success
 
@@ -944,6 +947,7 @@ checkList =
         , ( ( [ "List" ], "all" ), allChecks )
         , ( ( [ "List" ], "any" ), anyChecks )
         , ( ( [ "List" ], "range" ), rangeChecks )
+        , ( ( [ "List" ], "length" ), lengthChecks )
         ]
 
 
@@ -1273,6 +1277,22 @@ rangeChecks { parentRange, fnRange, firstArg, secondArg } =
                 []
 
         Nothing ->
+            []
+
+
+lengthChecks : CheckInfo -> List (Error {})
+lengthChecks { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.ListExpr list ->
+            [ Rule.errorWithFix
+                { message = "The length of the list is 0"
+                , details = [ "The length of the list can be determined by looking at the code." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange (String.fromInt (List.length list)) ]
+            ]
+
+        _ ->
             []
 
 
