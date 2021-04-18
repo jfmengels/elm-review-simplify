@@ -860,6 +860,7 @@ listSimplificationTests =
         , listIsEmptyTests
         , listAllTests
         , listAnyTests
+        , listRangeTests
         ]
 
 
@@ -2166,6 +2167,70 @@ a = List.any (always False)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (always False)
+"""
+                        ]
+        ]
+
+
+listRangeTests : Test
+listRangeTests =
+    describe "Using List.range"
+        [ test "should not report List.range used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.range
+a = List.range 5
+a = List.range 5 10
+a = List.range 5 0xF
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.range 10 5 by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.range 10 5
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.range will result in []"
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                            , under = "List.range"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.range 0xF 5 by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.range 0xF 5
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.range will result in []"
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                            , under = "List.range"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace 5 |> List.range 10 by []" <|
+            \() ->
+                """module A exposing (..)
+a = 5 |> List.range 10
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.range will result in []"
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                            , under = "List.range"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]

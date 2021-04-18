@@ -190,6 +190,9 @@ import Simplify.Normalize as Normalize
     List.any (always False) list
     --> True
 
+    List.range 6 3
+    --> []
+
 
 ## Success
 
@@ -940,6 +943,7 @@ checkList =
         , ( ( [ "List" ], "isEmpty" ), isEmptyChecks )
         , ( ( [ "List" ], "all" ), allChecks )
         , ( ( [ "List" ], "any" ), anyChecks )
+        , ( ( [ "List" ], "range" ), rangeChecks )
         ]
 
 
@@ -1250,6 +1254,39 @@ filterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as c
 
         Nothing ->
             []
+
+
+rangeChecks : CheckInfo -> List (Error {})
+rangeChecks { parentRange, fnRange, firstArg, secondArg } =
+    case Maybe.map2 Tuple.pair (getIntValue firstArg) (Maybe.andThen getIntValue secondArg) of
+        Just ( first, second ) ->
+            if first > second then
+                [ Rule.errorWithFix
+                    { message = "The call to List.range will result in []"
+                    , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                    }
+                    fnRange
+                    (replaceByEmptyListFix parentRange secondArg)
+                ]
+
+            else
+                []
+
+        Nothing ->
+            []
+
+
+getIntValue : Node Expression -> Maybe Int
+getIntValue node =
+    case Node.value (removeParens node) of
+        Expression.Integer n ->
+            Just n
+
+        Expression.Hex n ->
+            Just n
+
+        _ ->
+            Nothing
 
 
 
