@@ -291,16 +291,16 @@ expressionVisitorHelp node { lookupTable } =
         -------------------
         Expression.OperatorApplication "||" _ left right ->
             ( List.concat
-                [ or_isLeftSimplifiableError node left right
-                , or_isRightSimplifiableError node left right
+                [ or_isLeftSimplifiableError lookupTable node left (Node.range right)
+                , or_isRightSimplifiableError lookupTable node (Node.range left) right
                 ]
             , []
             )
 
         Expression.OperatorApplication "&&" _ left right ->
             ( List.concat
-                [ and_isLeftSimplifiableError node left right
-                , and_isRightSimplifiableError node left right
+                [ and_isLeftSimplifiableError lookupTable node left (Node.range right)
+                , and_isRightSimplifiableError lookupTable node (Node.range left) right
                 ]
             , []
             )
@@ -683,158 +683,136 @@ notChecks { lookupTable, parentRange, firstArg } =
             []
 
 
-or_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
-or_isLeftSimplifiableError node left right =
-    if isTrue left then
-        [ Rule.errorWithFix
-            { message = "Condition is always True"
-            , details = alwaysSameDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).end
-                , end = (Node.range right).end
+or_isLeftSimplifiableError : ModuleNameLookupTable -> Node a -> Node Expression -> Range -> List (Error {})
+or_isLeftSimplifiableError lookupTable node left rightRange =
+    case getBoolean lookupTable left of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Condition is always True"
+                , details = alwaysSameDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = (Node.range left).end
+                    , end = rightRange.end
+                    }
+                ]
             ]
-        ]
 
-    else if isFalse left then
-        [ Rule.errorWithFix
-            { message = unnecessaryMessage
-            , details = unnecessaryDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).start
-                , end = (Node.range right).start
+        Just False ->
+            [ Rule.errorWithFix
+                { message = unnecessaryMessage
+                , details = unnecessaryDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = (Node.range left).start
+                    , end = rightRange.start
+                    }
+                ]
             ]
-        ]
 
-    else
-        []
+        Nothing ->
+            []
 
 
-or_isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule.Error {})
-or_isRightSimplifiableError node left right =
-    if isTrue right then
-        [ Rule.errorWithFix
-            { message = unnecessaryMessage
-            , details = unnecessaryDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).start
-                , end = (Node.range right).start
+or_isRightSimplifiableError : ModuleNameLookupTable -> Node a -> Range -> Node Expression -> List (Error {})
+or_isRightSimplifiableError lookupTable node leftRange right =
+    case getBoolean lookupTable right of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = unnecessaryMessage
+                , details = unnecessaryDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = leftRange.start
+                    , end = (Node.range right).start
+                    }
+                ]
             ]
-        ]
 
-    else if isFalse right then
-        [ Rule.errorWithFix
-            { message = unnecessaryMessage
-            , details = unnecessaryDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).end
-                , end = (Node.range right).end
+        Just False ->
+            [ Rule.errorWithFix
+                { message = unnecessaryMessage
+                , details = unnecessaryDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = leftRange.end
+                    , end = (Node.range right).end
+                    }
+                ]
             ]
-        ]
 
-    else
-        []
+        Nothing ->
+            []
 
 
-and_isLeftSimplifiableError : Node a -> Node Expression -> Node b -> List (Rule.Error {})
-and_isLeftSimplifiableError node left right =
-    if isTrue left then
-        [ Rule.errorWithFix
-            { message = unnecessaryMessage
-            , details = unnecessaryDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).start
-                , end = (Node.range right).start
+and_isLeftSimplifiableError : ModuleNameLookupTable -> Node a -> Node Expression -> Range -> List (Rule.Error {})
+and_isLeftSimplifiableError lookupTable node left rightRange =
+    case getBoolean lookupTable left of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = unnecessaryMessage
+                , details = unnecessaryDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = (Node.range left).start
+                    , end = rightRange.start
+                    }
+                ]
             ]
-        ]
 
-    else if isFalse left then
-        [ Rule.errorWithFix
-            { message = "Condition is always False"
-            , details = alwaysSameDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).end
-                , end = (Node.range right).end
+        Just False ->
+            [ Rule.errorWithFix
+                { message = "Condition is always False"
+                , details = alwaysSameDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = (Node.range left).end
+                    , end = rightRange.end
+                    }
+                ]
             ]
-        ]
 
-    else
-        []
+        Nothing ->
+            []
 
 
-and_isRightSimplifiableError : Node a -> Node b -> Node Expression -> List (Rule.Error {})
-and_isRightSimplifiableError node left right =
-    if isTrue right then
-        [ Rule.errorWithFix
-            { message = unnecessaryMessage
-            , details = unnecessaryDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).end
-                , end = (Node.range right).end
+and_isRightSimplifiableError : ModuleNameLookupTable -> Node a -> Range -> Node Expression -> List (Rule.Error {})
+and_isRightSimplifiableError lookupTable node leftRange right =
+    case getBoolean lookupTable right of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = unnecessaryMessage
+                , details = unnecessaryDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = leftRange.end
+                    , end = (Node.range right).end
+                    }
+                ]
             ]
-        ]
 
-    else if isFalse right then
-        [ Rule.errorWithFix
-            { message = "Condition is always False"
-            , details = alwaysSameDetails
-            }
-            (Node.range node)
-            [ Fix.removeRange
-                { start = (Node.range left).start
-                , end = (Node.range right).start
+        Just False ->
+            [ Rule.errorWithFix
+                { message = "Condition is always False"
+                , details = alwaysSameDetails
                 }
+                (Node.range node)
+                [ Fix.removeRange
+                    { start = leftRange.start
+                    , end = (Node.range right).start
+                    }
+                ]
             ]
-        ]
 
-    else
-        []
-
-
-isTrue : Node Expression -> Bool
-isTrue node =
-    case Node.value node of
-        Expression.FunctionOrValue [] "True" ->
-            True
-
-        Expression.ParenthesizedExpression expr ->
-            isTrue expr
-
-        _ ->
-            False
-
-
-isFalse : Node Expression -> Bool
-isFalse node =
-    case Node.value node of
-        Expression.FunctionOrValue [] "False" ->
-            True
-
-        Expression.ParenthesizedExpression expr ->
-            isFalse expr
-
-        _ ->
-            False
+        Nothing ->
+            []
 
 
 alwaysSameDetails : List String
