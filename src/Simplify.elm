@@ -524,82 +524,6 @@ expressionVisitorHelp node { lookupTable } =
             )
 
         ----------
-        -- (++) --
-        ----------
-        Expression.OperatorApplication "++" _ (Node range (Expression.Literal "")) other ->
-            ( [ errorForAddingEmptyStrings range
-                    { start = range.start
-                    , end = (Node.range other).start
-                    }
-              ]
-            , []
-            )
-
-        Expression.OperatorApplication "++" _ other (Node range (Expression.Literal "")) ->
-            ( [ errorForAddingEmptyStrings range
-                    { start = (Node.range other).end
-                    , end = range.end
-                    }
-              ]
-            , []
-            )
-
-        Expression.OperatorApplication "++" _ (Node range (Expression.ListExpr [])) other ->
-            ( [ errorForAddingEmptyLists range
-                    { start = range.start
-                    , end = (Node.range other).start
-                    }
-              ]
-            , []
-            )
-
-        Expression.OperatorApplication "++" _ other (Node range (Expression.ListExpr [])) ->
-            ( [ errorForAddingEmptyLists range
-                    { start = (Node.range other).end
-                    , end = range.end
-                    }
-              ]
-            , []
-            )
-
-        Expression.OperatorApplication "++" _ (Node rangeLeft (Expression.ListExpr _)) (Node rangeRight (Expression.ListExpr _)) ->
-            ( [ Rule.errorWithFix
-                    { message = "Expression could be simplified to be a single List"
-                    , details = [ "Try moving all the elements into a single list." ]
-                    }
-                    (Node.range node)
-                    [ Fix.replaceRangeBy
-                        { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
-                        , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
-                        }
-                        ","
-                    ]
-              ]
-            , []
-            )
-
-        Expression.OperatorApplication "++" _ (Node rangeLeft (Expression.ListExpr [ _ ])) list ->
-            ( [ Rule.errorWithFix
-                    { message = "Should use (::) instead of (++)"
-                    , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
-                    }
-                    (Node.range node)
-                    [ Fix.replaceRangeBy
-                        { start = rangeLeft.start
-                        , end = { row = rangeLeft.start.row, column = rangeLeft.start.column + 1 }
-                        }
-                        "("
-                    , Fix.replaceRangeBy
-                        { start = { row = rangeLeft.end.row, column = rangeLeft.end.column - 1 }
-                        , end = (Node.range list).start
-                        }
-                        ") :: "
-                    ]
-              ]
-            , []
-            )
-
-        ----------
         -- (::) --
         ----------
         Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr [])) ->
@@ -722,8 +646,95 @@ expressionVisitorHelp node { lookupTable } =
                 _ ->
                     ( [], [] )
 
+        Expression.OperatorApplication operator _ left right ->
+            case Dict.get operator operatorChecks of
+                Just checkFn ->
+                    ( checkFn (Node.range node) left right, [] )
+
+                Nothing ->
+                    ( [], [] )
+
         _ ->
             ( [], [] )
+
+
+operatorChecks : Dict String (Range -> Node Expression -> Node Expression -> List (Error {}))
+operatorChecks =
+    Dict.fromList
+        [ ( "++", plusplusChecks )
+        ]
+
+
+
+-- ++
+
+
+plusplusChecks : Range -> Node Expression -> Node Expression -> List (Error {})
+plusplusChecks parentRange left right =
+    case ( Node.value left, Node.value right ) of
+        ( Expression.Literal "", _ ) ->
+            [ errorForAddingEmptyStrings (Node.range left)
+                { start = (Node.range left).start
+                , end = (Node.range right).start
+                }
+            ]
+
+        ( _, Expression.Literal "" ) ->
+            [ errorForAddingEmptyStrings (Node.range right)
+                { start = (Node.range left).end
+                , end = (Node.range right).end
+                }
+            ]
+
+        ( Expression.ListExpr [], _ ) ->
+            [ errorForAddingEmptyLists (Node.range left)
+                { start = (Node.range left).start
+                , end = (Node.range right).start
+                }
+            ]
+
+        ( _, Expression.ListExpr [] ) ->
+            [ errorForAddingEmptyLists (Node.range right)
+                { start = (Node.range left).end
+                , end = (Node.range right).end
+                }
+            ]
+
+        ( Expression.ListExpr _, Expression.ListExpr _ ) ->
+            [ Rule.errorWithFix
+                { message = "Expression could be simplified to be a single List"
+                , details = [ "Try moving all the elements into a single list." ]
+                }
+                parentRange
+                [ Fix.replaceRangeBy
+                    { start = { row = (Node.range left).end.row, column = (Node.range left).end.column - 1 }
+                    , end = { row = (Node.range right).start.row, column = (Node.range right).start.column + 1 }
+                    }
+                    ","
+                ]
+            ]
+
+        ( Expression.ListExpr [ _ ], _ ) ->
+            [ Rule.errorWithFix
+                { message = "Should use (::) instead of (++)"
+                , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                }
+                parentRange
+                [ Fix.replaceRangeBy
+                    { start = (Node.range left).start
+                    , end = { row = (Node.range left).start.row, column = (Node.range left).start.column + 1 }
+                    }
+                    "("
+                , Fix.replaceRangeBy
+                    { start = { row = (Node.range left).end.row, column = (Node.range left).end.column - 1 }
+                    , end = (Node.range right).start
+                    }
+                    ") :: "
+                ]
+            ]
+
+        _ ->
+            []
 
 
 type alias CheckInfo =
