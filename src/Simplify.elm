@@ -681,32 +681,32 @@ operatorChecks =
 
 
 plusplusChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
-plusplusChecks { parentRange } left right =
+plusplusChecks { parentRange, leftRange, rightRange } left right =
     case ( Node.value left, Node.value right ) of
         ( Expression.Literal "", _ ) ->
-            [ errorForAddingEmptyStrings (Node.range left)
-                { start = (Node.range left).start
+            [ errorForAddingEmptyStrings leftRange
+                { start = leftRange.start
                 , end = (Node.range right).start
                 }
             ]
 
         ( _, Expression.Literal "" ) ->
             [ errorForAddingEmptyStrings (Node.range right)
-                { start = (Node.range left).end
+                { start = leftRange.end
                 , end = (Node.range right).end
                 }
             ]
 
         ( Expression.ListExpr [], _ ) ->
-            [ errorForAddingEmptyLists (Node.range left)
-                { start = (Node.range left).start
+            [ errorForAddingEmptyLists leftRange
+                { start = leftRange.start
                 , end = (Node.range right).start
                 }
             ]
 
         ( _, Expression.ListExpr [] ) ->
             [ errorForAddingEmptyLists (Node.range right)
-                { start = (Node.range left).end
+                { start = leftRange.end
                 , end = (Node.range right).end
                 }
             ]
@@ -718,7 +718,7 @@ plusplusChecks { parentRange } left right =
                 }
                 parentRange
                 [ Fix.replaceRangeBy
-                    { start = { row = (Node.range left).end.row, column = (Node.range left).end.column - 1 }
+                    { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
                     , end = { row = (Node.range right).start.row, column = (Node.range right).start.column + 1 }
                     }
                     ","
@@ -732,12 +732,12 @@ plusplusChecks { parentRange } left right =
                 }
                 parentRange
                 [ Fix.replaceRangeBy
-                    { start = (Node.range left).start
-                    , end = { row = (Node.range left).start.row, column = (Node.range left).start.column + 1 }
+                    { start = leftRange.start
+                    , end = { row = leftRange.start.row, column = leftRange.start.column + 1 }
                     }
                     "("
                 , Fix.replaceRangeBy
-                    { start = { row = (Node.range left).end.row, column = (Node.range left).end.column - 1 }
+                    { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
                     , end = (Node.range right).start
                     }
                     ") :: "
@@ -748,18 +748,18 @@ plusplusChecks { parentRange } left right =
             []
 
 
-consChecks : a -> Node Expression -> Node Expression -> List (Error {})
-consChecks _ left right =
+consChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
+consChecks { right, leftRange, rightRange } left _ =
     case Node.value right of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
                 { message = "Element added to the beginning of the list could be included in the list"
                 , details = [ "Try moving the element inside the list it is being added to." ]
                 }
-                (Node.range left)
-                [ Fix.insertAt (Node.range left).start "[ "
+                leftRange
+                [ Fix.insertAt leftRange.start "[ "
                 , Fix.replaceRangeBy
-                    { start = (Node.range left).end
+                    { start = leftRange.end
                     , end = (Node.range right).end
                     }
                     " ]"
@@ -771,10 +771,10 @@ consChecks _ left right =
                 { message = "Element added to the beginning of the list could be included in the list"
                 , details = [ "Try moving the element inside the list it is being added to." ]
                 }
-                (Node.range left)
-                [ Fix.insertAt (Node.range left).start "[ "
+                leftRange
+                [ Fix.insertAt leftRange.start "[ "
                 , Fix.replaceRangeBy
-                    { start = (Node.range left).end
+                    { start = leftRange.end
                     , end = { row = (Node.range right).start.row, column = (Node.range right).start.column + 1 }
                     }
                     ","
@@ -806,15 +806,15 @@ notChecks { lookupTable, parentRange, firstArg } =
 
 
 orChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
-orChecks { lookupTable, parentRange } left right =
+orChecks operatorCheckInfo left right =
     List.concat
-        [ or_isLeftSimplifiableError lookupTable parentRange left (Node.range right)
-        , or_isRightSimplifiableError lookupTable parentRange (Node.range left) right
+        [ or_isLeftSimplifiableError operatorCheckInfo
+        , or_isRightSimplifiableError operatorCheckInfo
         ]
 
 
-or_isLeftSimplifiableError : ModuleNameLookupTable -> Range -> Node Expression -> Range -> List (Error {})
-or_isLeftSimplifiableError lookupTable parentRange left rightRange =
+or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
+or_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
     case getBoolean lookupTable left of
         Just True ->
             [ Rule.errorWithFix
@@ -846,8 +846,8 @@ or_isLeftSimplifiableError lookupTable parentRange left rightRange =
             []
 
 
-or_isRightSimplifiableError : ModuleNameLookupTable -> Range -> Range -> Node Expression -> List (Error {})
-or_isRightSimplifiableError lookupTable parentRange leftRange right =
+or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
+or_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
     case getBoolean lookupTable right of
         Just True ->
             [ Rule.errorWithFix
