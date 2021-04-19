@@ -612,8 +612,6 @@ expressionVisitorHelp node { lookupTable } =
                         , right = right
                         , rightRange = Node.range right
                         }
-                        left
-                        right
                     , []
                     )
 
@@ -671,7 +669,7 @@ type alias OperatorCheckInfo =
     }
 
 
-operatorChecks : Dict String (OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {}))
+operatorChecks : Dict String (OperatorCheckInfo -> List (Error {}))
 operatorChecks =
     Dict.fromList
         [ ( "++", plusplusChecks )
@@ -680,34 +678,34 @@ operatorChecks =
         ]
 
 
-plusplusChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
-plusplusChecks { parentRange, leftRange, rightRange } left right =
+plusplusChecks : OperatorCheckInfo -> List (Error {})
+plusplusChecks { parentRange, leftRange, rightRange, left, right } =
     case ( Node.value left, Node.value right ) of
         ( Expression.Literal "", _ ) ->
             [ errorForAddingEmptyStrings leftRange
                 { start = leftRange.start
-                , end = (Node.range right).start
+                , end = rightRange.start
                 }
             ]
 
         ( _, Expression.Literal "" ) ->
-            [ errorForAddingEmptyStrings (Node.range right)
+            [ errorForAddingEmptyStrings rightRange
                 { start = leftRange.end
-                , end = (Node.range right).end
+                , end = rightRange.end
                 }
             ]
 
         ( Expression.ListExpr [], _ ) ->
             [ errorForAddingEmptyLists leftRange
                 { start = leftRange.start
-                , end = (Node.range right).start
+                , end = rightRange.start
                 }
             ]
 
         ( _, Expression.ListExpr [] ) ->
-            [ errorForAddingEmptyLists (Node.range right)
+            [ errorForAddingEmptyLists rightRange
                 { start = leftRange.end
-                , end = (Node.range right).end
+                , end = rightRange.end
                 }
             ]
 
@@ -719,7 +717,7 @@ plusplusChecks { parentRange, leftRange, rightRange } left right =
                 parentRange
                 [ Fix.replaceRangeBy
                     { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
-                    , end = { row = (Node.range right).start.row, column = (Node.range right).start.column + 1 }
+                    , end = { row = rightRange.start.row, column = rightRange.start.column + 1 }
                     }
                     ","
                 ]
@@ -738,7 +736,7 @@ plusplusChecks { parentRange, leftRange, rightRange } left right =
                     "("
                 , Fix.replaceRangeBy
                     { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
-                    , end = (Node.range right).start
+                    , end = rightRange.start
                     }
                     ") :: "
                 ]
@@ -748,8 +746,8 @@ plusplusChecks { parentRange, leftRange, rightRange } left right =
             []
 
 
-consChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
-consChecks { right, leftRange, rightRange } left _ =
+consChecks : OperatorCheckInfo -> List (Error {})
+consChecks { left, right, leftRange, rightRange } =
     case Node.value right of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
@@ -760,7 +758,7 @@ consChecks { right, leftRange, rightRange } left _ =
                 [ Fix.insertAt leftRange.start "[ "
                 , Fix.replaceRangeBy
                     { start = leftRange.end
-                    , end = (Node.range right).end
+                    , end = rightRange.end
                     }
                     " ]"
                 ]
@@ -775,7 +773,7 @@ consChecks { right, leftRange, rightRange } left _ =
                 [ Fix.insertAt leftRange.start "[ "
                 , Fix.replaceRangeBy
                     { start = leftRange.end
-                    , end = { row = (Node.range right).start.row, column = (Node.range right).start.column + 1 }
+                    , end = { row = rightRange.start.row, column = rightRange.start.column + 1 }
                     }
                     ","
                 ]
@@ -805,8 +803,8 @@ notChecks { lookupTable, parentRange, firstArg } =
             []
 
 
-orChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
-orChecks operatorCheckInfo left right =
+orChecks : OperatorCheckInfo -> List (Error {})
+orChecks operatorCheckInfo =
     List.concat
         [ or_isLeftSimplifiableError operatorCheckInfo
         , or_isRightSimplifiableError operatorCheckInfo
@@ -847,7 +845,7 @@ or_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
 
 
 or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
-or_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
+or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightRange } =
     case getBoolean lookupTable right of
         Just True ->
             [ Rule.errorWithFix
@@ -857,7 +855,7 @@ or_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
                 parentRange
                 [ Fix.removeRange
                     { start = leftRange.start
-                    , end = (Node.range right).start
+                    , end = rightRange.start
                     }
                 ]
             ]
@@ -870,7 +868,7 @@ or_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
                 parentRange
                 [ Fix.removeRange
                     { start = leftRange.end
-                    , end = (Node.range right).end
+                    , end = rightRange.end
                     }
                 ]
             ]
