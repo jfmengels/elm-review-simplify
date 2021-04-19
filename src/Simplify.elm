@@ -108,6 +108,9 @@ import Simplify.Normalize as Normalize
     String.repeat n ""
     --> ""
 
+    String.repeat 0 str
+    --> ""
+
 
 ### Lists
 
@@ -1111,7 +1114,22 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
             ]
 
         _ ->
-            []
+            case getIntValue firstArg of
+                Just intValue ->
+                    if intValue < 1 then
+                        [ Rule.errorWithFix
+                            { message = "String.repeat will result in an empty string"
+                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
+                            }
+                            fnRange
+                            [ Fix.replaceRangeBy parentRange "\"\"" ]
+                        ]
+
+                    else
+                        []
+
+                _ ->
+                    []
 
 
 
@@ -1429,6 +1447,9 @@ getIntValue node =
 
         Expression.Hex n ->
             Just n
+
+        Expression.Negation expr ->
+            Maybe.map negate (getIntValue expr)
 
         _ ->
             Nothing

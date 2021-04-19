@@ -1161,6 +1161,7 @@ stringRepeatTests =
             \() ->
                 """module A exposing (..)
 a = String.repeat n str
+b = String.repeat 5 str
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
@@ -1174,6 +1175,38 @@ a = String.repeat n ""
                         [ Review.Test.error
                             { message = "Using String.repeat with an empty string will result in a empty string"
                             , details = [ "You can replace this call by an empty string" ]
+                            , under = "String.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test """should replace String.repeat 0 str by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat 0 str
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.repeat will result in an empty string"
+                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
+                            , under = "String.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test """should replace String.repeat -5 str by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat -5 str
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.repeat will result in an empty string"
+                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
