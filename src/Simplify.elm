@@ -658,6 +658,43 @@ expressionVisitorHelp node { lookupTable } =
             ( [], [] )
 
 
+type alias CheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , parentRange : Range
+    , fnRange : Range
+    , firstArg : Node Expression
+    , secondArg : Maybe (Node Expression)
+    , usingRightPizza : Bool
+    }
+
+
+functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
+functionCallChecks =
+    Dict.fromList
+        [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
+        , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), alwaysChecks )
+        , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), notChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
+        , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
+        , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
+        , ( ( [ "String" ], "concat" ), stringConcatChecks )
+        , ( ( [ "String" ], "join" ), stringJoinChecks )
+        , ( ( [ "String" ], "length" ), stringLengthChecks )
+        , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
+        , ( ( [ "String" ], "words" ), stringWordsChecks )
+        , ( ( [ "String" ], "lines" ), stringLinesChecks )
+        , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
+        , ( ( [ "List" ], "all" ), allChecks )
+        , ( ( [ "List" ], "any" ), anyChecks )
+        , ( ( [ "List" ], "range" ), rangeChecks )
+        , ( ( [ "List" ], "length" ), listLengthChecks )
+        , ( ( [ "List" ], "repeat" ), listRepeatChecks )
+        ]
+
+
 operatorChecks : Dict String (Range -> Node Expression -> Node Expression -> List (Error {}))
 operatorChecks =
     Dict.fromList
@@ -735,16 +772,6 @@ plusplusChecks parentRange left right =
 
         _ ->
             []
-
-
-type alias CheckInfo =
-    { lookupTable : ModuleNameLookupTable
-    , parentRange : Range
-    , fnRange : Range
-    , firstArg : Node Expression
-    , secondArg : Maybe (Node Expression)
-    , usingRightPizza : Bool
-    }
 
 
 
@@ -988,33 +1015,6 @@ alwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
 
         Nothing ->
             []
-
-
-functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
-functionCallChecks =
-    Dict.fromList
-        [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
-        , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), alwaysChecks )
-        , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), notChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
-        , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
-        , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
-        , ( ( [ "String" ], "concat" ), stringConcatChecks )
-        , ( ( [ "String" ], "join" ), stringJoinChecks )
-        , ( ( [ "String" ], "length" ), stringLengthChecks )
-        , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
-        , ( ( [ "String" ], "words" ), stringWordsChecks )
-        , ( ( [ "String" ], "lines" ), stringLinesChecks )
-        , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
-        , ( ( [ "List" ], "all" ), allChecks )
-        , ( ( [ "List" ], "any" ), anyChecks )
-        , ( ( [ "List" ], "range" ), rangeChecks )
-        , ( ( [ "List" ], "length" ), listLengthChecks )
-        , ( ( [ "List" ], "repeat" ), listRepeatChecks )
-        ]
 
 
 reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
