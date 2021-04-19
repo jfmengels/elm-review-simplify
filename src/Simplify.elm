@@ -18,14 +18,25 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Simplify.Normalize as Normalize
 
 
-{-| Reports when an operation on lists could be simplified to a single literal list.
+{-| Reports when an operation can be simplified.
 
     config =
         [ Simplify.rule
         ]
 
 
+## Try it out
+
+You can try this rule out by running the following command:
+
+```bash
+elm-review --template jfmengels/elm-review-simplify/example --rules Simplify
+```
+
+
 ## Simplifications
+
+Below is the list of all kinds of simplifications this rule applies.
 
 
 ### Booleans
@@ -236,31 +247,6 @@ import Simplify.Normalize as Normalize
 
     List.repeat 1 str
     --> str
-
-
-## Success
-
-    _ =
-        [ 1, 2, 3, 4, mysteryNumber, 6 ]
-
-    _ =
-        [ 1, 2, 3 ] ++ list ++ [ 4, mysteryNumber, 6 ]
-
-    _ =
-        List.concat
-            [ [ 1, 2, 3 ]
-            , list
-            , [ 4, mysteryNumber, 6 ]
-            ]
-
-
-## Try it out
-
-You can try this rule out by running the following command:
-
-```bash
-elm-review --template jfmengels/elm-review-simplify/example --rules Simplify
-```
 
 -}
 rule : Rule
