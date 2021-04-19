@@ -524,43 +524,6 @@ expressionVisitorHelp node { lookupTable } =
             )
 
         ----------
-        -- (::) --
-        ----------
-        Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr [])) ->
-            ( [ Rule.errorWithFix
-                    { message = "Element added to the beginning of the list could be included in the list"
-                    , details = [ "Try moving the element inside the list it is being added to." ]
-                    }
-                    rangeLeft
-                    [ Fix.insertAt rangeLeft.start "[ "
-                    , Fix.replaceRangeBy
-                        { start = rangeLeft.end
-                        , end = rangeRight.end
-                        }
-                        " ]"
-                    ]
-              ]
-            , []
-            )
-
-        Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr _)) ->
-            ( [ Rule.errorWithFix
-                    { message = "Element added to the beginning of the list could be included in the list"
-                    , details = [ "Try moving the element inside the list it is being added to." ]
-                    }
-                    rangeLeft
-                    [ Fix.insertAt rangeLeft.start "[ "
-                    , Fix.replaceRangeBy
-                        { start = rangeLeft.end
-                        , end = { row = rangeRight.start.row, column = rangeRight.start.column + 1 }
-                        }
-                        ","
-                    ]
-              ]
-            , []
-            )
-
-        ----------
         -- (<|) --
         ----------
         Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
@@ -699,6 +662,7 @@ operatorChecks : Dict String (Range -> Node Expression -> Node Expression -> Lis
 operatorChecks =
     Dict.fromList
         [ ( "++", plusplusChecks )
+        , ( "::", consChecks )
         ]
 
 
@@ -767,6 +731,43 @@ plusplusChecks parentRange left right =
                     , end = (Node.range right).start
                     }
                     ") :: "
+                ]
+            ]
+
+        _ ->
+            []
+
+
+consChecks : Range -> Node Expression -> Node Expression -> List (Error {})
+consChecks _ left right =
+    case Node.value right of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Element added to the beginning of the list could be included in the list"
+                , details = [ "Try moving the element inside the list it is being added to." ]
+                }
+                (Node.range left)
+                [ Fix.insertAt (Node.range left).start "[ "
+                , Fix.replaceRangeBy
+                    { start = (Node.range left).end
+                    , end = (Node.range right).end
+                    }
+                    " ]"
+                ]
+            ]
+
+        Expression.ListExpr _ ->
+            [ Rule.errorWithFix
+                { message = "Element added to the beginning of the list could be included in the list"
+                , details = [ "Try moving the element inside the list it is being added to." ]
+                }
+                (Node.range left)
+                [ Fix.insertAt (Node.range left).start "[ "
+                , Fix.replaceRangeBy
+                    { start = (Node.range left).end
+                    , end = { row = (Node.range right).start.row, column = (Node.range right).start.column + 1 }
+                    }
+                    ","
                 ]
             ]
 
