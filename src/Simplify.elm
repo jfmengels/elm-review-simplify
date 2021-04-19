@@ -111,6 +111,9 @@ import Simplify.Normalize as Normalize
     String.repeat 0 str
     --> ""
 
+    String.repeat 1 str
+    --> str
+
 
 ### Lists
 
@@ -1116,7 +1119,16 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
         _ ->
             case getIntValue firstArg of
                 Just intValue ->
-                    if intValue < 1 then
+                    if intValue == 1 then
+                        [ Rule.errorWithFix
+                            { message = "String.repeat 1 won't do anything"
+                            , details = [ "Using String.repeat with 1 will result in the second argument." ]
+                            }
+                            fnRange
+                            [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).end } ]
+                        ]
+
+                    else if intValue < 1 then
                         [ Rule.errorWithFix
                             { message = "String.repeat will result in an empty string"
                             , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]

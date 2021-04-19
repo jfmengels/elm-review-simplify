@@ -1213,6 +1213,22 @@ a = String.repeat -5 str
 a = ""
 """
                         ]
+        , test "should replace String.repeat 1 str by str" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat 1 str
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.repeat 1 won't do anything"
+                            , details = [ "Using String.repeat with 1 will result in the second argument." ]
+                            , under = "String.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =  str
+"""
+                        ]
         ]
 
 
