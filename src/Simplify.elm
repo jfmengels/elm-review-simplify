@@ -56,6 +56,12 @@ Below is the list of all kinds of simplifications this rule applies.
     not True
     --> False
 
+    x == True
+    --> x
+
+    x /= False
+    --> x
+
     anything == anything
     --> True
 
@@ -916,8 +922,26 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, right
 
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
-equalityChecks isEqual { lookupTable, parentRange, left, right } =
-    if Normalize.areTheSame lookupTable left right then
+equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, rightRange } =
+    if getBoolean lookupTable right == Just isEqual then
+        [ Rule.errorWithFix
+            { message = "Unnecessary comparison with boolean"
+            , details = [ "The result of the expression will be the same with or without the comparison." ]
+            }
+            parentRange
+            [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
+        ]
+
+    else if getBoolean lookupTable left == Just isEqual then
+        [ Rule.errorWithFix
+            { message = "Unnecessary comparison with boolean"
+            , details = [ "The result of the expression will be the same with or without the comparison." ]
+            }
+            parentRange
+            [ Fix.removeRange { start = leftRange.start, end = rightRange.start } ]
+        ]
+
+    else if Normalize.areTheSame lookupTable left right then
         [ Rule.errorWithFix
             { message = "Condition is always " ++ boolToString isEqual
             , details = sameThingOnBothSidesDetails isEqual

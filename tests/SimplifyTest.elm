@@ -170,7 +170,7 @@ b = y && z
         , orTests
         , andTests
         , notTests
-        , sameThingOnBothSidesTests
+        , equalTests
         ]
 
 
@@ -465,9 +465,9 @@ a = False
         ]
 
 
-sameThingOnBothSidesTests : Test
-sameThingOnBothSidesTests =
-    describe "Same thing on both sides"
+equalTests : Test
+equalTests =
+    describe "(==)"
         [ test "should not simplify values that can't be determined" <|
             \() ->
                 """module A exposing (..)
@@ -475,6 +475,102 @@ a = x == y
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        , test "should simplify x == True to x" <|
+            \() ->
+                """module A exposing (..)
+a = x == True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary comparison with boolean"
+                            , details = [ "The result of the expression will be the same with or without the comparison." ]
+                            , under = "x == True"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should not simplify x == False" <|
+            \() ->
+                """module A exposing (..)
+a = x == False
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify True == x to x" <|
+            \() ->
+                """module A exposing (..)
+a = True == x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary comparison with boolean"
+                            , details = [ "The result of the expression will be the same with or without the comparison." ]
+                            , under = "True == x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should not simplify False == x" <|
+            \() ->
+                """module A exposing (..)
+a = False == x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify x /= True" <|
+            \() ->
+                """module A exposing (..)
+a = x /= True
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify x /= False to x" <|
+            \() ->
+                """module A exposing (..)
+a = x /= False
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary comparison with boolean"
+                            , details = [ "The result of the expression will be the same with or without the comparison." ]
+                            , under = "x /= False"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should not simplify True /= x" <|
+            \() ->
+                """module A exposing (..)
+a = True /= x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify False /= x to x" <|
+            \() ->
+                """module A exposing (..)
+a = False /= x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary comparison with boolean"
+                            , details = [ "The result of the expression will be the same with or without the comparison." ]
+                            , under = "False /= x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = x
+"""
+                        ]
         , test "should simplify x == x to True" <|
             \() ->
                 """module A exposing (..)
