@@ -14,6 +14,7 @@ all =
         , ifTests
         , fullyAppliedPrefixOperatorTests
         , usingPlusPlusTests
+        , stringSimplificationTests
         , listSimplificationTests
         ]
 
@@ -982,6 +983,46 @@ a = [ b ] ++ c
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ( b ) :: c
+"""
+                        ]
+        ]
+
+
+
+-- STRING
+
+
+stringSimplificationTests : Test
+stringSimplificationTests =
+    describe "String"
+        [ joinTests
+        ]
+
+
+joinTests : Test
+joinTests =
+    describe "String.join"
+        [ test "should not report String.join that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.join b c
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.join b [] by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.join b []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.join on an empty list will result in a empty string"
+                            , details = [ "You can replace this call by an empty string" ]
+                            , under = "String.join"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         ]
