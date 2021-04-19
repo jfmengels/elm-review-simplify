@@ -90,6 +90,12 @@ import Simplify.Normalize as Normalize
     "a" ++ ""
     --> "a"
 
+    String.isEmpty ""
+    --> True
+
+    String.isEmpty "a"
+    --> False
+
     String.concat []
     --> ""
 
@@ -971,9 +977,10 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
+        , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
-        , ( ( [ "List" ], "isEmpty" ), isEmptyChecks )
+        , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "List" ], "all" ), allChecks )
         , ( ( [ "List" ], "any" ), anyChecks )
         , ( ( [ "List" ], "range" ), rangeChecks )
@@ -1021,6 +1028,27 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 
 -- STRING
+
+
+stringIsEmptyChecks : CheckInfo -> List (Error {})
+stringIsEmptyChecks { parentRange, fnRange, firstArg, secondArg } =
+    case Node.value firstArg of
+        Expression.Literal str ->
+            let
+                replacementValue : String
+                replacementValue =
+                    boolToString (str == "")
+            in
+            [ Rule.errorWithFix
+                { message = "The call to String.isEmpty will result in " ++ replacementValue
+                , details = [ "You can replace this call by " ++ replacementValue ++ "." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange replacementValue ]
+            ]
+
+        _ ->
+            []
 
 
 stringConcatChecks : CheckInfo -> List (Error {})
@@ -1198,8 +1226,8 @@ mapChecks ({ lookupTable, fnRange, firstArg } as checkInfo) =
         []
 
 
-isEmptyChecks : CheckInfo -> List (Error {})
-isEmptyChecks { parentRange, fnRange, firstArg } =
+listIsEmptyChecks : CheckInfo -> List (Error {})
+listIsEmptyChecks { parentRange, fnRange, firstArg } =
     case Node.value (removeParens firstArg) of
         Expression.ListExpr list ->
             if List.isEmpty list then

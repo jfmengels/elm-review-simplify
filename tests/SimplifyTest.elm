@@ -995,8 +995,55 @@ a = ( b ) :: c
 stringSimplificationTests : Test
 stringSimplificationTests =
     describe "String"
-        [ concatTests
+        [ stringIsEmptyTests
+        , concatTests
         , joinTests
+        ]
+
+
+stringIsEmptyTests : Test
+stringIsEmptyTests =
+    describe "String.isEmpty"
+        [ test "should not report String.concat that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty
+b = String.isEmpty value
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.isEmpty \"\" by True" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty ""
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to String.isEmpty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace String.isEmpty \"a\" by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty "a"
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to String.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]
 
 
