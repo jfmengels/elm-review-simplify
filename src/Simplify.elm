@@ -105,6 +105,9 @@ import Simplify.Normalize as Normalize
     String.join "" list
     --> String.concat list
 
+    String.length "abc"
+    --> 3
+
     String.repeat n ""
     --> ""
 
@@ -998,12 +1001,13 @@ functionCallChecks =
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
+        , ( ( [ "String" ], "length" ), stringLengthChecks )
         , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "List" ], "all" ), allChecks )
         , ( ( [ "List" ], "any" ), anyChecks )
         , ( ( [ "List" ], "range" ), rangeChecks )
-        , ( ( [ "List" ], "length" ), lengthChecks )
+        , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         ]
 
@@ -1112,6 +1116,22 @@ stringJoinChecks { parentRange, fnRange, firstArg, secondArg } =
 
                 _ ->
                     []
+
+
+stringLengthChecks : CheckInfo -> List (Error {})
+stringLengthChecks { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.Literal str ->
+            [ Rule.errorWithFix
+                { message = "The length of the string is " ++ String.fromInt (String.length str)
+                , details = [ "The length of the string can be determined by looking at the code." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange (String.fromInt (String.length str)) ]
+            ]
+
+        _ ->
+            []
 
 
 stringRepeatChecks : CheckInfo -> List (Error {})
@@ -1445,8 +1465,8 @@ rangeChecks { parentRange, fnRange, firstArg, secondArg } =
             []
 
 
-lengthChecks : CheckInfo -> List (Error {})
-lengthChecks { parentRange, fnRange, firstArg } =
+listLengthChecks : CheckInfo -> List (Error {})
+listLengthChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr list ->
             [ Rule.errorWithFix
