@@ -998,6 +998,7 @@ stringSimplificationTests =
         [ stringIsEmptyTests
         , concatTests
         , joinTests
+        , stringRepeatTests
         ]
 
 
@@ -1148,6 +1149,35 @@ a = list |> String.join ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = list |> String.concat
+"""
+                        ]
+        ]
+
+
+stringRepeatTests : Test
+stringRepeatTests =
+    describe "String.repeat"
+        [ test "should not report String.repeat that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat n str
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.repeat n "" by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat n ""
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.repeat with an empty string will result in a empty string"
+                            , details = [ "You can replace this call by an empty string" ]
+                            , under = "String.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         ]

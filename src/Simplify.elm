@@ -105,6 +105,9 @@ import Simplify.Normalize as Normalize
     String.join "" list
     --> String.concat list
 
+    String.repeat n ""
+    --> ""
+
 
 ### Lists
 
@@ -980,6 +983,7 @@ functionCallChecks =
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
+        , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "List" ], "all" ), allChecks )
         , ( ( [ "List" ], "any" ), anyChecks )
@@ -1092,6 +1096,22 @@ stringJoinChecks { parentRange, fnRange, firstArg, secondArg } =
 
                 _ ->
                     []
+
+
+stringRepeatChecks : CheckInfo -> List (Error {})
+stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
+    case secondArg of
+        Just (Node _ (Expression.Literal "")) ->
+            [ Rule.errorWithFix
+                { message = "Using String.repeat with an empty string will result in a empty string"
+                , details = [ "You can replace this call by an empty string" ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "\"\"" ]
+            ]
+
+        _ ->
+            []
 
 
 
