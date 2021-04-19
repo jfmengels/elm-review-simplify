@@ -353,41 +353,6 @@ expressionVisitorHelp node { lookupTable } =
                     ( [], [] )
 
         -------------------
-        -- BOOLEAN LOGIC --
-        -------------------
-        Expression.OperatorApplication "==" _ left right ->
-            if Normalize.areTheSame lookupTable left right then
-                ( [ Rule.errorWithFix
-                        { message = "Condition is always True"
-                        , details = sameThingOnBothSidesDetails True
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "True"
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
-
-        Expression.OperatorApplication "/=" _ left right ->
-            if Normalize.areTheSame lookupTable left right then
-                ( [ Rule.errorWithFix
-                        { message = "Condition is always False"
-                        , details = sameThingOnBothSidesDetails False
-                        }
-                        (Node.range node)
-                        [ Fix.replaceRangeBy (Node.range node) "False"
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
-
-        -------------------
         -- IF EXPRESSION --
         -------------------
         Expression.IfBlock cond trueBranch falseBranch ->
@@ -668,6 +633,8 @@ operatorChecks =
         , ( "::", consChecks )
         , ( "||", orChecks )
         , ( "&&", andChecks )
+        , ( "==", equalityChecks True )
+        , ( "/=", equalityChecks False )
         ]
 
 
@@ -805,7 +772,7 @@ orChecks operatorCheckInfo =
 
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
-or_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
+or_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRange } =
     case getBoolean lookupTable left of
         Just True ->
             [ Rule.errorWithFix
@@ -814,7 +781,7 @@ or_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
                 }
                 parentRange
                 [ Fix.removeRange
-                    { start = (Node.range left).end
+                    { start = leftRange.end
                     , end = rightRange.end
                     }
                 ]
@@ -827,7 +794,7 @@ or_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
                 }
                 parentRange
                 [ Fix.removeRange
-                    { start = (Node.range left).start
+                    { start = leftRange.start
                     , end = rightRange.start
                     }
                 ]
@@ -879,7 +846,7 @@ andChecks operatorCheckInfo =
 
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
+and_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRange } =
     case getBoolean lookupTable left of
         Just True ->
             [ Rule.errorWithFix
@@ -888,7 +855,7 @@ and_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
                 }
                 parentRange
                 [ Fix.removeRange
-                    { start = (Node.range left).start
+                    { start = leftRange.start
                     , end = rightRange.start
                     }
                 ]
@@ -901,7 +868,7 @@ and_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
                 }
                 parentRange
                 [ Fix.removeRange
-                    { start = (Node.range left).end
+                    { start = leftRange.end
                     , end = rightRange.end
                     }
                 ]
@@ -912,7 +879,7 @@ and_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
 
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
+and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, rightRange } =
     case getBoolean lookupTable right of
         Just True ->
             [ Rule.errorWithFix
@@ -922,7 +889,7 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
                 parentRange
                 [ Fix.removeRange
                     { start = leftRange.end
-                    , end = (Node.range right).end
+                    , end = rightRange.end
                     }
                 ]
             ]
@@ -935,13 +902,33 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
                 parentRange
                 [ Fix.removeRange
                     { start = leftRange.start
-                    , end = (Node.range right).start
+                    , end = rightRange.start
                     }
                 ]
             ]
 
         Nothing ->
             []
+
+
+
+-- EQUALITY
+
+
+equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
+equalityChecks isEqual { lookupTable, parentRange, left, right } =
+    if Normalize.areTheSame lookupTable left right then
+        [ Rule.errorWithFix
+            { message = "Condition is always " ++ boolToString isEqual
+            , details = sameThingOnBothSidesDetails isEqual
+            }
+            parentRange
+            [ Fix.replaceRangeBy parentRange (boolToString isEqual)
+            ]
+        ]
+
+    else
+        []
 
 
 alwaysSameDetails : List String
