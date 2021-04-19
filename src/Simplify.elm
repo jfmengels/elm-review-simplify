@@ -173,7 +173,7 @@ Below is the list of all kinds of simplifications this rule applies.
     List.concatMap (always []) list
     --> []
 
-    List.map fn [] -- same for List.filter, List.filterMap, List.concatMap
+    List.map fn [] -- same for List.filter, List.filterMap, ...
     --> []
 
     List.map identity list
