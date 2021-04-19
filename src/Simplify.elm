@@ -1055,7 +1055,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 
 stringIsEmptyChecks : CheckInfo -> List (Error {})
-stringIsEmptyChecks { parentRange, fnRange, firstArg, secondArg } =
+stringIsEmptyChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.Literal str ->
             let
@@ -1076,7 +1076,7 @@ stringIsEmptyChecks { parentRange, fnRange, firstArg, secondArg } =
 
 
 stringConcatChecks : CheckInfo -> List (Error {})
-stringConcatChecks { parentRange, fnRange, firstArg, secondArg } =
+stringConcatChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
