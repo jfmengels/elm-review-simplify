@@ -355,14 +355,6 @@ expressionVisitorHelp node { lookupTable } =
         -------------------
         -- BOOLEAN LOGIC --
         -------------------
-        Expression.OperatorApplication "||" _ left right ->
-            ( List.concat
-                [ or_isLeftSimplifiableError lookupTable node left (Node.range right)
-                , or_isRightSimplifiableError lookupTable node (Node.range left) right
-                ]
-            , []
-            )
-
         Expression.OperatorApplication "&&" _ left right ->
             ( List.concat
                 [ and_isLeftSimplifiableError lookupTable node left (Node.range right)
@@ -612,7 +604,18 @@ expressionVisitorHelp node { lookupTable } =
         Expression.OperatorApplication operator _ left right ->
             case Dict.get operator operatorChecks of
                 Just checkFn ->
-                    ( checkFn (Node.range node) left right, [] )
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , left = left
+                        , leftRange = Node.range left
+                        , right = right
+                        , rightRange = Node.range right
+                        }
+                        left
+                        right
+                    , []
+                    )
 
                 Nothing ->
                     ( [], [] )
@@ -658,20 +661,27 @@ functionCallChecks =
         ]
 
 
-operatorChecks : Dict String (Range -> Node Expression -> Node Expression -> List (Error {}))
+type alias OperatorCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , parentRange : Range
+    , left : Node Expression
+    , leftRange : Range
+    , right : Node Expression
+    , rightRange : Range
+    }
+
+
+operatorChecks : Dict String (OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {}))
 operatorChecks =
     Dict.fromList
         [ ( "++", plusplusChecks )
         , ( "::", consChecks )
+        , ( "||", orChecks )
         ]
 
 
-
--- ++
-
-
-plusplusChecks : Range -> Node Expression -> Node Expression -> List (Error {})
-plusplusChecks parentRange left right =
+plusplusChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
+plusplusChecks { parentRange } left right =
     case ( Node.value left, Node.value right ) of
         ( Expression.Literal "", _ ) ->
             [ errorForAddingEmptyStrings (Node.range left)
@@ -738,7 +748,7 @@ plusplusChecks parentRange left right =
             []
 
 
-consChecks : Range -> Node Expression -> Node Expression -> List (Error {})
+consChecks : a -> Node Expression -> Node Expression -> List (Error {})
 consChecks _ left right =
     case Node.value right of
         Expression.ListExpr [] ->
@@ -795,15 +805,23 @@ notChecks { lookupTable, parentRange, firstArg } =
             []
 
 
-or_isLeftSimplifiableError : ModuleNameLookupTable -> Node a -> Node Expression -> Range -> List (Error {})
-or_isLeftSimplifiableError lookupTable node left rightRange =
+orChecks : OperatorCheckInfo -> Node Expression -> Node Expression -> List (Error {})
+orChecks { lookupTable, parentRange } left right =
+    List.concat
+        [ or_isLeftSimplifiableError lookupTable parentRange left (Node.range right)
+        , or_isRightSimplifiableError lookupTable parentRange (Node.range left) right
+        ]
+
+
+or_isLeftSimplifiableError : ModuleNameLookupTable -> Range -> Node Expression -> Range -> List (Error {})
+or_isLeftSimplifiableError lookupTable parentRange left rightRange =
     case getBoolean lookupTable left of
         Just True ->
             [ Rule.errorWithFix
                 { message = "Condition is always True"
                 , details = alwaysSameDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = (Node.range left).end
                     , end = rightRange.end
@@ -816,7 +834,7 @@ or_isLeftSimplifiableError lookupTable node left rightRange =
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = (Node.range left).start
                     , end = rightRange.start
@@ -828,15 +846,15 @@ or_isLeftSimplifiableError lookupTable node left rightRange =
             []
 
 
-or_isRightSimplifiableError : ModuleNameLookupTable -> Node a -> Range -> Node Expression -> List (Error {})
-or_isRightSimplifiableError lookupTable node leftRange right =
+or_isRightSimplifiableError : ModuleNameLookupTable -> Range -> Range -> Node Expression -> List (Error {})
+or_isRightSimplifiableError lookupTable parentRange leftRange right =
     case getBoolean lookupTable right of
         Just True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = leftRange.start
                     , end = (Node.range right).start
@@ -849,7 +867,7 @@ or_isRightSimplifiableError lookupTable node leftRange right =
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = leftRange.end
                     , end = (Node.range right).end
