@@ -13,6 +13,7 @@ all =
         , booleanTests
         , ifTests
         , fullyAppliedPrefixOperatorTests
+        , usingPlusPlusTests
         , listSimplificationTests
         ]
 
@@ -844,25 +845,7 @@ a =
 
 
 
--- LIST
-
-
-listSimplificationTests : Test
-listSimplificationTests =
-    describe "List"
-        [ usingPlusPlusTests
-        , usingConsTests
-        , usingListConcatTests
-        , listConcatMapTests
-        , listMapTests
-        , listFilterTests
-        , listFilterMapTests
-        , listIsEmptyTests
-        , listAllTests
-        , listAnyTests
-        , listRangeTests
-        , listLengthTests
-        ]
+-- (++)
 
 
 usingPlusPlusTests : Test
@@ -877,6 +860,50 @@ c = [ "string", "foo", "bar" ]
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        , test "should not report simple strings" <|
+            \() ->
+                """module A exposing (..)
+a = "abc" ++ value
+b = \"\"\"123\"\"\"
+c = \"\"\"multi
+line
+string
+\"\"\"
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace "a" ++ "" by "a\"""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ ""
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary concatenation with an empty string"
+                            , details = [ "You should remove the concatenation with the empty string." ]
+                            , under = "\"\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "a"
+"""
+                        ]
+        , test """should replace "" ++ "a" by "a\"""" <|
+            \() ->
+                """module A exposing (..)
+a = "" ++ "a"
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary concatenation with an empty string"
+                            , details = [ "You should remove the concatenation with the empty string." ]
+                            , under = "\"\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "a"
+"""
+                        ]
         , test "should report concatenating two list literals" <|
             \() ->
                 """module A exposing (..)
@@ -957,6 +984,27 @@ a = [ b ] ++ c
 a = ( b ) :: c
 """
                         ]
+        ]
+
+
+
+-- LIST
+
+
+listSimplificationTests : Test
+listSimplificationTests =
+    describe "List"
+        [ usingConsTests
+        , usingListConcatTests
+        , listConcatMapTests
+        , listMapTests
+        , listFilterTests
+        , listFilterMapTests
+        , listIsEmptyTests
+        , listAllTests
+        , listAnyTests
+        , listRangeTests
+        , listLengthTests
         ]
 
 

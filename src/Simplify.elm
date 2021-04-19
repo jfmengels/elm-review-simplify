@@ -75,7 +75,6 @@ import Simplify.Normalize as Normalize
     identity x
     --> x
 
-
     always x y
     --> x
 
@@ -84,6 +83,12 @@ import Simplify.Normalize as Normalize
 
     (++) a b
     --> a ++ b
+
+
+### Strings
+
+    "a" ++ ""
+    --> "a"
 
 
 ### Lists
@@ -247,6 +252,16 @@ initialContext =
         |> Rule.withModuleNameLookupTable
 
 
+errorForAddingEmptyStrings : Range -> Range -> Error {}
+errorForAddingEmptyStrings range rangeToRemove =
+    Rule.errorWithFix
+        { message = "Unnecessary concatenation with an empty string"
+        , details = [ "You should remove the concatenation with the empty string." ]
+        }
+        range
+        [ Fix.removeRange rangeToRemove ]
+
+
 errorForAddingEmptyLists : Range -> Range -> Error {}
 errorForAddingEmptyLists range rangeToRemove =
     Rule.errorWithFix
@@ -286,6 +301,29 @@ expressionVisitor node context =
 expressionVisitorHelp : Node Expression -> Context -> ( List (Error {}), List Range )
 expressionVisitorHelp node { lookupTable } =
     case Node.value node of
+        --------------------
+        -- FUNCTION CALLS --
+        --------------------
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
+            case
+                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+            of
+                Just checkFn ->
+                    ( checkFn
+                        { lookupTable = lookupTable
+                        , parentRange = Node.range node
+                        , fnRange = fnRange
+                        , firstArg = firstArg
+                        , secondArg = List.head restOfArguments
+                        , usingRightPizza = False
+                        }
+                    , []
+                    )
+
+                _ ->
+                    ( [], [] )
+
         -------------------
         -- BOOLEAN LOGIC --
         -------------------
@@ -457,9 +495,27 @@ expressionVisitorHelp node { lookupTable } =
             , []
             )
 
-        -------------
-        --  LISTS  --
-        -------------
+        ----------
+        -- (++) --
+        ----------
+        Expression.OperatorApplication "++" _ (Node range (Expression.Literal "")) other ->
+            ( [ errorForAddingEmptyStrings range
+                    { start = range.start
+                    , end = (Node.range other).start
+                    }
+              ]
+            , []
+            )
+
+        Expression.OperatorApplication "++" _ other (Node range (Expression.Literal "")) ->
+            ( [ errorForAddingEmptyStrings range
+                    { start = (Node.range other).end
+                    , end = range.end
+                    }
+              ]
+            , []
+            )
+
         Expression.OperatorApplication "++" _ (Node range (Expression.ListExpr [])) other ->
             ( [ errorForAddingEmptyLists range
                     { start = range.start
@@ -515,6 +571,9 @@ expressionVisitorHelp node { lookupTable } =
             , []
             )
 
+        ----------
+        -- (::) --
+        ----------
         Expression.OperatorApplication "::" _ (Node rangeLeft _) (Node rangeRight (Expression.ListExpr [])) ->
             ( [ Rule.errorWithFix
                     { message = "Element added to the beginning of the list could be included in the list"
@@ -549,10 +608,13 @@ expressionVisitorHelp node { lookupTable } =
             , []
             )
 
+        ----------
+        -- (<|) --
+        ----------
         Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
             case
                 ModuleNameLookupTable.moduleNameAt lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
@@ -572,7 +634,7 @@ expressionVisitorHelp node { lookupTable } =
         Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
             case
                 ModuleNameLookupTable.moduleNameAt lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
@@ -589,10 +651,13 @@ expressionVisitorHelp node { lookupTable } =
                 _ ->
                     ( [], [] )
 
+        ----------
+        -- (|>) --
+        ----------
         Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
             case
                 ModuleNameLookupTable.moduleNameAt lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
@@ -612,7 +677,7 @@ expressionVisitorHelp node { lookupTable } =
         Expression.OperatorApplication "|>" _ secondArgument (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) ->
             case
                 ModuleNameLookupTable.moduleNameAt lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
@@ -624,26 +689,6 @@ expressionVisitorHelp node { lookupTable } =
                         , usingRightPizza = True
                         }
                     , [ applicationRange ]
-                    )
-
-                _ ->
-                    ( [], [] )
-
-        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
-            case
-                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) checkList)
-            of
-                Just checkFn ->
-                    ( checkFn
-                        { lookupTable = lookupTable
-                        , parentRange = Node.range node
-                        , fnRange = fnRange
-                        , firstArg = firstArg
-                        , secondArg = List.head restOfArguments
-                        , usingRightPizza = False
-                        }
-                    , []
                     )
 
                 _ ->
@@ -910,8 +955,8 @@ alwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
 -- LIST
 
 
-checkList : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
-checkList =
+functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
+functionCallChecks =
     Dict.fromList
         [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), alwaysChecks )
