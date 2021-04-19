@@ -1450,7 +1450,7 @@ lengthChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr list ->
             [ Rule.errorWithFix
-                { message = "The length of the list is 0"
+                { message = "The length of the list is " ++ String.fromInt (List.length list)
                 , details = [ "The length of the list can be determined by looking at the code." ]
                 }
                 fnRange
