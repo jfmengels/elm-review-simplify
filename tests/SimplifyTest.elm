@@ -999,6 +999,8 @@ stringSimplificationTests =
         , concatTests
         , joinTests
         , stringRepeatTests
+        , stringWordsTests
+        , stringLinesTests
         ]
 
 
@@ -1227,6 +1229,66 @@ a = String.repeat 1 str
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =  str
+"""
+                        ]
+        ]
+
+
+stringWordsTests : Test
+stringWordsTests =
+    describe "String.words"
+        [ test "should not report String.words that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.words
+b = String.words str
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.words "" by []""" <|
+            \() ->
+                """module A exposing (..)
+a = String.words ""
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.words on an empty string will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "String.words"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        ]
+
+
+stringLinesTests : Test
+stringLinesTests =
+    describe "String.lines"
+        [ test "should not report String.lines that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.lines
+b = String.lines str
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.lines "" by []""" <|
+            \() ->
+                """module A exposing (..)
+a = String.lines ""
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.lines on an empty string will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "String.lines"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]

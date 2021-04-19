@@ -128,6 +128,12 @@ Below is the list of all kinds of simplifications this rule applies.
     String.repeat 1 str
     --> str
 
+    String.words ""
+    --> []
+
+    String.lines ""
+    --> []
+
 
 ### Lists
 
@@ -989,6 +995,8 @@ functionCallChecks =
         , ( ( [ "String" ], "join" ), stringJoinChecks )
         , ( ( [ "String" ], "length" ), stringLengthChecks )
         , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
+        , ( ( [ "String" ], "words" ), stringWordsChecks )
+        , ( ( [ "String" ], "lines" ), stringLinesChecks )
         , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "List" ], "all" ), allChecks )
         , ( ( [ "List" ], "any" ), anyChecks )
@@ -1071,6 +1079,38 @@ stringConcatChecks { parentRange, fnRange, firstArg } =
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "\"\"" ]
+            ]
+
+        _ ->
+            []
+
+
+stringWordsChecks : CheckInfo -> List (Error {})
+stringWordsChecks { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.Literal "" ->
+            [ Rule.errorWithFix
+                { message = "Using String.words on an empty string will result in a empty list"
+                , details = [ "You can replace this call by an empty list" ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "[]" ]
+            ]
+
+        _ ->
+            []
+
+
+stringLinesChecks : CheckInfo -> List (Error {})
+stringLinesChecks { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.Literal "" ->
+            [ Rule.errorWithFix
+                { message = "Using String.lines on an empty string will result in a empty list"
+                , details = [ "You can replace this call by an empty list" ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "[]" ]
             ]
 
         _ ->
