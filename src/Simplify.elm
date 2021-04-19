@@ -93,6 +93,9 @@ import Simplify.Normalize as Normalize
     String.join str []
     --> ""
 
+    String.join "" list
+    --> String.concat list
+
 
 ### Lists
 
@@ -1017,7 +1020,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 
 stringJoinChecks : CheckInfo -> List (Error {})
-stringJoinChecks { parentRange, fnRange, secondArg } =
+stringJoinChecks { parentRange, fnRange, firstArg, secondArg } =
     case secondArg of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
@@ -1029,7 +1032,18 @@ stringJoinChecks { parentRange, fnRange, secondArg } =
             ]
 
         _ ->
-            []
+            case Node.value firstArg of
+                Expression.Literal "" ->
+                    [ Rule.errorWithFix
+                        { message = "Use String.concat instead"
+                        , details = [ "Using String.join with an empty separator is the same as using String.concat." ]
+                        }
+                        fnRange
+                        [ Fix.replaceRangeBy { start = fnRange.start, end = (Node.range firstArg).end } "String.concat" ]
+                    ]
+
+                _ ->
+                    []
 
 
 
