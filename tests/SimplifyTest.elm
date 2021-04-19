@@ -995,7 +995,37 @@ a = ( b ) :: c
 stringSimplificationTests : Test
 stringSimplificationTests =
     describe "String"
-        [ joinTests
+        [ concatTests
+        , joinTests
+        ]
+
+
+concatTests : Test
+concatTests =
+    describe "String.concat"
+        [ test "should not report String.concat that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.concat [] by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.concat on an empty list will result in a empty string"
+                            , details = [ "You can replace this call by an empty string" ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         ]
 
 

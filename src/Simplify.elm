@@ -90,6 +90,9 @@ import Simplify.Normalize as Normalize
     "a" ++ ""
     --> "a"
 
+    String.concat []
+    --> ""
+
     String.join str []
     --> ""
 
@@ -968,6 +971,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
+        , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
         , ( ( [ "List" ], "isEmpty" ), isEmptyChecks )
         , ( ( [ "List" ], "all" ), allChecks )
@@ -1017,6 +1021,22 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 
 -- STRING
+
+
+stringConcatChecks : CheckInfo -> List (Error {})
+stringConcatChecks { parentRange, fnRange, firstArg, secondArg } =
+    case Node.value firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using String.concat on an empty list will result in a empty string"
+                , details = [ "You can replace this call by an empty string" ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "\"\"" ]
+            ]
+
+        _ ->
+            []
 
 
 stringJoinChecks : CheckInfo -> List (Error {})
