@@ -355,14 +355,6 @@ expressionVisitorHelp node { lookupTable } =
         -------------------
         -- BOOLEAN LOGIC --
         -------------------
-        Expression.OperatorApplication "&&" _ left right ->
-            ( List.concat
-                [ and_isLeftSimplifiableError lookupTable node left (Node.range right)
-                , and_isRightSimplifiableError lookupTable node (Node.range left) right
-                ]
-            , []
-            )
-
         Expression.OperatorApplication "==" _ left right ->
             if Normalize.areTheSame lookupTable left right then
                 ( [ Rule.errorWithFix
@@ -675,6 +667,7 @@ operatorChecks =
         [ ( "++", plusplusChecks )
         , ( "::", consChecks )
         , ( "||", orChecks )
+        , ( "&&", andChecks )
         ]
 
 
@@ -877,15 +870,23 @@ or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightR
             []
 
 
-and_isLeftSimplifiableError : ModuleNameLookupTable -> Node a -> Node Expression -> Range -> List (Rule.Error {})
-and_isLeftSimplifiableError lookupTable node left rightRange =
+andChecks : OperatorCheckInfo -> List (Error {})
+andChecks operatorCheckInfo =
+    List.concat
+        [ and_isLeftSimplifiableError operatorCheckInfo
+        , and_isRightSimplifiableError operatorCheckInfo
+        ]
+
+
+and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
+and_isLeftSimplifiableError { lookupTable, parentRange, left, rightRange } =
     case getBoolean lookupTable left of
         Just True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = (Node.range left).start
                     , end = rightRange.start
@@ -898,7 +899,7 @@ and_isLeftSimplifiableError lookupTable node left rightRange =
                 { message = "Condition is always False"
                 , details = alwaysSameDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = (Node.range left).end
                     , end = rightRange.end
@@ -910,15 +911,15 @@ and_isLeftSimplifiableError lookupTable node left rightRange =
             []
 
 
-and_isRightSimplifiableError : ModuleNameLookupTable -> Node a -> Range -> Node Expression -> List (Rule.Error {})
-and_isRightSimplifiableError lookupTable node leftRange right =
+and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
+and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right } =
     case getBoolean lookupTable right of
         Just True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = leftRange.end
                     , end = (Node.range right).end
@@ -931,7 +932,7 @@ and_isRightSimplifiableError lookupTable node leftRange right =
                 { message = "Condition is always False"
                 , details = alwaysSameDetails
                 }
-                (Node.range node)
+                parentRange
                 [ Fix.removeRange
                     { start = leftRange.start
                     , end = (Node.range right).start
