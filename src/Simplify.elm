@@ -225,6 +225,15 @@ import Simplify.Normalize as Normalize
     List.length [ a ]
     --> 1
 
+    List.repeat n []
+    --> []
+
+    List.repeat 0 str
+    --> []
+
+    List.repeat 1 str
+    --> str
+
 
 ## Success
 
@@ -995,6 +1004,7 @@ functionCallChecks =
         , ( ( [ "List" ], "any" ), anyChecks )
         , ( ( [ "List" ], "range" ), rangeChecks )
         , ( ( [ "List" ], "length" ), lengthChecks )
+        , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         ]
 
 
@@ -1449,6 +1459,46 @@ lengthChecks { parentRange, fnRange, firstArg } =
 
         _ ->
             []
+
+
+listRepeatChecks : CheckInfo -> List (Error {})
+listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
+    case secondArg of
+        Just (Node _ (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Using List.repeat with an empty list will result in a empty list"
+                , details = [ "You can replace this call by an empty list" ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "[]" ]
+            ]
+
+        _ ->
+            case getIntValue firstArg of
+                Just intValue ->
+                    if intValue == 1 then
+                        [ Rule.errorWithFix
+                            { message = "List.repeat 1 won't do anything"
+                            , details = [ "Using List.repeat with 1 will result in the second argument." ]
+                            }
+                            fnRange
+                            [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).end } ]
+                        ]
+
+                    else if intValue < 1 then
+                        [ Rule.errorWithFix
+                            { message = "List.repeat will result in an empty list"
+                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            }
+                            fnRange
+                            [ Fix.replaceRangeBy parentRange "[]" ]
+                        ]
+
+                    else
+                        []
+
+                _ ->
+                    []
 
 
 getIntValue : Node Expression -> Maybe Int

@@ -1250,6 +1250,7 @@ listSimplificationTests =
         , listAnyTests
         , listRangeTests
         , listLengthTests
+        , listRepeatTests
         ]
 
 
@@ -2571,6 +2572,84 @@ a = [] |> List.length
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
+"""
+                        ]
+        ]
+
+
+listRepeatTests : Test
+listRepeatTests =
+    describe "List.repeat"
+        [ test "should not report List.repeat that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n list
+b = List.repeat 5 list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test """should replace List.repeat n [] by []""" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.repeat with an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test """should replace List.repeat 0 list by []""" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat 0 list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat will result in an empty list"
+                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test """should replace List.repeat -5 list by []""" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat -5 list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat will result in an empty list"
+                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.repeat 1 list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat 1 list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat 1 won't do anything"
+                            , details = [ "Using List.repeat with 1 will result in the second argument." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =  list
 """
                         ]
         ]
