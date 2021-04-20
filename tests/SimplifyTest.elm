@@ -14,6 +14,7 @@ all =
         , ifTests
         , numberTests
         , fullyAppliedPrefixOperatorTests
+        , appliedLambdaTests
         , usingPlusPlusTests
         , stringSimplificationTests
         , listSimplificationTests
@@ -1638,6 +1639,41 @@ a =
     (y + 1)
         ++ [z]
 """
+                        ]
+        ]
+
+
+appliedLambdaTests : Test
+appliedLambdaTests =
+    describe "Applied lambda functions"
+        [ test "should not report a okay function/lambda calls" <|
+            \() ->
+                """
+module A exposing (..)
+a = fn ()
+b = (\\x y -> x + y) n
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace (\\() -> x) () by x" <|
+            \() ->
+                """module A exposing (..)
+a = (\\() -> x) ()
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary unit argument"
+                            , details =
+                                [ "This function is expecting a unit, but also passing it directly."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            , under = "()"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 7 }, end = { row = 2, column = 9 } }
+                            |> Review.Test.whenFixed ("""module A exposing (..)
+a = (x)$
+""" |> String.replace "$" " ")
                         ]
         ]
 

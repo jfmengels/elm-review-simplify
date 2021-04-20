@@ -108,6 +108,12 @@ Below is the list of all kinds of simplifications this rule applies.
     --> always x
 
 
+### Lambdas
+
+    (\\() -> x) ()
+    --> x
+
+
 ### Operators
 
     (++) a b
@@ -500,6 +506,30 @@ expressionVisitorHelp node { lookupTable } =
 
                             else
                                 ( [], [] )
+
+        -------------------------------
+        --  APPLIED LAMBDA FUNCTIONS --
+        -------------------------------
+        Expression.Application ((Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)))) :: firstArgument :: _) ->
+            case lambda.args of
+                (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
+                    ( [ Rule.errorWithFix
+                            { message = "Unnecessary unit argument"
+                            , details =
+                                [ "This function is expecting a unit, but also passing it directly."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            }
+                            unitRange
+                            [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                            , Fix.removeRange (Node.range firstArgument)
+                            ]
+                      ]
+                    , []
+                    )
+
+                _ ->
+                    ( [], [] )
 
         -------------------------------------
         --  FULLY APPLIED PREFIX OPERATOR  --
