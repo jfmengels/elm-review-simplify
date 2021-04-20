@@ -571,6 +571,40 @@ a = False /= x
 a = x
 """
                         ]
+        , test "should simplify not x == not y to x == y" <|
+            \() ->
+                """module A exposing (..)
+a = not x == not y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary negation on both sides"
+                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            , under = "not x == not y"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a =  x ==  y
+"""
+                        ]
+        , test "should simplify not x /= not y to x /= y" <|
+            \() ->
+                """module A exposing (..)
+a = not x /= not y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary negation on both sides"
+                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            , under = "not x /= not y"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a =  x /=  y
+"""
+                        ]
         , test "should simplify x == x to True" <|
             \() ->
                 """module A exposing (..)

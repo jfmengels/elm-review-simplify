@@ -62,6 +62,9 @@ Below is the list of all kinds of simplifications this rule applies.
     x /= False
     --> x
 
+    not x == not y
+    --> x == y
+
     anything == anything
     --> True
 
@@ -941,18 +944,45 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
             [ Fix.removeRange { start = leftRange.start, end = rightRange.start } ]
         ]
 
-    else if Normalize.areTheSame lookupTable left right then
-        [ Rule.errorWithFix
-            { message = "Condition is always " ++ boolToString isEqual
-            , details = sameThingOnBothSidesDetails isEqual
-            }
-            parentRange
-            [ Fix.replaceRangeBy parentRange (boolToString isEqual)
-            ]
-        ]
-
     else
-        []
+        case Maybe.map2 Tuple.pair (getNot lookupTable left) (getNot lookupTable right) of
+            Just ( notRangeLeft, notRangeRight ) ->
+                [ Rule.errorWithFix
+                    { message = "Unnecessary negation on both sides"
+                    , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                    }
+                    parentRange
+                    [ Fix.removeRange notRangeLeft, Fix.removeRange notRangeRight ]
+                ]
+
+            _ ->
+                if Normalize.areTheSame lookupTable left right then
+                    [ Rule.errorWithFix
+                        { message = "Condition is always " ++ boolToString isEqual
+                        , details = sameThingOnBothSidesDetails isEqual
+                        }
+                        parentRange
+                        [ Fix.replaceRangeBy parentRange (boolToString isEqual)
+                        ]
+                    ]
+
+                else
+                    []
+
+
+getNot : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getNot lookupTable baseNode =
+    case Node.value (removeParens baseNode) of
+        Expression.Application ((Node notRange (Expression.FunctionOrValue _ "not")) :: _) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
+                Just [ "Basics" ] ->
+                    Just notRange
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 alwaysSameDetails : List String
