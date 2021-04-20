@@ -214,6 +214,38 @@ a = y |> always x
 a = x
 """
                         ]
+        , test "should replace f >> always g by always g" <|
+            \() ->
+                """module A exposing (..)
+a = f >> always g
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Function composed with always will be ignored"
+                            , details = [ "`always` will swallow the function composed into it." ]
+                            , under = "always g"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always g
+"""
+                        ]
+        , test "should replace always g << f by always g" <|
+            \() ->
+                """module A exposing (..)
+a = always g << f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Function composed with always will be ignored"
+                            , details = [ "`always` will swallow the function composed into it." ]
+                            , under = "always g"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always g
+"""
+                        ]
         ]
 
 

@@ -104,6 +104,9 @@ Below is the list of all kinds of simplifications this rule applies.
     always x y
     --> x
 
+    f >> always x
+    --> always x
+
 
 ### Operators
 
@@ -716,6 +719,7 @@ compositionChecks =
     [ identityCompositionCheck
     , notNotCompositionCheck
     , negateCompositionCheck
+    , alwaysCompositionCheck
     ]
 
 
@@ -1360,6 +1364,46 @@ alwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
 
         Nothing ->
             []
+
+
+alwaysCompositionCheck : CompositionCheckInfo -> Maybe (List (Error {}))
+alwaysCompositionCheck { lookupTable, fromLeftToRight, left, right, leftRange, rightRange } =
+    if fromLeftToRight then
+        if isAlwaysCall lookupTable right then
+            Just
+                [ Rule.errorWithFix
+                    { message = "Function composed with always will be ignored"
+                    , details = [ "`always` will swallow the function composed into it." ]
+                    }
+                    rightRange
+                    [ Fix.removeRange { start = leftRange.start, end = rightRange.start } ]
+                ]
+
+        else
+            Nothing
+
+    else if isAlwaysCall lookupTable left then
+        Just
+            [ Rule.errorWithFix
+                { message = "Function composed with always will be ignored"
+                , details = [ "`always` will swallow the function composed into it." ]
+                }
+                leftRange
+                [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
+            ]
+
+    else
+        Nothing
+
+
+isAlwaysCall : ModuleNameLookupTable -> Node Expression -> Bool
+isAlwaysCall lookupTable node =
+    case Node.value (removeParens node) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: _ :: []) ->
+            ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ]
+
+        _ ->
+            False
 
 
 reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
