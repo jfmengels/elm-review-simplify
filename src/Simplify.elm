@@ -1957,7 +1957,7 @@ rangeChecks { parentRange, fnRange, firstArg, secondArg } =
             if first > second then
                 [ Rule.errorWithFix
                     { message = "The call to List.range will result in []"
-                    , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                    , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
                     }
                     fnRange
                     (replaceByEmptyListFix parentRange secondArg)

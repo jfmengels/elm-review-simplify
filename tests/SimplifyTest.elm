@@ -3159,7 +3159,7 @@ a = List.range 10 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3175,7 +3175,7 @@ a = List.range 0xF 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3191,7 +3191,7 @@ a = 5 |> List.range 10
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty slist." ]
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
