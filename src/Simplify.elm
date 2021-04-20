@@ -134,6 +134,9 @@ Below is the list of all kinds of simplifications this rule applies.
     n / 1
     --> n
 
+    -(-n)
+    --> n
+
     negate >> negate
     --> identity
 
@@ -641,6 +644,29 @@ expressionVisitorHelp node { lookupTable } =
                     )
 
                 Nothing ->
+                    ( [], [] )
+
+        Expression.Negation baseExpr ->
+            case removeParens baseExpr of
+                Node range (Expression.Negation _) ->
+                    let
+                        doubleNegationRange : Range
+                        doubleNegationRange =
+                            { start = (Node.range node).start
+                            , end = { row = range.start.row, column = range.start.column + 1 }
+                            }
+                    in
+                    ( [ Rule.errorWithFix
+                            { message = "Unnecessary double number negation"
+                            , details = [ "Negating a number twice is the same as the number itself." ]
+                            }
+                            doubleNegationRange
+                            [ Fix.replaceRangeBy doubleNegationRange "(" ]
+                      ]
+                    , []
+                    )
+
+                _ ->
                     ( [], [] )
 
         _ ->

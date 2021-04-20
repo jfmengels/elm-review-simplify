@@ -692,6 +692,7 @@ numberTests =
         , minusTests
         , multiplyTests
         , divisionTests
+        , negationTest
         , basicsNegateTests
         ]
 
@@ -971,6 +972,36 @@ a = n / 1.0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
+"""
+                        ]
+        ]
+
+
+negationTest : Test
+negationTest =
+    describe "Unary negation"
+        [ test "should not report negation used in okay situations" <|
+            \() ->
+                """module A exposing (..)
+a = -1
+a = -(-1 + 2)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify -(-n) to n" <|
+            \() ->
+                """module A exposing (..)
+a = -(-n)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double number negation"
+                            , details = [ "Negating a number twice is the same as the number itself." ]
+                            , under = "-(-"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (n)
 """
                         ]
         ]
