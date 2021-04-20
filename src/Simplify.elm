@@ -128,6 +128,9 @@ Below is the list of all kinds of simplifications this rule applies.
     n * 1
     --> n
 
+    n * 0
+    --> 0
+
     negate >> negate
     --> identity
 
@@ -740,36 +743,25 @@ compositionChecks =
 
 plusChecks : OperatorCheckInfo -> List (Error {})
 plusChecks { parentRange, leftRange, rightRange, left, right } =
-    if getNumberValue right == Just 0 then
-        let
-            range : Range
-            range =
-                { start = leftRange.end, end = rightRange.end }
-        in
-        [ Rule.errorWithFix
-            { message = "Unnecessary addition with 0"
-            , details = [ "Adding 0 does not change the value of the number." ]
-            }
-            range
-            [ Fix.removeRange range ]
-        ]
+    findMap
+        (\( node, getRange ) ->
+            if getNumberValue node == Just 0 then
+                Just
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary addition with 0"
+                        , details = [ "Adding 0 does not change the value of the number." ]
+                        }
+                        (getRange ())
+                        [ Fix.removeRange (getRange ()) ]
+                    ]
 
-    else if getNumberValue left == Just 0 then
-        let
-            range : Range
-            range =
-                { start = leftRange.start, end = rightRange.start }
-        in
-        [ Rule.errorWithFix
-            { message = "Unnecessary addition with 0"
-            , details = [ "Adding 0 does not change the value of the number." ]
-            }
-            range
-            [ Fix.removeRange range ]
+            else
+                Nothing
+        )
+        [ ( right, \() -> { start = leftRange.end, end = rightRange.end } )
+        , ( left, \() -> { start = leftRange.start, end = rightRange.start } )
         ]
-
-    else
-        []
+        |> Maybe.withDefault []
 
 
 minusChecks : OperatorCheckInfo -> List (Error {})
@@ -808,36 +800,55 @@ minusChecks { parentRange, leftRange, rightRange, left, right } =
 
 multiplyChecks : OperatorCheckInfo -> List (Error {})
 multiplyChecks { parentRange, leftRange, rightRange, left, right } =
-    if getNumberValue right == Just 1 then
-        let
-            range : Range
-            range =
-                { start = leftRange.end, end = rightRange.end }
-        in
-        [ Rule.errorWithFix
-            { message = "Unnecessary multiplication by 1"
-            , details = [ "Multiplying by 1 does not change the value of the number." ]
-            }
-            range
-            [ Fix.removeRange range ]
-        ]
+    findMap
+        (\( node, getRange ) ->
+            case getNumberValue node of
+                Just value ->
+                    if value == 1 then
+                        Just
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary multiplication by 1"
+                                , details = [ "Multiplying by 1 does not change the value of the number." ]
+                                }
+                                (getRange ())
+                                [ Fix.removeRange (getRange ()) ]
+                            ]
 
-    else if getNumberValue left == Just 1 then
-        let
-            range : Range
-            range =
-                { start = leftRange.start, end = rightRange.start }
-        in
-        [ Rule.errorWithFix
-            { message = "Unnecessary multiplication by 1"
-            , details = [ "Multiplying by 1 does not change the value of the number." ]
-            }
-            range
-            [ Fix.removeRange range ]
-        ]
+                    else if value == 0 then
+                        Just
+                            [ Rule.errorWithFix
+                                { message = "Multiplying by 0 equals 0"
+                                , details = [ "You can replace this value by 0." ]
+                                }
+                                (getRange ())
+                                [ Fix.replaceRangeBy parentRange "0" ]
+                            ]
 
-    else
-        []
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+        )
+        [ ( right, \() -> { start = leftRange.end, end = rightRange.end } )
+        , ( left, \() -> { start = leftRange.start, end = rightRange.start } )
+        ]
+        |> Maybe.withDefault []
+
+
+findMap : (a -> Maybe b) -> List a -> Maybe b
+findMap mapper nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        node :: rest ->
+            case mapper node of
+                Just value ->
+                    Just value
+
+                Nothing ->
+                    findMap mapper rest
 
 
 plusplusChecks : OperatorCheckInfo -> List (Error {})

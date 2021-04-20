@@ -878,6 +878,54 @@ a = 1 * n
 a = n
 """
                         ]
+        , test "should simplify n * 0 to 0" <|
+            \() ->
+                """module A exposing (..)
+a = n * 0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Multiplying by 0 equals 0"
+                            , details = [ "You can replace this value by 0." ]
+                            , under = " * 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should simplify n * 0.0 to 0" <|
+            \() ->
+                """module A exposing (..)
+a = n * 0.0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Multiplying by 0 equals 0"
+                            , details = [ "You can replace this value by 0." ]
+                            , under = " * 0.0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should simplify 0 * n to 0" <|
+            \() ->
+                """module A exposing (..)
+a = 0 * n
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Multiplying by 0 equals 0"
+                            , details = [ "You can replace this value by 0." ]
+                            , under = "0 * "
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
         ]
 
 
