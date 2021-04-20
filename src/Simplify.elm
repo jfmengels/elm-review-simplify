@@ -95,6 +95,9 @@ Below is the list of all kinds of simplifications this rule applies.
     identity x
     --> x
 
+    f >> identity
+    --> f
+
     always x y
     --> x
 
@@ -566,6 +569,62 @@ expressionVisitorHelp node { lookupTable } =
 
                 _ ->
                     ( [], [] )
+
+        Expression.OperatorApplication ">>" _ left right ->
+            if isIdentity lookupTable right then
+                ( [ Rule.errorWithFix
+                        { message = "`identity` should be removed"
+                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                        }
+                        (Node.range right)
+                        [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
+                        ]
+                  ]
+                , []
+                )
+
+            else if isIdentity lookupTable left then
+                ( [ Rule.errorWithFix
+                        { message = "`identity` should be removed"
+                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                        }
+                        (Node.range left)
+                        [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
+                        ]
+                  ]
+                , []
+                )
+
+            else
+                ( [], [] )
+
+        Expression.OperatorApplication "<<" _ left right ->
+            if isIdentity lookupTable right then
+                ( [ Rule.errorWithFix
+                        { message = "`identity` should be removed"
+                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                        }
+                        (Node.range right)
+                        [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
+                        ]
+                  ]
+                , []
+                )
+
+            else if isIdentity lookupTable left then
+                ( [ Rule.errorWithFix
+                        { message = "`identity` should be removed"
+                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                        }
+                        (Node.range left)
+                        [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
+                        ]
+                  ]
+                , []
+                )
+
+            else
+                ( [], [] )
 
         Expression.OperatorApplication operator _ left right ->
             case Dict.get operator operatorChecks of

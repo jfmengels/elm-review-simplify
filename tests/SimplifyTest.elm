@@ -81,6 +81,70 @@ a = x |> identity
 a = x
 """
                         ]
+        , test "should replace f >> identity by f" <|
+            \() ->
+                """module A exposing (..)
+a = f >> identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                            , under = "identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace identity >> f by f" <|
+            \() ->
+                """module A exposing (..)
+a = identity >> f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                            , under = "identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace f << identity by f" <|
+            \() ->
+                """module A exposing (..)
+a = f << identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                            , under = "identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace identity << f by f" <|
+            \() ->
+                """module A exposing (..)
+a = identity << f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                            , under = "identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
         ]
 
 
