@@ -116,6 +116,9 @@ Below is the list of all kinds of simplifications this rule applies.
 
 ### Numbers
 
+    n + 0
+    --> n
+
     negate >> negate
     --> identity
 
@@ -679,7 +682,8 @@ type alias OperatorCheckInfo =
 operatorChecks : Dict String (OperatorCheckInfo -> List (Error {}))
 operatorChecks =
     Dict.fromList
-        [ ( "++", plusplusChecks )
+        [ ( "+", plusChecks )
+        , ( "++", plusplusChecks )
         , ( "::", consChecks )
         , ( "||", orChecks )
         , ( "&&", andChecks )
@@ -721,6 +725,40 @@ compositionChecks =
     , negateCompositionCheck
     , alwaysCompositionCheck
     ]
+
+
+plusChecks : OperatorCheckInfo -> List (Error {})
+plusChecks { parentRange, leftRange, rightRange, left, right } =
+    if getIntValue right == Just 0 then
+        let
+            range : Range
+            range =
+                { start = leftRange.end, end = rightRange.end }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary addition with 0"
+            , details = [ "Adding 0 does not change the value of the number." ]
+            }
+            range
+            [ Fix.removeRange range ]
+        ]
+
+    else if getIntValue left == Just 0 then
+        let
+            range : Range
+            range =
+                { start = leftRange.start, end = rightRange.start }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary addition with 0"
+            , details = [ "Adding 0 does not change the value of the number." ]
+            }
+            range
+            [ Fix.removeRange range ]
+        ]
+
+    else
+        []
 
 
 plusplusChecks : OperatorCheckInfo -> List (Error {})

@@ -688,7 +688,54 @@ a = (not << a) << not
 numberTests : Test
 numberTests =
     describe "Number tests"
-        [ negateTests
+        [ plusTests
+        , negateTests
+        ]
+
+
+plusTests : Test
+plusTests =
+    describe "(+)"
+        [ test "should not simplify (+) used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = b + 1
+b = 2 + 3
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify n + 0 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n + 0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary addition with 0"
+                            , details = [ "Adding 0 does not change the value of the number." ]
+                            , under = " + 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify 0 + n to n" <|
+            \() ->
+                """module A exposing (..)
+a = 0 + n
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary addition with 0"
+                            , details = [ "Adding 0 does not change the value of the number." ]
+                            , under = "0 + "
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
         ]
 
 
