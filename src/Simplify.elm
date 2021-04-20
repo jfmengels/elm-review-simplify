@@ -111,6 +111,12 @@ Below is the list of all kinds of simplifications this rule applies.
     --> a ++ b
 
 
+### Numbers
+
+    negate >> negate
+    --> identity
+
+
 ### Strings
 
     "a" ++ ""
@@ -709,6 +715,7 @@ compositionChecks : List (CompositionCheckInfo -> Maybe (List (Error {})))
 compositionChecks =
     [ identityCompositionCheck
     , notNotCompositionCheck
+    , negateCompositionCheck
     ]
 
 
@@ -815,6 +822,101 @@ consChecks { right, leftRange, rightRange } =
 
         _ ->
             []
+
+
+
+-- NUMBERS
+
+
+negateCompositionCheck : CompositionCheckInfo -> Maybe (List (Error {}))
+negateCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange } =
+    case Maybe.map2 Tuple.pair (getNegateFunction lookupTable left) (getNegateFunction lookupTable right) of
+        Just _ ->
+            Just
+                [ Rule.errorWithFix
+                    { message = "Unnecessary double negation"
+                    , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                    }
+                    parentRange
+                    [ Fix.replaceRangeBy parentRange "identity" ]
+                ]
+
+        _ ->
+            case getNegateFunction lookupTable left of
+                Just leftNotRange ->
+                    Maybe.map
+                        (\rightNotRange ->
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary double negation"
+                                , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                                }
+                                { start = leftNotRange.start, end = rightNotRange.end }
+                                [ Fix.removeRange { start = leftNotRange.start, end = rightRange.start }
+                                , Fix.removeRange rightNotRange
+                                ]
+                            ]
+                        )
+                        (getNegateComposition lookupTable fromLeftToRight right)
+
+                Nothing ->
+                    case getNegateFunction lookupTable right of
+                        Just rightNotRange ->
+                            Maybe.map
+                                (\leftNotRange ->
+                                    [ Rule.errorWithFix
+                                        { message = "Unnecessary double negation"
+                                        , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                                        }
+                                        { start = leftNotRange.start, end = rightNotRange.end }
+                                        [ Fix.removeRange leftNotRange
+                                        , Fix.removeRange { start = leftRange.end, end = rightNotRange.end }
+                                        ]
+                                    ]
+                                )
+                                (getNegateComposition lookupTable (not fromLeftToRight) left)
+
+                        Nothing ->
+                            Nothing
+
+
+getNegateComposition : ModuleNameLookupTable -> Bool -> Node Expression -> Maybe Range
+getNegateComposition lookupTable takeFirstFunction node =
+    case Node.value (removeParens node) of
+        Expression.OperatorApplication "<<" _ left right ->
+            if takeFirstFunction then
+                getNegateFunction lookupTable right
+                    |> Maybe.map (\_ -> { start = (Node.range left).end, end = (Node.range right).end })
+
+            else
+                getNegateFunction lookupTable left
+                    |> Maybe.map (\_ -> { start = (Node.range left).start, end = (Node.range right).start })
+
+        Expression.OperatorApplication ">>" _ left right ->
+            if takeFirstFunction then
+                getNegateFunction lookupTable left
+                    |> Maybe.map (\_ -> { start = (Node.range left).start, end = (Node.range right).start })
+
+            else
+                getNegateFunction lookupTable right
+                    |> Maybe.map (\_ -> { start = (Node.range left).end, end = (Node.range right).end })
+
+        _ ->
+            Nothing
+
+
+getNegateFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getNegateFunction lookupTable baseNode =
+    case removeParens baseNode of
+        Node notRange (Expression.FunctionOrValue _ "negate") ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
+                Just [ "Basics" ] ->
+                    Just notRange
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 

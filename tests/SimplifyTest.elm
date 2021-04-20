@@ -12,6 +12,7 @@ all =
         , alwaysTests
         , booleanTests
         , ifTests
+        , numberTests
         , fullyAppliedPrefixOperatorTests
         , usingPlusPlusTests
         , stringSimplificationTests
@@ -642,6 +643,142 @@ a = (a)
             \() ->
                 """module A exposing (..)
 a = (not << a) << not
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        ]
+
+
+
+-- NUMBER
+
+
+numberTests : Test
+numberTests =
+    describe "Number tests"
+        [ negateTests
+        ]
+
+
+negateTests : Test
+negateTests =
+    describe "Basics.negate"
+        [ test "should simplify negate >> negate to identity" <|
+            \() ->
+                """module A exposing (..)
+a = negate >> negate
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate >> negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should simplify a >> negate >> negate to a >> identity" <|
+            \() ->
+                """module A exposing (..)
+a = a >> negate >> negate
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate >> negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = a >> identity
+"""
+                        ]
+        , test "should simplify negate >> negate >> a to identity >> a" <|
+            \() ->
+                """module A exposing (..)
+a = negate >> negate >> a
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate >> negate >> "
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = a
+"""
+                        ]
+        , test "should simplify negate << negate to identity" <|
+            \() ->
+                """module A exposing (..)
+a = negate << negate
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate << negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should simplify negate << negate << a to identity << a" <|
+            \() ->
+                """module A exposing (..)
+a = negate << negate << a
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate << negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity << a
+"""
+                        ]
+        , test "should simplify a << negate << negate to a" <|
+            \() ->
+                """module A exposing (..)
+a = a << negate << negate
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = " << negate << negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = a
+"""
+                        ]
+        , test "should simplify (negate >> a) << negate to a" <|
+            \() ->
+                """module A exposing (..)
+a = (negate >> a) << negate
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate >> a) << negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (a)
+"""
+                        ]
+        , test "should negate simplify (negate << a) << negate" <|
+            \() ->
+                """module A exposing (..)
+a = (negate << a) << negate
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
