@@ -312,7 +312,7 @@ Below is the list of all kinds of simplifications this rule applies.
     --> str
 
 
-### Cmd
+### Cmd / Sub
 
     Cmd.batch []
     --> Cmd.none
@@ -322,6 +322,15 @@ Below is the list of all kinds of simplifications this rule applies.
 
     Cmd.batch [ a, Cmd.none, b ]
     --> Cmd.batch [ a, b ]
+
+    Sub.batch []
+    --> Sub.none
+
+    Sub.batch [ a ]
+    --> a
+
+    Sub.batch [ a, Sub.none, b ]
+    --> Sub.batch [ a, b ]
 
 -}
 rule : Rule
@@ -787,7 +796,8 @@ functionCallChecks =
         , ( ( [ "List" ], "range" ), rangeChecks )
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
-        , ( ( [ "Platform", "Cmd" ], "batch" ), cmdBatchChecks )
+        , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
+        , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
         ]
 
 
@@ -2206,22 +2216,22 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
                     []
 
 
-cmdBatchChecks : CheckInfo -> List (Error {})
-cmdBatchChecks { lookupTable, parentRange, fnRange, firstArg } =
+subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})
+subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Replace by Cmd.batch"
-                , details = [ "Cmd.batch [] and Cmd.none are equivalent but the latter is more idiomatic in Elm code" ]
+                { message = "Replace by " ++ moduleName ++ ".batch"
+                , details = [ moduleName ++ ".batch [] and " ++ moduleName ++ ".none are equivalent but the latter is more idiomatic in Elm code" ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy parentRange "Cmd.none" ]
+                [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
             ]
 
         Expression.ListExpr [ arg ] ->
             [ Rule.errorWithFix
-                { message = "Unnecessary Cmd.batch"
-                , details = [ "Cmd.batch with a single element is equal to that element." ]
+                { message = "Unnecessary " ++ moduleName ++ ".batch"
+                , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range arg).start } "("
@@ -2238,11 +2248,11 @@ cmdBatchChecks { lookupTable, parentRange, fnRange, firstArg } =
                     (\( prev, arg, next ) ->
                         case removeParens arg of
                             Node batchRange (Expression.FunctionOrValue _ "none") ->
-                                if ModuleNameLookupTable.moduleNameAt lookupTable batchRange == Just [ "Platform", "Cmd" ] then
+                                if ModuleNameLookupTable.moduleNameAt lookupTable batchRange == Just [ "Platform", moduleName ] then
                                     Just
                                         (Rule.errorWithFix
-                                            { message = "Unnecessary Cmd.none"
-                                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                                            { message = "Unnecessary " ++ moduleName ++ ".none"
+                                            , details = [ moduleName ++ ".none will be ignored by " ++ moduleName ++ ".batch." ]
                                             }
                                             (Node.range arg)
                                             (case prev of
@@ -2255,7 +2265,7 @@ cmdBatchChecks { lookupTable, parentRange, fnRange, firstArg } =
                                                             [ Fix.removeRange { start = (Node.range arg).start, end = nextRange.start } ]
 
                                                         Nothing ->
-                                                            [ Fix.replaceRangeBy parentRange "Cmd.none" ]
+                                                            [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
                                             )
                                         )
 

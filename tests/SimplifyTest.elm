@@ -19,6 +19,7 @@ all =
         , stringSimplificationTests
         , listSimplificationTests
         , cmdTests
+        , subTests
         ]
 
 
@@ -3732,6 +3733,117 @@ a = Cmd.batch [ Cmd.none, b ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Cmd.batch [ b ]
+"""
+                        ]
+        ]
+
+
+subTests : Test
+subTests =
+    describe "Sub.batch"
+        [ test "should not report Sub.batch used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch
+a = Sub.batch b
+a = Sub.batch [ b, x ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Sub.batch [] by Sub.none" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Replace by Sub.batch"
+                            , details = [ "Sub.batch [] and Sub.none are equivalent but the latter is more idiomatic in Elm code" ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.none
+"""
+                        ]
+        , test "should replace Sub.batch [ a, Sub.none, b ] by Sub.batch [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ a, Sub.none, b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.none"
+                            , details = [ "Sub.none will be ignored by Sub.batch." ]
+                            , under = "Sub.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.batch [ a, b ]
+"""
+                        ]
+        , test "should replace Sub.batch [ Sub.none ] by Sub.none" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ Sub.none ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.batch"
+                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Sub.none)
+"""
+                        ]
+        , test "should replace Sub.batch [ b ] by b" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.batch"
+                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b)
+"""
+                        ]
+        , test "should replace Sub.batch [ b, Sub.none ] by Sub.batch []" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ b, Sub.none ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.none"
+                            , details = [ "Sub.none will be ignored by Sub.batch." ]
+                            , under = "Sub.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.batch [ b ]
+"""
+                        ]
+        , test "should replace Sub.batch [ Sub.none, b ] by Sub.batch [ b ]" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ Sub.none, b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.none"
+                            , details = [ "Sub.none will be ignored by Sub.batch." ]
+                            , under = "Sub.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.batch [ b ]
 """
                         ]
         ]
