@@ -125,6 +125,9 @@ Below is the list of all kinds of simplifications this rule applies.
     0 - n
     --> -n
 
+    n * 1
+    --> n
+
     negate >> negate
     --> identity
 
@@ -690,6 +693,7 @@ operatorChecks =
     Dict.fromList
         [ ( "+", plusChecks )
         , ( "-", minusChecks )
+        , ( "*", multiplyChecks )
         , ( "++", plusplusChecks )
         , ( "::", consChecks )
         , ( "||", orChecks )
@@ -796,6 +800,40 @@ minusChecks { parentRange, leftRange, rightRange, left, right } =
             }
             range
             [ Fix.replaceRangeBy range "-" ]
+        ]
+
+    else
+        []
+
+
+multiplyChecks : OperatorCheckInfo -> List (Error {})
+multiplyChecks { parentRange, leftRange, rightRange, left, right } =
+    if getNumberValue right == Just 1 then
+        let
+            range : Range
+            range =
+                { start = leftRange.end, end = rightRange.end }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary multiplication by 1"
+            , details = [ "Multiplying by 1 does not change the value of the number." ]
+            }
+            range
+            [ Fix.removeRange range ]
+        ]
+
+    else if getNumberValue left == Just 1 then
+        let
+            range : Range
+            range =
+                { start = leftRange.start, end = rightRange.start }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary multiplication by 1"
+            , details = [ "Multiplying by 1 does not change the value of the number." ]
+            }
+            range
+            [ Fix.removeRange range ]
         ]
 
     else

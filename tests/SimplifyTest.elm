@@ -690,6 +690,7 @@ numberTests =
     describe "Number tests"
         [ plusTests
         , minusTests
+        , multiplyTests
         , negateTests
         ]
 
@@ -813,6 +814,68 @@ a = 0 - n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = -n
+"""
+                        ]
+        ]
+
+
+multiplyTests : Test
+multiplyTests =
+    describe "(*)"
+        [ test "should not simplify (*) used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = b * 2
+b = 2 * 3
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify n * 1 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n * 1
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary multiplication by 1"
+                            , details = [ "Multiplying by 1 does not change the value of the number." ]
+                            , under = " * 1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify n * 1.0 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n * 1.0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary multiplication by 1"
+                            , details = [ "Multiplying by 1 does not change the value of the number." ]
+                            , under = " * 1.0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify 1 * n to n" <|
+            \() ->
+                """module A exposing (..)
+a = 1 * n
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary multiplication by 1"
+                            , details = [ "Multiplying by 1 does not change the value of the number." ]
+                            , under = "1 * "
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
 """
                         ]
         ]
