@@ -71,6 +71,9 @@ Below is the list of all kinds of simplifications this rule applies.
     anything /= anything
     --> False
 
+    not >> not
+    --> identity
+
 
 ### If expressions
 
@@ -692,6 +695,7 @@ firstThatReportsError remainingCompositionChecks operatorCheckInfo =
 compositionChecks : List (OperatorCheckInfo -> Maybe (List (Error {})))
 compositionChecks =
     [ identityCompositionCheck
+    , notNotCompositionCheck
     ]
 
 
@@ -818,6 +822,23 @@ notChecks { lookupTable, parentRange, firstArg } =
 
         Nothing ->
             []
+
+
+notNotCompositionCheck : OperatorCheckInfo -> Maybe (List (Error {}))
+notNotCompositionCheck { lookupTable, parentRange, left, right } =
+    case Maybe.map2 Tuple.pair (getNotFunction lookupTable left) (getNotFunction lookupTable right) of
+        Just _ ->
+            Just
+                [ Rule.errorWithFix
+                    { message = "Unnecessary double negation"
+                    , details = [ "Composing `not` with `not` cancel each other out." ]
+                    }
+                    parentRange
+                    [ Fix.replaceRangeBy parentRange "identity" ]
+                ]
+
+        _ ->
+            Nothing
 
 
 orChecks : OperatorCheckInfo -> List (Error {})
@@ -993,7 +1014,7 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
         ]
 
     else
-        case Maybe.map2 Tuple.pair (getNot lookupTable left) (getNot lookupTable right) of
+        case Maybe.map2 Tuple.pair (getNotCall lookupTable left) (getNotCall lookupTable right) of
             Just ( notRangeLeft, notRangeRight ) ->
                 [ Rule.errorWithFix
                     { message = "Unnecessary negation on both sides"
@@ -1018,10 +1039,25 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
                     []
 
 
-getNot : ModuleNameLookupTable -> Node Expression -> Maybe Range
-getNot lookupTable baseNode =
+getNotCall : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getNotCall lookupTable baseNode =
     case Node.value (removeParens baseNode) of
         Expression.Application ((Node notRange (Expression.FunctionOrValue _ "not")) :: _) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
+                Just [ "Basics" ] ->
+                    Just notRange
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getNotFunction lookupTable baseNode =
+    case removeParens baseNode of
+        Node notRange (Expression.FunctionOrValue _ "not") ->
             case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
                 Just [ "Basics" ] ->
                     Just notRange

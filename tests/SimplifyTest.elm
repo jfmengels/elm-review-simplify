@@ -526,6 +526,70 @@ a = True |> not
 a = False
 """
                         ]
+        , test "should simplify not >> not to identity" <|
+            \() ->
+                """module A exposing (..)
+a = not >> not
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not >> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should simplify a >> not >> not to a >> identity" <|
+            \() ->
+                """module A exposing (..)
+a = a >> not >> not
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not >> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = a >> identity
+"""
+                        ]
+        , test "should simplify not << not << a to identity << a" <|
+            \() ->
+                """module A exposing (..)
+a = not << not << a
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not << not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity << a
+"""
+                        ]
+        , test "should simplify not << not to identity" <|
+            \() ->
+                """module A exposing (..)
+a = not << not
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not << not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         ]
 
 
