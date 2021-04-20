@@ -691,6 +691,7 @@ numberTests =
         [ plusTests
         , minusTests
         , multiplyTests
+        , divisionTests
         , basicsNegateTests
         ]
 
@@ -924,6 +925,52 @@ a = 0 * n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
+"""
+                        ]
+        ]
+
+
+divisionTests : Test
+divisionTests =
+    describe "(/)"
+        [ test "should not simplify (/) used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = 1 / 2
+b = 2 / 3
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should simplify n / 1 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n / 1
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary division by 1"
+                            , details = [ "Dividing by 1 does not change the value of the number." ]
+                            , under = " / 1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify n / 1.0 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n / 1.0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary division by 1"
+                            , details = [ "Dividing by 1 does not change the value of the number." ]
+                            , under = " / 1.0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
 """
                         ]
         ]

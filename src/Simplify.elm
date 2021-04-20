@@ -131,6 +131,9 @@ Below is the list of all kinds of simplifications this rule applies.
     n * 0
     --> 0
 
+    n / 1
+    --> n
+
     negate >> negate
     --> identity
 
@@ -697,6 +700,7 @@ operatorChecks =
         [ ( "+", plusChecks )
         , ( "-", minusChecks )
         , ( "*", multiplyChecks )
+        , ( "/", divisionChecks )
         , ( "++", plusplusChecks )
         , ( "::", consChecks )
         , ( "||", orChecks )
@@ -742,7 +746,7 @@ compositionChecks =
 
 
 plusChecks : OperatorCheckInfo -> List (Error {})
-plusChecks { parentRange, leftRange, rightRange, left, right } =
+plusChecks { leftRange, rightRange, left, right } =
     findMap
         (\( node, getRange ) ->
             if getNumberValue node == Just 0 then
@@ -765,7 +769,7 @@ plusChecks { parentRange, leftRange, rightRange, left, right } =
 
 
 minusChecks : OperatorCheckInfo -> List (Error {})
-minusChecks { parentRange, leftRange, rightRange, left, right } =
+minusChecks { leftRange, rightRange, left, right } =
     if getNumberValue right == Just 0 then
         let
             range : Range
@@ -834,6 +838,26 @@ multiplyChecks { parentRange, leftRange, rightRange, left, right } =
         , ( left, \() -> { start = leftRange.start, end = rightRange.start } )
         ]
         |> Maybe.withDefault []
+
+
+divisionChecks : OperatorCheckInfo -> List (Error {})
+divisionChecks { leftRange, rightRange, right } =
+    if getNumberValue right == Just 1 then
+        let
+            range : Range
+            range =
+                { start = leftRange.end, end = rightRange.end }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary division by 1"
+            , details = [ "Dividing by 1 does not change the value of the number." ]
+            }
+            range
+            [ Fix.removeRange range ]
+        ]
+
+    else
+        []
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
