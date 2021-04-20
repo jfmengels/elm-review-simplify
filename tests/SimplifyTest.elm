@@ -691,7 +691,7 @@ numberTests =
         [ plusTests
         , minusTests
         , multiplyTests
-        , negateTests
+        , basicsNegateTests
         ]
 
 
@@ -929,8 +929,8 @@ a = 0
         ]
 
 
-negateTests : Test
-negateTests =
+basicsNegateTests : Test
+basicsNegateTests =
     describe "Basics.negate"
         [ test "should simplify negate >> negate to identity" <|
             \() ->
