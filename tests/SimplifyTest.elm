@@ -721,6 +721,22 @@ a = n + 0
 a = n
 """
                         ]
+        , test "should simplify n + 0.0 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n + 0.0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary addition with 0"
+                            , details = [ "Adding 0 does not change the value of the number." ]
+                            , under = " + 0.0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
         , test "should simplify 0 + n to n" <|
             \() ->
                 """module A exposing (..)
@@ -762,6 +778,22 @@ a = n - 0
                             { message = "Unnecessary subtraction with 0"
                             , details = [ "Subtracting 0 does not change the value of the number." ]
                             , under = " - 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify n - 0.0 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n - 0.0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary subtraction with 0"
+                            , details = [ "Subtracting 0 does not change the value of the number." ]
+                            , under = " - 0.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n

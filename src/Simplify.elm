@@ -736,7 +736,7 @@ compositionChecks =
 
 plusChecks : OperatorCheckInfo -> List (Error {})
 plusChecks { parentRange, leftRange, rightRange, left, right } =
-    if getIntValue right == Just 0 then
+    if getNumberValue right == Just 0 then
         let
             range : Range
             range =
@@ -750,7 +750,7 @@ plusChecks { parentRange, leftRange, rightRange, left, right } =
             [ Fix.removeRange range ]
         ]
 
-    else if getIntValue left == Just 0 then
+    else if getNumberValue left == Just 0 then
         let
             range : Range
             range =
@@ -770,7 +770,7 @@ plusChecks { parentRange, leftRange, rightRange, left, right } =
 
 minusChecks : OperatorCheckInfo -> List (Error {})
 minusChecks { parentRange, leftRange, rightRange, left, right } =
-    if getIntValue right == Just 0 then
+    if getNumberValue right == Just 0 then
         let
             range : Range
             range =
@@ -784,7 +784,7 @@ minusChecks { parentRange, leftRange, rightRange, left, right } =
             [ Fix.removeRange range ]
         ]
 
-    else if getIntValue left == Just 0 then
+    else if getNumberValue left == Just 0 then
         let
             range : Range
             range =
@@ -2037,6 +2037,25 @@ getIntValue node =
 
         Expression.Negation expr ->
             Maybe.map negate (getIntValue expr)
+
+        _ ->
+            Nothing
+
+
+getNumberValue : Node Expression -> Maybe Float
+getNumberValue node =
+    case Node.value (removeParens node) of
+        Expression.Integer n ->
+            Just (toFloat n)
+
+        Expression.Hex n ->
+            Just (toFloat n)
+
+        Expression.Floatable n ->
+            Just n
+
+        Expression.Negation expr ->
+            Maybe.map negate (getNumberValue expr)
 
         _ ->
             Nothing
