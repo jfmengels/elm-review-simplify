@@ -571,60 +571,28 @@ expressionVisitorHelp node { lookupTable } =
                     ( [], [] )
 
         Expression.OperatorApplication ">>" _ left right ->
-            if isIdentity lookupTable right then
-                ( [ Rule.errorWithFix
-                        { message = "`identity` should be removed"
-                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-                        }
-                        (Node.range right)
-                        [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
-                        ]
-                  ]
-                , []
-                )
-
-            else if isIdentity lookupTable left then
-                ( [ Rule.errorWithFix
-                        { message = "`identity` should be removed"
-                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-                        }
-                        (Node.range left)
-                        [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
+            ( firstThatReportsError compositionChecks
+                { lookupTable = lookupTable
+                , parentRange = Node.range node
+                , left = left
+                , leftRange = Node.range left
+                , right = right
+                , rightRange = Node.range right
+                }
+            , []
+            )
 
         Expression.OperatorApplication "<<" _ left right ->
-            if isIdentity lookupTable right then
-                ( [ Rule.errorWithFix
-                        { message = "`identity` should be removed"
-                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-                        }
-                        (Node.range right)
-                        [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
-                        ]
-                  ]
-                , []
-                )
-
-            else if isIdentity lookupTable left then
-                ( [ Rule.errorWithFix
-                        { message = "`identity` should be removed"
-                        , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-                        }
-                        (Node.range left)
-                        [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
-                        ]
-                  ]
-                , []
-                )
-
-            else
-                ( [], [] )
+            ( firstThatReportsError compositionChecks
+                { lookupTable = lookupTable
+                , parentRange = Node.range node
+                , left = left
+                , leftRange = Node.range left
+                , right = right
+                , rightRange = Node.range right
+                }
+            , []
+            )
 
         Expression.OperatorApplication operator _ left right ->
             case Dict.get operator operatorChecks of
@@ -704,6 +672,27 @@ operatorChecks =
         , ( "==", equalityChecks True )
         , ( "/=", equalityChecks False )
         ]
+
+
+firstThatReportsError : List (OperatorCheckInfo -> Maybe (List (Error {}))) -> OperatorCheckInfo -> List (Error {})
+firstThatReportsError remainingCompositionChecks operatorCheckInfo =
+    case remainingCompositionChecks of
+        [] ->
+            []
+
+        checkFn :: restOfFns ->
+            case checkFn operatorCheckInfo of
+                Just errors ->
+                    errors
+
+                Nothing ->
+                    firstThatReportsError restOfFns operatorCheckInfo
+
+
+compositionChecks : List (OperatorCheckInfo -> Maybe (List (Error {})))
+compositionChecks =
+    [ identityCompositionCheck
+    ]
 
 
 plusplusChecks : OperatorCheckInfo -> List (Error {})
@@ -1109,6 +1098,34 @@ identityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
             Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
         ]
     ]
+
+
+identityCompositionCheck : OperatorCheckInfo -> Maybe (List (Error {}))
+identityCompositionCheck { lookupTable, left, right } =
+    if isIdentity lookupTable right then
+        Just
+            [ Rule.errorWithFix
+                { message = "`identity` should be removed"
+                , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                }
+                (Node.range right)
+                [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
+                ]
+            ]
+
+    else if isIdentity lookupTable left then
+        Just
+            [ Rule.errorWithFix
+                { message = "`identity` should be removed"
+                , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                }
+                (Node.range left)
+                [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
+                ]
+            ]
+
+    else
+        Nothing
 
 
 alwaysChecks : CheckInfo -> List (Error {})
