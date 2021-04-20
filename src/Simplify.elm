@@ -576,6 +576,7 @@ expressionVisitorHelp node { lookupTable } =
         Expression.OperatorApplication ">>" _ left right ->
             ( firstThatReportsError compositionChecks
                 { lookupTable = lookupTable
+                , fromLeftToRight = True
                 , parentRange = Node.range node
                 , left = left
                 , leftRange = Node.range left
@@ -588,6 +589,7 @@ expressionVisitorHelp node { lookupTable } =
         Expression.OperatorApplication "<<" _ left right ->
             ( firstThatReportsError compositionChecks
                 { lookupTable = lookupTable
+                , fromLeftToRight = False
                 , parentRange = Node.range node
                 , left = left
                 , leftRange = Node.range left
@@ -677,7 +679,18 @@ operatorChecks =
         ]
 
 
-firstThatReportsError : List (OperatorCheckInfo -> Maybe (List (Error {}))) -> OperatorCheckInfo -> List (Error {})
+type alias CompositionCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , fromLeftToRight : Bool
+    , parentRange : Range
+    , left : Node Expression
+    , leftRange : Range
+    , right : Node Expression
+    , rightRange : Range
+    }
+
+
+firstThatReportsError : List (CompositionCheckInfo -> Maybe (List (Error {}))) -> CompositionCheckInfo -> List (Error {})
 firstThatReportsError remainingCompositionChecks operatorCheckInfo =
     case remainingCompositionChecks of
         [] ->
@@ -692,7 +705,7 @@ firstThatReportsError remainingCompositionChecks operatorCheckInfo =
                     firstThatReportsError restOfFns operatorCheckInfo
 
 
-compositionChecks : List (OperatorCheckInfo -> Maybe (List (Error {})))
+compositionChecks : List (CompositionCheckInfo -> Maybe (List (Error {})))
 compositionChecks =
     [ identityCompositionCheck
     , notNotCompositionCheck
@@ -824,8 +837,8 @@ notChecks { lookupTable, parentRange, firstArg } =
             []
 
 
-notNotCompositionCheck : OperatorCheckInfo -> Maybe (List (Error {}))
-notNotCompositionCheck { lookupTable, parentRange, left, right } =
+notNotCompositionCheck : CompositionCheckInfo -> Maybe (List (Error {}))
+notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange } =
     case Maybe.map2 Tuple.pair (getNotFunction lookupTable left) (getNotFunction lookupTable right) of
         Just _ ->
             Just
@@ -836,6 +849,65 @@ notNotCompositionCheck { lookupTable, parentRange, left, right } =
                     parentRange
                     [ Fix.replaceRangeBy parentRange "identity" ]
                 ]
+
+        _ ->
+            case getNotFunction lookupTable left of
+                Just leftNotRange ->
+                    Maybe.map
+                        (\rightNotRange ->
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary double negation"
+                                , details = [ "Composing `not` with `not` cancel each other out." ]
+                                }
+                                { start = leftNotRange.start, end = rightNotRange.end }
+                                [ Fix.removeRange { start = leftNotRange.start, end = rightRange.start }
+                                , Fix.removeRange rightNotRange
+                                ]
+                            ]
+                        )
+                        (getNotComposition lookupTable fromLeftToRight right)
+
+                Nothing ->
+                    case getNotFunction lookupTable right of
+                        Just rightNotRange ->
+                            Maybe.map
+                                (\leftNotRange ->
+                                    [ Rule.errorWithFix
+                                        { message = "Unnecessary double negation"
+                                        , details = [ "Composing `not` with `not` cancel each other out." ]
+                                        }
+                                        { start = leftNotRange.start, end = rightNotRange.end }
+                                        [ Fix.removeRange leftNotRange
+                                        , Fix.removeRange { start = leftRange.end, end = rightNotRange.end }
+                                        ]
+                                    ]
+                                )
+                                (getNotComposition lookupTable (not fromLeftToRight) left)
+
+                        Nothing ->
+                            Nothing
+
+
+getNotComposition : ModuleNameLookupTable -> Bool -> Node Expression -> Maybe Range
+getNotComposition lookupTable takeFirstFunction node =
+    case Node.value (removeParens node) of
+        Expression.OperatorApplication "<<" _ left right ->
+            if takeFirstFunction then
+                getNotFunction lookupTable right
+                    |> Maybe.map (\_ -> { start = (Node.range left).end, end = (Node.range right).end })
+
+            else
+                getNotFunction lookupTable left
+                    |> Maybe.map (\_ -> { start = (Node.range left).start, end = (Node.range right).start })
+
+        Expression.OperatorApplication ">>" _ left right ->
+            if takeFirstFunction then
+                getNotFunction lookupTable left
+                    |> Maybe.map (\_ -> { start = (Node.range left).start, end = (Node.range right).start })
+
+            else
+                getNotFunction lookupTable right
+                    |> Maybe.map (\_ -> { start = (Node.range left).end, end = (Node.range right).end })
 
         _ ->
             Nothing
@@ -1136,7 +1208,7 @@ identityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
     ]
 
 
-identityCompositionCheck : OperatorCheckInfo -> Maybe (List (Error {}))
+identityCompositionCheck : CompositionCheckInfo -> Maybe (List (Error {}))
 identityCompositionCheck { lookupTable, left, right } =
     if isIdentity lookupTable right then
         Just
