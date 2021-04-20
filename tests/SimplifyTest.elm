@@ -174,8 +174,8 @@ a = always x y
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression can be replaced by the first argument to `always`"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression can be replaced by the first argument given to `always`"
+                            , details = [ "The second argument will be ignored because of the `always` call." ]
                             , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -190,8 +190,8 @@ a = always x <| y
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression can be replaced by the first argument to `always`"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression can be replaced by the first argument given to `always`"
+                            , details = [ "The second argument will be ignored because of the `always` call." ]
                             , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -206,8 +206,8 @@ a = y |> always x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression can be replaced by the first argument to `always`"
-                            , details = [ "REPLACEME" ]
+                            { message = "Expression can be replaced by the first argument given to `always`"
+                            , details = [ "The second argument will be ignored because of the `always` call." ]
                             , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -1475,8 +1475,8 @@ alwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
     case secondArg of
         Just (Node secondArgRange _) ->
             [ Rule.errorWithFix
-                { message = "Expression can be replaced by the first argument to `always`"
-                , details = [ "REPLACEME" ]
+                { message = "Expression can be replaced by the first argument given to `always`"
+                , details = [ "The second argument will be ignored because of the `always` call." ]
                 }
                 fnRange
                 (if usingRightPizza then
