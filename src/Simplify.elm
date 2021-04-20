@@ -311,6 +311,12 @@ Below is the list of all kinds of simplifications this rule applies.
     List.repeat 1 str
     --> str
 
+
+### Cmd
+
+    Cmd.batch []
+    --> Cmd.none
+
 -}
 rule : Rule
 rule =
@@ -775,6 +781,7 @@ functionCallChecks =
         , ( ( [ "List" ], "range" ), rangeChecks )
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
+        , ( ( [ "Platform", "Cmd" ], "batch" ), cmdBatchChecks )
         ]
 
 
@@ -2191,6 +2198,22 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
 
                 _ ->
                     []
+
+
+cmdBatchChecks : CheckInfo -> List (Error {})
+cmdBatchChecks { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Replace by Cmd.batch"
+                , details = [ "Cmd.batch [] and Cmd.none are equivalent but the latter is more idiomatic in Elm code" ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "Cmd.none" ]
+            ]
+
+        _ ->
+            []
 
 
 getIntValue : Node Expression -> Maybe Int

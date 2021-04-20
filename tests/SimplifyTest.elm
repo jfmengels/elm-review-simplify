@@ -18,6 +18,7 @@ all =
         , usingPlusPlusTests
         , stringSimplificationTests
         , listSimplificationTests
+        , cmdTests
         ]
 
 
@@ -3620,6 +3621,37 @@ a = List.repeat 1 list
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =  list
+"""
+                        ]
+        ]
+
+
+cmdTests : Test
+cmdTests =
+    describe "Cmd.batch"
+        [ test "should not report Cmd.batch used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch
+a = Cmd.batch b
+a = Cmd.batch [ b, x ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Cmd.batch [] by Cmd.none" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Replace by Cmd.batch"
+                            , details = [ "Cmd.batch [] and Cmd.none are equivalent but the latter is more idiomatic in Elm code" ]
+                            , under = "Cmd.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.none
 """
                         ]
         ]
