@@ -3654,4 +3654,68 @@ a = Cmd.batch []
 a = Cmd.none
 """
                         ]
+        , test "should replace Cmd.batch [ a, Cmd.none, b ] by Cmd.batch [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch [ a, Cmd.none, b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Cmd.none"
+                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            , under = "Cmd.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.batch [ a, b ]
+"""
+                        ]
+        , test "should replace Cmd.batch [ Cmd.none ] by Cmd.none" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch [ Cmd.none ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Cmd.none"
+                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            , under = "Cmd.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.none
+"""
+                        ]
+        , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch []" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch [ b, Cmd.none ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Cmd.none"
+                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            , under = "Cmd.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.batch [ b ]
+"""
+                        ]
+        , test "should replace Cmd.batch [ Cmd.none, b ] by Cmd.batch [ b ]" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch [ Cmd.none, b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Cmd.none"
+                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            , under = "Cmd.none"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.batch [ b ]
+"""
+                        ]
         ]

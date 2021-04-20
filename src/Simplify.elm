@@ -2201,7 +2201,7 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
 
 
 cmdBatchChecks : CheckInfo -> List (Error {})
-cmdBatchChecks { parentRange, fnRange, firstArg } =
+cmdBatchChecks { lookupTable, parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
@@ -2211,6 +2211,43 @@ cmdBatchChecks { parentRange, fnRange, firstArg } =
                 fnRange
                 [ Fix.replaceRangeBy parentRange "Cmd.none" ]
             ]
+
+        Expression.ListExpr args ->
+            List.map3 (\a b c -> ( a, b, c ))
+                (Nothing :: List.map (Node.range >> Just) args)
+                args
+                (List.map (Node.range >> Just) (List.drop 1 args) ++ [ Nothing ])
+                |> List.filterMap
+                    (\( prev, arg, next ) ->
+                        case removeParens arg of
+                            Node batchRange (Expression.FunctionOrValue _ "none") ->
+                                if ModuleNameLookupTable.moduleNameAt lookupTable batchRange == Just [ "Platform", "Cmd" ] then
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Unnecessary Cmd.none"
+                                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                                            }
+                                            (Node.range arg)
+                                            (case prev of
+                                                Just prevRange ->
+                                                    [ Fix.removeRange { start = prevRange.end, end = (Node.range arg).end } ]
+
+                                                Nothing ->
+                                                    case next of
+                                                        Just nextRange ->
+                                                            [ Fix.removeRange { start = (Node.range arg).start, end = nextRange.start } ]
+
+                                                        Nothing ->
+                                                            [ Fix.replaceRangeBy parentRange "Cmd.none" ]
+                                            )
+                                        )
+
+                                else
+                                    Nothing
+
+                            _ ->
+                                Nothing
+                    )
 
         _ ->
             []
