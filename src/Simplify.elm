@@ -110,8 +110,14 @@ Below is the list of all kinds of simplifications this rule applies.
 
 ### Lambdas
 
-    (\\() -> x) ()
+    (\\() -> x) data
     --> x
+
+    (\\() y -> x) data
+    --> (\y -> x)
+
+    (\\_ y -> x) data
+    --> (\y -> x)
 
 
 ### Operators
@@ -521,9 +527,41 @@ expressionVisitorHelp node { lookupTable } =
                                 ]
                             }
                             unitRange
-                            [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
-                            , Fix.removeRange (Node.range firstArgument)
-                            ]
+                            (case otherPatterns of
+                                [] ->
+                                    [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                                    , Fix.removeRange (Node.range firstArgument)
+                                    ]
+
+                                secondPattern :: _ ->
+                                    [ Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
+                                    , Fix.removeRange (Node.range firstArgument)
+                                    ]
+                            )
+                      ]
+                    , []
+                    )
+
+                (Node allRange Pattern.AllPattern) :: otherPatterns ->
+                    ( [ Rule.errorWithFix
+                            { message = "Unnecessary wildcard argument argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            }
+                            allRange
+                            (case otherPatterns of
+                                [] ->
+                                    [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                                    , Fix.removeRange (Node.range firstArgument)
+                                    ]
+
+                                secondPattern :: _ ->
+                                    [ Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
+                                    , Fix.removeRange (Node.range firstArgument)
+                                    ]
+                            )
                       ]
                     , []
                     )
