@@ -713,7 +713,7 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right } =
 
 
 consChecks : OperatorCheckInfo -> List (Error {})
-consChecks { left, right, leftRange, rightRange } =
+consChecks { right, leftRange, rightRange } =
     case Node.value right of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
