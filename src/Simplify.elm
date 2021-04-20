@@ -119,6 +119,12 @@ Below is the list of all kinds of simplifications this rule applies.
     n + 0
     --> n
 
+    n - 0
+    --> n
+
+    0 - n
+    --> -n
+
     negate >> negate
     --> identity
 
@@ -683,6 +689,7 @@ operatorChecks : Dict String (OperatorCheckInfo -> List (Error {}))
 operatorChecks =
     Dict.fromList
         [ ( "+", plusChecks )
+        , ( "-", minusChecks )
         , ( "++", plusplusChecks )
         , ( "::", consChecks )
         , ( "||", orChecks )
@@ -755,6 +762,40 @@ plusChecks { parentRange, leftRange, rightRange, left, right } =
             }
             range
             [ Fix.removeRange range ]
+        ]
+
+    else
+        []
+
+
+minusChecks : OperatorCheckInfo -> List (Error {})
+minusChecks { parentRange, leftRange, rightRange, left, right } =
+    if getIntValue right == Just 0 then
+        let
+            range : Range
+            range =
+                { start = leftRange.end, end = rightRange.end }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary subtraction with 0"
+            , details = [ "Subtracting 0 does not change the value of the number." ]
+            }
+            range
+            [ Fix.removeRange range ]
+        ]
+
+    else if getIntValue left == Just 0 then
+        let
+            range : Range
+            range =
+                { start = leftRange.start, end = rightRange.start }
+        in
+        [ Rule.errorWithFix
+            { message = "Unnecessary subtracting from 0"
+            , details = [ "You can negate the expression on the right like `-n`." ]
+            }
+            range
+            [ Fix.replaceRangeBy range "-" ]
         ]
 
     else
