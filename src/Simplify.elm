@@ -317,6 +317,12 @@ Below is the list of all kinds of simplifications this rule applies.
     Cmd.batch []
     --> Cmd.none
 
+    Cmd.batch [ a ]
+    --> a
+
+    Cmd.batch [ a, Cmd.none, b ]
+    --> Cmd.batch [ a, b ]
+
 -}
 rule : Rule
 rule =
@@ -2210,6 +2216,17 @@ cmdBatchChecks { lookupTable, parentRange, fnRange, firstArg } =
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "Cmd.none" ]
+            ]
+
+        Expression.ListExpr [ arg ] ->
+            [ Rule.errorWithFix
+                { message = "Unnecessary Cmd.batch"
+                , details = [ "Cmd.batch with a single element is equal to that element." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range arg).start } "("
+                , Fix.replaceRangeBy { start = (Node.range arg).end, end = parentRange.end } ")"
+                ]
             ]
 
         Expression.ListExpr args ->

@@ -3678,12 +3678,28 @@ a = Cmd.batch [ Cmd.none ]
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Cmd.none"
-                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
-                            , under = "Cmd.none"
+                            { message = "Unnecessary Cmd.batch"
+                            , details = [ "Cmd.batch with a single element is equal to that element." ]
+                            , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Cmd.none
+a = (Cmd.none)
+"""
+                        ]
+        , test "should replace Cmd.batch [ b ] by b" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch [ b ]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Cmd.batch"
+                            , details = [ "Cmd.batch with a single element is equal to that element." ]
+                            , under = "Cmd.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b)
 """
                         ]
         , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch []" <|
