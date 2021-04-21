@@ -3760,7 +3760,7 @@ a = Cmd.map fn Cmd.none
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Cmd.map on Cmd.none will result in Cmd.none"
-                            , details = [ "You can replace this call by an Cmd.none" ]
+                            , details = [ "You can replace this call by Cmd.none" ]
                             , under = "Cmd.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3903,7 +3903,7 @@ a = Sub.map fn Sub.none
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Sub.map on Sub.none will result in Sub.none"
-                            , details = [ "You can replace this call by an Sub.none" ]
+                            , details = [ "You can replace this call by Sub.none" ]
                             , under = "Sub.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

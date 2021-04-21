@@ -796,9 +796,9 @@ functionCallChecks =
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
-        , ( ( [ "Platform", "Cmd" ], "map" ), monadChecks cmdMonad )
+        , ( ( [ "Platform", "Cmd" ], "map" ), monadMapChecks cmdMonad )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
-        , ( ( [ "Platform", "Sub" ], "map" ), monadChecks subMonad )
+        , ( ( [ "Platform", "Sub" ], "map" ), monadMapChecks subMonad )
         ]
 
 
@@ -2314,19 +2314,30 @@ subMonad =
     }
 
 
-monadChecks : Monad -> CheckInfo -> List (Error {})
-monadChecks monad checkInfo =
-    if isIdentity checkInfo.lookupTable checkInfo.firstArg then
-        [ Rule.errorWithFix
-            { message = "Using " ++ monad.moduleName ++ ".map with an identity function is the same as not using " ++ monad.moduleName ++ ".map"
-            , details = [ "You can remove this call and replace it by the " ++ monad.represents ++ " itself" ]
-            }
-            checkInfo.fnRange
-            (noopFix checkInfo)
-        ]
+monadMapChecks : Monad -> CheckInfo -> List (Error {})
+monadMapChecks monad checkInfo =
+    case Maybe.map (monad.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ monad.moduleName ++ ".map on " ++ monad.emptyAsString ++ " will result in " ++ monad.emptyAsString
+                , details = [ "You can replace this call by " ++ monad.emptyAsString ]
+                }
+                checkInfo.fnRange
+                (noopFix checkInfo)
+            ]
 
-    else
-        []
+        _ ->
+            if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                [ Rule.errorWithFix
+                    { message = "Using " ++ monad.moduleName ++ ".map with an identity function is the same as not using " ++ monad.moduleName ++ ".map"
+                    , details = [ "You can remove this call and replace it by the " ++ monad.represents ++ " itself" ]
+                    }
+                    checkInfo.fnRange
+                    (noopFix checkInfo)
+                ]
+
+            else
+                []
 
 
 isSpecificFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
