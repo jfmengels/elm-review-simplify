@@ -796,9 +796,9 @@ functionCallChecks =
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
-        , ( ( [ "Platform", "Cmd" ], "map" ), cmdMapChecks )
+        , ( ( [ "Platform", "Cmd" ], "map" ), monadChecks cmdMonad )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
-        , ( ( [ "Platform", "Sub" ], "map" ), subMapChecks )
+        , ( ( [ "Platform", "Sub" ], "map" ), monadChecks subMonad )
         ]
 
 
@@ -2301,28 +2301,43 @@ cmdMonad =
     { moduleName = "Cmd"
     , represents = "command"
     , emptyAsString = "Cmd.none"
-    , isEmpty = isCmdNone
+    , isEmpty = isSpecificFunction [ "Platform", "Cmd" ] "none"
     }
 
 
-isCmdNone : ModuleNameLookupTable -> Node Expression -> Bool
-isCmdNone lookupTable node =
+subMonad : Monad
+subMonad =
+    { moduleName = "Sub"
+    , represents = "subscription"
+    , emptyAsString = "Sub.none"
+    , isEmpty = isSpecificFunction [ "Platform", "Sub" ] "none"
+    }
+
+
+monadChecks : Monad -> CheckInfo -> List (Error {})
+monadChecks monad checkInfo =
+    if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+        [ Rule.errorWithFix
+            { message = "Using " ++ monad.moduleName ++ ".map with an identity function is the same as not using " ++ monad.moduleName ++ ".map"
+            , details = [ "You can remove this call and replace it by the " ++ monad.represents ++ " itself" ]
+            }
+            checkInfo.fnRange
+            (noopFix checkInfo)
+        ]
+
+    else
+        []
+
+
+isSpecificFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificFunction moduleName fnName lookupTable node =
     case removeParens node of
-        Node noneRange (Expression.FunctionOrValue _ "none") ->
-            ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just [ "Platform", "Cmd" ]
+        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
+            (foundFnName == fnName)
+                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
 
         _ ->
             False
-
-
-monadChecks =
-    []
-
-
-cmdMapChecks : CheckInfo -> List (Error {})
-cmdMapChecks checkInfo =
-    mapCheck { moduleName = "Cmd", what = "command" } checkInfo
-        |> Maybe.withDefault []
 
 
 subMapChecks : CheckInfo -> List (Error {})
