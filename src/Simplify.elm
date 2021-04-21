@@ -323,6 +323,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Cmd.batch [ a, Cmd.none, b ]
     --> Cmd.batch [ a, b ]
 
+    Cmd.map identity cmd
+    --> cmd
+
     Sub.batch []
     --> Sub.none
 
@@ -331,6 +334,9 @@ Below is the list of all kinds of simplifications this rule applies.
 
     Sub.batch [ a, Sub.none, b ]
     --> Sub.batch [ a, b ]
+
+    Sub.map identity subscription
+    --> subscription
 
 -}
 rule : Rule
@@ -797,7 +803,9 @@ functionCallChecks =
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
+        , ( ( [ "Platform", "Cmd" ], "map" ), cmdMapChecks )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
+        , ( ( [ "Platform", "Sub" ], "map" ), subMapChecks )
         ]
 
 
@@ -2285,6 +2293,18 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 
         _ ->
             []
+
+
+cmdMapChecks : CheckInfo -> List (Error {})
+cmdMapChecks checkInfo =
+    mapCheck { moduleName = "Cmd", what = "command" } checkInfo
+        |> Maybe.withDefault []
+
+
+subMapChecks : CheckInfo -> List (Error {})
+subMapChecks checkInfo =
+    mapCheck { moduleName = "Sub", what = "subscription" } checkInfo
+        |> Maybe.withDefault []
 
 
 getIntValue : Node Expression -> Maybe Int

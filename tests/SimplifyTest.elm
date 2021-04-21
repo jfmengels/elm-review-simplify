@@ -3735,6 +3735,22 @@ a = Cmd.batch [ Cmd.none, b ]
 a = Cmd.batch [ b ]
 """
                         ]
+        , test "should replace Cmd.map identity cmd by cmd" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.map identity cmd
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Cmd.map with an identity function is the same as not using Cmd.map"
+                            , details = [ "You can remove this call and replace it by the command itself" ]
+                            , under = "Cmd.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = cmd
+"""
+                        ]
         ]
 
 
@@ -3844,6 +3860,22 @@ a = Sub.batch [ Sub.none, b ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Sub.batch [ b ]
+"""
+                        ]
+        , test "should replace Sub.map identity sub by sub" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.map identity sub
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Sub.map with an identity function is the same as not using Sub.map"
+                            , details = [ "You can remove this call and replace it by the subscription itself" ]
+                            , under = "Sub.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = sub
 """
                         ]
         ]
