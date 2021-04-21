@@ -796,9 +796,9 @@ functionCallChecks =
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
-        , ( ( [ "Platform", "Cmd" ], "map" ), monadMapChecks cmdMonad )
+        , ( ( [ "Platform", "Cmd" ], "map" ), mappableChecks cmdMappable )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
-        , ( ( [ "Platform", "Sub" ], "map" ), monadMapChecks subMonad )
+        , ( ( [ "Platform", "Sub" ], "map" ), mappableChecks subMappable )
         ]
 
 
@@ -2288,7 +2288,7 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
             []
 
 
-type alias Monad =
+type alias Mappable =
     { moduleName : String
     , represents : String
     , emptyAsString : String
@@ -2296,8 +2296,8 @@ type alias Monad =
     }
 
 
-cmdMonad : Monad
-cmdMonad =
+cmdMappable : Mappable
+cmdMappable =
     { moduleName = "Cmd"
     , represents = "command"
     , emptyAsString = "Cmd.none"
@@ -2305,8 +2305,8 @@ cmdMonad =
     }
 
 
-subMonad : Monad
-subMonad =
+subMappable : Mappable
+subMappable =
     { moduleName = "Sub"
     , represents = "subscription"
     , emptyAsString = "Sub.none"
@@ -2314,8 +2314,8 @@ subMonad =
     }
 
 
-monadMapChecks : Monad -> CheckInfo -> List (Error {})
-monadMapChecks monad checkInfo =
+mappableChecks : Mappable -> CheckInfo -> List (Error {})
+mappableChecks monad checkInfo =
     case Maybe.map (monad.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
         Just True ->
             [ Rule.errorWithFix
@@ -2349,12 +2349,6 @@ isSpecificFunction moduleName fnName lookupTable node =
 
         _ ->
             False
-
-
-subMapChecks : CheckInfo -> List (Error {})
-subMapChecks checkInfo =
-    mapCheck { moduleName = "Sub", what = "subscription" } checkInfo
-        |> Maybe.withDefault []
 
 
 getIntValue : Node Expression -> Maybe Int
