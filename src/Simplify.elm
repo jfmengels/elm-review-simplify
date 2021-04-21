@@ -314,6 +314,8 @@ Below is the list of all kinds of simplifications this rule applies.
 
 ### Cmd / Sub
 
+All of these also apply for `Sub`.
+
     Cmd.batch []
     --> Cmd.none
 
@@ -326,17 +328,8 @@ Below is the list of all kinds of simplifications this rule applies.
     Cmd.map identity cmd
     --> cmd
 
-    Sub.batch []
-    --> Sub.none
-
-    Sub.batch [ a ]
-    --> a
-
-    Sub.batch [ a, Sub.none, b ]
-    --> Sub.batch [ a, b ]
-
-    Sub.map identity subscription
-    --> subscription
+    Cmd.map fn Cmd.none
+    --> Cmd.none
 
 -}
 rule : Rule

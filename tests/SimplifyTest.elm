@@ -3751,6 +3751,22 @@ a = Cmd.map identity cmd
 a = cmd
 """
                         ]
+        , test "should replace Cmd.map fn Cmd.none by Cmd.none" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.map fn Cmd.none
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Cmd.map on Cmd.none will result in Cmd.none"
+                            , details = [ "You can replace this call by an Cmd.none" ]
+                            , under = "Cmd.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.none
+"""
+                        ]
         ]
 
 
@@ -3876,6 +3892,22 @@ a = Sub.map identity sub
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = sub
+"""
+                        ]
+        , test "should replace Sub.map fn Sub.none by Sub.none" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.map fn Sub.none
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Sub.map on Sub.none will result in Sub.none"
+                            , details = [ "You can replace this call by an Sub.none" ]
+                            , under = "Sub.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.none
 """
                         ]
         ]
