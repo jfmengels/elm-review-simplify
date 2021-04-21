@@ -778,7 +778,7 @@ functionCallChecks =
         [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), alwaysChecks )
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), notChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), mapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), listMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
@@ -1986,19 +1986,26 @@ concatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingR
                 []
 
 
-mapChecks : CheckInfo -> List (Error {})
-mapChecks ({ lookupTable, fnRange, firstArg } as checkInfo) =
+listMapChecks : CheckInfo -> List (Error {})
+listMapChecks checkInfo =
+    mapCheck { moduleName = "List", what = "list" } checkInfo
+        |> Maybe.withDefault []
+
+
+mapCheck : { moduleName : String, what : String } -> CheckInfo -> Maybe (List (Error {}))
+mapCheck { moduleName, what } ({ lookupTable, fnRange, firstArg } as checkInfo) =
     if isIdentity lookupTable firstArg then
-        [ Rule.errorWithFix
-            { message = "Using List.map with an identity function is the same as not using List.map"
-            , details = [ "You can remove this call and replace it by the list itself" ]
-            }
-            fnRange
-            (noopFix checkInfo)
-        ]
+        Just
+            [ Rule.errorWithFix
+                { message = "Using " ++ moduleName ++ ".map with an identity function is the same as not using " ++ moduleName ++ ".map"
+                , details = [ "You can remove this call and replace it by the " ++ what ++ " itself" ]
+                }
+                fnRange
+                (noopFix checkInfo)
+            ]
 
     else
-        []
+        Nothing
 
 
 listIsEmptyChecks : CheckInfo -> List (Error {})
