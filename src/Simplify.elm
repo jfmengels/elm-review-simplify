@@ -2288,6 +2288,37 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
             []
 
 
+type alias Monad =
+    { moduleName : String
+    , represents : String
+    , emptyAsString : String
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+
+
+cmdMonad : Monad
+cmdMonad =
+    { moduleName = "Cmd"
+    , represents = "command"
+    , emptyAsString = "Cmd.none"
+    , isEmpty = isCmdNone
+    }
+
+
+isCmdNone : ModuleNameLookupTable -> Node Expression -> Bool
+isCmdNone lookupTable node =
+    case removeParens node of
+        Node noneRange (Expression.FunctionOrValue _ "none") ->
+            ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just [ "Platform", "Cmd" ]
+
+        _ ->
+            False
+
+
+monadChecks =
+    []
+
+
 cmdMapChecks : CheckInfo -> List (Error {})
 cmdMapChecks checkInfo =
     mapCheck { moduleName = "Cmd", what = "command" } checkInfo
