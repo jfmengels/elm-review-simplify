@@ -312,6 +312,18 @@ Below is the list of all kinds of simplifications this rule applies.
     --> str
 
 
+### Sets
+
+    Set.map fn Set.empty -- same for Set.filter, ...
+    --> Set.empty
+
+    Set.map identity list
+    --> list
+
+    Set.map identity
+    --> identity
+
+
 ### Cmd / Sub
 
 All of these also apply for `Sub`.
@@ -782,6 +794,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
+        , ( ( [ "Set" ], "map" ), mappableChecks setMappable )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -2296,6 +2309,15 @@ type alias Mappable =
     }
 
 
+setMappable : Mappable
+setMappable =
+    { moduleName = "Set"
+    , represents = "set"
+    , emptyAsString = "Set.none"
+    , isEmpty = isSpecificFunction [ "Set" ] "empty"
+    }
+
+
 cmdMappable : Mappable
 cmdMappable =
     { moduleName = "Cmd"
@@ -2320,7 +2342,7 @@ mappableChecks monad checkInfo =
         Just True ->
             [ Rule.errorWithFix
                 { message = "Using " ++ monad.moduleName ++ ".map on " ++ monad.emptyAsString ++ " will result in " ++ monad.emptyAsString
-                , details = [ "You can replace this call by " ++ monad.emptyAsString ]
+                , details = [ "You can replace this call by " ++ monad.emptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
@@ -2330,7 +2352,7 @@ mappableChecks monad checkInfo =
             if isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
                     { message = "Using " ++ monad.moduleName ++ ".map with an identity function is the same as not using " ++ monad.moduleName ++ ".map"
-                    , details = [ "You can remove this call and replace it by the " ++ monad.represents ++ " itself" ]
+                    , details = [ "You can remove this call and replace it by the " ++ monad.represents ++ " itself." ]
                     }
                     checkInfo.fnRange
                     (noopFix checkInfo)

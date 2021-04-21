@@ -18,6 +18,7 @@ all =
         , usingPlusPlusTests
         , stringSimplificationTests
         , listSimplificationTests
+        , setSimplificationTests
         , cmdTests
         , subTests
         ]
@@ -3627,6 +3628,182 @@ a =  list
         ]
 
 
+
+-- Set
+
+
+setSimplificationTests : Test
+setSimplificationTests =
+    describe "Set"
+        [ setMapTests
+
+        --, setFilterTests
+        --, setIsEmptyTests
+        --, setSizeTests
+        ]
+
+
+setMapTests : Test
+setMapTests =
+    describe "Set.map"
+        [ test "should not report Set.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map fn x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.map f Set.empty by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map fn Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map on Set.none will result in Set.none"
+                            , details = [ "You can replace this call by Set.none." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.map f <| Set.empty by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map fn <| Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map on Set.none will result in Set.none"
+                            , details = [ "You can replace this call by Set.none." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.empty |> Set.map f by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map on Set.none will result in Set.none"
+                            , details = [ "You can replace this call by Set.none." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.map identity x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map identity x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map with an identity function is the same as not using Set.map"
+                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Set.map identity <| x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map identity <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map with an identity function is the same as not using Set.map"
+                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace x |> Set.map identity by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Set.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map with an identity function is the same as not using Set.map"
+                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Set.map identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map with an identity function is the same as not using Set.map"
+                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Set.map <| identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Set.map <| identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map with an identity function is the same as not using Set.map"
+                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace identity |> Set.map by identity" <|
+            \() ->
+                """module A exposing (..)
+a = identity |> Set.map
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.map with an identity function is the same as not using Set.map"
+                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            , under = "Set.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        ]
+
+
+
+-- Cmd
+
+
 cmdTests : Test
 cmdTests =
     describe "Cmd.batch"
@@ -3744,7 +3921,7 @@ a = Cmd.map identity cmd
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Cmd.map with an identity function is the same as not using Cmd.map"
-                            , details = [ "You can remove this call and replace it by the command itself" ]
+                            , details = [ "You can remove this call and replace it by the command itself." ]
                             , under = "Cmd.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3760,7 +3937,7 @@ a = Cmd.map fn Cmd.none
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Cmd.map on Cmd.none will result in Cmd.none"
-                            , details = [ "You can replace this call by Cmd.none" ]
+                            , details = [ "You can replace this call by Cmd.none." ]
                             , under = "Cmd.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3768,6 +3945,10 @@ a = Cmd.none
 """
                         ]
         ]
+
+
+
+-- Sub
 
 
 subTests : Test
@@ -3887,7 +4068,7 @@ a = Sub.map identity sub
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Sub.map with an identity function is the same as not using Sub.map"
-                            , details = [ "You can remove this call and replace it by the subscription itself" ]
+                            , details = [ "You can remove this call and replace it by the subscription itself." ]
                             , under = "Sub.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3903,7 +4084,7 @@ a = Sub.map fn Sub.none
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Sub.map on Sub.none will result in Sub.none"
-                            , details = [ "You can replace this call by Sub.none" ]
+                            , details = [ "You can replace this call by Sub.none." ]
                             , under = "Sub.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
