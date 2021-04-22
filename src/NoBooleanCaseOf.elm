@@ -79,11 +79,17 @@ expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.CaseExpression { expression, cases } ->
-            if List.any (Tuple.first >> isBoolConstructor) cases then
-                [ error expression ]
+            case List.map Tuple.first cases of
+                [ first, second ] ->
+                    case getBoolean first of
+                        Just _ ->
+                            [ error expression ]
 
-            else
-                []
+                        _ ->
+                            []
+
+                _ ->
+                    []
 
         _ ->
             []
@@ -101,12 +107,23 @@ error node =
         (Node.range node)
 
 
-isBoolConstructor : Node Pattern -> Bool
-isBoolConstructor node =
+getBoolean : Node Pattern -> Maybe Bool
+getBoolean node =
     case Node.value node of
         Pattern.NamedPattern { moduleName, name } _ ->
-            (name == "True" || name == "False")
-                && (moduleName == [] || moduleName == [ "Basics" ])
+            if moduleName == [] || moduleName == [ "Basics" ] then
+                case name of
+                    "True" ->
+                        Just True
+
+                    "False" ->
+                        Just False
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
 
         _ ->
-            False
+            Nothing
