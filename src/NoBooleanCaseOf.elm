@@ -7,8 +7,9 @@ module NoBooleanCaseOf exposing (rule)
 -}
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.Node as Node exposing (Node)
+import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
+import Review.Fix as Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -79,11 +80,11 @@ expressionVisitor : Node Expression -> List (Error {})
 expressionVisitor node =
     case Node.value node of
         Expression.CaseExpression { expression, cases } ->
-            case List.map Tuple.first cases of
-                [ first, second ] ->
-                    case getBoolean first of
-                        Just _ ->
-                            [ Rule.error
+            case cases of
+                [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
+                    case getBoolean firstPattern of
+                        Just isTrueFirst ->
+                            [ Rule.errorWithFix
                                 { message = "Replace `case..of` by an `if` condition"
                                 , details =
                                     [ "The idiomatic way to check for a condition is to use an `if` expression."
@@ -91,6 +92,18 @@ expressionVisitor node =
                                     ]
                                 }
                                 (Node.range expression)
+                                (if isTrueFirst then
+                                    [ Fix.replaceRangeBy { start = (Node.range node).start, end = (Node.range expression).start } "if "
+                                    , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } " then "
+                                    , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                                    ]
+
+                                 else
+                                    [ Fix.replaceRangeBy { start = (Node.range node).start, end = (Node.range expression).start } "if not ("
+                                    , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } ") then "
+                                    , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                                    ]
+                                )
                             ]
 
                         _ ->

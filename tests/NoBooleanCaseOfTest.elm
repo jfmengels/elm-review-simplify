@@ -49,6 +49,33 @@ a = case bool of
                         , details = details
                         , under = "bool"
                         }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = if bool then 1
+      else 2
+"""
+                    ]
+    , test "should report pattern matches when one of the patterns is a bool constructor (on multiple lines)" <|
+        \() ->
+            """module A exposing (..)
+a =
+    case bool of
+        True ->
+            1
+        False ->
+            2
+"""
+                |> Review.Test.run rule
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = message
+                        , details = details
+                        , under = "bool"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a =
+    if bool then 1
+        else 2
+"""
                     ]
     , test "should report pattern matches when one of the patterns is a bool constructor (False and True)" <|
         \() ->
@@ -64,6 +91,10 @@ a = case bool of
                         , details = details
                         , under = "bool"
                         }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = if not (bool) then 1
+      else 2
+"""
                     ]
     , test "should report pattern matches when one of the patterns is a bool constructor (True and wildcard)" <|
         \() ->
@@ -79,6 +110,10 @@ a = case bool of
                         , details = details
                         , under = "bool"
                         }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = if bool then 1
+      else 2
+"""
                     ]
     , test "should report pattern matches when one of the patterns is a bool constructor (False and wildcard)" <|
         \() ->
@@ -94,6 +129,10 @@ a = case bool of
                         , details = details
                         , under = "bool"
                         }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = if not (bool) then 1
+      else 2
+"""
                     ]
     , test "should report pattern matches for booleans even when one of the patterns starts with `Basics.`" <|
         \() ->
@@ -109,6 +148,10 @@ a = case bool of
                         , details = details
                         , under = "bool"
                         }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = if bool then 1
+      else 2
+"""
                     ]
     , test "should report pattern matches for booleans even when the constructor seems to be for booleans but comes from an unknown module" <|
         \() ->
