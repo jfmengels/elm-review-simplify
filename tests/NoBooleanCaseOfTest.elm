@@ -31,74 +31,96 @@ a = case thing of
             """module A exposing (..)
 a = case ( bool1, bool2 ) of
       ( True, True ) -> 1
-      _ -> 2"""
+      _ -> 2
+"""
                 |> Review.Test.run rule
                 |> Review.Test.expectNoErrors
-    , test "should report pattern matches when one of the patterns is a bool constructor" <|
+    , test "should report pattern matches when one of the patterns is a bool constructor (True and False)" <|
         \() ->
             """module A exposing (..)
-a = case boolTrue of
+a = case bool of
       True -> 1
-      _ -> 2
-
-b = case boolFalse of
-      False -> 1
-      _ -> 2
-
-c = case boolAll of
-      False -> 1
-      True -> 2"""
+      False -> 2
+"""
                 |> Review.Test.run rule
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = message
                         , details = details
-                        , under = "boolTrue"
+                        , under = "bool"
                         }
-                    , Review.Test.error
+                    ]
+    , test "should report pattern matches when one of the patterns is a bool constructor (False and True)" <|
+        \() ->
+            """module A exposing (..)
+a = case bool of
+      False -> 1
+      True -> 2
+"""
+                |> Review.Test.run rule
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
                         { message = message
                         , details = details
-                        , under = "boolFalse"
+                        , under = "bool"
                         }
-                    , Review.Test.error
+                    ]
+    , test "should report pattern matches when one of the patterns is a bool constructor (True and wildcard)" <|
+        \() ->
+            """module A exposing (..)
+a = case bool of
+      True -> 1
+      _ -> 2
+"""
+                |> Review.Test.run rule
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
                         { message = message
                         , details = details
-                        , under = "boolAll"
+                        , under = "bool"
+                        }
+                    ]
+    , test "should report pattern matches when one of the patterns is a bool constructor (False and wildcard)" <|
+        \() ->
+            """module A exposing (..)
+a = case bool of
+      False -> 1
+      _ -> 2
+"""
+                |> Review.Test.run rule
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = message
+                        , details = details
+                        , under = "bool"
                         }
                     ]
     , test "should report pattern matches for booleans even when one of the patterns starts with `Basics.`" <|
         \() ->
             """module A exposing (..)
-a = case boolTrue of
+a = case bool of
       Basics.True -> 1
       _ -> 2
-
-b = case boolFalse of
-      Basics.False -> 1
-      _ -> 2"""
+"""
                 |> Review.Test.run rule
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = message
                         , details = details
-                        , under = "boolTrue"
-                        }
-                    , Review.Test.error
-                        { message = message
-                        , details = details
-                        , under = "boolFalse"
+                        , under = "bool"
                         }
                     ]
     , test "should report pattern matches for booleans even when the constructor seems to be for booleans but comes from an unknown module" <|
         \() ->
             """module A exposing (..)
-a = case boolTrue of
+a = case bool of
       OtherModule.True -> 1
       _ -> 2
 
-b = case boolFalse of
+b = case bool of
       OtherModule.False -> 1
-      _ -> 2"""
+      _ -> 2
+"""
                 |> Review.Test.run rule
                 |> Review.Test.expectNoErrors
     ]
