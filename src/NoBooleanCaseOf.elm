@@ -82,7 +82,7 @@ expressionVisitor node =
         Expression.CaseExpression { expression, cases } ->
             case cases of
                 [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
-                    case getBoolean firstPattern of
+                    case getBooleanPattern firstPattern of
                         Just isTrueFirst ->
                             [ Rule.errorWithFix
                                 { message = "Replace `case..of` by an `if` condition"
@@ -116,8 +116,8 @@ expressionVisitor node =
             []
 
 
-getBoolean : Node Pattern -> Maybe Bool
-getBoolean node =
+getBooleanPattern : Node Pattern -> Maybe Bool
+getBooleanPattern node =
     case Node.value node of
         Pattern.NamedPattern { moduleName, name } _ ->
             if moduleName == [] || moduleName == [ "Basics" ] then

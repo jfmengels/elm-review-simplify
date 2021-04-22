@@ -601,9 +601,9 @@ expressionVisitorHelp node { lookupTable } =
                 _ ->
                     ( [], [] )
 
-        -------------------------------------
-        --  FULLY APPLIED PREFIX OPERATOR  --
-        -------------------------------------
+        -----------------------------------
+        -- FULLY APPLIED PREFIX OPERATOR --
+        -----------------------------------
         Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), left, right ] ->
             ( [ Rule.errorWithFix
                     { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
@@ -616,6 +616,44 @@ expressionVisitorHelp node { lookupTable } =
               ]
             , []
             )
+
+        ---------------------
+        -- BOOLEAN CASE OF --
+        ---------------------
+        Expression.CaseExpression { expression, cases } ->
+            case cases of
+                [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
+                    case getBooleanPattern firstPattern of
+                        Just isTrueFirst ->
+                            ( [ Rule.errorWithFix
+                                    { message = "Replace `case..of` by an `if` condition"
+                                    , details =
+                                        [ "The idiomatic way to check for a condition is to use an `if` expression."
+                                        , "Read more about it at: https://guide.elm-lang.org/core_language.html#if-expressions"
+                                        ]
+                                    }
+                                    (Node.range expression)
+                                    (if isTrueFirst then
+                                        [ Fix.replaceRangeBy { start = (Node.range node).start, end = (Node.range expression).start } "if "
+                                        , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } " then "
+                                        , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                                        ]
+
+                                     else
+                                        [ Fix.replaceRangeBy { start = (Node.range node).start, end = (Node.range expression).start } "if not ("
+                                        , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } ") then "
+                                        , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                                        ]
+                                    )
+                              ]
+                            , []
+                            )
+
+                        _ ->
+                            ( [], [] )
+
+                _ ->
+                    ( [], [] )
 
         ----------
         -- (<|) --
@@ -2596,6 +2634,28 @@ getBoolean lookupTable baseNode =
 
                 _ ->
                     Nothing
+
+        _ ->
+            Nothing
+
+
+getBooleanPattern : Node Pattern -> Maybe Bool
+getBooleanPattern node =
+    case Node.value node of
+        Pattern.NamedPattern { moduleName, name } _ ->
+            if moduleName == [] || moduleName == [ "Basics" ] then
+                case name of
+                    "True" ->
+                        Just True
+
+                    "False" ->
+                        Just False
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
 
         _ ->
             Nothing
