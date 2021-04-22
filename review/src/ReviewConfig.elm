@@ -12,7 +12,6 @@ when inside the directory containing this file.
 -}
 
 import Documentation.ReadmeLinksPointToCurrentVersion
-import NoBooleanCaseOf
 import NoDebug.Log
 import NoDebug.TodoOrToString
 import NoExposingEverything
@@ -35,8 +34,7 @@ import Simplify
 
 config : List Rule
 config =
-    [ NoBooleanCaseOf.rule
-    , Documentation.ReadmeLinksPointToCurrentVersion.rule
+    [ Documentation.ReadmeLinksPointToCurrentVersion.rule
     , NoDebug.Log.rule
     , NoDebug.TodoOrToString.rule
         |> Rule.ignoreErrorsForDirectories [ "tests/" ]

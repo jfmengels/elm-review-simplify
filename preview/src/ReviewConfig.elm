@@ -11,13 +11,11 @@ when inside the directory containing this file.
 
 -}
 
-import NoBooleanCaseOf
 import Review.Rule exposing (Rule)
 import Simplify
 
 
 config : List Rule
 config =
-    [ NoBooleanCaseOf.rule
-    , Simplify.rule
+    [ Simplify.rule
     ]

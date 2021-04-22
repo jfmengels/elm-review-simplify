@@ -5,21 +5,18 @@ Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-revi
 ## Provided rules
 
 - [`Simplify`](https://elm-doc-preview.netlify.app/Simplify?repo=jfmengels%2Felm-review-simplify&version=main) - Reports when an operation can be simplified.
-- [`NoBooleanCaseOf`](https://elm-doc-preview.netlify.app/NoBooleanCaseOf?repo=jfmengels%2Felm-review-simplify&version=main) - Reports when pattern matching is used for a boolean value.
 
 ## Configuration
 
 ```elm
 module ReviewConfig exposing (config)
 
-import NoBooleanCaseOf
 import Review.Rule exposing (Rule)
 import Simplify
 
 config : List Rule
 config =
     [ Simplify.rule
-    , NoBooleanCaseOf.rule
     ]
 ```
 
