@@ -93,6 +93,19 @@ Below is the list of all kinds of simplifications this rule applies.
     --> not condition
 
 
+### Case expressions
+
+    case condition of
+        True -> x
+        False -> y
+    --> if condition then x else y
+
+    case condition of
+        False -> y
+        True -> x
+    --> if not condition then x else y
+
+
 ### Basics functions
 
     identity x
