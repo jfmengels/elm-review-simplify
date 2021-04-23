@@ -11,6 +11,7 @@ all =
         [ identityTests
         , alwaysTests
         , booleanTests
+        , caseOfTests
         , booleanCaseOfTests
         , ifTests
         , numberTests
@@ -687,7 +688,116 @@ a = (not << a) << not
 
 
 
--- BOOLEAN CASE OF
+-- CASE OF
+
+
+caseOfTests : Test
+caseOfTests =
+    describe "Case of"
+        [ test "should not report case of when the body of the branches are different" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      A -> 1
+      B -> 2
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace case of with a single wildcard case by the body of the case" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      _ -> x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary case expression"
+                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace case of with a single case by the body of the case" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      A -> x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary case expression"
+                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace case of with a single case with ignored arguments by the body of the case" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      A (_) (B C) -> x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary case expression"
+                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should not replace case of where a pattern introduces a variable" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      A (_) (B c) -> x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace case of with multiple cases that have the same body" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      A (_) (B C) -> x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary case expression"
+                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace boolean case of with the same body by that body" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      True -> x
+      False -> x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary case expression"
+                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        ]
 
 
 booleanCaseOfMessage : String
@@ -709,7 +819,9 @@ booleanCaseOfTests =
             \() ->
                 """module A exposing (..)
 a = case thing of
-      Thing -> 1"""
+      Thing -> 1
+      Bar -> 2
+"""
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should not report pattern matches when the evaluated expression is a tuple of with a boolean" <|
@@ -733,7 +845,7 @@ a = case bool of
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
                             , details = booleanCaseOfDetails
-                            , under = "bool"
+                            , under = "True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = if bool then 1
@@ -755,7 +867,7 @@ a =
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
                             , details = booleanCaseOfDetails
-                            , under = "bool"
+                            , under = "True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
@@ -775,7 +887,7 @@ a = case bool of
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
                             , details = booleanCaseOfDetails
-                            , under = "bool"
+                            , under = "False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = if not (bool) then 1
@@ -794,7 +906,7 @@ a = case bool of
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
                             , details = booleanCaseOfDetails
-                            , under = "bool"
+                            , under = "True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = if bool then 1
@@ -813,7 +925,7 @@ a = case bool of
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
                             , details = booleanCaseOfDetails
-                            , under = "bool"
+                            , under = "False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = if not (bool) then 1
@@ -832,7 +944,7 @@ a = case bool of
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
                             , details = booleanCaseOfDetails
-                            , under = "bool"
+                            , under = "Basics.True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = if bool then 1

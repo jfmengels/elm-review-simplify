@@ -105,6 +105,11 @@ Below is the list of all kinds of simplifications this rule applies.
         True -> x
     --> if not condition then x else y
 
+    case value of
+        A _ -> x
+        B -> x
+    --> x
+
 
 ### Basics functions
 
@@ -633,40 +638,8 @@ expressionVisitorHelp node { lookupTable } =
         ---------------------
         -- BOOLEAN CASE OF --
         ---------------------
-        Expression.CaseExpression { expression, cases } ->
-            case cases of
-                [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
-                    case getBooleanPattern firstPattern of
-                        Just isTrueFirst ->
-                            ( [ Rule.errorWithFix
-                                    { message = "Replace `case..of` by an `if` condition"
-                                    , details =
-                                        [ "The idiomatic way to check for a condition is to use an `if` expression."
-                                        , "Read more about it at: https://guide.elm-lang.org/core_language.html#if-expressions"
-                                        ]
-                                    }
-                                    (Node.range expression)
-                                    (if isTrueFirst then
-                                        [ Fix.replaceRangeBy { start = (Node.range node).start, end = (Node.range expression).start } "if "
-                                        , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } " then "
-                                        , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
-                                        ]
-
-                                     else
-                                        [ Fix.replaceRangeBy { start = (Node.range node).start, end = (Node.range expression).start } "if not ("
-                                        , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } ") then "
-                                        , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
-                                        ]
-                                    )
-                              ]
-                            , []
-                            )
-
-                        _ ->
-                            ( [], [] )
-
-                _ ->
-                    ( [], [] )
+        Expression.CaseExpression caseBlock ->
+            ( caseOfChecks lookupTable (Node.range node) caseBlock, [] )
 
         ----------
         -- (<|) --
@@ -903,19 +876,19 @@ type alias CompositionCheckInfo =
     }
 
 
-firstThatReportsError : List (CompositionCheckInfo -> Maybe (List (Error {}))) -> CompositionCheckInfo -> List (Error {})
-firstThatReportsError remainingCompositionChecks operatorCheckInfo =
-    case remainingCompositionChecks of
+firstThatReportsError : List (a -> Maybe (List (Error {}))) -> a -> List (Error {})
+firstThatReportsError remainingChecks data =
+    case remainingChecks of
         [] ->
             []
 
         checkFn :: restOfFns ->
-            case checkFn operatorCheckInfo of
+            case checkFn data of
                 Just errors ->
                     errors
 
                 Nothing ->
-                    firstThatReportsError restOfFns operatorCheckInfo
+                    firstThatReportsError restOfFns data
 
 
 compositionChecks : List (CompositionCheckInfo -> Maybe (List (Error {})))
@@ -2411,6 +2384,121 @@ mappableChecks monad checkInfo =
 
             else
                 []
+
+
+
+-- CASE OF
+
+
+caseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
+caseOfChecks lookupTable parentRange caseBlock =
+    firstThatReportsError
+        [ \() -> sameBodyForCaseOfChecks lookupTable parentRange caseBlock.cases
+        , \() -> booleanCaseOfChecks parentRange caseBlock
+        ]
+        ()
+
+
+sameBodyForCaseOfChecks : ModuleNameLookupTable -> Range -> List ( Node Pattern, Node Expression ) -> Maybe (List (Error {}))
+sameBodyForCaseOfChecks lookupTable parentRange cases =
+    case cases of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            if List.any (Tuple.first >> introducesVariable) (first :: rest) || not (Normalize.areAllTheSame lookupTable (Tuple.second first) (List.map Tuple.second rest)) then
+                Nothing
+
+            else
+                let
+                    firstBodyRange : Range
+                    firstBodyRange =
+                        Node.range (Tuple.second first)
+                in
+                Just
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary case expression"
+                        , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                        }
+                        (caseKeyWordRange parentRange)
+                        [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
+                        , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
+                        ]
+                    ]
+
+
+caseKeyWordRange : Range -> Range
+caseKeyWordRange range =
+    { start = range.start
+    , end = { row = range.start.row, column = range.start.column + 4 }
+    }
+
+
+introducesVariable : Node Pattern -> Bool
+introducesVariable node =
+    case Node.value node of
+        Pattern.VarPattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.AsPattern _ _ ->
+            True
+
+        Pattern.ParenthesizedPattern pattern ->
+            introducesVariable pattern
+
+        Pattern.TuplePattern nodes ->
+            List.any introducesVariable nodes
+
+        Pattern.UnConsPattern first rest ->
+            List.any introducesVariable [ first, rest ]
+
+        Pattern.ListPattern nodes ->
+            List.any introducesVariable nodes
+
+        Pattern.NamedPattern _ nodes ->
+            List.any introducesVariable nodes
+
+        _ ->
+            False
+
+
+booleanCaseOfChecks : Range -> Expression.CaseBlock -> Maybe (List (Error {}))
+booleanCaseOfChecks parentRange { expression, cases } =
+    case cases of
+        [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
+            case getBooleanPattern firstPattern of
+                Just isTrueFirst ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Replace `case..of` by an `if` condition"
+                            , details =
+                                [ "The idiomatic way to check for a condition is to use an `if` expression."
+                                , "Read more about it at: https://guide.elm-lang.org/core_language.html#if-expressions"
+                                ]
+                            }
+                            (Node.range firstPattern)
+                            (if isTrueFirst then
+                                [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range expression).start } "if "
+                                , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } " then "
+                                , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                                ]
+
+                             else
+                                [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range expression).start } "if not ("
+                                , Fix.replaceRangeBy { start = (Node.range expression).end, end = firstRange.start } ") then "
+                                , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                                ]
+                            )
+                        ]
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 isSpecificFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool

@@ -1,4 +1,4 @@
-module Simplify.Normalize exposing (areTheSame)
+module Simplify.Normalize exposing (areAllTheSame, areTheSame)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
@@ -11,6 +11,16 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 areTheSame : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool
 areTheSame lookupTable left right =
     normalize lookupTable left == normalize lookupTable right
+
+
+areAllTheSame : ModuleNameLookupTable -> Node Expression -> List (Node Expression) -> Bool
+areAllTheSame lookupTable first rest =
+    let
+        normalizedFirst : Node Expression
+        normalizedFirst =
+            normalize lookupTable first
+    in
+    List.all (\node -> normalize lookupTable node == normalizedFirst) rest
 
 
 normalize : ModuleNameLookupTable -> Node Expression -> Node Expression
