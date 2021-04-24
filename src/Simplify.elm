@@ -323,11 +323,8 @@ Below is the list of all kinds of simplifications this rule applies.
     List.repeat n []
     --> []
 
-    List.repeat 0 str
+    List.repeat 0 list
     --> []
-
-    List.repeat 1 str
-    --> str
 
 
 ### Sets
@@ -2236,16 +2233,7 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
         _ ->
             case getIntValue firstArg of
                 Just intValue ->
-                    if intValue == 1 then
-                        [ Rule.errorWithFix
-                            { message = "List.repeat 1 won't do anything"
-                            , details = [ "Using List.repeat with 1 will result in the second argument." ]
-                            }
-                            fnRange
-                            [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).end } ]
-                        ]
-
-                    else if intValue < 1 then
+                    if intValue < 1 then
                         [ Rule.errorWithFix
                             { message = "List.repeat will result in an empty list"
                             , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]

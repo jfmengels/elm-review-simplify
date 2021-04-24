@@ -3891,22 +3891,13 @@ a = List.repeat -5 list
 a = []
 """
                         ]
-        , test "should replace List.repeat 1 list by list" <|
+        , test "should not replace List.repeat 1" <|
             \() ->
                 """module A exposing (..)
-a = List.repeat 1 list
+a = List.repeat 1 x
 """
                     |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "List.repeat 1 won't do anything"
-                            , details = [ "Using List.repeat with 1 will result in the second argument." ]
-                            , under = "List.repeat"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a =  list
-"""
-                        ]
+                    |> Review.Test.expectNoErrors
         ]
 
 
