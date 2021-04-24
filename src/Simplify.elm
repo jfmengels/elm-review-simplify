@@ -18,7 +18,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Simplify.Normalize as Normalize
 
 
-{-| Reports when an operation can be simplified.
+{-| Reports when an expression can be simplified.
 
     config =
         [ Simplify.rule
