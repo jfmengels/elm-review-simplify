@@ -2254,10 +2254,10 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 type alias Collection =
     { moduleName : String
     , represents : String
-    , nameForSize : String
     , emptyAsString : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    , determineIfEmpty : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+    , nameForSize : String
+    , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
     }
 
 
@@ -2265,10 +2265,10 @@ listCollection : Collection
 listCollection =
     { moduleName = "List"
     , represents = "list"
-    , nameForSize = "length"
     , emptyAsString = "[]"
     , isEmpty = \_ -> isEmptyList
-    , determineIfEmpty = determineListLength
+    , nameForSize = "length"
+    , determineSize = determineListLength
     }
 
 
@@ -2276,10 +2276,10 @@ setCollection : Collection
 setCollection =
     { moduleName = "Set"
     , represents = "set"
-    , nameForSize = "size"
     , emptyAsString = "Set.empty"
     , isEmpty = isSpecificFunction [ "Set" ] "empty"
-    , determineIfEmpty = determineIfCollectionIsEmpty [ "Set" ] 1
+    , nameForSize = "size"
+    , determineSize = determineIfCollectionIsEmpty [ "Set" ] 1
     }
 
 
@@ -2287,10 +2287,10 @@ dictCollection : Collection
 dictCollection =
     { moduleName = "Dict"
     , represents = "Dict"
-    , nameForSize = "size"
     , emptyAsString = "Dict.empty"
     , isEmpty = isSpecificFunction [ "Dict" ] "empty"
-    , determineIfEmpty = determineIfCollectionIsEmpty [ "Dict" ] 2
+    , nameForSize = "size"
+    , determineSize = determineIfCollectionIsEmpty [ "Dict" ] 2
     }
 
 
@@ -2392,7 +2392,7 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
 collectionIsEmptyChecks : Collection -> CheckInfo -> List (Error {})
 collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg } =
-    case collection.determineIfEmpty lookupTable firstArg of
+    case collection.determineSize lookupTable firstArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in True"
