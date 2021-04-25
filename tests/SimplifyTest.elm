@@ -3909,8 +3909,8 @@ setSimplificationTests : Test
 setSimplificationTests =
     describe "Set"
         [ setMapTests
+        , setFilterTests
 
-        --, setFilterTests
         --, setIsEmptyTests
         --, setSizeTests
         ]
@@ -4068,6 +4068,259 @@ a = identity |> Set.map
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
+"""
+                        ]
+        ]
+
+
+setFilterTests : Test
+setFilterTests =
+    describe "Using Set.filter"
+        [ test "should not report Set.filter used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter fn x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.filter f Set.empty by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter fn Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.filter f <| Set.empty by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter fn <| Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.empty |> Set.filter fn by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.filter fn
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.filter (always True) x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (always True) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Set.filter (\\x -> True) x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (\\x -> True) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Set.filter (always True) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (always True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Set.filter <| (always True) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter <| (always True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace always True |> Set.filter by identity" <|
+            \() ->
+                """module A exposing (..)
+a = always True |> Set.filter
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
+                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Set.filter (always False) x by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (always False) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.filter (\\x -> False) x by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (\\x -> False) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.filter (always False) <| x by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (always False) <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace x |> Set.filter (always False) by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Set.filter (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.filter (always False) by always Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always Set.empty)
+"""
+                        ]
+        , test "should replace Set.filter <| (always False) by always Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.filter <| (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always Set.empty)
+"""
+                        ]
+        , test "should replace always False |> Set.filter by always Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = always False |> Set.filter
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
+                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always Set.empty)
 """
                         ]
         ]
