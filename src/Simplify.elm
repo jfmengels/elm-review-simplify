@@ -811,7 +811,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterableChecks listCollection )
+        , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
@@ -822,7 +822,7 @@ functionCallChecks =
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
-        , ( ( [ "Set" ], "filter" ), filterableChecks setCollection )
+        , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -2337,29 +2337,40 @@ collectionMapChecks collection checkInfo =
                 []
 
 
-filterableChecks : Collection -> CheckInfo -> List (Error {})
-filterableChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case isAlwaysBoolean lookupTable firstArg of
+collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
+collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
         Just True ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
-                , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
+                { message = "Using " ++ collection.moduleName ++ ".filter on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                 }
-                fnRange
+                checkInfo.fnRange
                 (noopFix checkInfo)
             ]
 
-        Just False ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collection.emptyAsString
-                , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
-                }
-                fnRange
-                (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
-            ]
+        _ ->
+            case isAlwaysBoolean lookupTable firstArg of
+                Just True ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
+                        , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
+                        }
+                        fnRange
+                        (noopFix checkInfo)
+                    ]
 
-        Nothing ->
-            []
+                Just False ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collection.emptyAsString
+                        , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
+                        }
+                        fnRange
+                        (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
+                    ]
+
+                Nothing ->
+                    []
 
 
 

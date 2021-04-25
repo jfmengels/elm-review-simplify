@@ -2989,8 +2989,8 @@ a = List.filter fn []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using List.filter on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3005,8 +3005,8 @@ a = List.filter fn <| []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using List.filter on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3021,8 +3021,8 @@ a = [] |> List.filter fn
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using List.filter on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
