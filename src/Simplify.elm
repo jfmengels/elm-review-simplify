@@ -327,7 +327,7 @@ Below is the list of all kinds of simplifications this rule applies.
     --> []
 
 
-### Sets
+### Set
 
     Set.map fn Set.empty -- same for Set.filter, ...
     --> Set.empty
@@ -337,6 +337,21 @@ Below is the list of all kinds of simplifications this rule applies.
 
     Set.map identity
     --> identity
+
+    Set.isEmpty Set.empty
+    --> True
+
+    Set.fromList []
+    --> Set.empty
+
+
+### Dict
+
+    Dict.isEmpty Dict.empty
+    --> True
+
+    Dict.fromList []
+    --> Dict.empty
 
 
 ### Cmd / Sub
@@ -825,6 +840,8 @@ functionCallChecks =
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
+        , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
+        , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -2259,7 +2276,17 @@ setCollection =
     , represents = "set"
     , emptyAsString = "Set.empty"
     , isEmpty = isSpecificFunction [ "Set" ] "empty"
-    , determineIfEmpty = determineIfCollectionIsEmpty [ "Set" ]
+    , determineIfEmpty = determineIfCollectionIsEmpty [ "Set" ] 1
+    }
+
+
+dictCollection : Collection
+dictCollection =
+    { moduleName = "Dict"
+    , represents = "Dict"
+    , emptyAsString = "Dict.empty"
+    , isEmpty = isSpecificFunction [ "Dict" ] "empty"
+    , determineIfEmpty = determineIfCollectionIsEmpty [ "Dict" ] 2
     }
 
 
@@ -2389,7 +2416,7 @@ collectionFromListChecks collection { lookupTable, parentRange, fnRange, firstAr
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "The call to " ++ collection.moduleName ++ ".fromList will result in Set.empty"
+                { message = "The call to " ++ collection.moduleName ++ ".fromList will result in " ++ collection.emptyAsString
                 , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                 }
                 fnRange
@@ -2420,15 +2447,15 @@ determineIfListIsEmpty lookupTable node =
             Nothing
 
 
-determineIfCollectionIsEmpty : ModuleName -> ModuleNameLookupTable -> Node Expression -> Maybe Bool
-determineIfCollectionIsEmpty moduleName lookupTable node =
+determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe Bool
+determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
     if isSpecificFunction moduleName "empty" lookupTable node then
         Just True
 
     else
         case Node.value (removeParens node) of
-            Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
-                if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
+            Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: args) ->
+                if List.length args == singletonNumberOfArgs && ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
                     Just False
 
                 else

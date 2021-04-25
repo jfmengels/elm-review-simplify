@@ -21,6 +21,7 @@ all =
         , stringSimplificationTests
         , listSimplificationTests
         , setSimplificationTests
+        , dictSimplificationTests
         , cmdTests
         , subTests
         ]
@@ -4472,6 +4473,152 @@ a = Set.fromList []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Set.empty
+"""
+                        ]
+        ]
+
+
+
+-- Dict
+
+
+dictSimplificationTests : Test
+dictSimplificationTests =
+    describe "Dict"
+        [ dictIsEmptyTests
+        , dictFromListTests
+        ]
+
+
+dictIsEmptyTests : Test
+dictIsEmptyTests =
+    describe "Using Dict.isEmpty"
+        [ test "should not report Dict.isEmpty with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.isEmpty
+b = Dict.isEmpty list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.isEmpty Dict.empty by True" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.isEmpty Dict.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.isEmpty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace Dict.isEmpty (Dict.fromList [x]) by False" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.isEmpty (Dict.fromList [x])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace Dict.isEmpty (Dict.fromList []) by False" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.isEmpty (Dict.fromList [])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.isEmpty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        , Review.Test.error
+                            { message = "The call to Dict.fromList will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.isEmpty (Dict.empty)
+"""
+                        ]
+        , test "should replace Dict.isEmpty (Dict.singleton x) by False" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.isEmpty (Dict.singleton x y)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace x :: xs |> Dict.isEmpty by False" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.singleton x y |> Dict.isEmpty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        ]
+
+
+dictFromListTests : Test
+dictFromListTests =
+    describe "Dict.fromList"
+        [ test "should not report Dict.fromList with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList
+b = Dict.fromList list
+b = Dict.fromList [x]
+b = Dict.fromList [x, y]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.fromList [] by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.fromList will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.empty
 """
                         ]
         ]
