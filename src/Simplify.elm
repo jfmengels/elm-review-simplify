@@ -2257,7 +2257,7 @@ type alias Collection =
     , nameForSize : String
     , emptyAsString : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    , determineIfEmpty : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+    , determineIfEmpty : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
     }
 
 
@@ -2268,7 +2268,7 @@ listCollection =
     , nameForSize = "length"
     , emptyAsString = "[]"
     , isEmpty = \_ -> isEmptyList
-    , determineIfEmpty = determineIfListIsEmpty
+    , determineIfEmpty = determineListLength
     }
 
 
@@ -2393,7 +2393,7 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 collectionIsEmptyChecks : Collection -> CheckInfo -> List (Error {})
 collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg } =
     case collection.determineIfEmpty lookupTable firstArg of
-        Just True ->
+        Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in True"
                 , details = [ "You can replace this call by True." ]
@@ -2402,7 +2402,7 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
                 [ Fix.replaceRangeBy parentRange "True" ]
             ]
 
-        Just False ->
+        Just _ ->
             [ Rule.errorWithFix
                 { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in False"
                 , details = [ "You can replace this call by False." ]
@@ -2447,18 +2447,24 @@ collectionFromListChecks collection { lookupTable, parentRange, fnRange, firstAr
             []
 
 
-determineIfListIsEmpty : ModuleNameLookupTable -> Node Expression -> Maybe Bool
-determineIfListIsEmpty lookupTable node =
+type CollectionSize
+    = Exactly Int
+    | NotEmpty
+
+
+determineListLength : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+determineListLength lookupTable node =
     case Node.value (removeParens node) of
         Expression.ListExpr list ->
-            Just (List.isEmpty list)
+            Just (Exactly (List.length list))
 
         Expression.OperatorApplication "::" _ _ _ ->
-            Just False
+            -- TODO Try to determine the size of the right hand size
+            Just NotEmpty
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
             if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
-                Just False
+                Just (Exactly 1)
 
             else
                 Nothing
@@ -2467,23 +2473,23 @@ determineIfListIsEmpty lookupTable node =
             Nothing
 
 
-determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe Bool
+determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
 determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
     if isSpecificFunction moduleName "empty" lookupTable node then
-        Just True
+        Just (Exactly 0)
 
     else
         case Node.value (removeParens node) of
             Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: args) ->
                 if List.length args == singletonNumberOfArgs && ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    Just False
+                    Just (Exactly 1)
 
                 else
                     Nothing
 
             Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
                 if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    Just (List.isEmpty list)
+                    Just (Exactly (List.length list))
 
                 else
                     Nothing
