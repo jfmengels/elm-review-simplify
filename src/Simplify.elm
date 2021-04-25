@@ -833,7 +833,7 @@ functionCallChecks =
         , ( ( [ "List" ], "all" ), listAllChecks )
         , ( ( [ "List" ], "any" ), listAnyChecks )
         , ( ( [ "List" ], "range" ), listRangeChecks )
-        , ( ( [ "List" ], "length" ), listLengthChecks )
+        , ( ( [ "List" ], "length" ), collectionSizeChecks listCollection )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
@@ -2254,6 +2254,7 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 type alias Collection =
     { moduleName : String
     , represents : String
+    , nameForSize : String
     , emptyAsString : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     , determineIfEmpty : ModuleNameLookupTable -> Node Expression -> Maybe Bool
@@ -2264,6 +2265,7 @@ listCollection : Collection
 listCollection =
     { moduleName = "List"
     , represents = "list"
+    , nameForSize = "length"
     , emptyAsString = "[]"
     , isEmpty = \_ -> isEmptyList
     , determineIfEmpty = determineIfListIsEmpty
@@ -2274,6 +2276,7 @@ setCollection : Collection
 setCollection =
     { moduleName = "Set"
     , represents = "set"
+    , nameForSize = "size"
     , emptyAsString = "Set.empty"
     , isEmpty = isSpecificFunction [ "Set" ] "empty"
     , determineIfEmpty = determineIfCollectionIsEmpty [ "Set" ] 1
@@ -2284,6 +2287,7 @@ dictCollection : Collection
 dictCollection =
     { moduleName = "Dict"
     , represents = "Dict"
+    , nameForSize = "size"
     , emptyAsString = "Dict.empty"
     , isEmpty = isSpecificFunction [ "Dict" ] "empty"
     , determineIfEmpty = determineIfCollectionIsEmpty [ "Dict" ] 2
@@ -2408,6 +2412,22 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
             ]
 
         Nothing ->
+            []
+
+
+collectionSizeChecks : Collection -> CheckInfo -> List (Error {})
+collectionSizeChecks collection { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.ListExpr list ->
+            [ Rule.errorWithFix
+                { message = "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt (List.length list)
+                , details = [ "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange (String.fromInt (List.length list)) ]
+            ]
+
+        _ ->
             []
 
 
