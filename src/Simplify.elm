@@ -822,6 +822,7 @@ functionCallChecks =
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
+        , ( ( [ "Set" ], "filter" ), filterableChecks setCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -1992,7 +1993,7 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
             , details = [ "You can replace this call by an empty list" ]
             }
             fnRange
-            (replaceByEmptyListFix parentRange secondArg)
+            (replaceByEmptyFix "[]" parentRange secondArg)
         ]
 
     else
@@ -2150,7 +2151,7 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } 
                 , details = [ "You can remove this call and replace it by an empty list" ]
                 }
                 fnRange
-                (replaceByEmptyListFix parentRange secondArg)
+                (replaceByEmptyFix "[]" parentRange secondArg)
             ]
 
         Nothing ->
@@ -2167,7 +2168,7 @@ listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
                     , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
                     }
                     fnRange
-                    (replaceByEmptyListFix parentRange secondArg)
+                    (replaceByEmptyFix "[]" parentRange secondArg)
                 ]
 
             else
@@ -2309,7 +2310,7 @@ setCollection : Collection
 setCollection =
     { moduleName = "Set"
     , represents = "set"
-    , emptyAsString = "Set.none"
+    , emptyAsString = "Set.empty"
     , isEmpty = isSpecificFunction [ "Set" ] "empty"
     }
 
@@ -2364,7 +2365,7 @@ filterableChecks collection ({ lookupTable, parentRange, fnRange, firstArg, seco
         Just True ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
-                , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself" ]
+                , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
                 }
                 fnRange
                 (noopFix checkInfo)
@@ -2373,10 +2374,10 @@ filterableChecks collection ({ lookupTable, parentRange, fnRange, firstArg, seco
         Just False ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collection.emptyAsString
-                , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ]
+                , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
                 }
                 fnRange
-                (replaceByEmptyListFix parentRange secondArg)
+                (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
             ]
 
         Nothing ->
@@ -2580,14 +2581,14 @@ noopFix { fnRange, parentRange, secondArg, usingRightPizza } =
     ]
 
 
-replaceByEmptyListFix : Range -> Maybe a -> List Fix
-replaceByEmptyListFix parentRange secondArg =
+replaceByEmptyFix : String -> Range -> Maybe a -> List Fix
+replaceByEmptyFix empty parentRange secondArg =
     [ case secondArg of
         Just _ ->
-            Fix.replaceRangeBy parentRange "[]"
+            Fix.replaceRangeBy parentRange empty
 
         Nothing ->
-            Fix.replaceRangeBy parentRange "(always [])"
+            Fix.replaceRangeBy parentRange ("(always " ++ empty ++ ")")
     ]
 
 

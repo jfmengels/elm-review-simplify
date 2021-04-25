@@ -3038,7 +3038,7 @@ a = List.filter (always True) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3054,7 +3054,7 @@ a = List.filter (\\x -> True) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3070,7 +3070,7 @@ a = List.filter (always True)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3086,7 +3086,7 @@ a = List.filter <| (always True)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3102,7 +3102,7 @@ a = always True |> List.filter
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3118,7 +3118,7 @@ a = List.filter (always False) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3134,7 +3134,7 @@ a = List.filter (\\x -> False) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3150,7 +3150,7 @@ a = List.filter (always False) <| x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3166,7 +3166,7 @@ a = x |> List.filter (always False)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3182,7 +3182,7 @@ a = List.filter (always False)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3198,7 +3198,7 @@ a = List.filter <| (always False)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3214,7 +3214,7 @@ a = always False |> List.filter
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can remove this call and replace it by []" ]
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3934,8 +3934,8 @@ a = Set.map fn Set.empty
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map on Set.none will result in Set.none"
-                            , details = [ "You can replace this call by Set.none." ]
+                            { message = "Using Set.map on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3950,8 +3950,8 @@ a = Set.map fn <| Set.empty
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map on Set.none will result in Set.none"
-                            , details = [ "You can replace this call by Set.none." ]
+                            { message = "Using Set.map on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3966,8 +3966,8 @@ a = Set.empty |> Set.map f
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map on Set.none will result in Set.none"
-                            , details = [ "You can replace this call by Set.none." ]
+                            { message = "Using Set.map on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4091,8 +4091,8 @@ a = Set.filter fn Set.empty
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using Set.filter on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4107,8 +4107,8 @@ a = Set.filter fn <| Set.empty
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using Set.filter on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4123,8 +4123,8 @@ a = Set.empty |> Set.filter fn
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using Set.filter on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4140,7 +4140,7 @@ a = Set.filter (always True) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4156,7 +4156,7 @@ a = Set.filter (\\x -> True) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4172,7 +4172,7 @@ a = Set.filter (always True)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4188,7 +4188,7 @@ a = Set.filter <| (always True)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4204,7 +4204,7 @@ a = always True |> Set.filter
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4219,8 +4219,8 @@ a = Set.filter (always False) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4235,8 +4235,8 @@ a = Set.filter (\\x -> False) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4251,8 +4251,8 @@ a = Set.filter (always False) <| x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4267,8 +4267,8 @@ a = x |> Set.filter (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4283,8 +4283,8 @@ a = Set.filter (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4299,8 +4299,8 @@ a = Set.filter <| (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4315,8 +4315,8 @@ a = always False |> Set.filter
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            , details = [ "You can remove this call and replace it by Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
