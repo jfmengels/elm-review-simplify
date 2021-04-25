@@ -2258,7 +2258,15 @@ setCollection =
     }
 
 
-cmdCollection : Collection
+type alias Mappable =
+    { moduleName : String
+    , represents : String
+    , emptyAsString : String
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+
+
+cmdCollection : Mappable
 cmdCollection =
     { moduleName = "Cmd"
     , represents = "command"
@@ -2267,7 +2275,7 @@ cmdCollection =
     }
 
 
-subCollection : Collection
+subCollection : Mappable
 subCollection =
     { moduleName = "Sub"
     , represents = "subscription"
@@ -2276,7 +2284,15 @@ subCollection =
     }
 
 
-collectionMapChecks : Collection -> CheckInfo -> List (Error {})
+collectionMapChecks :
+    { a
+        | moduleName : String
+        , represents : String
+        , emptyAsString : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+    -> CheckInfo
+    -> List (Error {})
 collectionMapChecks collection checkInfo =
     case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
         Just True ->
