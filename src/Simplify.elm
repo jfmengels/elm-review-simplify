@@ -2349,12 +2349,12 @@ subMappable =
 
 
 mappableChecks : Mappable -> CheckInfo -> List (Error {})
-mappableChecks monad checkInfo =
-    case Maybe.map (monad.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+mappableChecks mappable checkInfo =
+    case Maybe.map (mappable.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
         Just True ->
             [ Rule.errorWithFix
-                { message = "Using " ++ monad.moduleName ++ ".map on " ++ monad.emptyAsString ++ " will result in " ++ monad.emptyAsString
-                , details = [ "You can replace this call by " ++ monad.emptyAsString ++ "." ]
+                { message = "Using " ++ mappable.moduleName ++ ".map on " ++ mappable.emptyAsString ++ " will result in " ++ mappable.emptyAsString
+                , details = [ "You can replace this call by " ++ mappable.emptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
@@ -2363,8 +2363,8 @@ mappableChecks monad checkInfo =
         _ ->
             if isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
-                    { message = "Using " ++ monad.moduleName ++ ".map with an identity function is the same as not using " ++ monad.moduleName ++ ".map"
-                    , details = [ "You can remove this call and replace it by the " ++ monad.represents ++ " itself." ]
+                    { message = "Using " ++ mappable.moduleName ++ ".map with an identity function is the same as not using " ++ mappable.moduleName ++ ".map"
+                    , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself." ]
                     }
                     checkInfo.fnRange
                     (noopFix checkInfo)
