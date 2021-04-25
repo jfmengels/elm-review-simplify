@@ -807,14 +807,20 @@ type alias CheckInfo =
 functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
 functionCallChecks =
     Dict.fromList
-        [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), identityChecks )
-        , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), alwaysChecks )
-        , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), notChecks )
+        [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
+        , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
+        , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), listMapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), filterMapChecks )
-        , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), concatChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), concatMapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), listFilterChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
+        , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
+        , ( ( [ "List" ], "all" ), listAllChecks )
+        , ( ( [ "List" ], "any" ), listAnyChecks )
+        , ( ( [ "List" ], "range" ), listRangeChecks )
+        , ( ( [ "List" ], "length" ), listLengthChecks )
+        , ( ( [ "List" ], "repeat" ), listRepeatChecks )
+        , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
         , ( ( [ "Set" ], "map" ), mappableChecks setMappable )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
@@ -823,12 +829,6 @@ functionCallChecks =
         , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
         , ( ( [ "String" ], "words" ), stringWordsChecks )
         , ( ( [ "String" ], "lines" ), stringLinesChecks )
-        , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
-        , ( ( [ "List" ], "all" ), allChecks )
-        , ( ( [ "List" ], "any" ), anyChecks )
-        , ( ( [ "List" ], "range" ), rangeChecks )
-        , ( ( [ "List" ], "length" ), listLengthChecks )
-        , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
         , ( ( [ "Platform", "Cmd" ], "map" ), mappableChecks cmdMappable )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
@@ -1231,8 +1231,8 @@ getNegateFunction lookupTable baseNode =
 -- BOOLEAN
 
 
-notChecks : CheckInfo -> List (Error {})
-notChecks { lookupTable, parentRange, firstArg } =
+basicsNotChecks : CheckInfo -> List (Error {})
+basicsNotChecks { lookupTable, parentRange, firstArg } =
     case getBoolean lookupTable firstArg of
         Just bool ->
             [ Rule.errorWithFix
@@ -1602,8 +1602,8 @@ targetIf node =
 -- BASICS
 
 
-identityChecks : CheckInfo -> List (Error {})
-identityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
+basicsIdentityChecks : CheckInfo -> List (Error {})
+basicsIdentityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
     [ Rule.errorWithFix
         { message = "`identity` should be removed"
         , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
@@ -1646,8 +1646,8 @@ identityCompositionCheck { lookupTable, left, right } =
         Nothing
 
 
-alwaysChecks : CheckInfo -> List (Error {})
-alwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
+basicsAlwaysChecks : CheckInfo -> List (Error {})
+basicsAlwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
     case secondArg of
         Just (Node secondArgRange _) ->
             [ Rule.errorWithFix
@@ -1908,8 +1908,8 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
 -- LIST FUNCTIONS
 
 
-concatChecks : CheckInfo -> List (Error {})
-concatChecks { parentRange, fnRange, firstArg } =
+listConcatChecks : CheckInfo -> List (Error {})
+listConcatChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr list ->
             case list of
@@ -1975,8 +1975,8 @@ findConsecutiveListLiterals firstListElement restOfListElements =
             []
 
 
-concatMapChecks : CheckInfo -> List (Error {})
-concatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
+listConcatMapChecks : CheckInfo -> List (Error {})
+listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -2078,8 +2078,8 @@ listIsEmptyChecks { parentRange, fnRange, firstArg } =
             []
 
 
-allChecks : CheckInfo -> List (Error {})
-allChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
+listAllChecks : CheckInfo -> List (Error {})
+listAllChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -2105,8 +2105,8 @@ allChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
                     []
 
 
-anyChecks : CheckInfo -> List (Error {})
-anyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
+listAnyChecks : CheckInfo -> List (Error {})
+listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -2132,8 +2132,8 @@ anyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
                     []
 
 
-filterChecks : CheckInfo -> List (Error {})
-filterChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+listFilterChecks : CheckInfo -> List (Error {})
+listFilterChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
@@ -2157,8 +2157,8 @@ filterChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as chec
             []
 
 
-filterMapChecks : CheckInfo -> List (Error {})
-filterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+listFilterMapChecks : CheckInfo -> List (Error {})
+listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just ()) ->
             [ Rule.errorWithFix
@@ -2182,8 +2182,8 @@ filterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as c
             []
 
 
-rangeChecks : CheckInfo -> List (Error {})
-rangeChecks { parentRange, fnRange, firstArg, secondArg } =
+listRangeChecks : CheckInfo -> List (Error {})
+listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map2 Tuple.pair (getIntValue firstArg) (Maybe.andThen getIntValue secondArg) of
         Just ( first, second ) ->
             if first > second then
