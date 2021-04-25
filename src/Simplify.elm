@@ -823,6 +823,7 @@ functionCallChecks =
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
+        , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -2237,6 +2238,7 @@ type alias Collection =
     , represents : String
     , emptyAsString : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    , determineIfEmpty : ModuleNameLookupTable -> Node Expression -> Maybe Bool
     }
 
 
@@ -2246,6 +2248,7 @@ listCollection =
     , represents = "list"
     , emptyAsString = "[]"
     , isEmpty = \_ -> isEmptyList
+    , determineIfEmpty = \_ -> determineIfListIsEmpty
     }
 
 
@@ -2255,6 +2258,7 @@ setCollection =
     , represents = "set"
     , emptyAsString = "Set.empty"
     , isEmpty = isSpecificFunction [ "Set" ] "empty"
+    , determineIfEmpty = determineIfCollectionIsEmpty [ "Set" ]
     }
 
 
@@ -2355,8 +2359,8 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
 
 collectionIsEmptyChecks : Collection -> CheckInfo -> List (Error {})
-collectionIsEmptyChecks collection { parentRange, fnRange, firstArg } =
-    case determineIfListIsEmpty firstArg of
+collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg } =
+    case collection.determineIfEmpty lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
                 { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in True"
@@ -2390,6 +2394,15 @@ determineIfListIsEmpty node =
 
         _ ->
             Nothing
+
+
+determineIfCollectionIsEmpty : ModuleName -> ModuleNameLookupTable -> Node Expression -> Maybe Bool
+determineIfCollectionIsEmpty moduleName lookupTable node =
+    if isSpecificFunction moduleName "empty" lookupTable node then
+        Just True
+
+    else
+        Nothing
 
 
 

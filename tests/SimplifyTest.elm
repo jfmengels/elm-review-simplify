@@ -3910,8 +3910,8 @@ setSimplificationTests =
     describe "Set"
         [ setMapTests
         , setFilterTests
+        , setIsEmptyTests
 
-        --, setIsEmptyTests
         --, setSizeTests
         ]
 
@@ -4321,6 +4321,84 @@ a = always False |> Set.filter
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (always Set.empty)
+"""
+                        ]
+        ]
+
+
+setIsEmptyTests : Test
+setIsEmptyTests =
+    describe "Using Set.isEmpty"
+        [ test "should not report Set.isEmpty with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.isEmpty
+b = Set.isEmpty list
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.isEmpty Set.empty by True" <|
+            \() ->
+                """module A exposing (..)
+a = Set.isEmpty Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.isEmpty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace Set.isEmpty (Set.fromList [x]) by False" <|
+            \() ->
+                """module A exposing (..)
+a = Set.isEmpty (Set.fromList [x])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace Set.isEmpty (Set.singleton x) by False" <|
+            \() ->
+                """module A exposing (..)
+a = Set.isEmpty (Set.singleton x)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace x :: xs |> Set.isEmpty by False" <|
+            \() ->
+                """module A exposing (..)
+a = Set.singleton x |> Set.isEmpty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
 """
                         ]
         ]
