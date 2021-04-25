@@ -811,7 +811,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), listMapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), listFilterChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterableChecks listMappable )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
@@ -2321,6 +2321,15 @@ type alias Mappable =
     }
 
 
+listMappable : Mappable
+listMappable =
+    { moduleName = "List"
+    , represents = "list"
+    , emptyAsString = "[]"
+    , isEmpty = \_ -> isEmptyList
+    }
+
+
 setMappable : Mappable
 setMappable =
     { moduleName = "Set"
@@ -2372,6 +2381,31 @@ mappableChecks mappable checkInfo =
 
             else
                 []
+
+
+filterableChecks : Mappable -> CheckInfo -> List (Error {})
+filterableChecks mappable ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case isAlwaysBoolean lookupTable firstArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ mappable.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ mappable.moduleName ++ ".filter"
+                , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself" ]
+                }
+                fnRange
+                (noopFix checkInfo)
+            ]
+
+        Just False ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ mappable.moduleName ++ ".filter with a function that will always return False will result in " ++ mappable.emptyAsString
+                , details = [ "You can remove this call and replace it by " ++ mappable.emptyAsString ]
+                }
+                fnRange
+                (replaceByEmptyListFix parentRange secondArg)
+            ]
+
+        Nothing ->
+            []
 
 
 

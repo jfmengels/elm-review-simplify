@@ -3117,8 +3117,8 @@ a = List.filter (always False) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3133,8 +3133,8 @@ a = List.filter (\\x -> False) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3149,8 +3149,8 @@ a = List.filter (always False) <| x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3165,8 +3165,8 @@ a = x |> List.filter (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3181,8 +3181,8 @@ a = List.filter (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3197,8 +3197,8 @@ a = List.filter <| (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3213,8 +3213,8 @@ a = always False |> List.filter
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            { message = "Using List.filter with a function that will always return False will result in []"
+                            , details = [ "You can remove this call and replace it by []" ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
