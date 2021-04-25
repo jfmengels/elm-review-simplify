@@ -356,6 +356,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Dict.fromList []
     --> Dict.empty
 
+    Set.size Dict.empty
+    --> 0
+
 
 ### Cmd / Sub
 
@@ -846,6 +849,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
+        , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )

@@ -4550,6 +4550,7 @@ dictSimplificationTests =
     describe "Dict"
         [ dictIsEmptyTests
         , dictFromListTests
+        , dictSizeTests
         ]
 
 
@@ -4682,6 +4683,68 @@ a = Dict.fromList []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Dict.empty
+"""
+                        ]
+        ]
+
+
+dictSizeTests : Test
+dictSizeTests =
+    describe "Dict.size"
+        [ test "should not report Dict.size used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size
+a = Dict.size b
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.size Dict.empty by 0" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size Dict.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 0"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList [b, c, d]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList [b, c, d])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 3"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace Dict.empty |> Dict.size by 0" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.empty |> Dict.size
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 0"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
 """
                         ]
         ]
