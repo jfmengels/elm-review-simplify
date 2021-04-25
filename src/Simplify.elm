@@ -807,9 +807,9 @@ type alias CheckInfo =
 functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
 functionCallChecks =
     Dict.fromList
-        [ reportEmptyListSecondArgument ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
-        , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
-        , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), basicsNotChecks )
+        [ ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
+        , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
+        , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), listMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterableChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
