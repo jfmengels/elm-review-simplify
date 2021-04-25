@@ -2392,6 +2392,9 @@ determineIfListIsEmpty node =
         Expression.OperatorApplication "::" _ _ _ ->
             Just False
 
+        Expression.Application ((Node _ (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
+            Just False
+
         _ ->
             Nothing
 

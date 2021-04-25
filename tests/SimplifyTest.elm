@@ -3581,6 +3581,22 @@ a = x :: xs |> List.isEmpty
 a = False
 """
                         ]
+        , test "should replace List.isEmpty (List.singleton x) by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.singleton x)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.isEmpty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]
 
 
