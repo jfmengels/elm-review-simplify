@@ -824,6 +824,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
+        , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -2380,6 +2381,22 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
             ]
 
         Nothing ->
+            []
+
+
+collectionFromListChecks : Collection -> CheckInfo -> List (Error {})
+collectionFromListChecks collection { lookupTable, parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "The call to " ++ collection.moduleName ++ ".fromList will result in Set.empty"
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange collection.emptyAsString ]
+            ]
+
+        _ ->
             []
 
 

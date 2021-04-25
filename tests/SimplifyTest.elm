@@ -3927,6 +3927,7 @@ setSimplificationTests =
         [ setMapTests
         , setFilterTests
         , setIsEmptyTests
+        , setFromListTests
 
         --, setSizeTests
         ]
@@ -4400,6 +4401,14 @@ a = Set.isEmpty (Set.fromList [])
                             |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
+                        , Review.Test.error
+                            { message = "The call to Set.fromList will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.isEmpty (Set.empty)
+"""
                         ]
         , test "should replace Set.isEmpty (Set.singleton x) by False" <|
             \() ->
@@ -4431,6 +4440,38 @@ a = Set.singleton x |> Set.isEmpty
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
+"""
+                        ]
+        ]
+
+
+setFromListTests : Test
+setFromListTests =
+    describe "Set.fromList"
+        [ test "should not report Set.fromList with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList
+b = Set.fromList list
+b = Set.fromList [x]
+b = Set.fromList [x, y]
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.fromList [] by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.fromList will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
 """
                         ]
         ]
