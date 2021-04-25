@@ -810,7 +810,7 @@ functionCallChecks =
         [ ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), listMapChecks )
+        , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterableChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
@@ -2020,28 +2020,6 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
 
             _ ->
                 []
-
-
-listMapChecks : CheckInfo -> List (Error {})
-listMapChecks checkInfo =
-    mapCheck { moduleName = "List", what = "list" } checkInfo
-        |> Maybe.withDefault []
-
-
-mapCheck : { moduleName : String, what : String } -> CheckInfo -> Maybe (List (Error {}))
-mapCheck { moduleName, what } ({ lookupTable, fnRange, firstArg } as checkInfo) =
-    if isIdentity lookupTable firstArg then
-        Just
-            [ Rule.errorWithFix
-                { message = "Using " ++ moduleName ++ ".map with an identity function is the same as not using " ++ moduleName ++ ".map"
-                , details = [ "You can remove this call and replace it by the " ++ what ++ " itself" ]
-                }
-                fnRange
-                (noopFix checkInfo)
-            ]
-
-    else
-        Nothing
 
 
 listIsEmptyChecks : CheckInfo -> List (Error {})

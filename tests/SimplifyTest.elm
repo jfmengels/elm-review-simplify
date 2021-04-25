@@ -2832,8 +2832,8 @@ a = List.map fn []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using List.map on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2848,8 +2848,8 @@ a = List.map fn <| []
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using List.map on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2864,8 +2864,8 @@ a = [] |> List.map f
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            { message = "Using List.map on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2881,7 +2881,7 @@ a = List.map identity x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2897,7 +2897,7 @@ a = List.map identity <| x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2913,7 +2913,7 @@ a = x |> List.map identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2929,7 +2929,7 @@ a = List.map identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2945,7 +2945,7 @@ a = List.map <| identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2961,7 +2961,7 @@ a = identity |> List.map
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
