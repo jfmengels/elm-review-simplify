@@ -820,7 +820,7 @@ functionCallChecks =
         , ( ( [ "List" ], "range" ), listRangeChecks )
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
-        , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
+        , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
@@ -2022,41 +2022,6 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
                 []
 
 
-listIsEmptyChecks : CheckInfo -> List (Error {})
-listIsEmptyChecks { parentRange, fnRange, firstArg } =
-    case Node.value (removeParens firstArg) of
-        Expression.ListExpr list ->
-            if List.isEmpty list then
-                [ Rule.errorWithFix
-                    { message = "The call to List.isEmpty will result in True"
-                    , details = [ "You can replace this call by True." ]
-                    }
-                    fnRange
-                    [ Fix.replaceRangeBy parentRange "True" ]
-                ]
-
-            else
-                [ Rule.errorWithFix
-                    { message = "The call to List.isEmpty will result in False"
-                    , details = [ "You can replace this call by False." ]
-                    }
-                    fnRange
-                    [ Fix.replaceRangeBy parentRange "False" ]
-                ]
-
-        Expression.OperatorApplication "::" _ _ _ ->
-            [ Rule.errorWithFix
-                { message = "The call to List.isEmpty will result in False"
-                , details = [ "You can replace this call by False." ]
-                }
-                fnRange
-                [ Fix.replaceRangeBy parentRange "False" ]
-            ]
-
-        _ ->
-            []
-
-
 listAllChecks : CheckInfo -> List (Error {})
 listAllChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
@@ -2371,6 +2336,44 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
                 Nothing ->
                     []
+
+
+collectionIsEmptyChecks : Collection -> CheckInfo -> List (Error {})
+collectionIsEmptyChecks collection { parentRange, fnRange, firstArg } =
+    case determineIfListIsEmpty firstArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in True"
+                , details = [ "You can replace this call by True." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "True" ]
+            ]
+
+        Just False ->
+            [ Rule.errorWithFix
+                { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in False"
+                , details = [ "You can replace this call by False." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "False" ]
+            ]
+
+        Nothing ->
+            []
+
+
+determineIfListIsEmpty : Node Expression -> Maybe Bool
+determineIfListIsEmpty node =
+    case Node.value (removeParens node) of
+        Expression.ListExpr list ->
+            Just (List.isEmpty list)
+
+        Expression.OperatorApplication "::" _ _ _ ->
+            Just False
+
+        _ ->
+            Nothing
 
 
 
