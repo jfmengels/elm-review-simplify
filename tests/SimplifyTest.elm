@@ -3928,6 +3928,7 @@ setSimplificationTests =
         [ setMapTests
         , setFilterTests
         , setIsEmptyTests
+        , setSizeTests
         , setFromListTests
 
         --, setSizeTests
@@ -4339,6 +4340,68 @@ a = always False |> Set.filter
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (always Set.empty)
+"""
+                        ]
+        ]
+
+
+setSizeTests : Test
+setSizeTests =
+    describe "Set.size"
+        [ test "should not report Set.size used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size
+a = Set.size b
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.size Set.empty by 0" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 0"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [b, c, d]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [b, c, d])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 3"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace Set.empty |> Set.size by 0" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.size
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 0"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
 """
                         ]
         ]

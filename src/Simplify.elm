@@ -344,6 +344,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.fromList []
     --> Set.empty
 
+    Set.length Set.empty
+    --> 0
+
 
 ### Dict
 
@@ -839,6 +842,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
+        , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
@@ -2416,15 +2420,15 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
 
 
 collectionSizeChecks : Collection -> CheckInfo -> List (Error {})
-collectionSizeChecks collection { parentRange, fnRange, firstArg } =
-    case Node.value firstArg of
-        Expression.ListExpr list ->
+collectionSizeChecks collection { lookupTable, parentRange, fnRange, firstArg } =
+    case collection.determineSize lookupTable firstArg of
+        Just (Exactly size) ->
             [ Rule.errorWithFix
-                { message = "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt (List.length list)
+                { message = "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
                 , details = [ "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy parentRange (String.fromInt (List.length list)) ]
+                [ Fix.replaceRangeBy parentRange (String.fromInt size) ]
             ]
 
         _ ->
