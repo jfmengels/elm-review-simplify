@@ -2148,22 +2148,6 @@ listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
             []
 
 
-listLengthChecks : CheckInfo -> List (Error {})
-listLengthChecks { parentRange, fnRange, firstArg } =
-    case Node.value firstArg of
-        Expression.ListExpr list ->
-            [ Rule.errorWithFix
-                { message = "The length of the list is " ++ String.fromInt (List.length list)
-                , details = [ "The length of the list can be determined by looking at the code." ]
-                }
-                fnRange
-                [ Fix.replaceRangeBy parentRange (String.fromInt (List.length list)) ]
-            ]
-
-        _ ->
-            []
-
-
 listRepeatChecks : CheckInfo -> List (Error {})
 listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
     case secondArg of
@@ -2440,7 +2424,7 @@ collectionSizeChecks collection { lookupTable, parentRange, fnRange, firstArg } 
 
 
 collectionFromListChecks : Collection -> CheckInfo -> List (Error {})
-collectionFromListChecks collection { lookupTable, parentRange, fnRange, firstArg } =
+collectionFromListChecks collection { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
