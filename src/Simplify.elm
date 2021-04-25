@@ -2402,7 +2402,15 @@ determineIfCollectionIsEmpty moduleName lookupTable node =
         Just True
 
     else
-        Nothing
+        case Node.value (removeParens node) of
+            Expression.Application ((Node _ (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
+                Just False
+
+            Expression.Application ((Node _ (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
+                Just (List.isEmpty list)
+
+            _ ->
+                Nothing
 
 
 

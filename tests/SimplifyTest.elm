@@ -4369,6 +4369,22 @@ a = Set.isEmpty (Set.fromList [x])
 a = False
 """
                         ]
+        , test "should replace Set.isEmpty (Set.fromList []) by False" <|
+            \() ->
+                """module A exposing (..)
+a = Set.isEmpty (Set.fromList [])
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.isEmpty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should replace Set.isEmpty (Set.singleton x) by False" <|
             \() ->
                 """module A exposing (..)
