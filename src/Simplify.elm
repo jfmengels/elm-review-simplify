@@ -811,7 +811,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , reportEmptyListSecondArgument ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "map" ), listMapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterableChecks listMappable )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "filter" ), filterableChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
@@ -821,7 +821,7 @@ functionCallChecks =
         , ( ( [ "List" ], "length" ), listLengthChecks )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), listIsEmptyChecks )
-        , ( ( [ "Set" ], "map" ), mappableChecks setMappable )
+        , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -830,9 +830,9 @@ functionCallChecks =
         , ( ( [ "String" ], "words" ), stringWordsChecks )
         , ( ( [ "String" ], "lines" ), stringLinesChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
-        , ( ( [ "Platform", "Cmd" ], "map" ), mappableChecks cmdMappable )
+        , ( ( [ "Platform", "Cmd" ], "map" ), collectionMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
-        , ( ( [ "Platform", "Sub" ], "map" ), mappableChecks subMappable )
+        , ( ( [ "Platform", "Sub" ], "map" ), collectionMapChecks subCollection )
         ]
 
 
@@ -2313,7 +2313,7 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
             []
 
 
-type alias Mappable =
+type alias Collection =
     { moduleName : String
     , represents : String
     , emptyAsString : String
@@ -2321,8 +2321,8 @@ type alias Mappable =
     }
 
 
-listMappable : Mappable
-listMappable =
+listCollection : Collection
+listCollection =
     { moduleName = "List"
     , represents = "list"
     , emptyAsString = "[]"
@@ -2330,8 +2330,8 @@ listMappable =
     }
 
 
-setMappable : Mappable
-setMappable =
+setCollection : Collection
+setCollection =
     { moduleName = "Set"
     , represents = "set"
     , emptyAsString = "Set.none"
@@ -2339,8 +2339,8 @@ setMappable =
     }
 
 
-cmdMappable : Mappable
-cmdMappable =
+cmdCollection : Collection
+cmdCollection =
     { moduleName = "Cmd"
     , represents = "command"
     , emptyAsString = "Cmd.none"
@@ -2348,8 +2348,8 @@ cmdMappable =
     }
 
 
-subMappable : Mappable
-subMappable =
+subCollection : Collection
+subCollection =
     { moduleName = "Sub"
     , represents = "subscription"
     , emptyAsString = "Sub.none"
@@ -2357,13 +2357,13 @@ subMappable =
     }
 
 
-mappableChecks : Mappable -> CheckInfo -> List (Error {})
-mappableChecks mappable checkInfo =
-    case Maybe.map (mappable.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+collectionMapChecks : Collection -> CheckInfo -> List (Error {})
+collectionMapChecks collection checkInfo =
+    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
         Just True ->
             [ Rule.errorWithFix
-                { message = "Using " ++ mappable.moduleName ++ ".map on " ++ mappable.emptyAsString ++ " will result in " ++ mappable.emptyAsString
-                , details = [ "You can replace this call by " ++ mappable.emptyAsString ++ "." ]
+                { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
@@ -2372,8 +2372,8 @@ mappableChecks mappable checkInfo =
         _ ->
             if isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
-                    { message = "Using " ++ mappable.moduleName ++ ".map with an identity function is the same as not using " ++ mappable.moduleName ++ ".map"
-                    , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself." ]
+                    { message = "Using " ++ collection.moduleName ++ ".map with an identity function is the same as not using " ++ collection.moduleName ++ ".map"
+                    , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
                     }
                     checkInfo.fnRange
                     (noopFix checkInfo)
@@ -2383,13 +2383,13 @@ mappableChecks mappable checkInfo =
                 []
 
 
-filterableChecks : Mappable -> CheckInfo -> List (Error {})
-filterableChecks mappable ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+filterableChecks : Collection -> CheckInfo -> List (Error {})
+filterableChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysBoolean lookupTable firstArg of
         Just True ->
             [ Rule.errorWithFix
-                { message = "Using " ++ mappable.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ mappable.moduleName ++ ".filter"
-                , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself" ]
+                { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
+                , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself" ]
                 }
                 fnRange
                 (noopFix checkInfo)
@@ -2397,8 +2397,8 @@ filterableChecks mappable ({ lookupTable, parentRange, fnRange, firstArg, second
 
         Just False ->
             [ Rule.errorWithFix
-                { message = "Using " ++ mappable.moduleName ++ ".filter with a function that will always return False will result in " ++ mappable.emptyAsString
-                , details = [ "You can remove this call and replace it by " ++ mappable.emptyAsString ]
+                { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collection.emptyAsString
+                , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ]
                 }
                 fnRange
                 (replaceByEmptyListFix parentRange secondArg)
