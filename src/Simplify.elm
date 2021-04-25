@@ -2132,31 +2132,6 @@ listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
                     []
 
 
-listFilterChecks : CheckInfo -> List (Error {})
-listFilterChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case isAlwaysBoolean lookupTable firstArg of
-        Just True ->
-            [ Rule.errorWithFix
-                { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                , details = [ "You can remove this call and replace it by the list itself" ]
-                }
-                fnRange
-                (noopFix checkInfo)
-            ]
-
-        Just False ->
-            [ Rule.errorWithFix
-                { message = "Using List.filter with a function that will always return False will result in an empty list"
-                , details = [ "You can remove this call and replace it by an empty list" ]
-                }
-                fnRange
-                (replaceByEmptyListFix parentRange secondArg)
-            ]
-
-        Nothing ->
-            []
-
-
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
