@@ -2248,7 +2248,7 @@ listCollection =
     , represents = "list"
     , emptyAsString = "[]"
     , isEmpty = \_ -> isEmptyList
-    , determineIfEmpty = \_ -> determineIfListIsEmpty
+    , determineIfEmpty = determineIfListIsEmpty
     }
 
 
@@ -2383,8 +2383,8 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
             []
 
 
-determineIfListIsEmpty : Node Expression -> Maybe Bool
-determineIfListIsEmpty node =
+determineIfListIsEmpty : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+determineIfListIsEmpty lookupTable node =
     case Node.value (removeParens node) of
         Expression.ListExpr list ->
             Just (List.isEmpty list)
@@ -2392,8 +2392,12 @@ determineIfListIsEmpty node =
         Expression.OperatorApplication "::" _ _ _ ->
             Just False
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
-            Just False
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
+                Just False
+
+            else
+                Nothing
 
         _ ->
             Nothing
@@ -2406,11 +2410,19 @@ determineIfCollectionIsEmpty moduleName lookupTable node =
 
     else
         case Node.value (removeParens node) of
-            Expression.Application ((Node _ (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
-                Just False
+            Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
+                if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
+                    Just False
 
-            Expression.Application ((Node _ (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
-                Just (List.isEmpty list)
+                else
+                    Nothing
+
+            Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
+                if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
+                    Just (List.isEmpty list)
+
+                else
+                    Nothing
 
             _ ->
                 Nothing
