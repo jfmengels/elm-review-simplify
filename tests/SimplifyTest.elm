@@ -4117,6 +4117,7 @@ setSimplificationTests =
         , setToListTests
         , setPartitionTests
         , setRemoveTests
+        , setMemberTests
 
         --, setSizeTests
         ]
@@ -4934,6 +4935,35 @@ a = Set.remove x Set.empty
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Set.empty
+"""
+                        ]
+        ]
+
+
+setMemberTests : Test
+setMemberTests =
+    describe "Set.member"
+        [ test "should not report Set.member used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.member x x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.member x Set.empty by False" <|
+            \() ->
+                """module A exposing (..)
+a = Set.member x Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.member on Set.empty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
 """
                         ]
         ]

@@ -347,6 +347,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.isEmpty Set.empty
     --> True
 
+    Set.member x Set.empty
+    --> False
+
     Set.fromList []
     --> Set.empty
 
@@ -866,6 +869,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
+        , ( ( [ "Set" ], "member" ), collectionMemberChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
         , ( ( [ "Set" ], "toList" ), collectionToListChecks setCollection )
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
@@ -2415,6 +2419,22 @@ collectionRemoveChecks collection ({ lookupTable, parentRange, fnRange, firstArg
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
+            ]
+
+        _ ->
+            []
+
+
+collectionMemberChecks : Collection -> CheckInfo -> List (Error {})
+collectionMemberChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Exactly 0) ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyAsString ++ " will result in False"
+                , details = [ "You can replace this call by False." ]
+                }
+                checkInfo.fnRange
+                (replaceByBoolFix parentRange secondArg False)
             ]
 
         _ ->
