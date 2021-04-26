@@ -848,6 +848,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
+        , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
         , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )

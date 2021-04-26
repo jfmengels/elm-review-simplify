@@ -4114,6 +4114,7 @@ setSimplificationTests =
         , setIsEmptyTests
         , setSizeTests
         , setFromListTests
+        , setPartitionTests
 
         --, setSizeTests
         ]
@@ -4720,6 +4721,157 @@ a = Set.fromList []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Set.empty
+"""
+                        ]
+        ]
+
+
+setPartitionTests : Test
+setPartitionTests =
+    describe "Set.partition"
+        [ test "should not report Set.partition used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition fn x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.partition f Set.empty by ( Set.empty, Set.empty )" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition f Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
+                            , details = [ "You can replace this call by ( Set.empty, Set.empty )." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( Set.empty, Set.empty )
+"""
+                        ]
+        , test "should replace Set.partition f <| Set.empty by ( Set.empty, Set.empty )" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition f <| Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
+                            , details = [ "You can replace this call by ( Set.empty, Set.empty )." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( Set.empty, Set.empty )
+"""
+                        ]
+        , test "should replace Set.empty |> Set.partition fn by ( Set.empty, Set.empty )" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.partition f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
+                            , details = [ "You can replace this call by ( Set.empty, Set.empty )." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( Set.empty, Set.empty )
+"""
+                        ]
+        , test "should replace Set.partition (always True) x by ( x, Set.empty )" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition (always True) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition with a function that will always return True REPLACEME"
+                            , details = [ "You can remove this call and replace it by the set itself REPLACEME." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( x, Set.empty )
+"""
+                        ]
+        , test "should not replace Set.partition (always True)" <|
+            -- We'd likely need an anonymous function which could introduce naming conflicts
+            -- Could be improved if we knew what names are available at this point in scope (or are used anywhere)
+            -- so that we can generate a unique variable.
+            \() ->
+                """module A exposing (..)
+a = Set.partition (always True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.partition (always False) x by ( Set.empty, x )" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition (always False) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
+                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( Set.empty, x )
+"""
+                        ]
+        , test "should replace Set.partition (always False) by (Tuple.pair Set.empty)" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
+                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Tuple.pair Set.empty)
+"""
+                        ]
+        , test "should replace Set.partition <| (always False) by (Tuple.pair Set.empty)" <|
+            \() ->
+                """module A exposing (..)
+a = Set.partition <| (always False)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
+                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Tuple.pair Set.empty)
+"""
+                        ]
+        , test "should replace always False |> Set.partition by Tuple.pair Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = always False |> Set.partition
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
+                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            , under = "Set.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Tuple.pair Set.empty)
 """
                         ]
         ]
