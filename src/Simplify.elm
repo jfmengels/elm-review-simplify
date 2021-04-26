@@ -2472,11 +2472,19 @@ collectionPartitionChecks collection checkInfo =
 
                 Just False ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return False will result in " ++ collection.emptyAsString
-                        , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
+                        { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return False will result in REPLACEME"
+                        , details = [ "You can remove this call and replace it by REPLACEME." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange checkInfo.secondArg)
+                        (case checkInfo.secondArg of
+                            Just listArg ->
+                                [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ collection.emptyAsString ++ ", ")
+                                , Fix.insertAt (Node.range listArg).end " )"
+                                ]
+
+                            Nothing ->
+                                [ Fix.replaceRangeBy checkInfo.parentRange ("(Tuple.pair " ++ collection.emptyAsString ++ ")") ]
+                        )
                     ]
 
                 Nothing ->
