@@ -4918,6 +4918,7 @@ dictSimplificationTests =
     describe "Dict"
         [ dictIsEmptyTests
         , dictFromListTests
+        , dictToListTests
         , dictSizeTests
         ]
 
@@ -5051,6 +5052,37 @@ a = Dict.fromList []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Dict.empty
+"""
+                        ]
+        ]
+
+
+dictToListTests : Test
+dictToListTests =
+    describe "Dict.toList"
+        [ test "should not report Dict.toList with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.toList
+b = Dict.toList list
+c = Dict.toList set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.toList Dict.empty by []" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.toList Dict.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.toList will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "Dict.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]
