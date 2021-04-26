@@ -2421,14 +2421,14 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
 
 collectionRemoveChecks : Collection -> CheckInfo -> List (Error {})
-collectionRemoveChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+collectionRemoveChecks collection ({ lookupTable, fnRange, secondArg } as checkInfo) =
+    case Maybe.andThen (collection.determineSize lookupTable) secondArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
                 , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                 }
-                checkInfo.fnRange
+                fnRange
                 (noopFix checkInfo)
             ]
 
@@ -2437,31 +2437,31 @@ collectionRemoveChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
 
 collectionIntersectChecks : Collection -> CheckInfo -> List (Error {})
-collectionIntersectChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+collectionIntersectChecks collection { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     firstThatReportsError
         [ \() ->
-            case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
+            case collection.determineSize lookupTable firstArg of
                 Just (Exactly 0) ->
                     Just
                         [ Rule.errorWithFix
                             { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
                             , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                             }
-                            checkInfo.fnRange
+                            fnRange
                             (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
                         ]
 
                 _ ->
                     Nothing
         , \() ->
-            case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+            case Maybe.andThen (collection.determineSize lookupTable) secondArg of
                 Just (Exactly 0) ->
                     Just
                         [ Rule.errorWithFix
                             { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
                             , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                             }
-                            checkInfo.fnRange
+                            fnRange
                             (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
                         ]
 
@@ -2509,14 +2509,14 @@ collectionDiffChecks collection { lookupTable, parentRange, fnRange, firstArg, s
 
 
 collectionMemberChecks : Collection -> CheckInfo -> List (Error {})
-collectionMemberChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+collectionMemberChecks collection { lookupTable, parentRange, fnRange, secondArg } =
+    case Maybe.andThen (collection.determineSize lookupTable) secondArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyAsString ++ " will result in False"
                 , details = [ "You can replace this call by False." ]
                 }
-                checkInfo.fnRange
+                fnRange
                 (replaceByBoolFix parentRange secondArg False)
             ]
 
