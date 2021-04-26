@@ -2169,7 +2169,7 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
                             , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
                             }
                             fnRange
-                            [ Fix.replaceRangeBy parentRange "[]" ]
+                            (replaceByEmptyFix "[]" parentRange secondArg)
                         ]
 
                     else

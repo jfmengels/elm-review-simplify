@@ -3860,7 +3860,7 @@ b = List.repeat 5 list
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
-        , test """should replace List.repeat n [] by []""" <|
+        , test "should replace List.repeat n [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.repeat n []
@@ -3876,7 +3876,7 @@ a = List.repeat n []
 a = []
 """
                         ]
-        , test """should replace List.repeat 0 list by []""" <|
+        , test "should replace List.repeat 0 list by []" <|
             \() ->
                 """module A exposing (..)
 a = List.repeat 0 list
@@ -3892,7 +3892,23 @@ a = List.repeat 0 list
 a = []
 """
                         ]
-        , test """should replace List.repeat -5 list by []""" <|
+        , test "should replace List.repeat 0 by (always [])" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat 0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat will result in an empty list"
+                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
+"""
+                        ]
+        , test "should replace List.repeat -5 list by []" <|
             \() ->
                 """module A exposing (..)
 a = List.repeat -5 list
