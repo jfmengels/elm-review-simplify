@@ -4009,6 +4009,97 @@ a = [] |> List.partition fn
 a = ( [], [] )
 """
                         ]
+
+        --        , test "should replace List.partition (always True) x by ( x, [] )" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --a = List.partition (always True) x
+        --"""
+        --                    |> Review.Test.run rule
+        --                    |> Review.Test.expectErrors
+        --                        [ Review.Test.error
+        --                            { message = "Using List.partition with a function that will always return True REPLACEME"
+        --                            , details = [ "You can remove this call and replace it by the list itself REPLACEME." ]
+        --                            , under = "List.partition"
+        --                            }
+        --                            |> Review.Test.whenFixed """module A exposing (..)
+        --a = ( x, [] )
+        --"""
+        --                        ]
+        --        , test "should not replace List.partition (always True)" <|
+        --            -- We'd likely need an anonymous function which could introduce naming conflicts
+        --            -- Could be improved if we knew what names are available at this point in scope (or are used anywhere)
+        --            -- so that we can generate a unique variable.
+        --            \() ->
+        --                """module A exposing (..)
+        --a = List.partition (always True)
+        --"""
+        --                    |> Review.Test.run rule
+        --                    |> Review.Test.expectNoErrors
+        --        , test "should replace List.partition (always False) x by ( [], x )" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --a = List.partition (always False) x
+        --"""
+        --                    |> Review.Test.run rule
+        --                    |> Review.Test.expectErrors
+        --                        [ Review.Test.error
+        --                            { message = "Using List.partition with a function that will always return False will result in REPLACEME"
+        --                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+        --                            , under = "List.partition"
+        --                            }
+        --                            |> Review.Test.whenFixed """module A exposing (..)
+        --a = ( [], x )
+        --"""
+        --                        ]
+        --        , test "should replace List.partition (always False) by (Tuple.pair [])" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --a = List.partition (always False)
+        --"""
+        --                    |> Review.Test.run rule
+        --                    |> Review.Test.expectErrors
+        --                        [ Review.Test.error
+        --                            { message = "Using List.partition with a function that will always return False will result in [] REPLACEME"
+        --                            , details = [ "You can remove this call and replace it by (Tuple.pair [])." ]
+        --                            , under = "List.partition"
+        --                            }
+        --                            |> Review.Test.whenFixed """module A exposing (..)
+        --a = (Tuple.pair [])
+        --"""
+        --                        ]
+        --        , test "should replace List.partition <| (always False) by (Tuple.pair [])" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --a = List.partition <| (always False)
+        --"""
+        --                    |> Review.Test.run rule
+        --                    |> Review.Test.expectErrors
+        --                        [ Review.Test.error
+        --                            { message = "Using List.partition with a function that will always return False will result in [] REPLACEME"
+        --                            , details = [ "You can remove this call and replace it by (Tuple.pair [])." ]
+        --                            , under = "List.partition"
+        --                            }
+        --                            |> Review.Test.whenFixed """module A exposing (..)
+        --a = (Tuple.pair [])
+        --"""
+        --                        ]
+        --        , test "should replace always False |> List.partition by Tuple.pair []" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --a = always False |> List.partition
+        --"""
+        --                    |> Review.Test.run rule
+        --                    |> Review.Test.expectErrors
+        --                        [ Review.Test.error
+        --                            { message = "Using List.partition with a function that will always return False will result in []"
+        --                            , details = [ "You can remove this call and replace it by []." ]
+        --                            , under = "List.partition"
+        --                            }
+        --                            |> Review.Test.whenFixed """module A exposing (..)
+        --a = (Tuple.pair [])
+        --"""
+        --                        ]
         ]
 
 
