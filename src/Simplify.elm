@@ -2349,8 +2349,8 @@ collectionMapChecks collection checkInfo =
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
 collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
-        Just True ->
+    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".filter on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
                 , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
@@ -2442,8 +2442,8 @@ collectionFromListChecks collection { parentRange, fnRange, firstArg } =
 
 collectionPartitionChecks : Collection -> CheckInfo -> List (Error {})
 collectionPartitionChecks collection checkInfo =
-    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
-        Just True ->
+    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".partition on " ++ collection.emptyAsString ++ " will result in ( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )"
                 , details = [ "You can replace this call by ( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )." ]
