@@ -4017,8 +4017,8 @@ a = List.partition (always True) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition with a function that will always return True REPLACEME"
-                            , details = [ "You can remove this call and replace it by the list itself REPLACEME." ]
+                            { message = "All elements will go to the first list"
+                            , details = [ "Since the predicate function always returns True, the second list will always be []." ]
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4043,8 +4043,8 @@ a = List.partition (always False) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second list"
+                            , details = [ "Since the predicate function always returns False, the first list will always be []." ]
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4059,8 +4059,8 @@ a = List.partition (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second list"
+                            , details = [ "Since the predicate function always returns False, the first list will always be []." ]
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4075,8 +4075,8 @@ a = List.partition <| (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second list"
+                            , details = [ "Since the predicate function always returns False, the first list will always be []." ]
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4091,8 +4091,8 @@ a = always False |> List.partition
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second list"
+                            , details = [ "Since the predicate function always returns False, the first list will always be []." ]
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4824,8 +4824,8 @@ a = Set.partition (always True) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition with a function that will always return True REPLACEME"
-                            , details = [ "You can remove this call and replace it by the set itself REPLACEME." ]
+                            { message = "All elements will go to the first set"
+                            , details = [ "Since the predicate function always returns True, the second set will always be Set.empty." ]
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4850,8 +4850,8 @@ a = Set.partition (always False) x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second set"
+                            , details = [ "Since the predicate function always returns False, the first set will always be Set.empty." ]
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4866,8 +4866,8 @@ a = Set.partition (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second set"
+                            , details = [ "Since the predicate function always returns False, the first set will always be Set.empty." ]
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4882,8 +4882,8 @@ a = Set.partition <| (always False)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second set"
+                            , details = [ "Since the predicate function always returns False, the first set will always be Set.empty." ]
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4898,8 +4898,8 @@ a = always False |> Set.partition
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition with a function that will always return False will result in REPLACEME"
-                            , details = [ "You can remove this call and replace it by REPLACEME." ]
+                            { message = "All elements will go to the second set"
+                            , details = [ "Since the predicate function always returns False, the first set will always be Set.empty." ]
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

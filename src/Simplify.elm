@@ -2495,8 +2495,8 @@ collectionPartitionChecks collection checkInfo =
                     case checkInfo.secondArg of
                         Just listArg ->
                             [ Rule.errorWithFix
-                                { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return True REPLACEME"
-                                , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself REPLACEME." ]
+                                { message = "All elements will go to the first " ++ collection.represents
+                                , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.emptyAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } "( "
@@ -2509,8 +2509,8 @@ collectionPartitionChecks collection checkInfo =
 
                 Just False ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return False will result in REPLACEME"
-                        , details = [ "You can remove this call and replace it by REPLACEME." ]
+                        { message = "All elements will go to the second " ++ collection.represents
+                        , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
                         (case checkInfo.secondArg of
