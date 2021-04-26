@@ -2029,7 +2029,7 @@ a = (\\y -> x)$
 
 usingPlusPlusTests : Test
 usingPlusPlusTests =
-    describe "Using (++)"
+    describe "(++)"
         [ test "should not report a single list literal" <|
             \() ->
                 """module A exposing (..)
@@ -2513,7 +2513,7 @@ listSimplificationTests =
 
 usingConsTests : Test
 usingConsTests =
-    describe "Using (::)"
+    describe "(::)"
         [ test "should not report using :: to a variable or expression" <|
             \() ->
                 """module A exposing (..)
@@ -2559,7 +2559,7 @@ a = [ 1 ]
 
 usingListConcatTests : Test
 usingListConcatTests =
-    describe "Using List.concat"
+    describe "List.concat"
         [ test "should not report List.concat that contains a variable or expression" <|
             \() ->
                 """module A exposing (..)
@@ -2670,7 +2670,7 @@ a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ,  4, 5, 6, 7], c, [8, 9 ] ]
 
 listConcatMapTests : Test
 listConcatMapTests =
-    describe "Using List.concatMap"
+    describe "List.concatMap"
         [ test "should replace List.concatMap identity x by List.concat x" <|
             \() ->
                 """module A exposing (..)
@@ -2834,7 +2834,7 @@ a = (b c) |>  f
 
 listMapTests : Test
 listMapTests =
-    describe "Using List.map"
+    describe "List.map"
         [ test "should not report List.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -2991,7 +2991,7 @@ a = identity
 
 listFilterTests : Test
 listFilterTests =
-    describe "Using List.filter"
+    describe "List.filter"
         [ test "should not report List.filter used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -3244,7 +3244,7 @@ a = (always [])
 
 listFilterMapTests : Test
 listFilterMapTests =
-    describe "Using List.filterMap"
+    describe "List.filterMap"
         [ test "should not report List.filterMap used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -3527,7 +3527,7 @@ a = List.filterMap (\\a b -> Just a) x
 
 listIsEmptyTests : Test
 listIsEmptyTests =
-    describe "Using List.isEmpty"
+    describe "List.isEmpty"
         [ test "should not report List.isEmpty with a non-literal argument" <|
             \() ->
                 """module A exposing (..)
@@ -3620,7 +3620,7 @@ a = False
 
 listAllTests : Test
 listAllTests =
-    describe "Using List.all"
+    describe "List.all"
         [ test "should not report List.all used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -3681,7 +3681,7 @@ a = (always True)
 
 listAnyTests : Test
 listAnyTests =
-    describe "Using List.any"
+    describe "List.any"
         [ test "should not report List.any used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -3742,7 +3742,7 @@ a = (always False)
 
 listRangeTests : Test
 listRangeTests =
-    describe "Using List.range"
+    describe "List.range"
         [ test "should not report List.range used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -3806,7 +3806,7 @@ a = []
 
 listLengthTests : Test
 listLengthTests =
-    describe "Using List.length"
+    describe "List.length"
         [ test "should not report List.length used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -3953,7 +3953,7 @@ a = List.repeat 1 x
 
 listPartitionTests : Test
 listPartitionTests =
-    describe "Using List.partition"
+    describe "List.partition"
         [ test "should not report List.partition used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -4280,7 +4280,7 @@ a = identity
 
 setFilterTests : Test
 setFilterTests =
-    describe "Using Set.filter"
+    describe "Set.filter"
         [ test "should not report Set.filter used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -4595,7 +4595,7 @@ a = 0
 
 setIsEmptyTests : Test
 setIsEmptyTests =
-    describe "Using Set.isEmpty"
+    describe "Set.isEmpty"
         [ test "should not report Set.isEmpty with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -4925,7 +4925,7 @@ dictSimplificationTests =
 
 dictIsEmptyTests : Test
 dictIsEmptyTests =
-    describe "Using Dict.isEmpty"
+    describe "Dict.isEmpty"
         [ test "should not report Dict.isEmpty with okay arguments" <|
             \() ->
                 """module A exposing (..)
