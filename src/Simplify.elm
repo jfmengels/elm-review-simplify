@@ -326,6 +326,12 @@ Below is the list of all kinds of simplifications this rule applies.
     List.repeat 0 list
     --> []
 
+    List.partition fn []
+    --> ( [], [] )
+
+    List.partition (always True) list
+    --> ( list, [] )
+
 
 ### Set
 
@@ -346,6 +352,12 @@ Below is the list of all kinds of simplifications this rule applies.
 
     Set.length Set.empty
     --> 0
+
+    Set.partition fn Set.empty
+    --> ( Set.empty, Set.empty )
+
+    Set.partition (always True) set
+    --> ( list, Set.empty )
 
 
 ### Dict
