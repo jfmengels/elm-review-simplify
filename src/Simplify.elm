@@ -1922,7 +1922,7 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
                             , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
                             }
                             fnRange
-                            [ Fix.replaceRangeBy parentRange "\"\"" ]
+                            (replaceByEmptyFix "\"\"" parentRange secondArg)
                         ]
 
                     else

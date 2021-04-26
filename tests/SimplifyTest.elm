@@ -2377,6 +2377,22 @@ a = String.repeat 0 str
 a = ""
 """
                         ]
+        , test """should replace String.repeat 0 by (always "")""" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat 0
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.repeat will result in an empty string"
+                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
+                            , under = "String.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always "")
+"""
+                        ]
         , test """should replace String.repeat -5 str by \"\"""" <|
             \() ->
                 """module A exposing (..)
