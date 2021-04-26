@@ -2507,6 +2507,7 @@ listSimplificationTests =
         , listRangeTests
         , listLengthTests
         , listRepeatTests
+        , listPartitionTests
         ]
 
 
@@ -3947,6 +3948,67 @@ a = List.repeat 1 x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
+        ]
+
+
+listPartitionTests : Test
+listPartitionTests =
+    describe "Using List.partition"
+        [ test "should not report List.partition used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.partition fn x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.partition f [] by ( [], [] )" <|
+            \() ->
+                """module A exposing (..)
+a = List.partition fn []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.partition on [] will result in ( [], [] )"
+                            , details = [ "You can replace this call by ( [], [] )." ]
+                            , under = "List.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( [], [] )
+"""
+                        ]
+        , test "should replace List.partition f <| [] by ( [], [] )" <|
+            \() ->
+                """module A exposing (..)
+a = List.partition fn <| []
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.partition on [] will result in ( [], [] )"
+                            , details = [ "You can replace this call by ( [], [] )." ]
+                            , under = "List.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( [], [] )
+"""
+                        ]
+        , test "should replace [] |> List.partition fn by ( [], [] )" <|
+            \() ->
+                """module A exposing (..)
+a = [] |> List.partition fn
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.partition on [] will result in ( [], [] )"
+                            , details = [ "You can replace this call by ( [], [] )." ]
+                            , under = "List.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( [], [] )
+"""
+                        ]
         ]
 
 

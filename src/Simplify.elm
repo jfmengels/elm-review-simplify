@@ -842,6 +842,7 @@ functionCallChecks =
         , ( ( [ "List" ], "length" ), collectionSizeChecks listCollection )
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
+        , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
@@ -2433,6 +2434,22 @@ collectionFromListChecks collection { parentRange, fnRange, firstArg } =
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange collection.emptyAsString ]
+            ]
+
+        _ ->
+            []
+
+
+collectionPartitionChecks : Collection -> CheckInfo -> List (Error {})
+collectionPartitionChecks collection checkInfo =
+    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ collection.moduleName ++ ".partition on " ++ collection.emptyAsString ++ " will result in ( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )"
+                , details = [ "You can replace this call by ( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )") ]
             ]
 
         _ ->
