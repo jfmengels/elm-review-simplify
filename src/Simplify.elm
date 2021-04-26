@@ -2453,27 +2453,34 @@ collectionPartitionChecks collection checkInfo =
             ]
 
         _ ->
-            --case isAlwaysBoolean checkInfo.lookupTable checkInfo.firstArg of
-            --    Just True ->
-            --        [ Rule.errorWithFix
-            --            { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".partition"
-            --            , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
-            --            }
-            --            checkInfo.fnRange
-            --            (noopFix checkInfo)
-            --        ]
-            --
-            --    Just False ->
-            --        [ Rule.errorWithFix
-            --            { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return False will result in " ++ collection.emptyAsString
-            --            , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
-            --            }
-            --            checkInfo.fnRange
-            --            (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange checkInfo.secondArg)
-            --        ]
-            --
-            --    Nothing ->
-            []
+            case isAlwaysBoolean checkInfo.lookupTable checkInfo.firstArg of
+                Just True ->
+                    case checkInfo.secondArg of
+                        Just listArg ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return True REPLACEME"
+                                , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself REPLACEME." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } "( "
+                                , Fix.insertAt (Node.range listArg).end (", " ++ collection.emptyAsString ++ " )")
+                                ]
+                            ]
+
+                        Nothing ->
+                            []
+
+                Just False ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".partition with a function that will always return False will result in " ++ collection.emptyAsString
+                        , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange checkInfo.secondArg)
+                    ]
+
+                Nothing ->
+                    []
 
 
 type CollectionSize

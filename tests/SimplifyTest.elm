@@ -4025,17 +4025,17 @@ a = List.partition (always True) x
 a = ( x, [] )
 """
                         ]
+        , test "should not replace List.partition (always True)" <|
+            -- We'd likely need an anonymous function which could introduce naming conflicts
+            -- Could be improved if we knew what names are available at this point in scope (or are used anywhere)
+            -- so that we can generate a unique variable.
+            \() ->
+                """module A exposing (..)
+a = List.partition (always True)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
 
-        --        , test "should not replace List.partition (always True)" <|
-        --            -- We'd likely need an anonymous function which could introduce naming conflicts
-        --            -- Could be improved if we knew what names are available at this point in scope (or are used anywhere)
-        --            -- so that we can generate a unique variable.
-        --            \() ->
-        --                """module A exposing (..)
-        --a = List.partition (always True)
-        --"""
-        --                    |> Review.Test.run rule
-        --                    |> Review.Test.expectNoErrors
         --        , test "should replace List.partition (always False) x by ( [], x )" <|
         --            \() ->
         --                """module A exposing (..)
