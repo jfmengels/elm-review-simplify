@@ -1936,7 +1936,7 @@ appliedLambdaTests =
             \() ->
                 """
 module A exposing (..)
-a = fn ()
+a = f ()
 b = (\\x y -> x + y) n
 """
                     |> Review.Test.run rule
@@ -2736,7 +2736,7 @@ a = List.concatMap f x
         , test "should report List.concatMap with no items" <|
             \() ->
                 """module A exposing (..)
-a = List.concatMap fn []
+a = List.concatMap f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -2781,10 +2781,10 @@ a = List.concatMap (always [])
 a = (always [])
 """
                         ]
-        , test "should replace List.concatMap fn [ a ] by fn a" <|
+        , test "should replace List.concatMap f [ a ] by f a" <|
             \() ->
                 """module A exposing (..)
-a = List.concatMap fn [ a ]
+a = List.concatMap f [ a ]
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -2794,13 +2794,13 @@ a = List.concatMap fn [ a ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  fn (a)
+a =  f (a)
 """
                         ]
-        , test "should replace List.concatMap fn <| [ b c ] by fn <| (b c)" <|
+        , test "should replace List.concatMap f <| [ b c ] by f <| (b c)" <|
             \() ->
                 """module A exposing (..)
-a = List.concatMap fn <| [ b c ]
+a = List.concatMap f <| [ b c ]
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -2810,13 +2810,13 @@ a = List.concatMap fn <| [ b c ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  fn <| (b c)
+a =  f <| (b c)
 """
                         ]
-        , test "should replace List.concatMap fn <| [ b c ] by (b c) |> fn" <|
+        , test "should replace List.concatMap f <| [ b c ] by (b c) |> f" <|
             \() ->
                 """module A exposing (..)
-a = [ b c ] |> List.concatMap fn
+a = [ b c ] |> List.concatMap f
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -2826,7 +2826,7 @@ a = [ b c ] |> List.concatMap fn
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (b c) |>  fn
+a = (b c) |>  f
 """
                         ]
         ]
@@ -2838,14 +2838,14 @@ listMapTests =
         [ test "should not report List.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.map fn x
+a = List.map f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should replace List.map f [] by []" <|
             \() ->
                 """module A exposing (..)
-a = List.map fn []
+a = List.map f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -2861,7 +2861,7 @@ a = []
         , test "should replace List.map f <| [] by []" <|
             \() ->
                 """module A exposing (..)
-a = List.map fn <| []
+a = List.map f <| []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -2995,14 +2995,14 @@ listFilterTests =
         [ test "should not report List.filter used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.filter fn x
+a = List.filter f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should replace List.filter f [] by []" <|
             \() ->
                 """module A exposing (..)
-a = List.filter fn []
+a = List.filter f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3018,7 +3018,7 @@ a = []
         , test "should replace List.filter f <| [] by []" <|
             \() ->
                 """module A exposing (..)
-a = List.filter fn <| []
+a = List.filter f <| []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3031,10 +3031,10 @@ a = List.filter fn <| []
 a = []
 """
                         ]
-        , test "should replace [] |> List.filter fn by []" <|
+        , test "should replace [] |> List.filter f by []" <|
             \() ->
                 """module A exposing (..)
-a = [] |> List.filter fn
+a = [] |> List.filter f
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3248,14 +3248,14 @@ listFilterMapTests =
         [ test "should not report List.filterMap used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.filterMap fn x
+a = List.filterMap f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should replace List.filterMap f [] by []" <|
             \() ->
                 """module A exposing (..)
-a = List.filterMap fn []
+a = List.filterMap f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3271,7 +3271,7 @@ a = []
         , test "should replace List.filterMap f <| [] by []" <|
             \() ->
                 """module A exposing (..)
-a = List.filterMap fn <| []
+a = List.filterMap f <| []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3284,10 +3284,10 @@ a = List.filterMap fn <| []
 a = []
 """
                         ]
-        , test "should replace [] |> List.filterMap fn by []" <|
+        , test "should replace [] |> List.filterMap f by []" <|
             \() ->
                 """module A exposing (..)
-a = [] |> List.filterMap fn
+a = [] |> List.filterMap f
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3624,14 +3624,14 @@ listAllTests =
         [ test "should not report List.all used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.all fn list
+a = List.all f list
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
-        , test "should replace List.all fn [] by True" <|
+        , test "should replace List.all f [] by True" <|
             \() ->
                 """module A exposing (..)
-a = List.all fn []
+a = List.all f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3685,14 +3685,14 @@ listAnyTests =
         [ test "should not report List.any used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.any fn list
+a = List.any f list
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
-        , test "should replace List.any fn [] by False" <|
+        , test "should replace List.any f [] by False" <|
             \() ->
                 """module A exposing (..)
-a = List.any fn []
+a = List.any f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3957,14 +3957,14 @@ listPartitionTests =
         [ test "should not report List.partition used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.partition fn x
+a = List.partition f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should replace List.partition f [] by ( [], [] )" <|
             \() ->
                 """module A exposing (..)
-a = List.partition fn []
+a = List.partition f []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3980,7 +3980,7 @@ a = ( [], [] )
         , test "should replace List.partition f <| [] by ( [], [] )" <|
             \() ->
                 """module A exposing (..)
-a = List.partition fn <| []
+a = List.partition f <| []
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -3993,10 +3993,10 @@ a = List.partition fn <| []
 a = ( [], [] )
 """
                         ]
-        , test "should replace [] |> List.partition fn by ( [], [] )" <|
+        , test "should replace [] |> List.partition f by ( [], [] )" <|
             \() ->
                 """module A exposing (..)
-a = [] |> List.partition fn
+a = [] |> List.partition f
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -4126,14 +4126,14 @@ setMapTests =
         [ test "should not report Set.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = Set.map fn x
+a = Set.map f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should replace Set.map f Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
-a = Set.map fn Set.empty
+a = Set.map f Set.empty
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -4149,7 +4149,7 @@ a = Set.empty
         , test "should replace Set.map f <| Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
-a = Set.map fn <| Set.empty
+a = Set.map f <| Set.empty
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -4283,14 +4283,14 @@ setFilterTests =
         [ test "should not report Set.filter used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = Set.filter fn x
+a = Set.filter f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
         , test "should replace Set.filter f Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
-a = Set.filter fn Set.empty
+a = Set.filter f Set.empty
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -4306,7 +4306,7 @@ a = Set.empty
         , test "should replace Set.filter f <| Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
-a = Set.filter fn <| Set.empty
+a = Set.filter f <| Set.empty
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -4319,10 +4319,10 @@ a = Set.filter fn <| Set.empty
 a = Set.empty
 """
                         ]
-        , test "should replace Set.empty |> Set.filter fn by Set.empty" <|
+        , test "should replace Set.empty |> Set.filter f by Set.empty" <|
             \() ->
                 """module A exposing (..)
-a = Set.empty |> Set.filter fn
+a = Set.empty |> Set.filter f
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -4732,7 +4732,7 @@ setPartitionTests =
         [ test "should not report Set.partition used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = Set.partition fn x
+a = Set.partition f x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
@@ -4768,7 +4768,7 @@ a = Set.partition f <| Set.empty
 a = ( Set.empty, Set.empty )
 """
                         ]
-        , test "should replace Set.empty |> Set.partition fn by ( Set.empty, Set.empty )" <|
+        , test "should replace Set.empty |> Set.partition f by ( Set.empty, Set.empty )" <|
             \() ->
                 """module A exposing (..)
 a = Set.empty |> Set.partition f
@@ -5214,10 +5214,10 @@ a = Cmd.map identity cmd
 a = cmd
 """
                         ]
-        , test "should replace Cmd.map fn Cmd.none by Cmd.none" <|
+        , test "should replace Cmd.map f Cmd.none by Cmd.none" <|
             \() ->
                 """module A exposing (..)
-a = Cmd.map fn Cmd.none
+a = Cmd.map f Cmd.none
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
@@ -5361,10 +5361,10 @@ a = Sub.map identity sub
 a = sub
 """
                         ]
-        , test "should replace Sub.map fn Sub.none by Sub.none" <|
+        , test "should replace Sub.map f Sub.none by Sub.none" <|
             \() ->
                 """module A exposing (..)
-a = Sub.map fn Sub.none
+a = Sub.map f Sub.none
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
