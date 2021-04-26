@@ -350,6 +350,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.fromList []
     --> Set.empty
 
+    Set.toList Set.empty
+    --> []
+
     Set.length Set.empty
     --> 0
 
@@ -860,6 +863,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
+        , ( ( [ "Set" ], "toList" ), collectionToListChecks setCollection )
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
@@ -2447,6 +2451,22 @@ collectionFromListChecks collection { parentRange, fnRange, firstArg } =
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange collection.emptyAsString ]
+            ]
+
+        _ ->
+            []
+
+
+collectionToListChecks : Collection -> CheckInfo -> List (Error {})
+collectionToListChecks collection { lookupTable, parentRange, fnRange, firstArg } =
+    case collection.determineSize lookupTable firstArg of
+        Just (Exactly 0) ->
+            [ Rule.errorWithFix
+                { message = "The call to " ++ collection.moduleName ++ ".toList will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "[]" ]
             ]
 
         _ ->

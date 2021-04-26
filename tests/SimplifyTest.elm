@@ -4114,6 +4114,7 @@ setSimplificationTests =
         , setIsEmptyTests
         , setSizeTests
         , setFromListTests
+        , setToListTests
         , setPartitionTests
 
         --, setSizeTests
@@ -4702,8 +4703,8 @@ setFromListTests =
                 """module A exposing (..)
 a = Set.fromList
 b = Set.fromList list
-b = Set.fromList [x]
-b = Set.fromList [x, y]
+c = Set.fromList [x]
+d = Set.fromList [x, y]
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
@@ -4721,6 +4722,37 @@ a = Set.fromList []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Set.empty
+"""
+                        ]
+        ]
+
+
+setToListTests : Test
+setToListTests =
+    describe "Set.toList"
+        [ test "should not report Set.toList with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.toList
+b = Set.toList list
+c = Set.toList set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.toList Set.empty by []" <|
+            \() ->
+                """module A exposing (..)
+a = Set.toList Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.toList will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "Set.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]
