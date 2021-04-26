@@ -873,6 +873,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
         , ( ( [ "Set" ], "toList" ), collectionToListChecks setCollection )
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
+        , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
         , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
@@ -2415,6 +2416,22 @@ collectionRemoveChecks collection ({ lookupTable, parentRange, fnRange, firstArg
         Just (Exactly 0) ->
             [ Rule.errorWithFix
                 { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                }
+                checkInfo.fnRange
+                (noopFix checkInfo)
+            ]
+
+        _ ->
+            []
+
+
+collectionIntersectChecks : Collection -> CheckInfo -> List (Error {})
+collectionIntersectChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Exactly 0) ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
                 , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
