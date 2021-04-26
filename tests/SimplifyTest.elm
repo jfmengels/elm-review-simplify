@@ -4980,10 +4980,26 @@ a = Set.intersect x x
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectNoErrors
-        , test "should replace Set.intersect x Set.empty by Set.empty" <|
+        , test "should replace Set.intersect Set.empty set by Set.empty" <|
             \() ->
                 """module A exposing (..)
-a = Set.intersect x Set.empty
+a = Set.intersect Set.empty set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.intersect on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.intersect set Set.empty by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.intersect set Set.empty
 """
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors

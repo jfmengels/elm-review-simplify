@@ -359,6 +359,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.length Set.empty
     --> 0
 
+    Set.intersect Set.empty set
+    --> Set.empty
+
     Set.partition fn Set.empty
     --> ( Set.empty, Set.empty )
 
@@ -2428,18 +2431,37 @@ collectionRemoveChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
 collectionIntersectChecks : Collection -> CheckInfo -> List (Error {})
 collectionIntersectChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
-        Just (Exactly 0) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
-                }
-                checkInfo.fnRange
-                (noopFix checkInfo)
-            ]
+    firstThatReportsError
+        [ \() ->
+            case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
+                Just (Exactly 0) ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                            , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
+                        ]
 
-        _ ->
-            []
+                _ ->
+                    Nothing
+        , \() ->
+            case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+                Just (Exactly 0) ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                            , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
+                        ]
+
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 collectionMemberChecks : Collection -> CheckInfo -> List (Error {})
