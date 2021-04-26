@@ -2247,7 +2247,7 @@ a = String.concat []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.concat on an empty list will result in a empty string"
-                            , details = [ "You can replace this call by an empty string" ]
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2276,7 +2276,7 @@ a = String.join b []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.join on an empty list will result in a empty string"
-                            , details = [ "You can replace this call by an empty string" ]
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.join"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2354,7 +2354,7 @@ a = String.repeat n ""
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.repeat with an empty string will result in a empty string"
-                            , details = [ "You can replace this call by an empty string" ]
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2448,7 +2448,7 @@ a = String.words ""
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.words on an empty string will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "String.words"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2478,7 +2478,7 @@ a = String.lines ""
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.lines on an empty string will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "String.lines"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2577,7 +2577,7 @@ a = List.concat []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concat on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2679,7 +2679,7 @@ a = List.concatMap identity x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                            , details = [ "You can replace this call by List.concat" ]
+                            , details = [ "You can replace this call by List.concat." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2695,7 +2695,7 @@ a = List.concatMap identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                            , details = [ "You can replace this call by List.concat" ]
+                            , details = [ "You can replace this call by List.concat." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2711,7 +2711,7 @@ a = List.concatMap (\\x->x) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                            , details = [ "You can replace this call by List.concat" ]
+                            , details = [ "You can replace this call by List.concat." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2741,7 +2741,7 @@ a = List.concatMap fn []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2757,7 +2757,7 @@ a = List.concatMap (always []) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.concatMap will result in on an empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2773,7 +2773,7 @@ a = List.concatMap (always [])
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.concatMap will result in on an empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2789,7 +2789,7 @@ a = List.concatMap fn [ a ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly" ]
+                            , details = [ "You can replace this call by a call to the function directly." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2805,7 +2805,7 @@ a = List.concatMap fn <| [ b c ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly" ]
+                            , details = [ "You can replace this call by a call to the function directly." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2821,7 +2821,7 @@ a = [ b c ] |> List.concatMap fn
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly" ]
+                            , details = [ "You can replace this call by a call to the function directly." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3260,7 +3260,7 @@ a = List.filterMap fn []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3276,7 +3276,7 @@ a = List.filterMap fn <| []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3292,7 +3292,7 @@ a = [] |> List.filterMap fn
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3308,7 +3308,7 @@ a = List.filterMap (always Nothing) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3324,7 +3324,7 @@ a = List.filterMap (always Nothing) <| x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3340,7 +3340,7 @@ a = x |> List.filterMap (always Nothing)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3356,7 +3356,7 @@ a = List.filterMap (always Nothing)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3372,7 +3372,7 @@ a = List.filterMap <| always Nothing
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3388,7 +3388,7 @@ a = always Nothing |> List.filterMap
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3404,7 +3404,7 @@ a = List.filterMap Just x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3420,7 +3420,7 @@ a = List.filterMap Just <| x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3436,7 +3436,7 @@ a = x |> List.filterMap Just
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3452,7 +3452,7 @@ a = List.filterMap Just
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3468,7 +3468,7 @@ a = List.filterMap (\\a -> Nothing) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list" ]
+                            , details = [ "You can remove this call and replace it by an empty list." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3484,7 +3484,7 @@ a = List.filterMap (\\a -> Just a) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3500,7 +3500,7 @@ a = List.filterMap (\\a -> Just a)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself" ]
+                            , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3885,7 +3885,7 @@ a = List.repeat n []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.repeat with an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list" ]
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -1746,7 +1746,7 @@ reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
             Just (Node _ (Expression.ListExpr [])) ->
                 [ Rule.errorWithFix
                     { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
-                    , details = [ "You can replace this call by an empty list" ]
+                    , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
@@ -1765,7 +1765,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
             Node _ (Expression.ListExpr []) ->
                 [ Rule.errorWithFix
                     { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
-                    , details = [ "You can replace this call by an empty list" ]
+                    , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
@@ -1807,7 +1807,7 @@ stringConcatChecks { parentRange, fnRange, firstArg } =
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
                 { message = "Using String.concat on an empty list will result in a empty string"
-                , details = [ "You can replace this call by an empty string" ]
+                , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "\"\"" ]
@@ -1823,7 +1823,7 @@ stringWordsChecks { parentRange, fnRange, firstArg } =
         Expression.Literal "" ->
             [ Rule.errorWithFix
                 { message = "Using String.words on an empty string will result in a empty list"
-                , details = [ "You can replace this call by an empty list" ]
+                , details = [ "You can replace this call by an empty list." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "[]" ]
@@ -1839,7 +1839,7 @@ stringLinesChecks { parentRange, fnRange, firstArg } =
         Expression.Literal "" ->
             [ Rule.errorWithFix
                 { message = "Using String.lines on an empty string will result in a empty list"
-                , details = [ "You can replace this call by an empty list" ]
+                , details = [ "You can replace this call by an empty list." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "[]" ]
@@ -1855,7 +1855,7 @@ stringJoinChecks { parentRange, fnRange, firstArg, secondArg } =
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
                 { message = "Using String.join on an empty list will result in a empty string"
-                , details = [ "You can replace this call by an empty string" ]
+                , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "\"\"" ]
@@ -1898,7 +1898,7 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
         Just (Node _ (Expression.Literal "")) ->
             [ Rule.errorWithFix
                 { message = "Using String.repeat with an empty string will result in a empty string"
-                , details = [ "You can replace this call by an empty string" ]
+                , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "\"\"" ]
@@ -2008,7 +2008,7 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
-            , details = [ "You can replace this call by List.concat" ]
+            , details = [ "You can replace this call by List.concat." ]
             }
             fnRange
             [ Fix.replaceRangeBy { start = fnRange.start, end = (Node.range firstArg).end } "List.concat" ]
@@ -2017,7 +2017,7 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
     else if isAlwaysEmptyList lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "List.concatMap will result in on an empty list"
-            , details = [ "You can replace this call by an empty list" ]
+            , details = [ "You can replace this call by an empty list." ]
             }
             fnRange
             (replaceByEmptyFix "[]" parentRange secondArg)
@@ -2028,7 +2028,7 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
             Just (Node listRange (Expression.ListExpr [ Node singleElementRange _ ])) ->
                 [ Rule.errorWithFix
                     { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                    , details = [ "You can replace this call by a call to the function directly" ]
+                    , details = [ "You can replace this call by a call to the function directly." ]
                     }
                     fnRange
                     (if usingRightPizza then
@@ -2109,7 +2109,7 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } 
         Just (Just ()) ->
             [ Rule.errorWithFix
                 { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                , details = [ "You can remove this call and replace it by the list itself" ]
+                , details = [ "You can remove this call and replace it by the list itself." ]
                 }
                 fnRange
                 (noopFix checkInfo)
@@ -2118,7 +2118,7 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } 
         Just Nothing ->
             [ Rule.errorWithFix
                 { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                , details = [ "You can remove this call and replace it by an empty list" ]
+                , details = [ "You can remove this call and replace it by an empty list." ]
                 }
                 fnRange
                 (replaceByEmptyFix "[]" parentRange secondArg)
@@ -2154,7 +2154,7 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
                 { message = "Using List.repeat with an empty list will result in a empty list"
-                , details = [ "You can replace this call by an empty list" ]
+                , details = [ "You can replace this call by an empty list." ]
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "[]" ]
