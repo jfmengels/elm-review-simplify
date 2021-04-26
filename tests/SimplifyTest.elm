@@ -4116,6 +4116,7 @@ setSimplificationTests =
         , setFromListTests
         , setToListTests
         , setPartitionTests
+        , setRemoveTests
 
         --, setSizeTests
         ]
@@ -4904,6 +4905,35 @@ a = always False |> Set.partition
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (Tuple.pair Set.empty)
+"""
+                        ]
+        ]
+
+
+setRemoveTests : Test
+setRemoveTests =
+    describe "Set.remove"
+        [ test "should not report Set.remove used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.remove x x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.remove x Set.empty by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.remove x Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Set.remove on Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
+                            , under = "Set.remove"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
 """
                         ]
         ]

@@ -335,7 +335,7 @@ Below is the list of all kinds of simplifications this rule applies.
 
 ### Set
 
-    Set.map fn Set.empty -- same for Set.filter, ...
+    Set.map fn Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
 
     Set.map identity list
@@ -863,6 +863,7 @@ functionCallChecks =
         , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
+        , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
@@ -2402,6 +2403,22 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
                 Nothing ->
                     []
+
+
+collectionRemoveChecks : Collection -> CheckInfo -> List (Error {})
+collectionRemoveChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Exactly 0) ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                }
+                checkInfo.fnRange
+                (noopFix checkInfo)
+            ]
+
+        _ ->
+            []
 
 
 collectionIsEmptyChecks : Collection -> CheckInfo -> List (Error {})
