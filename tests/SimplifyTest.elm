@@ -4119,6 +4119,7 @@ setSimplificationTests =
         , setRemoveTests
         , setMemberTests
         , setIntersectTests
+        , setDiffTests
 
         --, setSizeTests
         ]
@@ -5010,6 +5011,67 @@ a = Set.intersect set Set.empty
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Set.empty
+"""
+                        ]
+        ]
+
+
+setDiffTests : Test
+setDiffTests =
+    describe "Set.diff"
+        [ test "should not report Set.diff used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.diff x y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.diff Set.empty set by Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.diff Set.empty set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Diffing Set.empty will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
+                            , under = "Set.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.empty
+"""
+                        ]
+        , test "should replace Set.diff set Set.empty by set" <|
+            \() ->
+                """module A exposing (..)
+a = Set.diff set Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Diffing a set with Set.empty will result in the set itself"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = set
+"""
+                        ]
+        , test "should replace Set.empty |> Set.diff set by set" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.diff set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Diffing a set with Set.empty will result in the set itself"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = set
 """
                         ]
         ]

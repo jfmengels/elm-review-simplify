@@ -362,6 +362,12 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.intersect Set.empty set
     --> Set.empty
 
+    Set.diff Set.empty set
+    --> Set.empty
+
+    Set.diff set Set.empty
+    --> set
+
     Set.partition fn Set.empty
     --> ( Set.empty, Set.empty )
 
@@ -877,6 +883,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "toList" ), collectionToListChecks setCollection )
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
+        , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
         , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
@@ -2456,6 +2463,43 @@ collectionIntersectChecks collection ({ lookupTable, parentRange, fnRange, first
                             }
                             checkInfo.fnRange
                             (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
+                        ]
+
+                _ ->
+                    Nothing
+        ]
+        ()
+
+
+collectionDiffChecks : Collection -> CheckInfo -> List (Error {})
+collectionDiffChecks collection { lookupTable, parentRange, fnRange, firstArg, secondArg } =
+    firstThatReportsError
+        [ \() ->
+            case collection.determineSize lookupTable firstArg of
+                Just (Exactly 0) ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Diffing " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                            , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                            }
+                            fnRange
+                            (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
+                        ]
+
+                _ ->
+                    Nothing
+        , \() ->
+            case Maybe.andThen (collection.determineSize lookupTable) secondArg of
+                Just (Exactly 0) ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Diffing a " ++ collection.represents ++ " with " ++ collection.emptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
+                            , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                            }
+                            fnRange
+                            [ Fix.removeRange { start = parentRange.start, end = (Node.range firstArg).start }
+                            , Fix.removeRange { start = (Node.range firstArg).end, end = parentRange.end }
+                            ]
                         ]
 
                 _ ->
