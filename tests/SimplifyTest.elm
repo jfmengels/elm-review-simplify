@@ -4111,6 +4111,7 @@ maybeTests : Test
 maybeTests =
     describe "Maybe"
         [ maybeMapTests
+        , maybeWithDefaultTests
         ]
 
 
@@ -4346,6 +4347,35 @@ a = Maybe.map f <| Just <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Just (f <| x)
+"""
+                        ]
+        ]
+
+
+maybeWithDefaultTests : Test
+maybeWithDefaultTests =
+    describe "Maybe.withDefault"
+        [ test "should not report Maybe.withDefault used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.withDefault x y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Maybe.withDefault x Nothing by x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.withDefault x Nothing
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.withDefault on Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
 """
                         ]
         ]

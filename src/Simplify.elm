@@ -218,6 +218,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.map f Nothing
     --> Nothing
 
+    Maybe.withDefault x Nothing
+    --> x
+
 
 ### Lists
 
@@ -877,6 +880,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
+        , ( ( [ "Maybe" ], "withDefault" ), mappableWithDefaultChecks maybeCollection )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -2760,6 +2764,50 @@ collectionPartitionChecks collection checkInfo =
 
                 Nothing ->
                     []
+
+
+mappableWithDefaultChecks :
+    { a
+        | moduleName : String
+        , represents : String
+        , emptyAsString : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+    -> CheckInfo
+    -> List (Error {})
+mappableWithDefaultChecks collection checkInfo =
+    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ collection.moduleName ++ ".withDefault on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                ]
+            ]
+
+        --Just False ->
+        --    [ Rule.errorWithFix
+        --        { message = "Using " ++ collection.moduleName ++ ".withDefault on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+        --        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+        --        }
+        --        checkInfo.fnRange
+        --        (noopFix checkInfo)
+        --    ]
+        _ ->
+            if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                [ Rule.errorWithFix
+                    { message = "Using " ++ collection.moduleName ++ ".map with an identity function is the same as not using " ++ collection.moduleName ++ ".map"
+                    , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
+                    }
+                    checkInfo.fnRange
+                    (noopFix checkInfo)
+                ]
+
+            else
+                []
 
 
 type CollectionSize
