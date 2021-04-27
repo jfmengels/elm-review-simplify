@@ -4284,6 +4284,38 @@ a = Maybe.map f (Just x)
 a = Just (f (x))
 """
                         ]
+        , test "should replace Maybe.map f <| Just x by Just (f x)" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map f <| Just x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (f <| x)
+"""
+                        ]
+        , test "should replace Just x |> Maybe.map f by x |> f |> Just" <|
+            \() ->
+                """module A exposing (..)
+a = Just x |> Maybe.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> Just
+"""
+                        ]
         ]
 
 
