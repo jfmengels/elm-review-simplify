@@ -3234,10 +3234,10 @@ getMaybeValue lookupTable baseNode =
             removeParens baseNode
     in
     case Node.value node of
-        Expression.FunctionOrValue _ "Just" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+        Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: _ :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
                 Just [ "Maybe" ] ->
-                    Just (Just (Node.range node))
+                    Just (Just justRange)
 
                 _ ->
                     Nothing
