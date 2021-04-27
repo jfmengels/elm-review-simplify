@@ -4316,6 +4316,22 @@ a = Just x |> Maybe.map f
 a = x |> f |> Just
 """
                         ]
+        , test "should replace x |> Just |> Maybe.map f by x |> f |> Just" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Just |> Maybe.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> Just
+"""
+                        ]
         ]
 
 
