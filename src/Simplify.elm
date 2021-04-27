@@ -2162,7 +2162,7 @@ listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
-        Just (Just ()) ->
+        Just (Just _) ->
             [ Rule.errorWithFix
                 { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
                 , details = [ "You can remove this call and replace it by the list itself." ]
@@ -3168,7 +3168,7 @@ getBooleanPattern lookupTable node =
             Nothing
 
 
-isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
+isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe Range)
 isAlwaysMaybe lookupTable baseNode =
     let
         node : Node Expression
@@ -3179,7 +3179,7 @@ isAlwaysMaybe lookupTable baseNode =
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
-                    Just (Just ())
+                    Just (Just (Node.range node))
 
                 _ ->
                     Nothing
@@ -3200,7 +3200,7 @@ isAlwaysMaybe lookupTable baseNode =
                             case args of
                                 (Node _ (Pattern.VarPattern lambdaArgName)) :: [] ->
                                     if lambdaArgName == justArgName then
-                                        Just (Just ())
+                                        Just (Just justRange)
 
                                     else
                                         Nothing
@@ -3226,7 +3226,7 @@ isAlwaysMaybe lookupTable baseNode =
             Nothing
 
 
-getMaybeValue : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe ())
+getMaybeValue : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe Range)
 getMaybeValue lookupTable baseNode =
     let
         node : Node Expression
@@ -3237,7 +3237,7 @@ getMaybeValue lookupTable baseNode =
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
-                    Just (Just ())
+                    Just (Just (Node.range node))
 
                 _ ->
                     Nothing
