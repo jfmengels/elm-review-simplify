@@ -4594,6 +4594,22 @@ a = Set.empty |> Set.size
 a = 0
 """
                         ]
+        , test "should replace Set.singleton x |> Set.size by 1" <|
+            \() ->
+                """module A exposing (..)
+a = Set.singleton x |> Set.size
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 1"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
         ]
 
 
@@ -5435,6 +5451,22 @@ a = Dict.empty |> Dict.size
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
+"""
+                        ]
+        , test "should replace Dict.singleton x y |> Dict.size by 1" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.singleton x y |> Dict.size
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 1"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
 """
                         ]
         ]
