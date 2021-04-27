@@ -1998,8 +1998,8 @@ maybeMapChecks checkInfo =
             case Maybe.andThen (getMaybeValue checkInfo.lookupTable) checkInfo.secondArg of
                 Just (Just justRange) ->
                     [ Rule.errorWithFix
-                        { message = "REPLACEME"
-                        , details = [ "REPLACEME." ]
+                        { message = "Calling Maybe.map on a value that is Just"
+                        , details = [ "The function can be called without Maybe.map." ]
                         }
                         checkInfo.fnRange
                         (if checkInfo.usingRightPizza then

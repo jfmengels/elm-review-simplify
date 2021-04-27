@@ -4276,8 +4276,8 @@ a = Maybe.map f (Just x)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME." ]
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4292,8 +4292,8 @@ a = Maybe.map f <| Just x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME." ]
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4308,8 +4308,8 @@ a = Just x |> Maybe.map f
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME." ]
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4324,8 +4324,8 @@ a = x |> Just |> Maybe.map f
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME." ]
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4340,8 +4340,8 @@ a = Maybe.map f <| Just <| x
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME." ]
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
