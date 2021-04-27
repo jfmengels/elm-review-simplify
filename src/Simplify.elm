@@ -985,6 +985,7 @@ compositionChecks =
     , notNotCompositionCheck
     , negateCompositionCheck
     , alwaysCompositionCheck
+    , maybeMapCompositionChecks
     ]
 
 
@@ -2027,6 +2028,49 @@ maybeMapChecks checkInfo =
                     []
         ]
         ()
+
+
+maybeMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, right } =
+    if fromLeftToRight then
+        case ( removeParens left, Node.value (removeParens right) ) of
+            ( Node justRange (Expression.FunctionOrValue _ "Just"), Expression.Application ((Node maybeMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []) ) ->
+                if ModuleNameLookupTable.moduleNameAt lookupTable justRange == Just [ "Maybe" ] && ModuleNameLookupTable.moduleNameAt lookupTable maybeMapRange == Just [ "Maybe" ] then
+                    [ Rule.errorWithFix
+                        { message = "Calling Maybe.map on a value that is Just"
+                        , details = [ "The function can be called without Maybe.map." ]
+                        }
+                        maybeMapRange
+                        [ Fix.removeRange { start = parentRange.start, end = (Node.range mapperFunction).start }
+                        , Fix.insertAt (Node.range mapperFunction).end " >> Just"
+                        ]
+                    ]
+
+                else
+                    []
+
+            _ ->
+                []
+
+    else
+        case ( Node.value (removeParens left), removeParens right ) of
+            ( Expression.Application ((Node maybeMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []), Node justRange (Expression.FunctionOrValue _ "Just") ) ->
+                if ModuleNameLookupTable.moduleNameAt lookupTable justRange == Just [ "Maybe" ] && ModuleNameLookupTable.moduleNameAt lookupTable maybeMapRange == Just [ "Maybe" ] then
+                    [ Rule.errorWithFix
+                        { message = "Calling Maybe.map on a value that is Just"
+                        , details = [ "The function can be called without Maybe.map." ]
+                        }
+                        maybeMapRange
+                        [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range mapperFunction).start } "Just << "
+                        , Fix.removeRange { start = (Node.range mapperFunction).end, end = parentRange.end }
+                        ]
+                    ]
+
+                else
+                    []
+
+            _ ->
+                []
 
 
 
@@ -3212,7 +3256,7 @@ getBoolean lookupTable baseNode =
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
 getBooleanPattern lookupTable node =
     case Node.value node of
-        Pattern.NamedPattern { moduleName, name } _ ->
+        Pattern.NamedPattern { name } _ ->
             case name of
                 "True" ->
                     if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
