@@ -3142,6 +3142,9 @@ getBooleanPattern lookupTable node =
                 _ ->
                     Nothing
 
+        Pattern.ParenthesizedPattern pattern ->
+            getBooleanPattern lookupTable pattern
+
         _ ->
             Nothing
 
