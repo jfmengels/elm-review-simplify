@@ -368,6 +368,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.diff set Set.empty
     --> set
 
+    Set.union set Set.empty
+    --> set
+
     Set.partition fn Set.empty
     --> ( Set.empty, Set.empty )
 
@@ -884,6 +887,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
         , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
+        , ( ( [ "Set" ], "union" ), collectionUnionChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
         , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
@@ -2495,6 +2499,43 @@ collectionDiffChecks collection { lookupTable, parentRange, fnRange, firstArg, s
                         [ Rule.errorWithFix
                             { message = "Diffing a " ++ collection.represents ++ " with " ++ collection.emptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
                             , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                            }
+                            fnRange
+                            [ Fix.removeRange { start = parentRange.start, end = (Node.range firstArg).start }
+                            , Fix.removeRange { start = (Node.range firstArg).end, end = parentRange.end }
+                            ]
+                        ]
+
+                _ ->
+                    Nothing
+        ]
+        ()
+
+
+collectionUnionChecks : Collection -> CheckInfo -> List (Error {})
+collectionUnionChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    firstThatReportsError
+        [ \() ->
+            case collection.determineSize lookupTable firstArg of
+                Just (Exactly 0) ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Unnecessary union with Set.empty"
+                            , details = [ "You can replace this call by the set itself." ]
+                            }
+                            fnRange
+                            (noopFix checkInfo)
+                        ]
+
+                _ ->
+                    Nothing
+        , \() ->
+            case Maybe.andThen (collection.determineSize lookupTable) secondArg of
+                Just (Exactly 0) ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Unnecessary union with Set.empty"
+                            , details = [ "You can replace this call by the set itself." ]
                             }
                             fnRange
                             [ Fix.removeRange { start = parentRange.start, end = (Node.range firstArg).start }

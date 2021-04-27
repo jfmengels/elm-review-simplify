@@ -4120,6 +4120,7 @@ setSimplificationTests =
         , setMemberTests
         , setIntersectTests
         , setDiffTests
+        , setUnionTests
 
         --, setSizeTests
         ]
@@ -5069,6 +5070,83 @@ a = Set.empty |> Set.diff set
                             { message = "Diffing a set with Set.empty will result in the set itself"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = set
+"""
+                        ]
+        ]
+
+
+setUnionTests : Test
+setUnionTests =
+    describe "Set.union"
+        [ test "should not report Set.union used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.union x y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.union Set.empty set by set" <|
+            \() ->
+                """module A exposing (..)
+a = Set.union Set.empty set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Set.empty"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = set
+"""
+                        ]
+        , test "should replace Set.union set Set.empty by set" <|
+            \() ->
+                """module A exposing (..)
+a = Set.union set Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Set.empty"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = set
+"""
+                        ]
+        , test "should replace Set.empty |> Set.union set by set" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.union set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Set.empty"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = set
+"""
+                        ]
+        , test "should replace set |> Set.union Set.empty by set" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.union set
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Set.empty"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = set
