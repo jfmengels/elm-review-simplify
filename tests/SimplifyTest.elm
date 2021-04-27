@@ -4378,6 +4378,70 @@ a = Maybe.withDefault x Nothing
 a = x
 """
                         ]
+        , test "should replace Maybe.withDefault x (Just y) by y" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.withDefault x (Just y)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Just." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (y)
+"""
+                        ]
+        , test "should replace Maybe.withDefault x <| (Just y) by y" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.withDefault x <| (Just y)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Just." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (y)
+"""
+                        ]
+        , test "should replace (Just y) |> Maybe.withDefault x by y" <|
+            \() ->
+                """module A exposing (..)
+a = (Just y) |> Maybe.withDefault x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Just." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (y)
+"""
+                        ]
+        , test "should replace y |> Just |> Maybe.withDefault x by y" <|
+            \() ->
+                """module A exposing (..)
+a = y |> Just |> Maybe.withDefault x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Just." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = y
+"""
+                        ]
         ]
 
 

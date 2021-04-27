@@ -221,6 +221,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.withDefault x Nothing
     --> x
 
+    Maybe.withDefault x (Just y)
+    --> y
+
 
 ### Lists
 
@@ -880,7 +883,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
-        , ( ( [ "Maybe" ], "withDefault" ), mappableWithDefaultChecks maybeCollection )
+        , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -2388,12 +2391,22 @@ type alias Mappable =
     }
 
 
-maybeCollection : Mappable
+type alias Defaultable =
+    { moduleName : String
+    , represents : String
+    , emptyAsString : String
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    , isSomethingConstructor : String
+    }
+
+
+maybeCollection : Defaultable
 maybeCollection =
     { moduleName = "Maybe"
     , represents = "maybe"
     , emptyAsString = "Nothing"
     , isEmpty = isSpecificFunction [ "Maybe" ] "Nothing"
+    , isSomethingConstructor = "Just"
     }
 
 
@@ -2766,21 +2779,22 @@ collectionPartitionChecks collection checkInfo =
                     []
 
 
-mappableWithDefaultChecks :
-    { a
-        | moduleName : String
-        , represents : String
-        , emptyAsString : String
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-    -> CheckInfo
-    -> List (Error {})
-mappableWithDefaultChecks collection checkInfo =
-    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
-        Just True ->
+maybeWithDefaultChecks : CheckInfo -> List (Error {})
+maybeWithDefaultChecks checkInfo =
+    case Maybe.andThen (getMaybeValue checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Just justRange) ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".withDefault on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                , details = [ "You can replace this call by the value wrapped in Just." ]
+                }
+                checkInfo.fnRange
+                (Fix.removeRange justRange :: noopFix checkInfo)
+            ]
+
+        Just Nothing ->
+            [ Rule.errorWithFix
+                { message = "Using Maybe.withDefault on Nothing will result in Nothing"
+                , details = [ "You can replace this call by Nothing." ]
                 }
                 checkInfo.fnRange
                 [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -2788,26 +2802,8 @@ mappableWithDefaultChecks collection checkInfo =
                 ]
             ]
 
-        --Just False ->
-        --    [ Rule.errorWithFix
-        --        { message = "Using " ++ collection.moduleName ++ ".withDefault on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-        --        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
-        --        }
-        --        checkInfo.fnRange
-        --        (noopFix checkInfo)
-        --    ]
-        _ ->
-            if isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                [ Rule.errorWithFix
-                    { message = "Using " ++ collection.moduleName ++ ".map with an identity function is the same as not using " ++ collection.moduleName ++ ".map"
-                    , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
-                    }
-                    checkInfo.fnRange
-                    (noopFix checkInfo)
-                ]
-
-            else
-                []
+        Nothing ->
+            []
 
 
 type CollectionSize
