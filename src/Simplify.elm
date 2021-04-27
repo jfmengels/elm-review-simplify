@@ -3276,6 +3276,14 @@ getMaybeValue lookupTable baseNode =
                 _ ->
                     Nothing
 
+        Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Just")) arg ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Maybe" ] ->
+                    Just (Just { start = justRange.start, end = (Node.range arg).start })
+
+                _ ->
+                    Nothing
+
         Expression.FunctionOrValue _ "Nothing" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
