@@ -2774,7 +2774,7 @@ caseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (E
 caseOfChecks lookupTable parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks lookupTable parentRange caseBlock.cases
-        , \() -> booleanCaseOfChecks parentRange caseBlock
+        , \() -> booleanCaseOfChecks lookupTable parentRange caseBlock
         ]
         ()
 
@@ -2845,11 +2845,11 @@ introducesVariable node =
             False
 
 
-booleanCaseOfChecks : Range -> Expression.CaseBlock -> Maybe (List (Error {}))
-booleanCaseOfChecks parentRange { expression, cases } =
+booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> Maybe (List (Error {}))
+booleanCaseOfChecks lookupTable parentRange { expression, cases } =
     case cases of
         [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
-            case getBooleanPattern firstPattern of
+            case getBooleanPattern lookupTable firstPattern of
                 Just isTrueFirst ->
                     Just
                         [ Rule.errorWithFix
@@ -3120,23 +3120,27 @@ getBoolean lookupTable baseNode =
             Nothing
 
 
-getBooleanPattern : Node Pattern -> Maybe Bool
-getBooleanPattern node =
+getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
+getBooleanPattern lookupTable node =
     case Node.value node of
         Pattern.NamedPattern { moduleName, name } _ ->
-            if moduleName == [] || moduleName == [ "Basics" ] then
-                case name of
-                    "True" ->
+            case name of
+                "True" ->
+                    if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
                         Just True
 
-                    "False" ->
-                        Just False
-
-                    _ ->
+                    else
                         Nothing
 
-            else
-                Nothing
+                "False" ->
+                    if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
+                        Just False
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
 
         _ ->
             Nothing
