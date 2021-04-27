@@ -371,6 +371,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.union set Set.empty
     --> set
 
+    Set.insert x Set.empty
+    --> Set.singleton x
+
     Set.partition fn Set.empty
     --> ( Set.empty, Set.empty )
 
@@ -888,6 +891,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
         , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
         , ( ( [ "Set" ], "union" ), collectionUnionChecks setCollection )
+        , ( ( [ "Set" ], "insert" ), collectionInsertChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
         , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
@@ -2547,6 +2551,28 @@ collectionUnionChecks collection ({ lookupTable, parentRange, fnRange, firstArg,
                     Nothing
         ]
         ()
+
+
+collectionInsertChecks : Collection -> CheckInfo -> List (Error {})
+collectionInsertChecks collection { lookupTable, usingRightPizza, parentRange, fnRange, firstArg, secondArg } =
+    case Maybe.andThen (collection.determineSize lookupTable) secondArg of
+        Just (Exactly 0) ->
+            [ Rule.errorWithFix
+                { message = "Use " ++ collection.moduleName ++ ".singleton instead of inserting in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.moduleName ++ ".singleton." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy fnRange (collection.moduleName ++ ".singleton")
+                , if usingRightPizza then
+                    Fix.removeRange { start = parentRange.start, end = fnRange.start }
+
+                  else
+                    Fix.removeRange { start = (Node.range firstArg).end, end = parentRange.end }
+                ]
+            ]
+
+        _ ->
+            []
 
 
 collectionMemberChecks : Collection -> CheckInfo -> List (Error {})

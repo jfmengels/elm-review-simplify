@@ -4121,8 +4121,7 @@ setSimplificationTests =
         , setIntersectTests
         , setDiffTests
         , setUnionTests
-
-        --, setSizeTests
+        , setInsertTests
         ]
 
 
@@ -5150,6 +5149,51 @@ a = Set.empty |> Set.union set
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = set
+"""
+                        ]
+        ]
+
+
+setInsertTests : Test
+setInsertTests =
+    describe "Set.insert"
+        [ test "should not report Set.insert used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Set.insert x y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.insert x Set.empty by Set.singleton x" <|
+            \() ->
+                """module A exposing (..)
+a = Set.insert x Set.empty
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Set.singleton instead of inserting in Set.empty"
+                            , details = [ "You can replace this call by Set.singleton." ]
+                            , under = "Set.insert"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton x
+"""
+                        ]
+        , test "should replace Set.empty |> Set.insert x by Set.singleton x" <|
+            \() ->
+                """module A exposing (..)
+a = Set.empty |> Set.insert x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Set.singleton instead of inserting in Set.empty"
+                            , details = [ "You can replace this call by Set.singleton." ]
+                            , under = "Set.insert"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton x
 """
                         ]
         ]
