@@ -20,6 +20,7 @@ all =
         , usingPlusPlusTests
         , stringSimplificationTests
         , listSimplificationTests
+        , maybeTests
         , setSimplificationTests
         , dictSimplificationTests
         , cmdTests
@@ -4097,6 +4098,174 @@ a = always False |> List.partition
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (Tuple.pair [])
+"""
+                        ]
+        ]
+
+
+
+-- Maybe
+
+
+maybeTests : Test
+maybeTests =
+    describe "Maybe"
+        [ maybeMapTests
+        ]
+
+
+maybeMapTests : Test
+maybeMapTests =
+    describe "Maybe.map"
+        [ test "should not report Maybe.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map f x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Maybe.map f Nothing by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map f Nothing
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map on Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace Maybe.map f <| Nothing by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map f <| Nothing
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map on Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace Nothing |> Maybe.map f by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Nothing |> Maybe.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map on Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace Maybe.map identity x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map identity x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
+                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Maybe.map identity <| x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map identity <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
+                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace x |> Maybe.map identity by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Maybe.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
+                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Maybe.map identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
+                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Maybe.map <| identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map <| identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
+                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace identity |> Maybe.map by identity" <|
+            \() ->
+                """module A exposing (..)
+a = identity |> Maybe.map
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
+                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]

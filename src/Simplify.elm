@@ -210,6 +210,15 @@ Below is the list of all kinds of simplifications this rule applies.
     --> []
 
 
+### Maybe
+
+    Maybe.map identity x
+    --> x
+
+    Maybe.map f Nothing
+    --> Nothing
+
+
 ### Lists
 
     a :: []
@@ -867,6 +876,7 @@ functionCallChecks =
         [ ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
+        , ( ( [ "Maybe" ], "map" ), collectionMapChecks maybeCollection )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -2337,6 +2347,15 @@ type alias Mappable =
     , represents : String
     , emptyAsString : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+
+
+maybeCollection : Mappable
+maybeCollection =
+    { moduleName = "Maybe"
+    , represents = "maybe"
+    , emptyAsString = "Nothing"
+    , isEmpty = isSpecificFunction [ "Maybe" ] "Nothing"
     }
 
 
