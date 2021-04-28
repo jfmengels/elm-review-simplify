@@ -2035,7 +2035,10 @@ maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, rig
     if fromLeftToRight then
         case ( removeParens left, Node.value (removeParens right) ) of
             ( Node justRange (Expression.FunctionOrValue _ "Just"), Expression.Application ((Node maybeMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []) ) ->
-                if ModuleNameLookupTable.moduleNameAt lookupTable justRange == Just [ "Maybe" ] && ModuleNameLookupTable.moduleNameAt lookupTable maybeMapRange == Just [ "Maybe" ] then
+                if
+                    (ModuleNameLookupTable.moduleNameAt lookupTable justRange == Just [ "Maybe" ])
+                        && (ModuleNameLookupTable.moduleNameAt lookupTable maybeMapRange == Just [ "Maybe" ])
+                then
                     [ Rule.errorWithFix
                         { message = "Calling Maybe.map on a value that is Just"
                         , details = [ "The function can be called without Maybe.map." ]
