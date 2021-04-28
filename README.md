@@ -4,7 +4,7 @@ Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-revi
 
 ## Provided rules
 
-- [`Simplify`](https://elm-doc-preview.netlify.app/Simplify?repo=jfmengels%2Felm-review-simplify&version=main) - Reports when an expression can be simplified.
+- [`Simplify`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/1.0.2/Simplify) - Reports when an expression can be simplified.
 
 ## Configuration
 
