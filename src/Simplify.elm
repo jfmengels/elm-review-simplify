@@ -407,7 +407,7 @@ Below is the list of all kinds of simplifications this rule applies.
     Dict.toList Dict.empty
     --> []
 
-    Set.size Dict.empty
+    Dict.size Dict.empty
     --> 0
 
 
