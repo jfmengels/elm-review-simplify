@@ -497,13 +497,13 @@ expressionVisitor node context =
     else
         let
             ( errors, rangesToIgnore ) =
-                expressionVisitorHelp node context
+                expressionVisitorHelp node context.lookupTable
         in
         ( errors, { context | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore } )
 
 
-expressionVisitorHelp : Node Expression -> Context -> ( List (Error {}), List Range )
-expressionVisitorHelp node { lookupTable } =
+expressionVisitorHelp : Node Expression -> ModuleNameLookupTable -> ( List (Error {}), List Range )
+expressionVisitorHelp node lookupTable =
     case Node.value node of
         --------------------
         -- FUNCTION CALLS --
