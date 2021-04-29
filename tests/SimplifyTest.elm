@@ -609,10 +609,10 @@ a = not >> not >> a
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
                             , details = [ "Composing `not` with `not` cancel each other out." ]
-                            , under = "not >> not >> "
+                            , under = "not >> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = a
+a = identity >> a
 """
                         ]
         , test "should simplify not << not to identity" <|
@@ -647,7 +647,7 @@ a = not << not << a
 a = identity << a
 """
                         ]
-        , test "should simplify a << not << not to a" <|
+        , test "should simplify a << not << not to a << identity" <|
             \() ->
                 """module A exposing (..)
 a = a << not << not
@@ -657,10 +657,10 @@ a = a << not << not
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
                             , details = [ "Composing `not` with `not` cancel each other out." ]
-                            , under = " << not << not"
+                            , under = "not << not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = a
+a = a << identity
 """
                         ]
         , test "should simplify (not >> a) << not to a" <|
@@ -1340,10 +1340,10 @@ a = negate >> negate >> a
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
                             , details = [ "Composing `negate` with `negate` cancel each other out." ]
-                            , under = "negate >> negate >> "
+                            , under = "negate >> negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = a
+a = identity >> a
 """
                         ]
         , test "should simplify negate << negate to identity" <|
@@ -1378,7 +1378,7 @@ a = negate << negate << a
 a = identity << a
 """
                         ]
-        , test "should simplify a << negate << negate to a" <|
+        , test "should simplify a << negate << negate to a << identity" <|
             \() ->
                 """module A exposing (..)
 a = a << negate << negate
@@ -1388,10 +1388,10 @@ a = a << negate << negate
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
                             , details = [ "Composing `negate` with `negate` cancel each other out." ]
-                            , under = " << negate << negate"
+                            , under = "negate << negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = a
+a = a << identity
 """
                         ]
         , test "should simplify (negate >> a) << negate to a" <|
@@ -4365,7 +4365,7 @@ a = Maybe.map f << Just
 a = Just << f
 """
                         ]
-        , test "should replace Just >> Maybe.map f by Just >> f" <|
+        , test "should replace Just >> Maybe.map f by f >> Just" <|
             \() ->
                 """module A exposing (..)
 a = Just >> Maybe.map f
@@ -4379,6 +4379,54 @@ a = Just >> Maybe.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = f >> Just
+"""
+                        ]
+        , test "should replace Maybe.map f << Just << a by Just << f << a" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map f << Just << a
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just << f << a
+"""
+                        ]
+        , test "should replace g << Maybe.map f << Just by g << Just << f" <|
+            \() ->
+                """module A exposing (..)
+a = g << Maybe.map f << Just
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = g << Just << f
+"""
+                        ]
+        , test "should replace Just >> Maybe.map f >> g by f >> Just >> g" <|
+            \() ->
+                """module A exposing (..)
+a = Just >> Maybe.map f >> g
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Maybe.map on a value that is Just"
+                            , details = [ "The function can be called without Maybe.map." ]
+                            , under = "Maybe.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f >> Just >> g
 """
                         ]
         ]

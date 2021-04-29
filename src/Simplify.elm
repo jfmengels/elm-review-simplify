@@ -796,11 +796,37 @@ expressionVisitorHelp node lookupTable =
                 _ ->
                     ( [], [] )
 
+        Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
+            ( firstThatReportsError compositionChecks
+                { lookupTable = lookupTable
+                , fromLeftToRight = True
+                , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
+                , left = left
+                , leftRange = Node.range left
+                , right = right
+                , rightRange = Node.range right
+                }
+            , []
+            )
+
         Expression.OperatorApplication ">>" _ left right ->
             ( firstThatReportsError compositionChecks
                 { lookupTable = lookupTable
                 , fromLeftToRight = True
                 , parentRange = Node.range node
+                , left = left
+                , leftRange = Node.range left
+                , right = right
+                , rightRange = Node.range right
+                }
+            , []
+            )
+
+        Expression.OperatorApplication "<<" _ (Node _ (Expression.OperatorApplication "<<" _ _ left)) right ->
+            ( firstThatReportsError compositionChecks
+                { lookupTable = lookupTable
+                , fromLeftToRight = False
+                , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                 , left = left
                 , leftRange = Node.range left
                 , right = right
