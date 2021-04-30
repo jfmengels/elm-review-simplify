@@ -218,6 +218,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.map f Nothing
     --> Nothing
 
+    Maybe.andThen f Nothing
+    --> Nothing
+
     Maybe.withDefault x Nothing
     --> x
 
@@ -909,6 +912,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
+        , ( ( [ "Maybe" ], "andThen" ), collectionAndThenChecks maybeCollection )
         , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
@@ -2533,6 +2537,30 @@ collectionMapChecks collection checkInfo =
 
             else
                 []
+
+
+collectionAndThenChecks :
+    { a
+        | moduleName : String
+        , represents : String
+        , emptyAsString : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+    -> CheckInfo
+    -> List (Error {})
+collectionAndThenChecks collection checkInfo =
+    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+        Just True ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ collection.moduleName ++ ".andThen on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                }
+                checkInfo.fnRange
+                (noopFix checkInfo)
+            ]
+
+        _ ->
+            []
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})

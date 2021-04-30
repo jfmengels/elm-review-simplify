@@ -4111,6 +4111,7 @@ maybeTests : Test
 maybeTests =
     describe "Maybe"
         [ maybeMapTests
+        , maybeAndThenTests
         , maybeWithDefaultTests
         ]
 
@@ -4427,6 +4428,35 @@ a = Just >> Maybe.map f >> g
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = f >> Just >> g
+"""
+                        ]
+        ]
+
+
+maybeAndThenTests : Test
+maybeAndThenTests =
+    describe "Maybe.andThen"
+        [ test "should not report Maybe.andThen used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen f x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Maybe.andThen f Nothing by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen f Nothing
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.andThen on Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
 """
                         ]
         ]
