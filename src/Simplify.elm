@@ -221,6 +221,12 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.andThen f Nothing
     --> Nothing
 
+    Maybe.andThen (always Nothing) x
+    --> Nothing
+
+    Maybe.andThen (\a -> Just b) x
+    --> Maybe.map (\a -> b) x
+
     Maybe.withDefault x Nothing
     --> x
 
@@ -2561,8 +2567,16 @@ collectionAndThenChecks collection checkInfo =
 
         _ ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Just (Just _) ->
-                    []
+                Just (Just justRange) ->
+                    [ Rule.errorWithFix
+                        { message = "Use " ++ collection.moduleName ++ ".map instead"
+                        , details = [ "Using " ++ collection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.fnRange (collection.moduleName ++ ".map")
+                        , Fix.removeRange justRange
+                        ]
+                    ]
 
                 Just Nothing ->
                     [ Rule.errorWithFix
@@ -3379,13 +3393,13 @@ isAlwaysMaybe lookupTable baseNode =
 
         Expression.LambdaExpression { args, expression } ->
             case Node.value expression of
-                Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: (Node _ (Expression.FunctionOrValue [] justArgName)) :: []) ->
+                Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: (Node argRange (Expression.FunctionOrValue [] justArgName)) :: []) ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
                         Just [ "Maybe" ] ->
                             case args of
                                 (Node _ (Pattern.VarPattern lambdaArgName)) :: [] ->
                                     if lambdaArgName == justArgName then
-                                        Just (Just justRange)
+                                        Just (Just { start = justRange.start, end = argRange.start })
 
                                     else
                                         Nothing
