@@ -2555,17 +2555,21 @@ collectionAndThenChecks :
     -> CheckInfo
     -> List (Error {})
 collectionAndThenChecks collection checkInfo =
-    case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
-        Just True ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".andThen on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
-                }
-                checkInfo.fnRange
-                (noopFix checkInfo)
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
+                Just True ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".andThen on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
+                        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (noopFix checkInfo)
+                    ]
 
-        _ ->
+                _ ->
+                    []
+        , \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
                 Just (Just justRange) ->
                     [ Rule.errorWithFix
@@ -2589,6 +2593,8 @@ collectionAndThenChecks collection checkInfo =
 
                 Nothing ->
                     []
+        ]
+        ()
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
