@@ -3110,8 +3110,8 @@ maybeWithDefaultChecks checkInfo =
 
         Just Nothing ->
             [ Rule.errorWithFix
-                { message = "Using Maybe.withDefault on Nothing will result in Nothing"
-                , details = [ "You can replace this call by Nothing." ]
+                { message = "Using Maybe.withDefault on Nothing will result in the default value"
+                , details = [ "You can replace this call by the default value." ]
                 }
                 checkInfo.fnRange
                 [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }

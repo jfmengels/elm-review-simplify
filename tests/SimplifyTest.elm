@@ -4545,8 +4545,8 @@ a = Maybe.withDefault x Nothing
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on Nothing will result in Nothing"
-                            , details = [ "You can replace this call by Nothing." ]
+                            { message = "Using Maybe.withDefault on Nothing will result in the default value"
+                            , details = [ "You can replace this call by the default value." ]
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
