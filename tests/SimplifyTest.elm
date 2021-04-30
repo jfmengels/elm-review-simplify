@@ -4658,7 +4658,7 @@ a = Result.map f (Err z)
 a = (Err z)
 """
                         ]
-        , test "should replace Result.map f <| Err by Err" <|
+        , test "should replace Result.map f <| Err z by Err z" <|
             \() ->
                 """module A exposing (..)
 a = Result.map f <| Err z
@@ -4674,7 +4674,7 @@ a = Result.map f <| Err z
 a = Err z
 """
                         ]
-        , test "should replace Err |> Result.map f by Err" <|
+        , test "should replace Err z |> Result.map f by Err z" <|
             \() ->
                 """module A exposing (..)
 a = Err z |> Result.map f
@@ -4967,31 +4967,22 @@ a = Result.andThen f (Err z)
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen on Err will result in Err"
-                            , details = [ "You can replace this call by Err." ]
+                            { message = "Using Result.andThen on an error will result in the error"
+                            , details = [ "You can replace this call by the error itself." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (Err z)
 """
                         ]
-        , test "should replace Result.andThen (always (Err z)) x by Err z" <|
+        , test "should not report Result.andThen (always (Err z)) x" <|
             \() ->
                 """module A exposing (..)
 a = Result.andThen (always (Err z)) x
 """
                     |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using Result.andThen with a function that will always return Err will result in Err"
-                            , details = [ "You can remove this call and replace it by Err." ]
-                            , under = "Result.andThen"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = Err z
-"""
-                        ]
-        , test "should replace Result.andThen (\\b -> ok b) x by Result.map (\\b -> b) x" <|
+                    |> Review.Test.expectNoErrors
+        , test "should replace Result.andThen (\\b -> Ok b) x by Result.map (\\b -> b) x" <|
             \() ->
                 """module A exposing (..)
 a = Result.andThen (\\b -> Ok b) x
