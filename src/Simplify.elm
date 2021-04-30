@@ -221,7 +221,7 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.map f (Just x)
     --> Just (f x)
 
-    Maybe.andThen f Nothing
+    MaybeThen f Nothing
     --> Nothing
 
     Maybe.andThen (always Nothing) x
@@ -243,7 +243,7 @@ Below is the list of all kinds of simplifications this rule applies.
 ### Result
 
     Result.map identity x
-    --> x
+    --> x.and
 
     Result.map f (Err x)
     --> Err x
@@ -259,6 +259,12 @@ Below is the list of all kinds of simplifications this rule applies.
 
     Result.andThen (\a -> Ok b) x
     --> Result.map (\a -> b) x
+
+    Result.withDefault x (Err y)
+    --> x
+
+    Result.withDefault x (Ok y)
+    --> y
 
 
 ### Lists
@@ -949,6 +955,7 @@ functionCallChecks =
         , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
         , ( ( [ "Result" ], "map" ), resultMapChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
+        , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -2777,6 +2784,33 @@ resultAndThenChecks checkInfo =
                     []
         ]
         ()
+
+
+resultWithDefaultChecks : CheckInfo -> List (Error {})
+resultWithDefaultChecks checkInfo =
+    case Maybe.andThen (getResultValue checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Ok okRange) ->
+            [ Rule.errorWithFix
+                { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                , details = [ "You can replace this call by the value wrapped in Ok." ]
+                }
+                checkInfo.fnRange
+                (Fix.removeRange okRange :: noopFix checkInfo)
+            ]
+
+        Just (Err _) ->
+            [ Rule.errorWithFix
+                { message = "Using Result.withDefault on an error will result in the default value"
+                , details = [ "You can replace this call by the default value." ]
+                }
+                checkInfo.fnRange
+                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                ]
+            ]
+
+        Nothing ->
+            []
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})

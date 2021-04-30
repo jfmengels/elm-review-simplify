@@ -4629,6 +4629,7 @@ resultTests =
     describe "Result"
         [ resultMapTests
         , resultAndThenTests
+        , resultWithDefaultTests
         ]
 
 
@@ -5028,6 +5029,99 @@ a = Ok x |> Result.andThen f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x |> f
+"""
+                        ]
+        ]
+
+
+resultWithDefaultTests : Test
+resultWithDefaultTests =
+    describe "Result.withDefault"
+        [ test "should not report Result.withDefault used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Result.withDefault x y
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Result.withDefault x (Err z) by x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.withDefault x (Err z)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.withDefault on an error will result in the default value"
+                            , details = [ "You can replace this call by the default value." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Result.withDefault x (Ok y) by y" <|
+            \() ->
+                """module A exposing (..)
+a = Result.withDefault x (Ok y)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Ok." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (y)
+"""
+                        ]
+        , test "should replace Result.withDefault x <| (Ok y) by y" <|
+            \() ->
+                """module A exposing (..)
+a = Result.withDefault x <| (Ok y)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Ok." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (y)
+"""
+                        ]
+        , test "should replace (Ok y) |> Result.withDefault x by y" <|
+            \() ->
+                """module A exposing (..)
+a = (Ok y) |> Result.withDefault x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Ok." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (y)
+"""
+                        ]
+        , test "should replace y |> Ok |> Result.withDefault x by y" <|
+            \() ->
+                """module A exposing (..)
+a = y |> Ok |> Result.withDefault x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                            , details = [ "You can replace this call by the value wrapped in Ok." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = y
 """
                         ]
         ]
