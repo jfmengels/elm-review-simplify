@@ -923,6 +923,7 @@ functionCallChecks =
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
+        , ( ( [ "Result" ], "map" ), resultMapChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -1025,6 +1026,7 @@ compositionChecks =
     , negateCompositionCheck
     , alwaysCompositionCheck
     , maybeMapCompositionChecks
+    , resultMapCompositionChecks
     ]
 
 
@@ -2115,6 +2117,88 @@ maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, rig
                 []
 
 
+resultMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, right } =
+    if fromLeftToRight then
+        case ( removeParens left, Node.value (removeParens right) ) of
+            ( Node justRange (Expression.FunctionOrValue _ "Ok"), Expression.Application ((Node resultMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []) ) ->
+                if
+                    (ModuleNameLookupTable.moduleNameAt lookupTable justRange == Just [ "Result" ])
+                        && (ModuleNameLookupTable.moduleNameAt lookupTable resultMapRange == Just [ "Result" ])
+                then
+                    [ Rule.errorWithFix
+                        { message = "Calling Result.map on a value that is Ok"
+                        , details = [ "The function can be called without Result.map." ]
+                        }
+                        resultMapRange
+                        [ Fix.removeRange { start = parentRange.start, end = (Node.range mapperFunction).start }
+                        , Fix.insertAt (Node.range mapperFunction).end " >> Ok"
+                        ]
+                    ]
+
+                else
+                    []
+
+            _ ->
+                []
+
+    else
+        case ( Node.value (removeParens left), removeParens right ) of
+            ( Expression.Application ((Node resultMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []), Node justRange (Expression.FunctionOrValue _ "Ok") ) ->
+                if ModuleNameLookupTable.moduleNameAt lookupTable justRange == Just [ "Result" ] && ModuleNameLookupTable.moduleNameAt lookupTable resultMapRange == Just [ "Result" ] then
+                    [ Rule.errorWithFix
+                        { message = "Calling Result.map on a value that is Ok"
+                        , details = [ "The function can be called without Result.map." ]
+                        }
+                        resultMapRange
+                        [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range mapperFunction).start } "Ok << "
+                        , Fix.removeRange { start = (Node.range mapperFunction).end, end = parentRange.end }
+                        ]
+                    ]
+
+                else
+                    []
+
+            _ ->
+                []
+
+
+
+-- RESULT FUNCTIONS
+
+
+resultMapChecks : CheckInfo -> List (Error {})
+resultMapChecks checkInfo =
+    firstThatReportsError
+        [ \() -> collectionMapChecks resultCollection checkInfo
+        , \() ->
+            case Maybe.andThen (getResultValue checkInfo.lookupTable) checkInfo.secondArg of
+                Just (Ok okRange) ->
+                    [ Rule.errorWithFix
+                        { message = "Calling Result.map on a value that is Ok"
+                        , details = [ "The function can be called without Result.map." ]
+                        }
+                        checkInfo.fnRange
+                        (if checkInfo.usingRightPizza then
+                            [ Fix.removeRange okRange
+                            , Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                            , Fix.insertAt (Node.range checkInfo.firstArg).end " |> Ok"
+                            ]
+
+                         else
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start } "Ok ("
+                            , Fix.removeRange okRange
+                            , Fix.insertAt checkInfo.parentRange.end ")"
+                            ]
+                        )
+                    ]
+
+                _ ->
+                    []
+        ]
+        ()
+
+
 
 -- LIST FUNCTIONS
 
@@ -2430,6 +2514,7 @@ type alias Collection =
     { moduleName : String
     , represents : String
     , emptyAsString : String
+    , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     , nameForSize : String
     , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
@@ -2441,6 +2526,7 @@ listCollection =
     { moduleName = "List"
     , represents = "list"
     , emptyAsString = "[]"
+    , emptyDescription = "[]"
     , isEmpty = \_ -> isEmptyList
     , nameForSize = "length"
     , determineSize = determineListLength
@@ -2452,6 +2538,7 @@ setCollection =
     { moduleName = "Set"
     , represents = "set"
     , emptyAsString = "Set.empty"
+    , emptyDescription = "Set.empty"
     , isEmpty = isSpecificFunction [ "Set" ] "empty"
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Set" ] 1
@@ -2463,6 +2550,7 @@ dictCollection =
     { moduleName = "Dict"
     , represents = "Dict"
     , emptyAsString = "Dict.empty"
+    , emptyDescription = "Dict.empty"
     , isEmpty = isSpecificFunction [ "Dict" ] "empty"
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Dict" ] 2
@@ -2473,6 +2561,7 @@ type alias Mappable =
     { moduleName : String
     , represents : String
     , emptyAsString : String
+    , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
 
@@ -2481,6 +2570,7 @@ type alias Defaultable =
     { moduleName : String
     , represents : String
     , emptyAsString : String
+    , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     , isSomethingConstructor : String
     }
@@ -2491,8 +2581,20 @@ maybeCollection =
     { moduleName = "Maybe"
     , represents = "maybe"
     , emptyAsString = "Nothing"
+    , emptyDescription = "Nothing"
     , isEmpty = isSpecificFunction [ "Maybe" ] "Nothing"
     , isSomethingConstructor = "Just"
+    }
+
+
+resultCollection : Defaultable
+resultCollection =
+    { moduleName = "Result"
+    , represents = "result"
+    , emptyAsString = "Nothing"
+    , emptyDescription = "an error"
+    , isEmpty = isSpecificCall [ "Result" ] "Err"
+    , isSomethingConstructor = "Ok"
     }
 
 
@@ -2501,6 +2603,7 @@ cmdCollection =
     { moduleName = "Cmd"
     , represents = "command"
     , emptyAsString = "Cmd.none"
+    , emptyDescription = "Cmd.none"
     , isEmpty = isSpecificFunction [ "Platform", "Cmd" ] "none"
     }
 
@@ -2510,6 +2613,7 @@ subCollection =
     { moduleName = "Sub"
     , represents = "subscription"
     , emptyAsString = "Sub.none"
+    , emptyDescription = "Sub.none"
     , isEmpty = isSpecificFunction [ "Platform", "Sub" ] "none"
     }
 
@@ -2518,6 +2622,7 @@ collectionMapChecks :
     { a
         | moduleName : String
         , represents : String
+        , emptyDescription : String
         , emptyAsString : String
         , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
@@ -2527,8 +2632,8 @@ collectionMapChecks collection checkInfo =
     case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
         Just True ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
+                , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
@@ -3122,6 +3227,17 @@ isSpecificFunction moduleName fnName lookupTable node =
             False
 
 
+isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificCall moduleName fnName lookupTable node =
+    case Node.value (removeParens node) of
+        Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
+            (foundFnName == fnName)
+                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+
+        _ ->
+            False
+
+
 getIntValue : Node Expression -> Maybe Int
 getIntValue node =
     case Node.value (removeParens node) of
@@ -3473,6 +3589,66 @@ getMaybeValue lookupTable baseNode =
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
                     Just Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+getResultValue : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range Range)
+getResultValue lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            removeParens baseNode
+    in
+    case Node.value node of
+        Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Ok")) :: arg :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Result" ] ->
+                    Just (Ok { start = justRange.start, end = (Node.range arg).start })
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "|>" _ arg (Node justRange (Expression.FunctionOrValue _ "Ok")) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Result" ] ->
+                    Just (Ok { start = (Node.range arg).end, end = justRange.end })
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Ok")) arg ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Result" ] ->
+                    Just (Ok { start = justRange.start, end = (Node.range arg).start })
+
+                _ ->
+                    Nothing
+
+        Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Err")) :: arg :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Result" ] ->
+                    Just (Err { start = justRange.start, end = (Node.range arg).start })
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "|>" _ arg (Node justRange (Expression.FunctionOrValue _ "Err")) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Result" ] ->
+                    Just (Err { start = (Node.range arg).end, end = justRange.end })
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Err")) arg ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                Just [ "Result" ] ->
+                    Just (Err { start = justRange.start, end = (Node.range arg).start })
 
                 _ ->
                     Nothing

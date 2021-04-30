@@ -21,6 +21,7 @@ all =
         , stringSimplificationTests
         , listSimplificationTests
         , maybeTests
+        , resultTests
         , setSimplificationTests
         , dictSimplificationTests
         , cmdTests
@@ -4614,6 +4615,428 @@ a = y |> Just |> Maybe.withDefault x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = y
+"""
+                        ]
+        ]
+
+
+
+-- Result
+
+
+resultTests : Test
+resultTests =
+    describe "Result"
+        [ resultMapTests
+        , resultAndThenTests
+        ]
+
+
+resultMapTests : Test
+resultMapTests =
+    describe "Result.map"
+        [ test "should not report Result.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Result.map f (Err z) by (Err z)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f (Err z)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map on an error will result in an error"
+                            , details = [ "You can replace this call by an error." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Err z)
+"""
+                        ]
+        , test "should replace Result.map f <| Err by Err" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f <| Err z
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map on an error will result in an error"
+                            , details = [ "You can replace this call by an error." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err z
+"""
+                        ]
+        , test "should replace Err |> Result.map f by Err" <|
+            \() ->
+                """module A exposing (..)
+a = Err z |> Result.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map on an error will result in an error"
+                            , details = [ "You can replace this call by an error." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err z
+"""
+                        ]
+        , test "should replace Result.map identity x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map identity x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map with an identity function is the same as not using Result.map"
+                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Result.map identity <| x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map identity <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map with an identity function is the same as not using Result.map"
+                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace x |> Result.map identity by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Result.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map with an identity function is the same as not using Result.map"
+                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Result.map identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map with an identity function is the same as not using Result.map"
+                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Result.map <| identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map <| identity
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map with an identity function is the same as not using Result.map"
+                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace identity |> Result.map by identity" <|
+            \() ->
+                """module A exposing (..)
+a = identity |> Result.map
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.map with an identity function is the same as not using Result.map"
+                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Result.map f (Ok x) by Ok (f x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f (Ok x)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok (f (x))
+"""
+                        ]
+        , test "should replace Result.map f <| Ok x by Ok (f x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f <| Ok x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok (f <| x)
+"""
+                        ]
+        , test "should replace Ok x |> Result.map f by x |> f |> Ok" <|
+            \() ->
+                """module A exposing (..)
+a = Ok x |> Result.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> Ok
+"""
+                        ]
+        , test "should replace x |> Ok |> Result.map f by x |> f |> Ok" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Ok |> Result.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> Ok
+"""
+                        ]
+        , test "should replace Result.map f <| Ok <| x by Ok <| f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f <| Ok <| x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok (f <| x)
+"""
+                        ]
+        , test "should replace Result.map f << Ok by Ok << f" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f << Ok
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok << f
+"""
+                        ]
+        , test "should replace Ok >> Result.map f by f >> Ok" <|
+            \() ->
+                """module A exposing (..)
+a = Ok >> Result.map f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f >> Ok
+"""
+                        ]
+        , test "should replace Result.map f << Ok << a by Ok << f << a" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map f << Ok << a
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok << f << a
+"""
+                        ]
+        , test "should replace g << Result.map f << Ok by g << Ok << f" <|
+            \() ->
+                """module A exposing (..)
+a = g << Result.map f << Ok
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = g << Ok << f
+"""
+                        ]
+        , test "should replace Ok >> Result.map f >> g by f >> Ok >> g" <|
+            \() ->
+                """module A exposing (..)
+a = Ok >> Result.map f >> g
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.map on a value that is Ok"
+                            , details = [ "The function can be called without Result.map." ]
+                            , under = "Result.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f >> Ok >> g
+"""
+                        ]
+        ]
+
+
+resultAndThenTests : Test
+resultAndThenTests =
+    describe "Result.andThen"
+        [ test "should not report Result.andThen used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen f x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectNoErrors
+        , test "should replace Result.andThen f (Err z) by (Err z)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen f (Err z)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.andThen on Err will result in Err"
+                            , details = [ "You can replace this call by Err." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Err z)
+"""
+                        ]
+        , test "should replace Result.andThen (always (Err z)) x by Err z" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen (always (Err z)) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.andThen with a function that will always return Err will result in Err"
+                            , details = [ "You can remove this call and replace it by Err." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err z
+"""
+                        ]
+        , test "should replace Result.andThen (\\b -> ok b) x by Result.map (\\b -> b) x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen (\\b -> Ok b) x
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Result.map instead"
+                            , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.map (\\b -> b) x
+"""
+                        ]
+        , test "should replace Result.andThen f (Ok x) by f (x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen f (Ok x)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.andThen on a value that is known to be Ok"
+                            , details = [ "You can remove the Ok and just call the function directly." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f (x)
+"""
+                        ]
+        , test "should replace Ok x |> Result.andThen f by f (x)" <|
+            \() ->
+                """module A exposing (..)
+a = Ok x |> Result.andThen f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.andThen on a value that is known to be Ok"
+                            , details = [ "You can remove the Ok and just call the function directly." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f
 """
                         ]
         ]
