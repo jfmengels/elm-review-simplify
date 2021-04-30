@@ -2560,7 +2560,21 @@ collectionAndThenChecks collection checkInfo =
             ]
 
         _ ->
-            []
+            case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
+                Just (Just _) ->
+                    []
+
+                Just Nothing ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".andThen with a function that will always return Nothing will result in Nothing"
+                        , details = [ "You can remove this call and replace it by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange checkInfo.secondArg)
+                    ]
+
+                Nothing ->
+                    []
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
