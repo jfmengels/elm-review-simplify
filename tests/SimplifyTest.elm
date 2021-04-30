@@ -4491,6 +4491,38 @@ a = Maybe.andThen (\\b -> Just b) x
 a = Maybe.map (\\b -> b) x
 """
                         ]
+        , test "should replace Maybe.andThen f (Just x) by f (x)" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen f (Just x)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Maybe.andThen on a value that is known to be Just"
+                            , details = [ "You can remove the Just and just call the function directly." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f (x)
+"""
+                        ]
+        , test "should replace Just x |> Maybe.andThen f by f (x)" <|
+            \() ->
+                """module A exposing (..)
+a = Just x |> Maybe.andThen f
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Maybe.andThen on a value that is known to be Just"
+                            , details = [ "You can remove the Just and just call the function directly." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f
+"""
+                        ]
         ]
 
 

@@ -227,6 +227,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.andThen (\a -> Just b) x
     --> Maybe.map (\a -> b) x
 
+    Maybe.andThen f (Just x)
+    --> f x
+
     Maybe.withDefault x Nothing
     --> x
 
@@ -918,7 +921,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
-        , ( ( [ "Maybe" ], "andThen" ), collectionAndThenChecks maybeCollection )
+        , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
@@ -2545,23 +2548,26 @@ collectionMapChecks collection checkInfo =
                 []
 
 
-collectionAndThenChecks :
-    { a
-        | moduleName : String
-        , represents : String
-        , emptyAsString : String
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-    -> CheckInfo
-    -> List (Error {})
-collectionAndThenChecks collection checkInfo =
+maybeAndThenChecks : CheckInfo -> List (Error {})
+maybeAndThenChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Maybe.map (collection.isEmpty checkInfo.lookupTable) checkInfo.secondArg of
-                Just True ->
+            case Maybe.andThen (getMaybeValue checkInfo.lookupTable) checkInfo.secondArg of
+                Just (Just justRange) ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".andThen on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                        { message = "Calling " ++ maybeCollection.moduleName ++ ".andThen on a value that is known to be Just"
+                        , details = [ "You can remove the Just and just call the function directly." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                        , Fix.removeRange justRange
+                        ]
+                    ]
+
+                Just Nothing ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ maybeCollection.moduleName ++ ".andThen on " ++ maybeCollection.emptyAsString ++ " will result in " ++ maybeCollection.emptyAsString
+                        , details = [ "You can replace this call by " ++ maybeCollection.emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
                         (noopFix checkInfo)
@@ -2573,22 +2579,22 @@ collectionAndThenChecks collection checkInfo =
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
                 Just (Just justRange) ->
                     [ Rule.errorWithFix
-                        { message = "Use " ++ collection.moduleName ++ ".map instead"
-                        , details = [ "Using " ++ collection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                        { message = "Use " ++ maybeCollection.moduleName ++ ".map instead"
+                        , details = [ "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.fnRange (collection.moduleName ++ ".map")
+                        [ Fix.replaceRangeBy checkInfo.fnRange (maybeCollection.moduleName ++ ".map")
                         , Fix.removeRange justRange
                         ]
                     ]
 
                 Just Nothing ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".andThen with a function that will always return Nothing will result in Nothing"
+                        { message = "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that will always return Nothing will result in Nothing"
                         , details = [ "You can remove this call and replace it by Nothing." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange checkInfo.secondArg)
+                        (replaceByEmptyFix maybeCollection.emptyAsString checkInfo.parentRange checkInfo.secondArg)
                     ]
 
                 Nothing ->
