@@ -275,7 +275,7 @@ Below is the list of all kinds of simplifications this rule applies.
     a :: [ b ]
     --> [ a, b ]
 
-    [a] ++ list
+    [ a ] ++ list
     --> a :: list
 
     [] ++ list
