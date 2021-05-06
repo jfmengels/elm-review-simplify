@@ -3345,6 +3345,9 @@ introducesVariable context node =
 isIgnoredConstructor : ModuleContext -> Range -> String -> Bool
 isIgnoredConstructor context range name =
     case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
+        Just [] ->
+            Set.member ( context.moduleName, name ) context.constructorsToIgnore
+
         Just moduleName ->
             Set.member ( moduleName, name ) context.constructorsToIgnore
 
