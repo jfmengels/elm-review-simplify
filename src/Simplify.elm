@@ -565,19 +565,19 @@ expressionVisitor node context =
 
 
 expressionVisitorHelp : Node Expression -> Context -> ( List (Error {}), List Range )
-expressionVisitorHelp node { lookupTable } =
+expressionVisitorHelp node context =
     case Node.value node of
         --------------------
         -- FUNCTION CALLS --
         --------------------
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
             case
-                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
-                        { lookupTable = lookupTable
+                        { lookupTable = context.lookupTable
                         , parentRange = Node.range node
                         , fnRange = fnRange
                         , firstArg = firstArg
@@ -594,7 +594,7 @@ expressionVisitorHelp node { lookupTable } =
         -- IF EXPRESSION --
         -------------------
         Expression.IfBlock cond trueBranch falseBranch ->
-            case getBoolean lookupTable cond of
+            case getBoolean context.lookupTable cond of
                 Just True ->
                     ( [ Rule.errorWithFix
                             { message = "The condition will always evaluate to True"
@@ -630,7 +630,7 @@ expressionVisitorHelp node { lookupTable } =
                     )
 
                 Nothing ->
-                    case ( getBoolean lookupTable trueBranch, getBoolean lookupTable falseBranch ) of
+                    case ( getBoolean context.lookupTable trueBranch, getBoolean context.lookupTable falseBranch ) of
                         ( Just True, Just False ) ->
                             ( [ Rule.errorWithFix
                                     { message = "The if expression's value is the same as the condition"
@@ -672,7 +672,7 @@ expressionVisitorHelp node { lookupTable } =
                             )
 
                         _ ->
-                            if Normalize.areTheSame lookupTable trueBranch falseBranch then
+                            if Normalize.areTheSame context.lookupTable trueBranch falseBranch then
                                 ( [ Rule.errorWithFix
                                         { message = "The values in both branches is the same."
                                         , details = [ "The expression can be replaced by the contents of either branch." ]
@@ -770,19 +770,19 @@ expressionVisitorHelp node { lookupTable } =
         -- CASE OF --
         -------------
         Expression.CaseExpression caseBlock ->
-            ( caseOfChecks lookupTable (Node.range node) caseBlock, [] )
+            ( caseOfChecks context.lookupTable (Node.range node) caseBlock, [] )
 
         ----------
         -- (<|) --
         ----------
         Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
             case
-                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
-                        { lookupTable = lookupTable
+                        { lookupTable = context.lookupTable
                         , parentRange = Node.range node
                         , fnRange = fnRange
                         , firstArg = firstArg
@@ -797,12 +797,12 @@ expressionVisitorHelp node { lookupTable } =
 
         Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
             case
-                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
-                        { lookupTable = lookupTable
+                        { lookupTable = context.lookupTable
                         , parentRange = Node.range node
                         , fnRange = fnRange
                         , firstArg = firstArg
@@ -820,12 +820,12 @@ expressionVisitorHelp node { lookupTable } =
         ----------
         Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
             case
-                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
-                        { lookupTable = lookupTable
+                        { lookupTable = context.lookupTable
                         , parentRange = Node.range node
                         , fnRange = fnRange
                         , firstArg = firstArg
@@ -840,12 +840,12 @@ expressionVisitorHelp node { lookupTable } =
 
         Expression.OperatorApplication "|>" _ secondArgument (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) ->
             case
-                ModuleNameLookupTable.moduleNameAt lookupTable fnRange
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
                     ( checkFn
-                        { lookupTable = lookupTable
+                        { lookupTable = context.lookupTable
                         , parentRange = Node.range node
                         , fnRange = fnRange
                         , firstArg = firstArg
@@ -860,7 +860,7 @@ expressionVisitorHelp node { lookupTable } =
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             ( firstThatReportsError compositionChecks
-                { lookupTable = lookupTable
+                { lookupTable = context.lookupTable
                 , fromLeftToRight = True
                 , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                 , left = left
@@ -873,7 +873,7 @@ expressionVisitorHelp node { lookupTable } =
 
         Expression.OperatorApplication ">>" _ left right ->
             ( firstThatReportsError compositionChecks
-                { lookupTable = lookupTable
+                { lookupTable = context.lookupTable
                 , fromLeftToRight = True
                 , parentRange = Node.range node
                 , left = left
@@ -886,7 +886,7 @@ expressionVisitorHelp node { lookupTable } =
 
         Expression.OperatorApplication "<<" _ (Node _ (Expression.OperatorApplication "<<" _ _ left)) right ->
             ( firstThatReportsError compositionChecks
-                { lookupTable = lookupTable
+                { lookupTable = context.lookupTable
                 , fromLeftToRight = False
                 , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                 , left = left
@@ -899,7 +899,7 @@ expressionVisitorHelp node { lookupTable } =
 
         Expression.OperatorApplication "<<" _ left right ->
             ( firstThatReportsError compositionChecks
-                { lookupTable = lookupTable
+                { lookupTable = context.lookupTable
                 , fromLeftToRight = False
                 , parentRange = Node.range node
                 , left = left
@@ -914,7 +914,7 @@ expressionVisitorHelp node { lookupTable } =
             case Dict.get operator operatorChecks of
                 Just checkFn ->
                     ( checkFn
-                        { lookupTable = lookupTable
+                        { lookupTable = context.lookupTable
                         , parentRange = Node.range node
                         , left = left
                         , leftRange = Node.range left
