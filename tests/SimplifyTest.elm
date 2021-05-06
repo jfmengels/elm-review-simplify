@@ -8,7 +8,8 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Simplify"
-        [ identityTests
+        [ configurationTests
+        , identityTests
         , alwaysTests
         , booleanTests
         , caseOfTests
@@ -26,6 +27,42 @@ all =
         , dictSimplificationTests
         , cmdTests
         , subTests
+        ]
+
+
+
+-- CONFIGURATION
+
+
+configurationTests : Test
+configurationTests =
+    describe "Configuration"
+        [ test "should not report configuration error if all ignored constructors exist" <|
+            \() ->
+                [ """module A exposing (..)
+type B = B
+type C = C
+""", """module B.C exposing (..)
+type D = D
+""" ]
+                    |> Review.Test.runOnModules (rule <| ignore [ "A.B", "A.C", "B.C.D" ] defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should report configuration error if passed an invalid module name" <|
+            \() ->
+                ignore [ "_.B" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type name `_.B`"
+                        , details = [ "Some details" ]
+                        }
+        , test "should report configuration error if passed an invalid module name" <|
+            \() ->
+                ignore [ "A.f" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type name `A.f`"
+                        , details = [ "Some details" ]
+                        }
         ]
 
 
