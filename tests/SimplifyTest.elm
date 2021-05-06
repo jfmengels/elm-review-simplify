@@ -1,7 +1,7 @@
 module SimplifyTest exposing (all)
 
 import Review.Test
-import Simplify exposing (defaults, rule)
+import Simplify exposing (defaults, ignore, rule)
 import Test exposing (Test, describe, test)
 
 
@@ -742,6 +742,15 @@ type B = C
 a = x
 """
                         ]
+        , test "should not replace case of with a single case when the constructor is ignored" <|
+            \() ->
+                """module A exposing (..)
+type B = C
+a = case value of
+      C -> x
+"""
+                    |> Review.Test.run (rule <| ignore [ "A.B" ] <| defaults)
+                    |> Review.Test.expectNoErrors
         , test "should replace case of with a single case with ignored arguments by the body of the case" <|
             \() ->
                 """module A exposing (..)

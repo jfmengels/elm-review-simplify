@@ -496,9 +496,9 @@ defaults =
     Configuration { ignoreConstructors = Set.empty }
 
 
-ignore : Set String -> Configuration -> Configuration
+ignore : List String -> Configuration -> Configuration
 ignore ignoreConstructors (Configuration config) =
-    Configuration { config | ignoreConstructors = Set.union ignoreConstructors config.ignoreConstructors }
+    Configuration { config | ignoreConstructors = Set.union (Set.fromList ignoreConstructors) config.ignoreConstructors }
 
 
 type alias Context =
