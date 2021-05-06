@@ -726,8 +726,9 @@ a = x
         , test "should replace case of with a single case by the body of the case" <|
             \() ->
                 """module A exposing (..)
+type B = C
 a = case value of
-      A -> x
+      C -> x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -737,6 +738,7 @@ a = case value of
                             , under = "case"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+type B = C
 a = x
 """
                         ]
