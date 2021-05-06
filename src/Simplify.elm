@@ -1,4 +1,7 @@
-module Simplify exposing (rule)
+module Simplify exposing
+    ( rule
+    , Configuration
+    )
 
 {-|
 
@@ -15,6 +18,7 @@ import Elm.Syntax.Range exposing (Range)
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Error, Rule)
+import Set exposing (Set)
 import Simplify.Normalize as Normalize
 
 
@@ -473,12 +477,23 @@ All of these also apply for `Sub`.
     --> Cmd.none
 
 -}
-rule : Rule
-rule =
+rule : Configuration -> Rule
+rule (Configuration config) =
     Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.fromModuleRuleSchema
+
+
+type Configuration
+    = Configuration
+        { ignoreConstructors : Set String
+        }
+
+
+ignore : Set String -> Configuration -> Configuration
+ignore ignoreConstructors (Configuration config) =
+    Configuration { config | ignoreConstructors = Set.union ignoreConstructors config.ignoreConstructors }
 
 
 type alias Context =
