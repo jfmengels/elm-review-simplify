@@ -1,7 +1,7 @@
 module SimplifyTest exposing (all)
 
 import Review.Test
-import Simplify exposing (rule)
+import Simplify exposing (defaults, rule)
 import Test exposing (Test, describe, test)
 
 
@@ -41,14 +41,14 @@ identityTests =
                 """module A exposing (..)
 a = identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace identity x by x" <|
             \() ->
                 """module A exposing (..)
 a = identity x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -64,7 +64,7 @@ a = x
                 """module A exposing (..)
 a = identity <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -80,7 +80,7 @@ a = x
                 """module A exposing (..)
 a = x |> identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -96,7 +96,7 @@ a = x
                 """module A exposing (..)
 a = f >> identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -112,7 +112,7 @@ a = f
                 """module A exposing (..)
 a = identity >> f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -128,7 +128,7 @@ a = f
                 """module A exposing (..)
 a = f << identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -144,7 +144,7 @@ a = f
                 """module A exposing (..)
 a = identity << f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "`identity` should be removed"
@@ -166,21 +166,21 @@ alwaysTests =
                 """module A exposing (..)
 a = always
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report always with 1 argument" <|
             \() ->
                 """module A exposing (..)
 a = always x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace always x y by x" <|
             \() ->
                 """module A exposing (..)
 a = always x y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression can be replaced by the first argument given to `always`"
@@ -196,7 +196,7 @@ a = x
                 """module A exposing (..)
 a = always x <| y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression can be replaced by the first argument given to `always`"
@@ -212,7 +212,7 @@ a = x
                 """module A exposing (..)
 a = y |> always x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression can be replaced by the first argument given to `always`"
@@ -228,7 +228,7 @@ a = x
                 """module A exposing (..)
 a = f >> always g
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Function composed with always will be ignored"
@@ -244,7 +244,7 @@ a = always g
                 """module A exposing (..)
 a = always g << f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Function composed with always will be ignored"
@@ -271,7 +271,7 @@ booleanTests =
 a = x || y
 b = y && z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , orTests
         , andTests
@@ -311,7 +311,7 @@ orTests =
                 """module A exposing (..)
 a = True || x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
@@ -328,7 +328,7 @@ a = True
                 """module A exposing (..)
 a = x || True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = unnecessaryMessage
@@ -345,7 +345,7 @@ a = True
                 """module A exposing (..)
 a = False || x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = unnecessaryMessage
@@ -362,7 +362,7 @@ a = x
                 """module A exposing (..)
 a = x || False
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = unnecessaryMessage
@@ -379,7 +379,7 @@ a = x
                 """module A exposing (..)
 a = x || (False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = unnecessaryMessage
@@ -396,7 +396,7 @@ a = x
                 """module A exposing (..)
 a = (True) || x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
@@ -419,7 +419,7 @@ andTests =
                 """module A exposing (..)
 a = True && x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = unnecessaryMessage
@@ -436,7 +436,7 @@ a = x
                 """module A exposing (..)
 a = x && True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = unnecessaryMessage
@@ -453,7 +453,7 @@ a = x
                 """module A exposing (..)
 a = False && x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always False"
@@ -470,7 +470,7 @@ a = False
                 """module A exposing (..)
 a = x && False
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always False"
@@ -493,7 +493,7 @@ notTests =
                 """module A exposing (..)
 a = not True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression is equal to False"
@@ -509,7 +509,7 @@ a = False
                 """module A exposing (..)
 a = not False
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression is equal to True"
@@ -525,7 +525,7 @@ a = True
                 """module A exposing (..)
 a = not (True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression is equal to False"
@@ -541,7 +541,7 @@ a = False
                 """module A exposing (..)
 a = not <| True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression is equal to False"
@@ -557,7 +557,7 @@ a = False
                 """module A exposing (..)
 a = True |> not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression is equal to False"
@@ -573,7 +573,7 @@ a = False
                 """module A exposing (..)
 a = not >> not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -589,7 +589,7 @@ a = identity
                 """module A exposing (..)
 a = a >> not >> not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -605,7 +605,7 @@ a = a >> identity
                 """module A exposing (..)
 a = not >> not >> a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -621,7 +621,7 @@ a = identity >> a
                 """module A exposing (..)
 a = not << not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -637,7 +637,7 @@ a = identity
                 """module A exposing (..)
 a = not << not << a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -653,7 +653,7 @@ a = identity << a
                 """module A exposing (..)
 a = a << not << not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -669,7 +669,7 @@ a = a << identity
                 """module A exposing (..)
 a = (not >> a) << not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -685,7 +685,7 @@ a = (a)
                 """module A exposing (..)
 a = (not << a) << not
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         ]
 
@@ -704,7 +704,7 @@ a = case value of
       A -> 1
       B -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace case of with a single wildcard case by the body of the case" <|
             \() ->
@@ -712,7 +712,7 @@ a = case value of
 a = case value of
       _ -> x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary case expression"
@@ -729,7 +729,7 @@ a = x
 a = case value of
       A -> x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary case expression"
@@ -746,7 +746,7 @@ a = x
 a = case value of
       A (_) (B C) -> x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary case expression"
@@ -763,7 +763,7 @@ a = x
 a = case value of
       A (_) (B c) -> x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace case of with multiple cases that have the same body" <|
             \() ->
@@ -771,7 +771,7 @@ a = case value of
 a = case value of
       A (_) (B C) -> x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary case expression"
@@ -789,7 +789,7 @@ a = case value of
       True -> x
       False -> x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary case expression"
@@ -825,7 +825,7 @@ a = case thing of
       Thing -> 1
       Bar -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report pattern matches when the evaluated expression is a tuple of with a boolean" <|
             \() ->
@@ -834,7 +834,7 @@ a = case ( bool1, bool2 ) of
       ( True, True ) -> 1
       _ -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should report pattern matches when one of the patterns is a bool constructor (True and False)" <|
             \() ->
@@ -843,7 +843,7 @@ a = case bool of
       True -> 1
       False -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
@@ -865,7 +865,7 @@ a =
         False ->
             2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
@@ -885,7 +885,7 @@ a = case bool of
       False -> 1
       True -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
@@ -904,7 +904,7 @@ a = case bool of
       True -> 1
       _ -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
@@ -923,7 +923,7 @@ a = case bool of
       False -> 1
       _ -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
@@ -942,7 +942,7 @@ a = case bool of
       Basics.True -> 1
       _ -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = booleanCaseOfMessage
@@ -965,7 +965,7 @@ b = case bool of
       OtherModule.False -> 1
       _ -> 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         ]
 
@@ -995,14 +995,14 @@ plusTests =
 a = b + 1
 b = 2 + 3
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify n + 0 to n" <|
             \() ->
                 """module A exposing (..)
 a = n + 0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary addition with 0"
@@ -1018,7 +1018,7 @@ a = n
                 """module A exposing (..)
 a = n + 0.0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary addition with 0"
@@ -1034,7 +1034,7 @@ a = n
                 """module A exposing (..)
 a = 0 + n
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary addition with 0"
@@ -1057,14 +1057,14 @@ minusTests =
 a = b - 1
 b = 2 - 3
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify n - 0 to n" <|
             \() ->
                 """module A exposing (..)
 a = n - 0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary subtraction with 0"
@@ -1080,7 +1080,7 @@ a = n
                 """module A exposing (..)
 a = n - 0.0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary subtraction with 0"
@@ -1096,7 +1096,7 @@ a = n
                 """module A exposing (..)
 a = 0 - n
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary subtracting from 0"
@@ -1119,14 +1119,14 @@ multiplyTests =
 a = b * 2
 b = 2 * 3
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify n * 1 to n" <|
             \() ->
                 """module A exposing (..)
 a = n * 1
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary multiplication by 1"
@@ -1142,7 +1142,7 @@ a = n
                 """module A exposing (..)
 a = n * 1.0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary multiplication by 1"
@@ -1158,7 +1158,7 @@ a = n
                 """module A exposing (..)
 a = 1 * n
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary multiplication by 1"
@@ -1174,7 +1174,7 @@ a = n
                 """module A exposing (..)
 a = n * 0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Multiplying by 0 equals 0"
@@ -1190,7 +1190,7 @@ a = 0
                 """module A exposing (..)
 a = n * 0.0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Multiplying by 0 equals 0"
@@ -1206,7 +1206,7 @@ a = 0
                 """module A exposing (..)
 a = 0 * n
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Multiplying by 0 equals 0"
@@ -1229,14 +1229,14 @@ divisionTests =
 a = 1 / 2
 b = 2 / 3
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify n / 1 to n" <|
             \() ->
                 """module A exposing (..)
 a = n / 1
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary division by 1"
@@ -1252,7 +1252,7 @@ a = n
                 """module A exposing (..)
 a = n / 1.0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary division by 1"
@@ -1275,14 +1275,14 @@ negationTest =
 a = -1
 a = -(-1 + 2)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify -(-n) to n" <|
             \() ->
                 """module A exposing (..)
 a = -(-n)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double number negation"
@@ -1304,7 +1304,7 @@ basicsNegateTests =
                 """module A exposing (..)
 a = negate >> negate
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1320,7 +1320,7 @@ a = identity
                 """module A exposing (..)
 a = a >> negate >> negate
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1336,7 +1336,7 @@ a = a >> identity
                 """module A exposing (..)
 a = negate >> negate >> a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1352,7 +1352,7 @@ a = identity >> a
                 """module A exposing (..)
 a = negate << negate
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1368,7 +1368,7 @@ a = identity
                 """module A exposing (..)
 a = negate << negate << a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1384,7 +1384,7 @@ a = identity << a
                 """module A exposing (..)
 a = a << negate << negate
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1400,7 +1400,7 @@ a = a << identity
                 """module A exposing (..)
 a = (negate >> a) << negate
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary double negation"
@@ -1416,7 +1416,7 @@ a = (a)
                 """module A exposing (..)
 a = (negate << a) << negate
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         ]
 
@@ -1429,14 +1429,14 @@ equalTests =
                 """module A exposing (..)
 a = x == y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify x == True to x" <|
             \() ->
                 """module A exposing (..)
 a = x == True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
@@ -1453,14 +1453,14 @@ a = x
                 """module A exposing (..)
 a = x == False
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify True == x to x" <|
             \() ->
                 """module A exposing (..)
 a = True == x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
@@ -1477,21 +1477,21 @@ a = x
                 """module A exposing (..)
 a = False == x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not simplify x /= True" <|
             \() ->
                 """module A exposing (..)
 a = x /= True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify x /= False to x" <|
             \() ->
                 """module A exposing (..)
 a = x /= False
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
@@ -1508,14 +1508,14 @@ a = x
                 """module A exposing (..)
 a = True /= x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should simplify False /= x to x" <|
             \() ->
                 """module A exposing (..)
 a = False /= x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
@@ -1532,7 +1532,7 @@ a = x
                 """module A exposing (..)
 a = not x == not y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary negation on both sides"
@@ -1549,7 +1549,7 @@ a =  x ==  y
                 """module A exposing (..)
 a = not x /= not y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary negation on both sides"
@@ -1566,7 +1566,7 @@ a =  x /=  y
                 """module A exposing (..)
 a = x == x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
@@ -1583,7 +1583,7 @@ a = True
                 """module A exposing (..)
 a = x == (x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
@@ -1600,7 +1600,7 @@ a = True
                 """module A exposing (..)
 a = x /= x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always False"
@@ -1617,7 +1617,7 @@ a = False
                 """module A exposing (..)
 a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always True"
@@ -1637,7 +1637,7 @@ a = B.b == b
 """, """module Other exposing (..)
 b = 1
 """ ]
-                    |> Review.Test.runOnModules rule
+                    |> Review.Test.runOnModules (rule defaults)
                     |> Review.Test.expectErrorsForModules
                         [ ( "A"
                           , [ Review.Test.error
@@ -1668,7 +1668,7 @@ ifTests =
                 """module A exposing (..)
 a = if True then 1 else 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The condition will always evaluate to True"
@@ -1684,7 +1684,7 @@ a = 1
                 """module A exposing (..)
 a = if False then 1 else 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The condition will always evaluate to False"
@@ -1700,14 +1700,14 @@ a = 2
                 """module A exposing (..)
 a = if condition then 1 else 2
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should only keep the condition if then is True and else is False" <|
             \() ->
                 """module A exposing (..)
 a = if condition then True else False
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The if expression's value is the same as the condition"
@@ -1723,7 +1723,7 @@ a = condition
                 """module A exposing (..)
 a = if condition then False else True
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The if expression's value is the inverse of the condition"
@@ -1739,7 +1739,7 @@ a = not (condition)
                 """module A exposing (..)
 a = if condition then x else x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The values in both branches is the same."
@@ -1781,7 +1781,7 @@ c = (//)
 d = (+)
 e = (/)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report an operator used in infix position" <|
             \() ->
@@ -1793,7 +1793,7 @@ c = y // z
 d = y + z
 e = y / z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report an operator used in prefix position with one argument" <|
             \() ->
@@ -1805,14 +1805,14 @@ c = (//) z
 d = (+) z
 e = (/) z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace (++) used with both arguments in prefix position by an infix operator expression" <|
             \() ->
                 """module A exposing (..)
 a = (++) y z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1828,7 +1828,7 @@ a = y ++ z
                 """module A exposing (..)
 a = (::) y z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1844,7 +1844,7 @@ a = y :: z
                 """module A exposing (..)
 a = (//) y z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1860,7 +1860,7 @@ a = y // z
                 """module A exposing (..)
 a = (+) y z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1876,7 +1876,7 @@ a = y + z
                 """module A exposing (..)
 a = (/) y z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1895,7 +1895,7 @@ a =
         y
         z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1915,7 +1915,7 @@ a =
     (++) (y + 1)
         [z]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = fullyAppliedPrefixOperatorMessage
@@ -1941,14 +1941,14 @@ module A exposing (..)
 a = f ()
 b = (\\x y -> x + y) n
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace (\\() -> x) () by x" <|
             \() ->
                 """module A exposing (..)
 a = (\\() -> x) ()
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary unit argument"
@@ -1968,7 +1968,7 @@ a = (x)$
                 """module A exposing (..)
 a = (\\_ -> x) a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary wildcard argument argument"
@@ -1987,7 +1987,7 @@ a = (x)$
                 """module A exposing (..)
 a = (\\() y -> x) ()
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary unit argument"
@@ -2007,7 +2007,7 @@ a = (\\y -> x)$
                 """module A exposing (..)
 a = (\\_ y -> x) a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary wildcard argument argument"
@@ -2039,7 +2039,7 @@ a = []
 b = [1]
 c = [ "string", "foo", "bar" ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report simple strings" <|
             \() ->
@@ -2051,14 +2051,14 @@ line
 string
 \"\"\"
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test """should replace "a" ++ "" by "a\"""" <|
             \() ->
                 """module A exposing (..)
 a = "a" ++ ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty string"
@@ -2074,7 +2074,7 @@ a = "a"
                 """module A exposing (..)
 a = "" ++ "a"
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty string"
@@ -2090,7 +2090,7 @@ a = "a"
                 """module A exposing (..)
 a = [ 1 ] ++ [ 2, 3 ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
@@ -2106,7 +2106,7 @@ a = [ 1 , 2, 3 ]
                 """module A exposing (..)
 a = [ a, 1 ] ++ [ b, 2 ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
@@ -2122,7 +2122,7 @@ a = [ a, 1 , b, 2 ]
                 """module A exposing (..)
 a = [] ++ something
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Concatenating with a single list doesn't have any effect"
@@ -2138,7 +2138,7 @@ a = something
                 """module A exposing (..)
 a = something ++ []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Concatenating with a single list doesn't have any effect"
@@ -2154,7 +2154,7 @@ a = something
                 """module A exposing (..)
 a = [ b ] ++ c
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Should use (::) instead of (++)"
@@ -2193,14 +2193,14 @@ stringIsEmptyTests =
 a = String.isEmpty
 b = String.isEmpty value
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace String.isEmpty \"\" by True" <|
             \() ->
                 """module A exposing (..)
 a = String.isEmpty ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to String.isEmpty will result in True"
@@ -2216,7 +2216,7 @@ a = True
                 """module A exposing (..)
 a = String.isEmpty "a"
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to String.isEmpty will result in False"
@@ -2238,14 +2238,14 @@ concatTests =
                 """module A exposing (..)
 a = String.concat list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test """should replace String.concat [] by \"\"""" <|
             \() ->
                 """module A exposing (..)
 a = String.concat []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.concat on an empty list will result in a empty string"
@@ -2267,14 +2267,14 @@ joinTests =
                 """module A exposing (..)
 a = String.join b c
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test """should replace String.join b [] by \"\"""" <|
             \() ->
                 """module A exposing (..)
 a = String.join b []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.join on an empty list will result in a empty string"
@@ -2290,7 +2290,7 @@ a = ""
                 """module A exposing (..)
 a = String.join "" list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use String.concat instead"
@@ -2306,7 +2306,7 @@ a = String.concat list
                 """module A exposing (..)
 a = String.join ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use String.concat instead"
@@ -2322,7 +2322,7 @@ a = String.concat
                 """module A exposing (..)
 a = list |> String.join ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use String.concat instead"
@@ -2345,14 +2345,14 @@ stringRepeatTests =
 a = String.repeat n str
 b = String.repeat 5 str
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test """should replace String.repeat n "" by \"\"""" <|
             \() ->
                 """module A exposing (..)
 a = String.repeat n ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.repeat with an empty string will result in a empty string"
@@ -2368,7 +2368,7 @@ a = ""
                 """module A exposing (..)
 a = String.repeat 0 str
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.repeat will result in an empty string"
@@ -2384,7 +2384,7 @@ a = ""
                 """module A exposing (..)
 a = String.repeat 0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.repeat will result in an empty string"
@@ -2400,7 +2400,7 @@ a = (always "")
                 """module A exposing (..)
 a = String.repeat -5 str
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.repeat will result in an empty string"
@@ -2416,7 +2416,7 @@ a = ""
                 """module A exposing (..)
 a = String.repeat 1 str
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.repeat 1 won't do anything"
@@ -2439,14 +2439,14 @@ stringWordsTests =
 a = String.words
 b = String.words str
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test """should replace String.words "" by []""" <|
             \() ->
                 """module A exposing (..)
 a = String.words ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.words on an empty string will result in a empty list"
@@ -2469,14 +2469,14 @@ stringLinesTests =
 a = String.lines
 b = String.lines str
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test """should replace String.lines "" by []""" <|
             \() ->
                 """module A exposing (..)
 a = String.lines ""
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using String.lines on an empty string will result in a empty list"
@@ -2522,14 +2522,14 @@ usingConsTests =
 a = 1 :: list
 b = 1 :: foo bar
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should report using :: to a list literal" <|
             \() ->
                 """module A exposing (..)
 a = 1 :: [ 2, 3]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Element added to the beginning of the list could be included in the list"
@@ -2545,7 +2545,7 @@ a = [ 1, 2, 3]
                 """module A exposing (..)
 a = 1 :: []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Element added to the beginning of the list could be included in the list"
@@ -2569,14 +2569,14 @@ a = List.concat [ foo, bar ]
 b = List.concat [ [ 1 ], foo ]
 c = List.concat [ foo, [ 1 ] ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should report List.concat with no items" <|
             \() ->
                 """module A exposing (..)
 a = List.concat []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concat on an empty list will result in a empty list"
@@ -2592,7 +2592,7 @@ a = []
                 """module A exposing (..)
 a = List.concat [ b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary use of List.concat on a list with 1 element"
@@ -2608,7 +2608,7 @@ a = b
                 """module A exposing (..)
 a = List.concat <| [ b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary use of List.concat on a list with 1 element"
@@ -2624,7 +2624,7 @@ a = b
                 """module A exposing (..)
 a = [ b ] |> List.concat
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary use of List.concat on a list with 1 element"
@@ -2640,7 +2640,7 @@ a = b
                 """module A exposing (..)
 a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
@@ -2656,7 +2656,7 @@ a =  [  1, 2, 3 ,  4, 5, 6 ]
                 """module A exposing (..)
 a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ], [ 4, 5, 6], [7], c, [8], [9 ] ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Consecutive literal lists should be merged"
@@ -2678,7 +2678,7 @@ listConcatMapTests =
                 """module A exposing (..)
 a = List.concatMap identity x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -2694,7 +2694,7 @@ a = List.concat x
                 """module A exposing (..)
 a = List.concatMap identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -2710,7 +2710,7 @@ a = List.concat
                 """module A exposing (..)
 a = List.concatMap (\\x->x) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -2726,21 +2726,21 @@ a = List.concat x
                 """module A exposing (..)
 a = List.concatMap (\\x->y) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report List.concatMap without an identity function by List.concat" <|
             \() ->
                 """module A exposing (..)
 a = List.concatMap f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should report List.concatMap with no items" <|
             \() ->
                 """module A exposing (..)
 a = List.concatMap f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an empty list will result in a empty list"
@@ -2756,7 +2756,7 @@ a = []
                 """module A exposing (..)
 a = List.concatMap (always []) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.concatMap will result in on an empty list"
@@ -2772,7 +2772,7 @@ a = []
                 """module A exposing (..)
 a = List.concatMap (always [])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.concatMap will result in on an empty list"
@@ -2788,7 +2788,7 @@ a = (always [])
                 """module A exposing (..)
 a = List.concatMap f [ a ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
@@ -2804,7 +2804,7 @@ a =  f (a)
                 """module A exposing (..)
 a = List.concatMap f <| [ b c ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
@@ -2820,7 +2820,7 @@ a =  f <| (b c)
                 """module A exposing (..)
 a = [ b c ] |> List.concatMap f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
@@ -2842,14 +2842,14 @@ listMapTests =
                 """module A exposing (..)
 a = List.map f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.map f [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.map f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map on [] will result in []"
@@ -2865,7 +2865,7 @@ a = []
                 """module A exposing (..)
 a = List.map f <| []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map on [] will result in []"
@@ -2881,7 +2881,7 @@ a = []
                 """module A exposing (..)
 a = [] |> List.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map on [] will result in []"
@@ -2897,7 +2897,7 @@ a = []
                 """module A exposing (..)
 a = List.map identity x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -2913,7 +2913,7 @@ a = x
                 """module A exposing (..)
 a = List.map identity <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -2929,7 +2929,7 @@ a = x
                 """module A exposing (..)
 a = x |> List.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -2945,7 +2945,7 @@ a = x
                 """module A exposing (..)
 a = List.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -2961,7 +2961,7 @@ a = identity
                 """module A exposing (..)
 a = List.map <| identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -2977,7 +2977,7 @@ a = identity
                 """module A exposing (..)
 a = identity |> List.map
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map with an identity function is the same as not using List.map"
@@ -2999,14 +2999,14 @@ listFilterTests =
                 """module A exposing (..)
 a = List.filter f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.filter f [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.filter f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter on [] will result in []"
@@ -3022,7 +3022,7 @@ a = []
                 """module A exposing (..)
 a = List.filter f <| []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter on [] will result in []"
@@ -3038,7 +3038,7 @@ a = []
                 """module A exposing (..)
 a = [] |> List.filter f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter on [] will result in []"
@@ -3054,7 +3054,7 @@ a = []
                 """module A exposing (..)
 a = List.filter (always True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -3070,7 +3070,7 @@ a = x
                 """module A exposing (..)
 a = List.filter (\\x -> True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -3086,7 +3086,7 @@ a = x
                 """module A exposing (..)
 a = List.filter (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -3102,7 +3102,7 @@ a = identity
                 """module A exposing (..)
 a = List.filter <| (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -3118,7 +3118,7 @@ a = identity
                 """module A exposing (..)
 a = always True |> List.filter
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
@@ -3134,7 +3134,7 @@ a = identity
                 """module A exposing (..)
 a = List.filter (always False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3150,7 +3150,7 @@ a = []
                 """module A exposing (..)
 a = List.filter (\\x -> False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3166,7 +3166,7 @@ a = []
                 """module A exposing (..)
 a = List.filter (always False) <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3182,7 +3182,7 @@ a = []
                 """module A exposing (..)
 a = x |> List.filter (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3198,7 +3198,7 @@ a = []
                 """module A exposing (..)
 a = List.filter (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3214,7 +3214,7 @@ a = (always [])
                 """module A exposing (..)
 a = List.filter <| (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3230,7 +3230,7 @@ a = (always [])
                 """module A exposing (..)
 a = always False |> List.filter
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filter with a function that will always return False will result in []"
@@ -3252,14 +3252,14 @@ listFilterMapTests =
                 """module A exposing (..)
 a = List.filterMap f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.filterMap f [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.filterMap f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
@@ -3275,7 +3275,7 @@ a = []
                 """module A exposing (..)
 a = List.filterMap f <| []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
@@ -3291,7 +3291,7 @@ a = []
                 """module A exposing (..)
 a = [] |> List.filterMap f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap on an empty list will result in a empty list"
@@ -3307,7 +3307,7 @@ a = []
                 """module A exposing (..)
 a = List.filterMap (always Nothing) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3323,7 +3323,7 @@ a = []
                 """module A exposing (..)
 a = List.filterMap (always Nothing) <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3339,7 +3339,7 @@ a = []
                 """module A exposing (..)
 a = x |> List.filterMap (always Nothing)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3355,7 +3355,7 @@ a = []
                 """module A exposing (..)
 a = List.filterMap (always Nothing)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3371,7 +3371,7 @@ a = (always [])
                 """module A exposing (..)
 a = List.filterMap <| always Nothing
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3387,7 +3387,7 @@ a = (always [])
                 """module A exposing (..)
 a = always Nothing |> List.filterMap
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3403,7 +3403,7 @@ a = (always [])
                 """module A exposing (..)
 a = List.filterMap Just x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -3419,7 +3419,7 @@ a = x
                 """module A exposing (..)
 a = List.filterMap Just <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -3435,7 +3435,7 @@ a = x
                 """module A exposing (..)
 a = x |> List.filterMap Just
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -3451,7 +3451,7 @@ a = x
                 """module A exposing (..)
 a = List.filterMap Just
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -3467,7 +3467,7 @@ a = identity
                 """module A exposing (..)
 a = List.filterMap (\\a -> Nothing) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
@@ -3483,7 +3483,7 @@ a = []
                 """module A exposing (..)
 a = List.filterMap (\\a -> Just a) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -3499,7 +3499,7 @@ a = x
                 """module A exposing (..)
 a = List.filterMap (\\a -> Just a)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
@@ -3515,14 +3515,14 @@ a = identity
                 """module A exposing (..)
 a = List.filterMap (\\a -> Just b) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should not report List.filterMap (\\a b -> Just a) x" <|
             \() ->
                 """module A exposing (..)
 a = List.filterMap (\\a b -> Just a) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         ]
 
@@ -3535,14 +3535,14 @@ listIsEmptyTests =
                 """module A exposing (..)
 a = List.isEmpty list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.isEmpty [] by True" <|
             \() ->
                 """module A exposing (..)
 a = List.isEmpty []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.isEmpty will result in True"
@@ -3558,7 +3558,7 @@ a = True
                 """module A exposing (..)
 a = List.isEmpty [x]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.isEmpty will result in False"
@@ -3574,7 +3574,7 @@ a = False
                 """module A exposing (..)
 a = List.isEmpty (x :: xs)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.isEmpty will result in False"
@@ -3590,7 +3590,7 @@ a = False
                 """module A exposing (..)
 a = x :: xs |> List.isEmpty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.isEmpty will result in False"
@@ -3606,7 +3606,7 @@ a = False
                 """module A exposing (..)
 a = List.isEmpty (List.singleton x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.isEmpty will result in False"
@@ -3628,14 +3628,14 @@ listAllTests =
                 """module A exposing (..)
 a = List.all f list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.all f [] by True" <|
             \() ->
                 """module A exposing (..)
 a = List.all f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.all will result in True"
@@ -3651,7 +3651,7 @@ a = True
                 """module A exposing (..)
 a = List.all (always True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.all will result in True"
@@ -3667,7 +3667,7 @@ a = True
                 """module A exposing (..)
 a = List.all (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.all will result in True"
@@ -3689,14 +3689,14 @@ listAnyTests =
                 """module A exposing (..)
 a = List.any f list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.any f [] by False" <|
             \() ->
                 """module A exposing (..)
 a = List.any f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.any will result in False"
@@ -3712,7 +3712,7 @@ a = False
                 """module A exposing (..)
 a = List.any (always False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.any will result in False"
@@ -3728,7 +3728,7 @@ a = False
                 """module A exposing (..)
 a = List.any (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.any will result in False"
@@ -3753,14 +3753,14 @@ a = List.range 5
 a = List.range 5 10
 a = List.range 5 0xF
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.range 10 5 by []" <|
             \() ->
                 """module A exposing (..)
 a = List.range 10 5
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
@@ -3776,7 +3776,7 @@ a = []
                 """module A exposing (..)
 a = List.range 0xF 5
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
@@ -3792,7 +3792,7 @@ a = []
                 """module A exposing (..)
 a = 5 |> List.range 10
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
@@ -3815,14 +3815,14 @@ listLengthTests =
 a = List.length
 a = List.length b
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.length [] by 0" <|
             \() ->
                 """module A exposing (..)
 a = List.length []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The length of the list is 0"
@@ -3838,7 +3838,7 @@ a = 0
                 """module A exposing (..)
 a = List.length [b, c, d]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The length of the list is 3"
@@ -3854,7 +3854,7 @@ a = 3
                 """module A exposing (..)
 a = [] |> List.length
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The length of the list is 0"
@@ -3877,14 +3877,14 @@ listRepeatTests =
 a = List.repeat n list
 b = List.repeat 5 list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.repeat n [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.repeat n []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.repeat with an empty list will result in a empty list"
@@ -3900,7 +3900,7 @@ a = []
                 """module A exposing (..)
 a = List.repeat 0 list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.repeat will result in an empty list"
@@ -3916,7 +3916,7 @@ a = []
                 """module A exposing (..)
 a = List.repeat 0
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.repeat will result in an empty list"
@@ -3932,7 +3932,7 @@ a = (always [])
                 """module A exposing (..)
 a = List.repeat -5 list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.repeat will result in an empty list"
@@ -3948,7 +3948,7 @@ a = []
                 """module A exposing (..)
 a = List.repeat 1 x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         ]
 
@@ -3961,14 +3961,14 @@ listPartitionTests =
                 """module A exposing (..)
 a = List.partition f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.partition f [] by ( [], [] )" <|
             \() ->
                 """module A exposing (..)
 a = List.partition f []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.partition on [] will result in ( [], [] )"
@@ -3984,7 +3984,7 @@ a = ( [], [] )
                 """module A exposing (..)
 a = List.partition f <| []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.partition on [] will result in ( [], [] )"
@@ -4000,7 +4000,7 @@ a = ( [], [] )
                 """module A exposing (..)
 a = [] |> List.partition f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.partition on [] will result in ( [], [] )"
@@ -4016,7 +4016,7 @@ a = ( [], [] )
                 """module A exposing (..)
 a = List.partition (always True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the first list"
@@ -4035,14 +4035,14 @@ a = ( x, [] )
                 """module A exposing (..)
 a = List.partition (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace List.partition (always False) x by ( [], x )" <|
             \() ->
                 """module A exposing (..)
 a = List.partition (always False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second list"
@@ -4058,7 +4058,7 @@ a = ( [], x )
                 """module A exposing (..)
 a = List.partition (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second list"
@@ -4074,7 +4074,7 @@ a = (Tuple.pair [])
                 """module A exposing (..)
 a = List.partition <| (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second list"
@@ -4090,7 +4090,7 @@ a = (Tuple.pair [])
                 """module A exposing (..)
 a = always False |> List.partition
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second list"
@@ -4125,14 +4125,14 @@ maybeMapTests =
                 """module A exposing (..)
 a = Maybe.map f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Maybe.map f Nothing by Nothing" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.map f Nothing
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map on Nothing will result in Nothing"
@@ -4148,7 +4148,7 @@ a = Nothing
                 """module A exposing (..)
 a = Maybe.map f <| Nothing
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map on Nothing will result in Nothing"
@@ -4164,7 +4164,7 @@ a = Nothing
                 """module A exposing (..)
 a = Nothing |> Maybe.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map on Nothing will result in Nothing"
@@ -4180,7 +4180,7 @@ a = Nothing
                 """module A exposing (..)
 a = Maybe.map identity x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
@@ -4196,7 +4196,7 @@ a = x
                 """module A exposing (..)
 a = Maybe.map identity <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
@@ -4212,7 +4212,7 @@ a = x
                 """module A exposing (..)
 a = x |> Maybe.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
@@ -4228,7 +4228,7 @@ a = x
                 """module A exposing (..)
 a = Maybe.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
@@ -4244,7 +4244,7 @@ a = identity
                 """module A exposing (..)
 a = Maybe.map <| identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
@@ -4260,7 +4260,7 @@ a = identity
                 """module A exposing (..)
 a = identity |> Maybe.map
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
@@ -4276,7 +4276,7 @@ a = identity
                 """module A exposing (..)
 a = Maybe.map f (Just x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4292,7 +4292,7 @@ a = Just (f (x))
                 """module A exposing (..)
 a = Maybe.map f <| Just x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4308,7 +4308,7 @@ a = Just (f <| x)
                 """module A exposing (..)
 a = Just x |> Maybe.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4324,7 +4324,7 @@ a = x |> f |> Just
                 """module A exposing (..)
 a = x |> Just |> Maybe.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4340,7 +4340,7 @@ a = x |> f |> Just
                 """module A exposing (..)
 a = Maybe.map f <| Just <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4356,7 +4356,7 @@ a = Just (f <| x)
                 """module A exposing (..)
 a = Maybe.map f << Just
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4372,7 +4372,7 @@ a = Just << f
                 """module A exposing (..)
 a = Just >> Maybe.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4388,7 +4388,7 @@ a = f >> Just
                 """module A exposing (..)
 a = Maybe.map f << Just << a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4404,7 +4404,7 @@ a = Just << f << a
                 """module A exposing (..)
 a = g << Maybe.map f << Just
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4420,7 +4420,7 @@ a = g << Just << f
                 """module A exposing (..)
 a = Just >> Maybe.map f >> g
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.map on a value that is Just"
@@ -4442,14 +4442,14 @@ maybeAndThenTests =
                 """module A exposing (..)
 a = Maybe.andThen f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Maybe.andThen f Nothing by Nothing" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.andThen f Nothing
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.andThen on Nothing will result in Nothing"
@@ -4465,7 +4465,7 @@ a = Nothing
                 """module A exposing (..)
 a = Maybe.andThen (always Nothing) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.andThen with a function that will always return Nothing will result in Nothing"
@@ -4481,7 +4481,7 @@ a = Nothing
                 """module A exposing (..)
 a = Maybe.andThen (\\b -> Just b) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use Maybe.map instead"
@@ -4497,7 +4497,7 @@ a = Maybe.map (\\b -> b) x
                 """module A exposing (..)
 a = Maybe.andThen f (Just x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.andThen on a value that is known to be Just"
@@ -4513,7 +4513,7 @@ a = f (x)
                 """module A exposing (..)
 a = Just x |> Maybe.andThen f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Maybe.andThen on a value that is known to be Just"
@@ -4535,14 +4535,14 @@ maybeWithDefaultTests =
                 """module A exposing (..)
 a = Maybe.withDefault x y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Maybe.withDefault x Nothing by x" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.withDefault x Nothing
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.withDefault on Nothing will result in the default value"
@@ -4558,7 +4558,7 @@ a = x
                 """module A exposing (..)
 a = Maybe.withDefault x (Just y)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.withDefault on a value that is Just will result in that value"
@@ -4574,7 +4574,7 @@ a = (y)
                 """module A exposing (..)
 a = Maybe.withDefault x <| (Just y)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.withDefault on a value that is Just will result in that value"
@@ -4590,7 +4590,7 @@ a = (y)
                 """module A exposing (..)
 a = (Just y) |> Maybe.withDefault x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.withDefault on a value that is Just will result in that value"
@@ -4606,7 +4606,7 @@ a = (y)
                 """module A exposing (..)
 a = y |> Just |> Maybe.withDefault x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.withDefault on a value that is Just will result in that value"
@@ -4641,14 +4641,14 @@ resultMapTests =
                 """module A exposing (..)
 a = Result.map f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Result.map f (Err z) by (Err z)" <|
             \() ->
                 """module A exposing (..)
 a = Result.map f (Err z)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map on an error will result in an error"
@@ -4664,7 +4664,7 @@ a = (Err z)
                 """module A exposing (..)
 a = Result.map f <| Err z
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map on an error will result in an error"
@@ -4680,7 +4680,7 @@ a = Err z
                 """module A exposing (..)
 a = Err z |> Result.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map on an error will result in an error"
@@ -4696,7 +4696,7 @@ a = Err z
                 """module A exposing (..)
 a = Result.map identity x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map with an identity function is the same as not using Result.map"
@@ -4712,7 +4712,7 @@ a = x
                 """module A exposing (..)
 a = Result.map identity <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map with an identity function is the same as not using Result.map"
@@ -4728,7 +4728,7 @@ a = x
                 """module A exposing (..)
 a = x |> Result.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map with an identity function is the same as not using Result.map"
@@ -4744,7 +4744,7 @@ a = x
                 """module A exposing (..)
 a = Result.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map with an identity function is the same as not using Result.map"
@@ -4760,7 +4760,7 @@ a = identity
                 """module A exposing (..)
 a = Result.map <| identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map with an identity function is the same as not using Result.map"
@@ -4776,7 +4776,7 @@ a = identity
                 """module A exposing (..)
 a = identity |> Result.map
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.map with an identity function is the same as not using Result.map"
@@ -4792,7 +4792,7 @@ a = identity
                 """module A exposing (..)
 a = Result.map f (Ok x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4808,7 +4808,7 @@ a = Ok (f (x))
                 """module A exposing (..)
 a = Result.map f <| Ok x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4824,7 +4824,7 @@ a = Ok (f <| x)
                 """module A exposing (..)
 a = Ok x |> Result.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4840,7 +4840,7 @@ a = x |> f |> Ok
                 """module A exposing (..)
 a = x |> Ok |> Result.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4856,7 +4856,7 @@ a = x |> f |> Ok
                 """module A exposing (..)
 a = Result.map f <| Ok <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4872,7 +4872,7 @@ a = Ok (f <| x)
                 """module A exposing (..)
 a = Result.map f << Ok
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4888,7 +4888,7 @@ a = Ok << f
                 """module A exposing (..)
 a = Ok >> Result.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4904,7 +4904,7 @@ a = f >> Ok
                 """module A exposing (..)
 a = Result.map f << Ok << a
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4920,7 +4920,7 @@ a = Ok << f << a
                 """module A exposing (..)
 a = g << Result.map f << Ok
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4936,7 +4936,7 @@ a = g << Ok << f
                 """module A exposing (..)
 a = Ok >> Result.map f >> g
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.map on a value that is Ok"
@@ -4958,14 +4958,14 @@ resultAndThenTests =
                 """module A exposing (..)
 a = Result.andThen f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Result.andThen f (Err z) by (Err z)" <|
             \() ->
                 """module A exposing (..)
 a = Result.andThen f (Err z)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.andThen on an error will result in the error"
@@ -4981,14 +4981,14 @@ a = (Err z)
                 """module A exposing (..)
 a = Result.andThen (always (Err z)) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Result.andThen (\\b -> Ok b) x by Result.map (\\b -> b) x" <|
             \() ->
                 """module A exposing (..)
 a = Result.andThen (\\b -> Ok b) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use Result.map instead"
@@ -5004,7 +5004,7 @@ a = Result.map (\\b -> b) x
                 """module A exposing (..)
 a = Result.andThen f (Ok x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.andThen on a value that is known to be Ok"
@@ -5020,7 +5020,7 @@ a = f (x)
                 """module A exposing (..)
 a = Ok x |> Result.andThen f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Calling Result.andThen on a value that is known to be Ok"
@@ -5042,14 +5042,14 @@ resultWithDefaultTests =
                 """module A exposing (..)
 a = Result.withDefault x y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Result.withDefault x (Err z) by x" <|
             \() ->
                 """module A exposing (..)
 a = Result.withDefault x (Err z)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.withDefault on an error will result in the default value"
@@ -5065,7 +5065,7 @@ a = x
                 """module A exposing (..)
 a = Result.withDefault x (Ok y)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.withDefault on a value that is Ok will result in that value"
@@ -5081,7 +5081,7 @@ a = (y)
                 """module A exposing (..)
 a = Result.withDefault x <| (Ok y)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.withDefault on a value that is Ok will result in that value"
@@ -5097,7 +5097,7 @@ a = (y)
                 """module A exposing (..)
 a = (Ok y) |> Result.withDefault x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.withDefault on a value that is Ok will result in that value"
@@ -5113,7 +5113,7 @@ a = (y)
                 """module A exposing (..)
 a = y |> Ok |> Result.withDefault x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Result.withDefault on a value that is Ok will result in that value"
@@ -5158,14 +5158,14 @@ setMapTests =
                 """module A exposing (..)
 a = Set.map f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.map f Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.map f Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map on Set.empty will result in Set.empty"
@@ -5181,7 +5181,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.map f <| Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map on Set.empty will result in Set.empty"
@@ -5197,7 +5197,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.empty |> Set.map f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map on Set.empty will result in Set.empty"
@@ -5213,7 +5213,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.map identity x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map with an identity function is the same as not using Set.map"
@@ -5229,7 +5229,7 @@ a = x
                 """module A exposing (..)
 a = Set.map identity <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map with an identity function is the same as not using Set.map"
@@ -5245,7 +5245,7 @@ a = x
                 """module A exposing (..)
 a = x |> Set.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map with an identity function is the same as not using Set.map"
@@ -5261,7 +5261,7 @@ a = x
                 """module A exposing (..)
 a = Set.map identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map with an identity function is the same as not using Set.map"
@@ -5277,7 +5277,7 @@ a = identity
                 """module A exposing (..)
 a = Set.map <| identity
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map with an identity function is the same as not using Set.map"
@@ -5293,7 +5293,7 @@ a = identity
                 """module A exposing (..)
 a = identity |> Set.map
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.map with an identity function is the same as not using Set.map"
@@ -5315,14 +5315,14 @@ setFilterTests =
                 """module A exposing (..)
 a = Set.filter f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.filter f Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.filter f Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter on Set.empty will result in Set.empty"
@@ -5338,7 +5338,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.filter f <| Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter on Set.empty will result in Set.empty"
@@ -5354,7 +5354,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.empty |> Set.filter f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter on Set.empty will result in Set.empty"
@@ -5370,7 +5370,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.filter (always True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
@@ -5386,7 +5386,7 @@ a = x
                 """module A exposing (..)
 a = Set.filter (\\x -> True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
@@ -5402,7 +5402,7 @@ a = x
                 """module A exposing (..)
 a = Set.filter (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
@@ -5418,7 +5418,7 @@ a = identity
                 """module A exposing (..)
 a = Set.filter <| (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
@@ -5434,7 +5434,7 @@ a = identity
                 """module A exposing (..)
 a = always True |> Set.filter
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
@@ -5450,7 +5450,7 @@ a = identity
                 """module A exposing (..)
 a = Set.filter (always False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5466,7 +5466,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.filter (\\x -> False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5482,7 +5482,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.filter (always False) <| x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5498,7 +5498,7 @@ a = Set.empty
                 """module A exposing (..)
 a = x |> Set.filter (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5514,7 +5514,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.filter (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5530,7 +5530,7 @@ a = (always Set.empty)
                 """module A exposing (..)
 a = Set.filter <| (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5546,7 +5546,7 @@ a = (always Set.empty)
                 """module A exposing (..)
 a = always False |> Set.filter
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.filter with a function that will always return False will result in Set.empty"
@@ -5569,14 +5569,14 @@ setSizeTests =
 a = Set.size
 a = Set.size b
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.size Set.empty by 0" <|
             \() ->
                 """module A exposing (..)
 a = Set.size Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the set is 0"
@@ -5592,7 +5592,7 @@ a = 0
                 """module A exposing (..)
 a = Set.size (Set.fromList [b, c, d])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the set is 3"
@@ -5608,7 +5608,7 @@ a = 3
                 """module A exposing (..)
 a = Set.empty |> Set.size
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the set is 0"
@@ -5624,7 +5624,7 @@ a = 0
                 """module A exposing (..)
 a = Set.singleton x |> Set.size
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the set is 1"
@@ -5647,14 +5647,14 @@ setIsEmptyTests =
 a = Set.isEmpty
 b = Set.isEmpty list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.isEmpty Set.empty by True" <|
             \() ->
                 """module A exposing (..)
 a = Set.isEmpty Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.isEmpty will result in True"
@@ -5670,7 +5670,7 @@ a = True
                 """module A exposing (..)
 a = Set.isEmpty (Set.fromList [x])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.isEmpty will result in False"
@@ -5686,7 +5686,7 @@ a = False
                 """module A exposing (..)
 a = Set.isEmpty (Set.fromList [])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.isEmpty will result in True"
@@ -5710,7 +5710,7 @@ a = Set.isEmpty (Set.empty)
                 """module A exposing (..)
 a = Set.isEmpty (Set.singleton x)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.isEmpty will result in False"
@@ -5726,7 +5726,7 @@ a = False
                 """module A exposing (..)
 a = Set.singleton x |> Set.isEmpty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.isEmpty will result in False"
@@ -5751,14 +5751,14 @@ b = Set.fromList list
 c = Set.fromList [x]
 d = Set.fromList [x, y]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.fromList [] by Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.fromList []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.fromList will result in Set.empty"
@@ -5782,14 +5782,14 @@ a = Set.toList
 b = Set.toList list
 c = Set.toList set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.toList Set.empty by []" <|
             \() ->
                 """module A exposing (..)
 a = Set.toList Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Set.toList will result in []"
@@ -5811,14 +5811,14 @@ setPartitionTests =
                 """module A exposing (..)
 a = Set.partition f x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.partition f Set.empty by ( Set.empty, Set.empty )" <|
             \() ->
                 """module A exposing (..)
 a = Set.partition f Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
@@ -5834,7 +5834,7 @@ a = ( Set.empty, Set.empty )
                 """module A exposing (..)
 a = Set.partition f <| Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
@@ -5850,7 +5850,7 @@ a = ( Set.empty, Set.empty )
                 """module A exposing (..)
 a = Set.empty |> Set.partition f
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
@@ -5866,7 +5866,7 @@ a = ( Set.empty, Set.empty )
                 """module A exposing (..)
 a = Set.partition (always True) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the first set"
@@ -5885,14 +5885,14 @@ a = ( x, Set.empty )
                 """module A exposing (..)
 a = Set.partition (always True)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.partition (always False) x by ( Set.empty, x )" <|
             \() ->
                 """module A exposing (..)
 a = Set.partition (always False) x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second set"
@@ -5908,7 +5908,7 @@ a = ( Set.empty, x )
                 """module A exposing (..)
 a = Set.partition (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second set"
@@ -5924,7 +5924,7 @@ a = (Tuple.pair Set.empty)
                 """module A exposing (..)
 a = Set.partition <| (always False)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second set"
@@ -5940,7 +5940,7 @@ a = (Tuple.pair Set.empty)
                 """module A exposing (..)
 a = always False |> Set.partition
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "All elements will go to the second set"
@@ -5962,14 +5962,14 @@ setRemoveTests =
                 """module A exposing (..)
 a = Set.remove x x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.remove x Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.remove x Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.remove on Set.empty will result in Set.empty"
@@ -5991,14 +5991,14 @@ setMemberTests =
                 """module A exposing (..)
 a = Set.member x x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.member x Set.empty by False" <|
             \() ->
                 """module A exposing (..)
 a = Set.member x Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.member on Set.empty will result in False"
@@ -6020,14 +6020,14 @@ setIntersectTests =
                 """module A exposing (..)
 a = Set.intersect x x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.intersect Set.empty set by Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.intersect Set.empty set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.intersect on Set.empty will result in Set.empty"
@@ -6043,7 +6043,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.intersect set Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Set.intersect on Set.empty will result in Set.empty"
@@ -6065,14 +6065,14 @@ setDiffTests =
                 """module A exposing (..)
 a = Set.diff x y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.diff Set.empty set by Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.diff Set.empty set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Diffing Set.empty will result in Set.empty"
@@ -6088,7 +6088,7 @@ a = Set.empty
                 """module A exposing (..)
 a = Set.diff set Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Diffing a set with Set.empty will result in the set itself"
@@ -6104,7 +6104,7 @@ a = set
                 """module A exposing (..)
 a = Set.empty |> Set.diff set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Diffing a set with Set.empty will result in the set itself"
@@ -6126,14 +6126,14 @@ setUnionTests =
                 """module A exposing (..)
 a = Set.union x y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.union Set.empty set by set" <|
             \() ->
                 """module A exposing (..)
 a = Set.union Set.empty set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary union with Set.empty"
@@ -6149,7 +6149,7 @@ a = set
                 """module A exposing (..)
 a = Set.union set Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary union with Set.empty"
@@ -6165,7 +6165,7 @@ a = set
                 """module A exposing (..)
 a = Set.empty |> Set.union set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary union with Set.empty"
@@ -6181,7 +6181,7 @@ a = set
                 """module A exposing (..)
 a = Set.empty |> Set.union set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary union with Set.empty"
@@ -6203,14 +6203,14 @@ setInsertTests =
                 """module A exposing (..)
 a = Set.insert x y
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Set.insert x Set.empty by Set.singleton x" <|
             \() ->
                 """module A exposing (..)
 a = Set.insert x Set.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use Set.singleton instead of inserting in Set.empty"
@@ -6226,7 +6226,7 @@ a = Set.singleton x
                 """module A exposing (..)
 a = Set.empty |> Set.insert x
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use Set.singleton instead of inserting in Set.empty"
@@ -6263,14 +6263,14 @@ dictIsEmptyTests =
 a = Dict.isEmpty
 b = Dict.isEmpty list
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Dict.isEmpty Dict.empty by True" <|
             \() ->
                 """module A exposing (..)
 a = Dict.isEmpty Dict.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.isEmpty will result in True"
@@ -6286,7 +6286,7 @@ a = True
                 """module A exposing (..)
 a = Dict.isEmpty (Dict.fromList [x])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.isEmpty will result in False"
@@ -6302,7 +6302,7 @@ a = False
                 """module A exposing (..)
 a = Dict.isEmpty (Dict.fromList [])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.isEmpty will result in True"
@@ -6326,7 +6326,7 @@ a = Dict.isEmpty (Dict.empty)
                 """module A exposing (..)
 a = Dict.isEmpty (Dict.singleton x y)
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.isEmpty will result in False"
@@ -6342,7 +6342,7 @@ a = False
                 """module A exposing (..)
 a = Dict.singleton x y |> Dict.isEmpty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.isEmpty will result in False"
@@ -6367,14 +6367,14 @@ b = Dict.fromList list
 b = Dict.fromList [x]
 b = Dict.fromList [x, y]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Dict.fromList [] by Dict.empty" <|
             \() ->
                 """module A exposing (..)
 a = Dict.fromList []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.fromList will result in Dict.empty"
@@ -6398,14 +6398,14 @@ a = Dict.toList
 b = Dict.toList list
 c = Dict.toList set
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Dict.toList Dict.empty by []" <|
             \() ->
                 """module A exposing (..)
 a = Dict.toList Dict.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to Dict.toList will result in []"
@@ -6428,14 +6428,14 @@ dictSizeTests =
 a = Dict.size
 a = Dict.size b
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Dict.size Dict.empty by 0" <|
             \() ->
                 """module A exposing (..)
 a = Dict.size Dict.empty
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the Dict is 0"
@@ -6451,7 +6451,7 @@ a = 0
                 """module A exposing (..)
 a = Dict.size (Dict.fromList [b, c, d])
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the Dict is 3"
@@ -6467,7 +6467,7 @@ a = 3
                 """module A exposing (..)
 a = Dict.empty |> Dict.size
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the Dict is 0"
@@ -6483,7 +6483,7 @@ a = 0
                 """module A exposing (..)
 a = Dict.singleton x y |> Dict.size
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The size of the Dict is 1"
@@ -6511,14 +6511,14 @@ a = Cmd.batch
 a = Cmd.batch b
 a = Cmd.batch [ b, x ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Cmd.batch [] by Cmd.none" <|
             \() ->
                 """module A exposing (..)
 a = Cmd.batch []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Replace by Cmd.batch"
@@ -6534,7 +6534,7 @@ a = Cmd.none
                 """module A exposing (..)
 a = Cmd.batch [ a, Cmd.none, b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Cmd.none"
@@ -6550,7 +6550,7 @@ a = Cmd.batch [ a, b ]
                 """module A exposing (..)
 a = Cmd.batch [ Cmd.none ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Cmd.batch"
@@ -6566,7 +6566,7 @@ a = (Cmd.none)
                 """module A exposing (..)
 a = Cmd.batch [ b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Cmd.batch"
@@ -6582,7 +6582,7 @@ a = (b)
                 """module A exposing (..)
 a = Cmd.batch [ b, Cmd.none ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Cmd.none"
@@ -6598,7 +6598,7 @@ a = Cmd.batch [ b ]
                 """module A exposing (..)
 a = Cmd.batch [ Cmd.none, b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Cmd.none"
@@ -6614,7 +6614,7 @@ a = Cmd.batch [ b ]
                 """module A exposing (..)
 a = Cmd.map identity cmd
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Cmd.map with an identity function is the same as not using Cmd.map"
@@ -6630,7 +6630,7 @@ a = cmd
                 """module A exposing (..)
 a = Cmd.map f Cmd.none
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Cmd.map on Cmd.none will result in Cmd.none"
@@ -6658,14 +6658,14 @@ a = Sub.batch
 a = Sub.batch b
 a = Sub.batch [ b, x ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace Sub.batch [] by Sub.none" <|
             \() ->
                 """module A exposing (..)
 a = Sub.batch []
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Replace by Sub.batch"
@@ -6681,7 +6681,7 @@ a = Sub.none
                 """module A exposing (..)
 a = Sub.batch [ a, Sub.none, b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Sub.none"
@@ -6697,7 +6697,7 @@ a = Sub.batch [ a, b ]
                 """module A exposing (..)
 a = Sub.batch [ Sub.none ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Sub.batch"
@@ -6713,7 +6713,7 @@ a = (Sub.none)
                 """module A exposing (..)
 a = Sub.batch [ b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Sub.batch"
@@ -6729,7 +6729,7 @@ a = (b)
                 """module A exposing (..)
 a = Sub.batch [ b, Sub.none ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Sub.none"
@@ -6745,7 +6745,7 @@ a = Sub.batch [ b ]
                 """module A exposing (..)
 a = Sub.batch [ Sub.none, b ]
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Sub.none"
@@ -6761,7 +6761,7 @@ a = Sub.batch [ b ]
                 """module A exposing (..)
 a = Sub.map identity sub
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Sub.map with an identity function is the same as not using Sub.map"
@@ -6777,7 +6777,7 @@ a = sub
                 """module A exposing (..)
 a = Sub.map f Sub.none
 """
-                    |> Review.Test.run rule
+                    |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Sub.map on Sub.none will result in Sub.none"
