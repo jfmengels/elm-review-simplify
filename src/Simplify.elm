@@ -766,9 +766,9 @@ expressionVisitorHelp node lookupTable =
             , []
             )
 
-        ---------------------
-        -- BOOLEAN CASE OF --
-        ---------------------
+        -------------
+        -- CASE OF --
+        -------------
         Expression.CaseExpression caseBlock ->
             ( caseOfChecks lookupTable (Node.range node) caseBlock, [] )
 
