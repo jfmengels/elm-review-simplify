@@ -504,6 +504,7 @@ ignore ignoreConstructors (Configuration config) =
 type alias Context =
     { lookupTable : ModuleNameLookupTable
     , rangesToIgnore : List Range
+    , constructorsToIgnore : Set ( ModuleName, String )
     }
 
 
@@ -513,6 +514,7 @@ initialContext =
         (\lookupTable () ->
             { lookupTable = lookupTable
             , rangesToIgnore = []
+            , constructorsToIgnore = Set.singleton ( [], "C" )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -3314,11 +3316,7 @@ isIgnoredConstructor : Context -> Range -> String -> Bool
 isIgnoredConstructor context range name =
     case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
         Just moduleName ->
-            if name == "C" then
-                True
-
-            else
-                False
+            Set.member ( moduleName, name ) context.constructorsToIgnore
 
         Nothing ->
             False
