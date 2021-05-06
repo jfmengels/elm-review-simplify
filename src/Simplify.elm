@@ -3249,7 +3249,7 @@ sameBodyForCaseOfChecks context parentRange cases =
 
         first :: rest ->
             if
-                List.any (Tuple.first >> introducesVariable context.lookupTable) (first :: rest)
+                List.any (Tuple.first >> introducesVariable context) (first :: rest)
                     || not (Normalize.areAllTheSame context.lookupTable (Tuple.second first) (List.map Tuple.second rest))
             then
                 []
@@ -3278,8 +3278,8 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : ModuleNameLookupTable -> Node Pattern -> Bool
-introducesVariable lookupTable node =
+introducesVariable : Context -> Node Pattern -> Bool
+introducesVariable context node =
     case Node.value node of
         Pattern.VarPattern _ ->
             True
@@ -3291,28 +3291,28 @@ introducesVariable lookupTable node =
             True
 
         Pattern.ParenthesizedPattern pattern ->
-            introducesVariable lookupTable pattern
+            introducesVariable context pattern
 
         Pattern.TuplePattern nodes ->
-            List.any (introducesVariable lookupTable) nodes
+            List.any (introducesVariable context) nodes
 
         Pattern.UnConsPattern first rest ->
-            List.any (introducesVariable lookupTable) [ first, rest ]
+            List.any (introducesVariable context) [ first, rest ]
 
         Pattern.ListPattern nodes ->
-            List.any (introducesVariable lookupTable) nodes
+            List.any (introducesVariable context) nodes
 
         Pattern.NamedPattern { name } nodes ->
-            isIgnoredConstructor lookupTable (Node.range node) name
-                || List.any (introducesVariable lookupTable) nodes
+            isIgnoredConstructor context (Node.range node) name
+                || List.any (introducesVariable context) nodes
 
         _ ->
             False
 
 
-isIgnoredConstructor : ModuleNameLookupTable -> Range -> String -> Bool
-isIgnoredConstructor lookupTable range name =
-    case ModuleNameLookupTable.moduleNameAt lookupTable range of
+isIgnoredConstructor : Context -> Range -> String -> Bool
+isIgnoredConstructor context range name =
+    case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
         Just moduleName ->
             if name == "C" then
                 True
