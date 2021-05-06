@@ -3248,7 +3248,7 @@ sameBodyForCaseOfChecks lookupTable parentRange cases =
             []
 
         first :: rest ->
-            if List.any (Tuple.first >> introducesVariable) (first :: rest) || not (Normalize.areAllTheSame lookupTable (Tuple.second first) (List.map Tuple.second rest)) then
+            if List.any (Tuple.first >> introducesVariable lookupTable) (first :: rest) || not (Normalize.areAllTheSame lookupTable (Tuple.second first) (List.map Tuple.second rest)) then
                 []
 
             else
@@ -3275,8 +3275,8 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : Node Pattern -> Bool
-introducesVariable node =
+introducesVariable : ModuleNameLookupTable -> Node Pattern -> Bool
+introducesVariable lookupTable node =
     case Node.value node of
         Pattern.VarPattern _ ->
             True
@@ -3288,19 +3288,19 @@ introducesVariable node =
             True
 
         Pattern.ParenthesizedPattern pattern ->
-            introducesVariable pattern
+            introducesVariable lookupTable pattern
 
         Pattern.TuplePattern nodes ->
-            List.any introducesVariable nodes
+            List.any (introducesVariable lookupTable) nodes
 
         Pattern.UnConsPattern first rest ->
-            List.any introducesVariable [ first, rest ]
+            List.any (introducesVariable lookupTable) [ first, rest ]
 
         Pattern.ListPattern nodes ->
-            List.any introducesVariable nodes
+            List.any (introducesVariable lookupTable) nodes
 
         Pattern.NamedPattern _ nodes ->
-            List.any introducesVariable nodes
+            List.any (introducesVariable lookupTable) nodes
 
         _ ->
             False
