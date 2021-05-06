@@ -16,7 +16,7 @@ import Simplify
 
 config : List Rule
 config =
-    [ Simplify.rule
+    [ Simplify.rule Simplify.defaults
     ]
 ```
 
