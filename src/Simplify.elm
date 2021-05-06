@@ -25,7 +25,7 @@ import Simplify.Normalize as Normalize
 {-| Reports when an expression can be simplified.
 
     config =
-        [ Simplify.rule
+        [ Simplify.rule Simplify.defaults
         ]
 
 
