@@ -501,7 +501,7 @@ ignore ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = Set.union (Set.fromList ignoreConstructors) config.ignoreConstructors }
 
 
-type alias Context =
+type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
     , rangesToIgnore : List Range
@@ -509,7 +509,7 @@ type alias Context =
     }
 
 
-initialContext : Rule.ContextCreator () Context
+initialContext : Rule.ContextCreator () ModuleContext
 initialContext =
     Rule.initContextCreator
         (\lookupTable metadata () ->
@@ -547,7 +547,7 @@ errorForAddingEmptyLists range rangeToRemove =
 -- DECLARATION VISITOR
 
 
-declarationVisitor : Node a -> Context -> ( List nothing, Context )
+declarationVisitor : Node a -> ModuleContext -> ( List nothing, ModuleContext )
 declarationVisitor _ context =
     ( [], { context | rangesToIgnore = [] } )
 
@@ -556,7 +556,7 @@ declarationVisitor _ context =
 -- EXPRESSION VISITOR
 
 
-expressionVisitor : Node Expression -> Context -> ( List (Error {}), Context )
+expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node context =
     if List.member (Node.range node) context.rangesToIgnore then
         ( [], context )
@@ -569,7 +569,7 @@ expressionVisitor node context =
         ( errors, { context | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore } )
 
 
-expressionVisitorHelp : Node Expression -> Context -> ( List (Error {}), List Range )
+expressionVisitorHelp : Node Expression -> ModuleContext -> ( List (Error {}), List Range )
 expressionVisitorHelp node context =
     case Node.value node of
         --------------------
@@ -3237,7 +3237,7 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 -- CASE OF
 
 
-caseOfChecks : Context -> Range -> Expression.CaseBlock -> List (Error {})
+caseOfChecks : ModuleContext -> Range -> Expression.CaseBlock -> List (Error {})
 caseOfChecks context parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
@@ -3246,7 +3246,7 @@ caseOfChecks context parentRange caseBlock =
         ()
 
 
-sameBodyForCaseOfChecks : Context -> Range -> List ( Node Pattern, Node Expression ) -> List (Error {})
+sameBodyForCaseOfChecks : ModuleContext -> Range -> List ( Node Pattern, Node Expression ) -> List (Error {})
 sameBodyForCaseOfChecks context parentRange cases =
     case cases of
         [] ->
@@ -3283,7 +3283,7 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : Context -> Node Pattern -> Bool
+introducesVariable : ModuleContext -> Node Pattern -> Bool
 introducesVariable context node =
     case Node.value node of
         Pattern.VarPattern _ ->
@@ -3315,7 +3315,7 @@ introducesVariable context node =
             False
 
 
-isIgnoredConstructor : Context -> Range -> String -> Bool
+isIgnoredConstructor : ModuleContext -> Range -> String -> Bool
 isIgnoredConstructor context range name =
     case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
         Just moduleName ->
