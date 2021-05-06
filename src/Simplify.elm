@@ -10,7 +10,7 @@ module Simplify exposing
 -}
 
 import Dict exposing (Dict)
-import Elm.Syntax.Declaration exposing (Declaration)
+import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -552,10 +552,22 @@ errorForAddingEmptyLists range rangeToRemove =
 declarationListVisitor : List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
 declarationListVisitor declarations context =
     let
+        localConstructors : Set ( ModuleName, String )
         localConstructors =
-            []
+            List.concatMap (findConstructors context) declarations
+                |> Set.fromList
     in
     ( [], { context | rangesToIgnore = [] } )
+
+
+findConstructors : ModuleContext -> Node Declaration -> List ( ModuleName, String )
+findConstructors context node =
+    case Node.value node of
+        Declaration.CustomTypeDeclaration { name, constructors } ->
+            List.map (Node.value >> .name >> Node.value >> (\constrName -> ( context.moduleName, constrName ))) constructors
+
+        _ ->
+            []
 
 
 
