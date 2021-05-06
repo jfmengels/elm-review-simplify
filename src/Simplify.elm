@@ -3299,8 +3299,17 @@ introducesVariable lookupTable node =
         Pattern.ListPattern nodes ->
             List.any (introducesVariable lookupTable) nodes
 
-        Pattern.NamedPattern _ nodes ->
-            List.any (introducesVariable lookupTable) nodes
+        Pattern.NamedPattern { name } nodes ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just moduleName ->
+                    if name == "C" then
+                        True
+
+                    else
+                        List.any (introducesVariable lookupTable) nodes
+
+                Nothing ->
+                    List.any (introducesVariable lookupTable) nodes
 
         _ ->
             False
