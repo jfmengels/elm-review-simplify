@@ -1,6 +1,6 @@
 module Simplify exposing
     ( rule
-    , Configuration
+    , Configuration, defaults, ignore
     )
 
 {-|
@@ -489,6 +489,11 @@ type Configuration
     = Configuration
         { ignoreConstructors : Set String
         }
+
+
+defaults : Configuration
+defaults =
+    Configuration { ignoreConstructors = Set.empty }
 
 
 ignore : Set String -> Configuration -> Configuration
