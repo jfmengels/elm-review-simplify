@@ -557,7 +557,7 @@ declarationListVisitor declarations context =
             List.concatMap (findConstructors context) declarations
                 |> Set.fromList
     in
-    ( [], { context | rangesToIgnore = [] } )
+    ( [], { context | constructorsToIgnore = localConstructors } )
 
 
 findConstructors : ModuleContext -> Node Declaration -> List ( ModuleName, String )
