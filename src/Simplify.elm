@@ -770,7 +770,7 @@ expressionVisitorHelp node context =
         -- CASE OF --
         -------------
         Expression.CaseExpression caseBlock ->
-            ( caseOfChecks context.lookupTable (Node.range node) caseBlock, [] )
+            ( caseOfChecks context (Node.range node) caseBlock, [] )
 
         ----------
         -- (<|) --
@@ -3232,23 +3232,26 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 -- CASE OF
 
 
-caseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
-caseOfChecks lookupTable parentRange caseBlock =
+caseOfChecks : Context -> Range -> Expression.CaseBlock -> List (Error {})
+caseOfChecks context parentRange caseBlock =
     firstThatReportsError
-        [ \() -> sameBodyForCaseOfChecks lookupTable parentRange caseBlock.cases
-        , \() -> booleanCaseOfChecks lookupTable parentRange caseBlock
+        [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
+        , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
         ]
         ()
 
 
-sameBodyForCaseOfChecks : ModuleNameLookupTable -> Range -> List ( Node Pattern, Node Expression ) -> List (Error {})
-sameBodyForCaseOfChecks lookupTable parentRange cases =
+sameBodyForCaseOfChecks : Context -> Range -> List ( Node Pattern, Node Expression ) -> List (Error {})
+sameBodyForCaseOfChecks context parentRange cases =
     case cases of
         [] ->
             []
 
         first :: rest ->
-            if List.any (Tuple.first >> introducesVariable lookupTable) (first :: rest) || not (Normalize.areAllTheSame lookupTable (Tuple.second first) (List.map Tuple.second rest)) then
+            if
+                List.any (Tuple.first >> introducesVariable context.lookupTable) (first :: rest)
+                    || not (Normalize.areAllTheSame context.lookupTable (Tuple.second first) (List.map Tuple.second rest))
+            then
                 []
 
             else
