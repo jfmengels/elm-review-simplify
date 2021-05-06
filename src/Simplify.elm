@@ -10,6 +10,7 @@ module Simplify exposing
 -}
 
 import Dict exposing (Dict)
+import Elm.Syntax.Declaration exposing (Declaration)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -480,6 +481,7 @@ All of these also apply for `Sub`.
 rule : Configuration -> Rule
 rule (Configuration config) =
     Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
+        |> Rule.withDeclarationListVisitor declarationListVisitor
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.fromModuleRuleSchema
@@ -541,6 +543,19 @@ errorForAddingEmptyLists range rangeToRemove =
         }
         range
         [ Fix.removeRange rangeToRemove ]
+
+
+
+-- DECLARATION List VISITOR
+
+
+declarationListVisitor : List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
+declarationListVisitor declarations context =
+    let
+        localConstructors =
+            []
+    in
+    ( [], { context | rangesToIgnore = [] } )
 
 
 
