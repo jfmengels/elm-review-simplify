@@ -503,6 +503,7 @@ ignore ignoreConstructors (Configuration config) =
 
 type alias Context =
     { lookupTable : ModuleNameLookupTable
+    , moduleName : ModuleName
     , rangesToIgnore : List Range
     , constructorsToIgnore : Set ( ModuleName, String )
     }
@@ -511,13 +512,15 @@ type alias Context =
 initialContext : Rule.ContextCreator () Context
 initialContext =
     Rule.initContextCreator
-        (\lookupTable () ->
+        (\lookupTable metadata () ->
             { lookupTable = lookupTable
+            , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
             , constructorsToIgnore = Set.singleton ( [], "C" )
             }
         )
         |> Rule.withModuleNameLookupTable
+        |> Rule.withMetadata
 
 
 errorForAddingEmptyStrings : Range -> Range -> Error {}
