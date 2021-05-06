@@ -3300,18 +3300,24 @@ introducesVariable lookupTable node =
             List.any (introducesVariable lookupTable) nodes
 
         Pattern.NamedPattern { name } nodes ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable node of
-                Just moduleName ->
-                    if name == "C" then
-                        True
-
-                    else
-                        List.any (introducesVariable lookupTable) nodes
-
-                Nothing ->
-                    List.any (introducesVariable lookupTable) nodes
+            isIgnoredConstructor lookupTable (Node.range node) name
+                || List.any (introducesVariable lookupTable) nodes
 
         _ ->
+            False
+
+
+isIgnoredConstructor : ModuleNameLookupTable -> Range -> String -> Bool
+isIgnoredConstructor lookupTable range name =
+    case ModuleNameLookupTable.moduleNameAt lookupTable range of
+        Just moduleName ->
+            if name == "C" then
+                True
+
+            else
+                False
+
+        Nothing ->
             False
 
 
