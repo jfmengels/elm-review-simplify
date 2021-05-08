@@ -36,6 +36,12 @@ all =
 
 configurationTests : Test
 configurationTests =
+    let
+        details : List String
+        details =
+            [ "I expect valid type names to be passed to Simplify.ignore, that include the module name, like `Module.Name.TypeName`."
+            ]
+    in
     describe "Configuration"
         [ test "should not report configuration error if all ignored constructors exist" <|
             \() ->
@@ -53,7 +59,7 @@ type D = D
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `_.B`"
-                        , details = [ "Some details" ]
+                        , details = details
                         }
         , test "should report configuration error if passed an invalid type name" <|
             \() ->
@@ -61,7 +67,7 @@ type D = D
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `A.f`"
-                        , details = [ "Some details" ]
+                        , details = details
                         }
         , test "should report configuration error if passed an empty type name" <|
             \() ->
@@ -69,7 +75,7 @@ type D = D
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: ``"
-                        , details = [ "Some details" ]
+                        , details = details
                         }
         , test "should report configuration error if passed a type name without a module name" <|
             \() ->
@@ -77,7 +83,7 @@ type D = D
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `B`"
-                        , details = [ "Some details" ]
+                        , details = details
                         }
         , test "should report configuration error if passed multiple invalid types" <|
             \() ->
@@ -85,7 +91,7 @@ type D = D
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `_.B`, `A.f`, `B`"
-                        , details = [ "Some details" ]
+                        , details = details
                         }
         ]
 
