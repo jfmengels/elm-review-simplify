@@ -3529,20 +3529,30 @@ sameBodyForCaseOfChecks context parentRange cases =
                     constructorsUsed =
                         List.concatMap (Tuple.first >> findUsedConstructors context) (first :: rest)
                             |> Set.fromList
-
-                    firstBodyRange : Range
-                    firstBodyRange =
-                        Node.range (Tuple.second first)
                 in
-                [ Rule.errorWithFix
-                    { message = "Unnecessary case expression"
-                    , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                    }
-                    (caseKeyWordRange parentRange)
-                    [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
-                    , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
+                if allConstructorsWereUsedOfAType context constructorsUsed then
+                    []
+
+                else
+                    let
+                        firstBodyRange : Range
+                        firstBodyRange =
+                            Node.range (Tuple.second first)
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary case expression"
+                        , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                        }
+                        (caseKeyWordRange parentRange)
+                        [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
+                        , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
+                        ]
                     ]
-                ]
+
+
+allConstructorsWereUsedOfAType : ModuleContext -> Set ( ModuleName, String ) -> Bool
+allConstructorsWereUsedOfAType context constructorsUsed =
+    True
 
 
 caseKeyWordRange : Range -> Range
