@@ -852,7 +852,7 @@ import Other exposing (B(..))
 a = case value of
       C -> x
       D -> x
-      E -> x
+      _ -> x
 """
                 , """module Other exposing (..)
 type B = C | D | E
