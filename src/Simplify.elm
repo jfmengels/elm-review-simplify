@@ -480,11 +480,19 @@ All of these also apply for `Sub`.
 -}
 rule : Configuration -> Rule
 rule (Configuration config) =
-    Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
-        |> Rule.withDeclarationListVisitor declarationListVisitor
-        |> Rule.withDeclarationEnterVisitor declarationVisitor
-        |> Rule.withExpressionEnterVisitor expressionVisitor
-        |> Rule.fromModuleRuleSchema
+    case parseTypeNames config.ignoreConstructors of
+        Ok typeNames ->
+            Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
+                |> Rule.withDeclarationListVisitor declarationListVisitor
+                |> Rule.withDeclarationEnterVisitor declarationVisitor
+                |> Rule.withExpressionEnterVisitor expressionVisitor
+                |> Rule.fromModuleRuleSchema
+
+        Err invalidTypes ->
+            Rule.configurationError "Simplify"
+                { message = "Invalid type names: `A.f`"
+                , details = [ "Some details" ]
+                }
 
 
 type Configuration
@@ -501,6 +509,11 @@ defaults =
 ignore : List String -> Configuration -> Configuration
 ignore ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
+
+
+parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
+parseTypeNames strings =
+    Ok []
 
 
 type alias ModuleContext =
