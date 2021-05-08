@@ -507,8 +507,7 @@ fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
-            { constructorsForType = moduleContext.constructorsForType
-            , ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
+            { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
             }
         )
 
@@ -523,7 +522,6 @@ fromProjectToModule =
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , localConstructors = Set.empty
-            , constructorsForType = projectContext.constructorsForType
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             }
         )
@@ -540,8 +538,7 @@ buildConstructorsToIgnore constructors =
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
-    { constructorsForType = Dict.union newContext.constructorsForType previousContext.constructorsForType
-    , ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
+    { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
     }
 
 
@@ -667,8 +664,7 @@ isValidType typeAsString =
 
 
 type alias ProjectContext =
-    { constructorsForType : Dict ( ModuleName, String ) (List String)
-    , ignoredCustomTypes : List Constructor
+    { ignoredCustomTypes : List Constructor
     }
 
 
@@ -679,7 +675,6 @@ type alias ModuleContext =
     , ignoredCustomTypes : List Constructor
     , localIgnoredCustomTypes : List Constructor
     , localConstructors : Set ( ModuleName, String )
-    , constructorsForType : Dict ( ModuleName, String ) (List String)
     , constructorsToIgnore : Set ( ModuleName, String )
     }
 
@@ -693,8 +688,7 @@ type alias Constructor =
 
 initialContext : ProjectContext
 initialContext =
-    { constructorsForType = Dict.empty
-    , ignoredCustomTypes = []
+    { ignoredCustomTypes = []
     }
 
 
@@ -745,7 +739,6 @@ declarationListVisitor constructorsToIgnore declarations context =
         | localIgnoredCustomTypes = localIgnoredCustomTypes
         , ignoredCustomTypes = localIgnoredCustomTypes ++ context.ignoredCustomTypes
         , localConstructors = localConstructors
-        , constructorsForType = constructorsForType
         , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
       }
     )
