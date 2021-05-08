@@ -484,11 +484,14 @@ rule : Configuration -> Rule
 rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok typeNames ->
-            Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
-                |> Rule.withDeclarationListVisitor (declarationListVisitor typeNames)
-                |> Rule.withDeclarationEnterVisitor declarationVisitor
-                |> Rule.withExpressionEnterVisitor expressionVisitor
-                |> Rule.fromModuleRuleSchema
+            Rule.newProjectRuleSchema "Simplify" initialContext
+                |> Rule.withModuleVisitor (moduleVisitor typeNames)
+                |> Rule.withModuleContextUsingContextCreator
+                    { fromProjectToModule = fromProjectToModule
+                    , fromModuleToProject = fromModuleToProject
+                    , foldProjectContexts = foldProjectContexts
+                    }
+                |> Rule.fromProjectRuleSchema
 
         Err invalidTypes ->
             Rule.configurationError "Simplify"
@@ -497,6 +500,43 @@ rule (Configuration config) =
                     [ "I expect valid type names to be passed to Simplify.ignoreCaseOfWithConstructors, that include the module name, like `Module.Name.TypeName`."
                     ]
                 }
+
+
+fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
+fromModuleToProject =
+    Rule.initContextCreator
+        (\moduleContext ->
+            { constructorsToIgnore = moduleContext.constructorsToIgnore
+            }
+        )
+
+
+fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
+fromProjectToModule =
+    Rule.initContextCreator
+        (\lookupTable metadata projectContext ->
+            { lookupTable = lookupTable
+            , moduleName = Rule.moduleNameFromMetadata metadata
+            , rangesToIgnore = []
+            , constructorsToIgnore = projectContext.constructorsToIgnore
+            }
+        )
+        |> Rule.withModuleNameLookupTable
+        |> Rule.withMetadata
+
+
+foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
+foldProjectContexts newContext previousContext =
+    { constructorsToIgnore = Set.union newContext.constructorsToIgnore previousContext.constructorsToIgnore
+    }
+
+
+moduleVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+moduleVisitor typeNames schema =
+    schema
+        |> Rule.withDeclarationListVisitor (declarationListVisitor typeNames)
+        |> Rule.withDeclarationEnterVisitor declarationVisitor
+        |> Rule.withExpressionEnterVisitor expressionVisitor
 
 
 {-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfWithConstructors`](#ignoreCaseOfWithConstructors) to alter it.
@@ -625,18 +665,11 @@ type alias ModuleContext =
     }
 
 
-initialContext : Rule.ContextCreator () ModuleContext
+initialContext : ProjectContext
 initialContext =
-    Rule.initContextCreator
-        (\lookupTable metadata () ->
-            { lookupTable = lookupTable
-            , moduleName = Rule.moduleNameFromMetadata metadata
-            , rangesToIgnore = []
-            , constructorsToIgnore = Set.singleton ( [], "C" )
-            }
-        )
-        |> Rule.withModuleNameLookupTable
-        |> Rule.withMetadata
+    -- REPLACEME Remove hardcoding
+    { constructorsToIgnore = Set.singleton ( [], "C" )
+    }
 
 
 errorForAddingEmptyStrings : Range -> Range -> Error {}
