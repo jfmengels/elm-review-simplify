@@ -491,6 +491,7 @@ rule (Configuration config) =
                     , fromModuleToProject = fromModuleToProject
                     , foldProjectContexts = foldProjectContexts
                     }
+                |> Rule.withContextFromImportedModules
                 |> Rule.fromProjectRuleSchema
 
         Err invalidTypes ->
