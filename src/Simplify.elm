@@ -490,7 +490,7 @@ rule (Configuration config) =
 
         Err invalidTypes ->
             Rule.configurationError "Simplify"
-                { message = "Invalid type names: `A.f`"
+                { message = "Invalid type names: " ++ (invalidTypes |> List.map (\s -> "`" ++ s ++ "`") |> String.join ", ")
                 , details = [ "Some details" ]
                 }
 
