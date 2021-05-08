@@ -520,6 +520,7 @@ fromProjectToModule =
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
+            , ignoredCustomTypes = []
             , localConstructors = Set.empty
             , constructorsForType = projectContext.constructorsForType
             , constructorsToIgnore = projectContext.constructorsToIgnore
@@ -667,9 +668,17 @@ type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
     , rangesToIgnore : List Range
+    , ignoredCustomTypes : List Constructor
     , localConstructors : Set ( ModuleName, String )
     , constructorsForType : Dict ( ModuleName, String ) (List String)
     , constructorsToIgnore : Set ( ModuleName, String )
+    }
+
+
+type alias Constructor =
+    { moduleName : ModuleName
+    , name : String
+    , constructors : List String
     }
 
 
@@ -719,7 +728,8 @@ declarationListVisitor constructorsToIgnore declarations context =
     in
     ( []
     , { context
-        | localConstructors = localConstructors
+        | ignoredCustomTypes = List.filterMap (findCustomTypes constructorsToIgnore context) declarations
+        , localConstructors = localConstructors
         , constructorsForType = constructorsForType
         , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
       }
@@ -765,6 +775,24 @@ findConstructors constructorsToIgnore context node =
 
         _ ->
             []
+
+
+findCustomTypes : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> Maybe Constructor
+findCustomTypes constructorsToIgnore context node =
+    case Node.value node of
+        Declaration.CustomTypeDeclaration { name, constructors } ->
+            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
+                Just
+                    { moduleName = context.moduleName
+                    , name = Node.value name
+                    , constructors = List.map (\constructor -> constructor |> Node.value |> .name |> Node.value) constructors
+                    }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 
