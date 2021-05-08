@@ -489,18 +489,18 @@ rule (Configuration config) =
 
 type Configuration
     = Configuration
-        { ignoreConstructors : Set String
+        { ignoreConstructors : List String
         }
 
 
 defaults : Configuration
 defaults =
-    Configuration { ignoreConstructors = Set.empty }
+    Configuration { ignoreConstructors = [] }
 
 
 ignore : List String -> Configuration -> Configuration
 ignore ignoreConstructors (Configuration config) =
-    Configuration { config | ignoreConstructors = Set.union (Set.fromList ignoreConstructors) config.ignoreConstructors }
+    Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
 
 
 type alias ModuleContext =
