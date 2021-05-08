@@ -521,7 +521,6 @@ fromProjectToModule =
             , rangesToIgnore = []
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
-            , localConstructors = Set.empty
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             }
         )
@@ -674,7 +673,6 @@ type alias ModuleContext =
     , rangesToIgnore : List Range
     , ignoredCustomTypes : List Constructor
     , localIgnoredCustomTypes : List Constructor
-    , localConstructors : Set ( ModuleName, String )
     , constructorsToIgnore : Set ( ModuleName, String )
     }
 
@@ -732,7 +730,6 @@ declarationListVisitor constructorsToIgnore declarations context =
     , { context
         | localIgnoredCustomTypes = localIgnoredCustomTypes
         , ignoredCustomTypes = localIgnoredCustomTypes ++ context.ignoredCustomTypes
-        , localConstructors = localConstructors
         , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
       }
     )
