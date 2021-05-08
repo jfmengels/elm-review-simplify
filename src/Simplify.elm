@@ -518,6 +518,7 @@ fromProjectToModule =
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
+            , localConstructors = Set.empty
             , constructorsToIgnore = projectContext.constructorsToIgnore
             }
         )
@@ -661,6 +662,7 @@ type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
     , rangesToIgnore : List Range
+    , localConstructors : Set ( ModuleName, String )
     , constructorsToIgnore : Set ( ModuleName, String )
     }
 
@@ -703,7 +705,12 @@ declarationListVisitor constructorsToIgnore declarations context =
             List.concatMap (findConstructors constructorsToIgnore context) declarations
                 |> Set.fromList
     in
-    ( [], { context | constructorsToIgnore = localConstructors } )
+    ( []
+    , { context
+        | localConstructors = localConstructors
+        , constructorsToIgnore = localConstructors
+      }
+    )
 
 
 findConstructors : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> List ( ModuleName, String )
