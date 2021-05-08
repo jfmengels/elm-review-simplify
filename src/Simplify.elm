@@ -3485,6 +3485,11 @@ sameBodyForCaseOfChecks context parentRange cases =
 
             else
                 let
+                    constructorsUsed : Set ( ModuleName, String )
+                    constructorsUsed =
+                        List.concatMap (Tuple.first >> findUsedConstructors context) (first :: rest)
+                            |> Set.fromList
+
                     firstBodyRange : Range
                     firstBodyRange =
                         Node.range (Tuple.second first)
