@@ -3478,7 +3478,7 @@ sameBodyForCaseOfChecks context parentRange cases =
 
         first :: rest ->
             if
-                List.any (Tuple.first >> introducesVariable context) (first :: rest)
+                List.any (Tuple.first >> introducesVariable) (first :: rest)
                     || not (Normalize.areAllTheSame context.lookupTable (Tuple.second first) (List.map Tuple.second rest))
             then
                 []
@@ -3507,8 +3507,8 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : ModuleContext -> Node Pattern -> Bool
-introducesVariable context node =
+introducesVariable : Node Pattern -> Bool
+introducesVariable node =
     case Node.value node of
         Pattern.VarPattern _ ->
             True
@@ -3520,20 +3520,19 @@ introducesVariable context node =
             True
 
         Pattern.ParenthesizedPattern pattern ->
-            introducesVariable context pattern
+            introducesVariable pattern
 
         Pattern.TuplePattern nodes ->
-            List.any (introducesVariable context) nodes
+            List.any introducesVariable nodes
 
         Pattern.UnConsPattern first rest ->
-            List.any (introducesVariable context) [ first, rest ]
+            List.any introducesVariable [ first, rest ]
 
         Pattern.ListPattern nodes ->
-            List.any (introducesVariable context) nodes
+            List.any introducesVariable nodes
 
         Pattern.NamedPattern { name } nodes ->
-            isIgnoredConstructor context (Node.range node) name
-                || List.any (introducesVariable context) nodes
+            List.any introducesVariable nodes
 
         _ ->
             False
