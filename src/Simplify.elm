@@ -3525,10 +3525,11 @@ sameBodyForCaseOfChecks context parentRange cases =
 
             else
                 let
-                    constructorsUsed : Set ( ModuleName, String )
+                    constructorsUsed : List ( ModuleName, String )
                     constructorsUsed =
                         List.concatMap (Tuple.first >> findUsedConstructors context) (first :: rest)
                             |> Set.fromList
+                            |> Set.toList
                 in
                 if allConstructorsWereUsedOfAType context constructorsUsed then
                     []
@@ -3550,9 +3551,14 @@ sameBodyForCaseOfChecks context parentRange cases =
                     ]
 
 
-allConstructorsWereUsedOfAType : ModuleContext -> Set ( ModuleName, String ) -> Bool
+allConstructorsWereUsedOfAType : ModuleContext -> List ( ModuleName, String ) -> Bool
 allConstructorsWereUsedOfAType context constructorsUsed =
-    True
+    case constructorsUsed of
+        [] ->
+            False
+
+        first :: rest ->
+            True
 
 
 caseKeyWordRange : Range -> Range
