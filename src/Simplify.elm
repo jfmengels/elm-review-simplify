@@ -1466,6 +1466,20 @@ divisionChecks { leftRange, rightRange, right } =
         []
 
 
+find : (a -> Bool) -> List a -> Maybe a
+find predicate nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        node :: rest ->
+            if predicate node then
+                Just node
+
+            else
+                find predicate rest
+
+
 findMap : (a -> Maybe b) -> List a -> Maybe b
 findMap mapper nodes =
     case nodes of
@@ -3557,8 +3571,16 @@ allConstructorsWereUsedOfAType context constructorsUsed =
         [] ->
             False
 
-        first :: rest ->
-            True
+        ( moduleName, constructorName ) :: rest ->
+            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) context.ignoredCustomTypes of
+                Just customType ->
+                    List.all
+                        (\constructor -> List.member ( moduleName, constructor ) (( moduleName, constructorName ) :: rest))
+                        customType.constructors
+                        || allConstructorsWereUsedOfAType context rest
+
+                Nothing ->
+                    allConstructorsWereUsedOfAType context rest
 
 
 caseKeyWordRange : Range -> Range
