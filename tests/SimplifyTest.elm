@@ -39,7 +39,7 @@ configurationTests =
     let
         details : List String
         details =
-            [ "I expect valid type names to be passed to Simplify.ignore, that include the module name, like `Module.Name.TypeName`."
+            [ "I expect valid type names to be passed to Simplify.ignoreCaseOfWithConstructors, that include the module name, like `Module.Name.TypeName`."
             ]
     in
     describe "Configuration"
