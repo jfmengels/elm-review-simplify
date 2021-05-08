@@ -485,7 +485,7 @@ rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok typeNames ->
             Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialContext
-                |> Rule.withDeclarationListVisitor declarationListVisitor
+                |> Rule.withDeclarationListVisitor (declarationListVisitor typeNames)
                 |> Rule.withDeclarationEnterVisitor declarationVisitor
                 |> Rule.withExpressionEnterVisitor expressionVisitor
                 |> Rule.fromModuleRuleSchema
@@ -567,7 +567,7 @@ ignoreCaseOfWithConstructors ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
 
 
-parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
+parseTypeNames : List String -> Result (List String) (Set ( ModuleName, String ))
 parseTypeNames strings =
     let
         parsedTypeNames : List (Result String ( ModuleName, String ))
@@ -588,7 +588,10 @@ parseTypeNames strings =
                 parsedTypeNames
     in
     if List.isEmpty invalidTypeNames then
-        Ok (List.filterMap Result.toMaybe parsedTypeNames)
+        parsedTypeNames
+            |> List.filterMap Result.toMaybe
+            |> Set.fromList
+            |> Ok
 
     else
         Err invalidTypeNames
@@ -655,28 +658,32 @@ errorForAddingEmptyLists range rangeToRemove =
 -- DECLARATION List VISITOR
 
 
-declarationListVisitor : List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
-declarationListVisitor declarations context =
+declarationListVisitor : Set ( ModuleName, String ) -> List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
+declarationListVisitor constructorsToIgnore declarations context =
     let
         localConstructors : Set ( ModuleName, String )
         localConstructors =
-            List.concatMap (findConstructors context) declarations
+            List.concatMap (findConstructors constructorsToIgnore context) declarations
                 |> Set.fromList
     in
     ( [], { context | constructorsToIgnore = localConstructors } )
 
 
-findConstructors : ModuleContext -> Node Declaration -> List ( ModuleName, String )
-findConstructors context node =
+findConstructors : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> List ( ModuleName, String )
+findConstructors constructorsToIgnore context node =
     case Node.value node of
         Declaration.CustomTypeDeclaration { name, constructors } ->
-            List.map
-                (\constructor ->
-                    ( context.moduleName
-                    , constructor |> Node.value |> .name |> Node.value
+            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
+                List.map
+                    (\constructor ->
+                        ( context.moduleName
+                        , constructor |> Node.value |> .name |> Node.value
+                        )
                     )
-                )
-                constructors
+                    constructors
+
+            else
+                []
 
         _ ->
             []
