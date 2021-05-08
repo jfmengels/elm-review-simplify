@@ -63,6 +63,30 @@ type D = D
                         { message = "Invalid type names: `A.f`"
                         , details = [ "Some details" ]
                         }
+        , test "should report configuration error if passed an empty type name" <|
+            \() ->
+                ignore [ "" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type names: ``"
+                        , details = [ "Some details" ]
+                        }
+        , test "should report configuration error if passed a type name without a module name" <|
+            \() ->
+                ignore [ "B" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type names: `B`"
+                        , details = [ "Some details" ]
+                        }
+        , test "should report configuration error if passed multiple invalid types" <|
+            \() ->
+                ignore [ "_.B", "A.f", "B", "Is.Valid" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type names: `_.B`, `A.f`, `B`"
+                        , details = [ "Some details" ]
+                        }
         ]
 
 

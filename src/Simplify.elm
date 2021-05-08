@@ -545,8 +545,8 @@ isValidType typeAsString =
     case Decode.decodeString Elm.Type.decoder ("\"" ++ typeAsString ++ "\"") of
         Ok (Elm.Type.Type name _) ->
             case List.reverse <| String.split "." name of
-                functionName :: moduleName ->
-                    Ok ( List.reverse moduleName, functionName )
+                functionName :: moduleName :: restOfModuleName ->
+                    Ok ( List.reverse (moduleName :: restOfModuleName), functionName )
 
                 _ ->
                     Err typeAsString
