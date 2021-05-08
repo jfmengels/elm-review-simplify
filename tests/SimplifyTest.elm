@@ -831,7 +831,7 @@ type B = C
                 ]
                     |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
-        , test "should not replace case of with multiple cases when all constructors are used" <|
+        , test "should not replace case of with multiple cases when all constructors of ignored type are used" <|
             \() ->
                 [ """module A exposing (..)
 import Other exposing (B(..))
@@ -845,6 +845,33 @@ type B = C | D
                 ]
                     |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
+        , test "should replace case of with multiple cases when not all constructors of ignored type are used" <|
+            \() ->
+                [ """module A exposing (..)
+import Other exposing (B(..))
+a = case value of
+      C -> x
+      D -> x
+      E -> x
+"""
+                , """module Other exposing (..)
+type B = C | D | E
+"""
+                ]
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
+                    |> Review.Test.expectErrorsForModules
+                        [ ( "A"
+                          , [ Review.Test.error
+                                { message = "Unnecessary case expression"
+                                , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                                , under = "case"
+                                }
+                                |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                            ]
+                          )
+                        ]
         , test "should replace case of with a single case with ignored arguments by the body of the case" <|
             \() ->
                 """module A exposing (..)
