@@ -506,7 +506,7 @@ fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
-            { constructorsToIgnore = moduleContext.constructorsToIgnore
+            { constructorsToIgnore = moduleContext.localConstructors
             }
         )
 
