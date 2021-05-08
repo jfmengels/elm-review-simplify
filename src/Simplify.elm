@@ -3,33 +3,14 @@ module Simplify exposing
     , Configuration, defaults, ignore
     )
 
-{-|
-
-@docs rule
-
--}
-
-import Dict exposing (Dict)
-import Elm.Syntax.Declaration as Declaration exposing (Declaration)
-import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.ModuleName exposing (ModuleName)
-import Elm.Syntax.Node as Node exposing (Node(..))
-import Elm.Syntax.Pattern as Pattern exposing (Pattern)
-import Elm.Syntax.Range exposing (Range)
-import Elm.Type
-import Json.Decode as Decode
-import Review.Fix as Fix exposing (Fix)
-import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
-import Review.Rule as Rule exposing (Error, Rule)
-import Set exposing (Set)
-import Simplify.Normalize as Normalize
-
-
 {-| Reports when an expression can be simplified.
 
     config =
         [ Simplify.rule Simplify.defaults
         ]
+
+@docs rule
+@docs Configuration, defaults, ignore
 
 
 ## Try it out
@@ -479,6 +460,25 @@ All of these also apply for `Sub`.
     Cmd.map fn Cmd.none
     --> Cmd.none
 
+-}
+
+import Dict exposing (Dict)
+import Elm.Syntax.Declaration as Declaration exposing (Declaration)
+import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.ModuleName exposing (ModuleName)
+import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Pattern as Pattern exposing (Pattern)
+import Elm.Syntax.Range exposing (Range)
+import Elm.Type
+import Json.Decode as Decode
+import Review.Fix as Fix exposing (Fix)
+import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Review.Rule as Rule exposing (Error, Rule)
+import Set exposing (Set)
+import Simplify.Normalize as Normalize
+
+
+{-| Rule to simplify Elm code.
 -}
 rule : Configuration -> Rule
 rule (Configuration config) =
