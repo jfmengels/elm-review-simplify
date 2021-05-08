@@ -1,6 +1,6 @@
 module Simplify exposing
     ( rule
-    , Configuration, defaults, ignore
+    , Configuration, defaults, ignoreCaseOfWithConstructors
     )
 
 {-| Reports when an expression can be simplified.
@@ -10,7 +10,7 @@ module Simplify exposing
         ]
 
 @docs rule
-@docs Configuration, defaults, ignore
+@docs Configuration, defaults, ignoreCaseOfWithConstructors
 
 
 ## Try it out
@@ -494,7 +494,7 @@ rule (Configuration config) =
             Rule.configurationError "Simplify"
                 { message = "Invalid type names: " ++ (invalidTypes |> List.map (\s -> "`" ++ s ++ "`") |> String.join ", ")
                 , details =
-                    [ "I expect valid type names to be passed to Simplify.ignore, that include the module name, like `Module.Name.TypeName`."
+                    [ "I expect valid type names to be passed to Simplify.ignoreCaseOfWithConstructors, that include the module name, like `Module.Name.TypeName`."
                     ]
                 }
 
@@ -505,11 +505,11 @@ type Configuration
         }
 
 
-{-| Default configuration for this rule. Use [`ignore`](./ignore) if you want to change the configuration.
+{-| Default configuration for this rule. Use [`ignoreCaseOfWithConstructors`](./ignoreCaseOfWithConstructors) if you want to change the configuration.
 
     config =
         [ Simplify.defaults
-            |> Simplify.ignore [ "Module.Name.Type" ]
+            |> Simplify.ignoreCaseOfWithConstructors [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
 
@@ -523,7 +523,7 @@ defaults =
 
     config =
         [ Simplify.defaults
-            |> Simplify.ignore [ "Module.Name.Type" ]
+            |> Simplify.ignoreCaseOfWithConstructors [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
 
@@ -552,8 +552,8 @@ not remind you anyway.
     --> x
 
 -}
-ignore : List String -> Configuration -> Configuration
-ignore ignoreConstructors (Configuration config) =
+ignoreCaseOfWithConstructors : List String -> Configuration -> Configuration
+ignoreCaseOfWithConstructors ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
 
 

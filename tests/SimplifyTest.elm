@@ -1,7 +1,7 @@
 module SimplifyTest exposing (all)
 
 import Review.Test
-import Simplify exposing (defaults, ignore, rule)
+import Simplify exposing (defaults, ignoreCaseOfWithConstructors, rule)
 import Test exposing (Test, describe, test)
 
 
@@ -51,11 +51,11 @@ type C = C
 """, """module B.C exposing (..)
 type D = D
 """ ]
-                    |> Review.Test.runOnModules (rule <| ignore [ "A.B", "A.C", "B.C.D" ] defaults)
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "A.B", "A.C", "B.C.D" ] defaults)
                     |> Review.Test.expectNoErrors
         , test "should report configuration error if passed an invalid module name" <|
             \() ->
-                ignore [ "_.B" ] defaults
+                ignoreCaseOfWithConstructors [ "_.B" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `_.B`"
@@ -63,7 +63,7 @@ type D = D
                         }
         , test "should report configuration error if passed an invalid type name" <|
             \() ->
-                ignore [ "A.f" ] defaults
+                ignoreCaseOfWithConstructors [ "A.f" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `A.f`"
@@ -71,7 +71,7 @@ type D = D
                         }
         , test "should report configuration error if passed an empty type name" <|
             \() ->
-                ignore [ "" ] defaults
+                ignoreCaseOfWithConstructors [ "" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: ``"
@@ -79,7 +79,7 @@ type D = D
                         }
         , test "should report configuration error if passed a type name without a module name" <|
             \() ->
-                ignore [ "B" ] defaults
+                ignoreCaseOfWithConstructors [ "B" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `B`"
@@ -87,7 +87,7 @@ type D = D
                         }
         , test "should report configuration error if passed multiple invalid types" <|
             \() ->
-                ignore [ "_.B", "A.f", "B", "Is.Valid" ] defaults
+                ignoreCaseOfWithConstructors [ "_.B", "A.f", "B", "Is.Valid" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `_.B`, `A.f`, `B`"
@@ -816,7 +816,7 @@ type B = C
 a = case value of
       C -> x
 """
-                    |> Review.Test.run (rule <| ignore [ "A.B" ] <| defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "A.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace case of with a single case with ignored arguments by the body of the case" <|
             \() ->
