@@ -499,13 +499,15 @@ rule (Configuration config) =
                 }
 
 
+{-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfWithConstructors`](#ignoreCaseOfWithConstructors) to alter it.
+-}
 type Configuration
     = Configuration
         { ignoreConstructors : List String
         }
 
 
-{-| Default configuration for this rule. Use [`ignoreCaseOfWithConstructors`](./ignoreCaseOfWithConstructors) if you want to change the configuration.
+{-| Default configuration for this rule. Use [`ignoreCaseOfWithConstructors`](#ignoreCaseOfWithConstructors) if you want to change the configuration.
 
     config =
         [ Simplify.defaults
@@ -535,25 +537,29 @@ This rule simplifies the following construct:
 In some cases, you may want to disable this simplification because you expect to change or add constructors to this custom type.
 Keeping the case expression as it is will make the compiler remind you to update this code, which can be valuable.
 
+Using the following configuration, case of expressions — where all variants of the `Type` custom type
+from the `Module.Name` module appear — will not be simplified.
+
     config =
         [ Simplify.defaults
             |> Simplify.ignoreCaseOfWithConstructors [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
 
-I personally don't recommend to use this function too much, because this could be a sign of premature abstraction, and because
-I think that often [You Aren't Gonna Need this code](https://jfmengels.net/safe-dead-code-removal/#yagni-you-arent-gonna-need-it).
-
-When using it, I recommend not keeping it there too long and to come back after a while to see if this exception is still worth having.
-Maybe add a comment with the date and an explanation next to each exception?
-
-Note that if you use a wildcard, you may still get the simplification, since in this case the compiler will
+Note that if you use a wildcard, you will still get the simplification, since in this case the compiler will
 not remind you anyway.
 
     case value of
         A -> x
         _ -> x
     --> x
+
+I personally don't recommend to use this function too much, because this could be a sign of premature abstraction, and because
+I think that often [You Aren't Gonna Need this code](https://jfmengels.net/safe-dead-code-removal/#yagni-you-arent-gonna-need-it).
+
+Only use it for custom types that you think will change soon. When using it, I recommend not keeping it there too long
+and to come back after a while to see if this exception is still worth having. Maybe add a comment with the date and an
+explanation next to each exception?
 
 -}
 ignoreCaseOfWithConstructors : List String -> Configuration -> Configuration
