@@ -508,6 +508,7 @@ fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
             { constructorsToIgnore = moduleContext.localConstructors
+            , constructorsForType = moduleContext.constructorsForType
             }
         )
 
@@ -520,6 +521,7 @@ fromProjectToModule =
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
             , localConstructors = Set.empty
+            , constructorsForType = projectContext.constructorsForType
             , constructorsToIgnore = projectContext.constructorsToIgnore
             }
         )
@@ -530,6 +532,7 @@ fromProjectToModule =
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { constructorsToIgnore = Set.union newContext.constructorsToIgnore previousContext.constructorsToIgnore
+    , constructorsForType = Dict.union newContext.constructorsForType previousContext.constructorsForType
     }
 
 
@@ -656,6 +659,7 @@ isValidType typeAsString =
 
 type alias ProjectContext =
     { constructorsToIgnore : Set ( ModuleName, String )
+    , constructorsForType : Dict ( ModuleName, String ) (List String)
     }
 
 
@@ -664,6 +668,7 @@ type alias ModuleContext =
     , moduleName : ModuleName
     , rangesToIgnore : List Range
     , localConstructors : Set ( ModuleName, String )
+    , constructorsForType : Dict ( ModuleName, String ) (List String)
     , constructorsToIgnore : Set ( ModuleName, String )
     }
 
@@ -671,6 +676,7 @@ type alias ModuleContext =
 initialContext : ProjectContext
 initialContext =
     { constructorsToIgnore = Set.empty
+    , constructorsForType = Dict.empty
     }
 
 
@@ -705,13 +711,40 @@ declarationListVisitor constructorsToIgnore declarations context =
         localConstructors =
             List.concatMap (findConstructors constructorsToIgnore context) declarations
                 |> Set.fromList
+
+        constructorsForType =
+            declarations
+                |> List.filterMap (findConstructorsForType constructorsToIgnore context)
+                |> Dict.fromList
     in
     ( []
     , { context
         | localConstructors = localConstructors
+        , constructorsForType = constructorsForType
         , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
       }
     )
+
+
+findConstructorsForType : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> Maybe ( ( ModuleName, String ), List String )
+findConstructorsForType constructorsToIgnore context node =
+    case Node.value node of
+        Declaration.CustomTypeDeclaration { name, constructors } ->
+            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
+                Just
+                    ( ( context.moduleName, Node.value name )
+                    , List.map
+                        (\constructor ->
+                            constructor |> Node.value |> .name |> Node.value
+                        )
+                        constructors
+                    )
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 findConstructors : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> List ( ModuleName, String )
