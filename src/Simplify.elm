@@ -3539,36 +3539,34 @@ introducesVariable context node =
             False
 
 
-findUsedConstructors : ModuleContext -> Node Pattern -> Bool
+findUsedConstructors : ModuleContext -> Node Pattern -> List ( ModuleName, String )
 findUsedConstructors context node =
     case Node.value node of
-        Pattern.VarPattern _ ->
-            True
+        Pattern.NamedPattern { name } nodes ->
+            case isIgnoredConstructor2 context (Node.range node) name of
+                Just moduleName ->
+                    ( moduleName, name ) :: List.concatMap (findUsedConstructors context) nodes
 
-        Pattern.RecordPattern _ ->
-            True
+                Nothing ->
+                    List.concatMap (findUsedConstructors context) nodes
 
-        Pattern.AsPattern _ _ ->
-            True
+        Pattern.AsPattern pattern _ ->
+            findUsedConstructors context pattern
 
         Pattern.ParenthesizedPattern pattern ->
-            introducesVariable context pattern
+            findUsedConstructors context pattern
 
         Pattern.TuplePattern nodes ->
-            List.any (introducesVariable context) nodes
+            List.concatMap (findUsedConstructors context) nodes
 
         Pattern.UnConsPattern first rest ->
-            List.any (introducesVariable context) [ first, rest ]
+            List.concatMap (findUsedConstructors context) [ first, rest ]
 
         Pattern.ListPattern nodes ->
-            List.any (introducesVariable context) nodes
-
-        Pattern.NamedPattern { name } nodes ->
-            isIgnoredConstructor context (Node.range node) name
-                || List.any (introducesVariable context) nodes
+            List.concatMap (findUsedConstructors context) nodes
 
         _ ->
-            False
+            []
 
 
 isIgnoredConstructor : ModuleContext -> Range -> String -> Bool
@@ -3582,6 +3580,27 @@ isIgnoredConstructor context range name =
 
         Nothing ->
             False
+
+
+isIgnoredConstructor2 : ModuleContext -> Range -> String -> Maybe ModuleName
+isIgnoredConstructor2 context range name =
+    case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
+        Just [] ->
+            if Set.member ( context.moduleName, name ) context.constructorsToIgnore then
+                Just context.moduleName
+
+            else
+                Nothing
+
+        Just moduleName ->
+            if Set.member ( moduleName, name ) context.constructorsToIgnore then
+                Just moduleName
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
