@@ -708,7 +708,7 @@ declarationListVisitor constructorsToIgnore declarations context =
     ( []
     , { context
         | localConstructors = localConstructors
-        , constructorsToIgnore = localConstructors
+        , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
       }
     )
 
