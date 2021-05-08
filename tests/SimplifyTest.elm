@@ -867,6 +867,7 @@ type B = C | D | E
                                 , under = "case"
                                 }
                                 |> Review.Test.whenFixed """module A exposing (..)
+import Other exposing (B(..))
 a = x
 """
                             ]
