@@ -16,6 +16,8 @@ import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
+import Elm.Type
+import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Rule as Rule exposing (Error, Rule)
@@ -513,7 +515,44 @@ ignore ignoreConstructors (Configuration config) =
 
 parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
 parseTypeNames strings =
-    Err [ "A.f" ]
+    let
+        parsedTypeNames : List (Result String ( ModuleName, String ))
+        parsedTypeNames =
+            List.map isValidType strings
+
+        invalidTypeNames : List String
+        invalidTypeNames =
+            List.filterMap
+                (\result ->
+                    case result of
+                        Err typeName ->
+                            Just typeName
+
+                        Ok _ ->
+                            Nothing
+                )
+                parsedTypeNames
+    in
+    if List.isEmpty invalidTypeNames then
+        Ok (List.filterMap Result.toMaybe parsedTypeNames)
+
+    else
+        Err invalidTypeNames
+
+
+isValidType : String -> Result String ( ModuleName, String )
+isValidType typeAsString =
+    case Decode.decodeString Elm.Type.decoder ("\"" ++ typeAsString ++ "\"") of
+        Ok (Elm.Type.Type name _) ->
+            case List.reverse <| String.split "." name of
+                functionName :: moduleName ->
+                    Ok ( List.reverse moduleName, functionName )
+
+                _ ->
+                    Err typeAsString
+
+        _ ->
+            Err typeAsString
 
 
 type alias ModuleContext =

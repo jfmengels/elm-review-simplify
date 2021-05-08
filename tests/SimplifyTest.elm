@@ -36,35 +36,34 @@ all =
 
 configurationTests : Test
 configurationTests =
-    Test.only <|
-        describe "Configuration"
-            [ test "should not report configuration error if all ignored constructors exist" <|
-                \() ->
-                    [ """module A exposing (..)
+    describe "Configuration"
+        [ test "should not report configuration error if all ignored constructors exist" <|
+            \() ->
+                [ """module A exposing (..)
 type B = B
 type C = C
 """, """module B.C exposing (..)
 type D = D
 """ ]
-                        |> Review.Test.runOnModules (rule <| ignore [ "A.B", "A.C", "B.C.D" ] defaults)
-                        |> Review.Test.expectNoErrors
-            , test "should report configuration error if passed an invalid module name" <|
-                \() ->
-                    ignore [ "_.B" ] defaults
-                        |> rule
-                        |> Review.Test.expectConfigurationError
-                            { message = "Invalid type names: `_.B`"
-                            , details = [ "Some details" ]
-                            }
-            , test "should report configuration error if passed an invalid type name" <|
-                \() ->
-                    ignore [ "A.f" ] defaults
-                        |> rule
-                        |> Review.Test.expectConfigurationError
-                            { message = "Invalid type names: `A.f`"
-                            , details = [ "Some details" ]
-                            }
-            ]
+                    |> Review.Test.runOnModules (rule <| ignore [ "A.B", "A.C", "B.C.D" ] defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should report configuration error if passed an invalid module name" <|
+            \() ->
+                ignore [ "_.B" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type names: `_.B`"
+                        , details = [ "Some details" ]
+                        }
+        , test "should report configuration error if passed an invalid type name" <|
+            \() ->
+                ignore [ "A.f" ] defaults
+                    |> rule
+                    |> Review.Test.expectConfigurationError
+                        { message = "Invalid type names: `A.f`"
+                        , details = [ "Some details" ]
+                        }
+        ]
 
 
 
