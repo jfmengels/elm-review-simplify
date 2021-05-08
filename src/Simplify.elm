@@ -525,11 +525,18 @@ fromProjectToModule =
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , localConstructors = Set.empty
             , constructorsForType = projectContext.constructorsForType
-            , constructorsToIgnore = projectContext.constructorsToIgnore
+            , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             }
         )
         |> Rule.withModuleNameLookupTable
         |> Rule.withMetadata
+
+
+buildConstructorsToIgnore : List Constructor -> Set ( ModuleName, String )
+buildConstructorsToIgnore constructors =
+    constructors
+        |> List.concatMap (\c -> List.map (Tuple.pair c.moduleName) c.constructors)
+        |> Set.fromList
 
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
