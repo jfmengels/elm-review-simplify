@@ -513,7 +513,7 @@ ignore ignoreConstructors (Configuration config) =
 
 parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
 parseTypeNames strings =
-    Ok []
+    Err [ "A.f" ]
 
 
 type alias ModuleContext =

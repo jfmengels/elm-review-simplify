@@ -52,15 +52,15 @@ type D = D
                 ignore [ "_.B" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
-                        { message = "Invalid type name `_.B`"
+                        { message = "Invalid type names: `_.B`"
                         , details = [ "Some details" ]
                         }
-        , test "should report configuration error if passed an invalid module name" <|
+        , test "should report configuration error if passed an invalid type name" <|
             \() ->
                 ignore [ "A.f" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
-                        { message = "Invalid type name `A.f`"
+                        { message = "Invalid type names: `A.f`"
                         , details = [ "Some details" ]
                         }
         ]
