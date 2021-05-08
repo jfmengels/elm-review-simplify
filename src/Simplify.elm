@@ -667,8 +667,7 @@ type alias ModuleContext =
 
 initialContext : ProjectContext
 initialContext =
-    -- REPLACEME Remove hardcoding
-    { constructorsToIgnore = Set.singleton ( [], "C" )
+    { constructorsToIgnore = Set.empty
     }
 
 
