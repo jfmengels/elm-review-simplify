@@ -670,7 +670,7 @@ findConstructors : ModuleContext -> Node Declaration -> List ( ModuleName, Strin
 findConstructors context node =
     case Node.value node of
         Declaration.CustomTypeDeclaration { name, constructors } ->
-            List.map (Node.value >> .name >> Node.value >> (\constrName -> ( context.moduleName, constrName ))) constructors
+            List.map (Node.value >> .name >> Node.value >> (\constructorName -> ( context.moduleName, constructorName ))) constructors
 
         _ ->
             []
