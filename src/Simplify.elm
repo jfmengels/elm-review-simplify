@@ -612,6 +612,11 @@ isValidType typeAsString =
             Err typeAsString
 
 
+type alias ProjectContext =
+    { constructorsToIgnore : Set ( ModuleName, String )
+    }
+
+
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
