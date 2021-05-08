@@ -493,7 +493,9 @@ rule (Configuration config) =
         Err invalidTypes ->
             Rule.configurationError "Simplify"
                 { message = "Invalid type names: " ++ (invalidTypes |> List.map (\s -> "`" ++ s ++ "`") |> String.join ", ")
-                , details = [ "Some details" ]
+                , details =
+                    [ "I expect valid type names to be passed to Simplify.ignore, that include the module name, like `Module.Name.TypeName`."
+                    ]
                 }
 
 
