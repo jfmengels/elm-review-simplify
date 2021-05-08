@@ -509,6 +509,7 @@ fromModuleToProject =
         (\moduleContext ->
             { constructorsToIgnore = moduleContext.localConstructors
             , constructorsForType = moduleContext.constructorsForType
+            , ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
             }
         )
 
@@ -535,6 +536,7 @@ foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { constructorsToIgnore = Set.union newContext.constructorsToIgnore previousContext.constructorsToIgnore
     , constructorsForType = Dict.union newContext.constructorsForType previousContext.constructorsForType
+    , ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
     }
 
 
@@ -662,6 +664,7 @@ isValidType typeAsString =
 type alias ProjectContext =
     { constructorsToIgnore : Set ( ModuleName, String )
     , constructorsForType : Dict ( ModuleName, String ) (List String)
+    , ignoredCustomTypes : List Constructor
     }
 
 
@@ -688,6 +691,7 @@ initialContext : ProjectContext
 initialContext =
     { constructorsToIgnore = Set.empty
     , constructorsForType = Dict.empty
+    , ignoredCustomTypes = []
     }
 
 
