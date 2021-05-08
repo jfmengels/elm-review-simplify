@@ -505,11 +505,53 @@ type Configuration
         }
 
 
+{-| Default configuration for this rule. Use [`ignore`](./ignore) if you want to change the configuration.
+
+    config =
+        [ Simplify.defaults
+            |> Simplify.ignore [ "Module.Name.Type" ]
+            |> Simplify.rule
+        ]
+
+-}
 defaults : Configuration
 defaults =
     Configuration { ignoreConstructors = [] }
 
 
+{-| Ignore some reports about types used in case expressions.
+
+    config =
+        [ Simplify.defaults
+            |> Simplify.ignore [ "Module.Name.Type" ]
+            |> Simplify.rule
+        ]
+
+This rule simplifies the following construct:
+
+    case value of
+        Module.Name.A -> x
+        Module.Name.B -> x
+    --> x
+
+In some cases, you may want to disable this simplification because you expect to change or add constructors to this custom type.
+Keeping the case expression as it is will make the compiler remind you to update this code, which can be valuable.
+
+I personally don't recommend to use this function too much, because this could be a sign of premature abstraction, and because
+I think that often [You Aren't Gonna Need this code](https://jfmengels.net/safe-dead-code-removal/#yagni-you-arent-gonna-need-it).
+
+When using it, I recommend not keeping it there too long and to come back after a while to see if this exception is still worth having.
+Maybe add a comment with the date and an explanation next to each exception?
+
+Note that if you use a wildcard, you may still get the simplification, since in this case the compiler will
+not remind you anyway.
+
+    case value of
+        Module.Name.A -> x
+        _ -> x
+    --> x
+
+-}
 ignore : List String -> Configuration -> Configuration
 ignore ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
