@@ -717,11 +717,6 @@ errorForAddingEmptyLists range rangeToRemove =
 declarationListVisitor : Set ( ModuleName, String ) -> List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
 declarationListVisitor constructorsToIgnore declarations context =
     let
-        localConstructors : Set ( ModuleName, String )
-        localConstructors =
-            List.concatMap (findConstructors constructorsToIgnore context) declarations
-                |> Set.fromList
-
         localIgnoredCustomTypes : List Constructor
         localIgnoredCustomTypes =
             List.filterMap (findCustomTypes constructorsToIgnore context) declarations
@@ -733,26 +728,6 @@ declarationListVisitor constructorsToIgnore declarations context =
         , constructorsToIgnore = Set.union (buildConstructorsToIgnore localIgnoredCustomTypes) context.constructorsToIgnore
       }
     )
-
-
-findConstructors : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> List ( ModuleName, String )
-findConstructors constructorsToIgnore context node =
-    case Node.value node of
-        Declaration.CustomTypeDeclaration { name, constructors } ->
-            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
-                List.map
-                    (\constructor ->
-                        ( context.moduleName
-                        , constructor |> Node.value |> .name |> Node.value
-                        )
-                    )
-                    constructors
-
-            else
-                []
-
-        _ ->
-            []
 
 
 findCustomTypes : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> Maybe Constructor
