@@ -520,6 +520,7 @@ fromProjectToModule =
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
+            , localIgnoredCustomTypes = []
             , ignoredCustomTypes = []
             , localConstructors = Set.empty
             , constructorsForType = projectContext.constructorsForType
@@ -669,6 +670,7 @@ type alias ModuleContext =
     , moduleName : ModuleName
     , rangesToIgnore : List Range
     , ignoredCustomTypes : List Constructor
+    , localIgnoredCustomTypes : List Constructor
     , localConstructors : Set ( ModuleName, String )
     , constructorsForType : Dict ( ModuleName, String ) (List String)
     , constructorsToIgnore : Set ( ModuleName, String )
@@ -721,14 +723,20 @@ declarationListVisitor constructorsToIgnore declarations context =
             List.concatMap (findConstructors constructorsToIgnore context) declarations
                 |> Set.fromList
 
+        constructorsForType : Dict ( ModuleName, String ) (List String)
         constructorsForType =
             declarations
                 |> List.filterMap (findConstructorsForType constructorsToIgnore context)
                 |> Dict.fromList
+
+        localIgnoredCustomTypes : List Constructor
+        localIgnoredCustomTypes =
+            List.filterMap (findCustomTypes constructorsToIgnore context) declarations
     in
     ( []
     , { context
-        | ignoredCustomTypes = List.filterMap (findCustomTypes constructorsToIgnore context) declarations
+        | localIgnoredCustomTypes = localIgnoredCustomTypes
+        , ignoredCustomTypes = localIgnoredCustomTypes ++ context.ignoredCustomTypes
         , localConstructors = localConstructors
         , constructorsForType = constructorsForType
         , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
