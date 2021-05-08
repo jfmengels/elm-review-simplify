@@ -724,12 +724,6 @@ declarationListVisitor constructorsToIgnore declarations context =
             List.concatMap (findConstructors constructorsToIgnore context) declarations
                 |> Set.fromList
 
-        constructorsForType : Dict ( ModuleName, String ) (List String)
-        constructorsForType =
-            declarations
-                |> List.filterMap (findConstructorsForType constructorsToIgnore context)
-                |> Dict.fromList
-
         localIgnoredCustomTypes : List Constructor
         localIgnoredCustomTypes =
             List.filterMap (findCustomTypes constructorsToIgnore context) declarations
@@ -742,27 +736,6 @@ declarationListVisitor constructorsToIgnore declarations context =
         , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
       }
     )
-
-
-findConstructorsForType : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> Maybe ( ( ModuleName, String ), List String )
-findConstructorsForType constructorsToIgnore context node =
-    case Node.value node of
-        Declaration.CustomTypeDeclaration { name, constructors } ->
-            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
-                Just
-                    ( ( context.moduleName, Node.value name )
-                    , List.map
-                        (\constructor ->
-                            constructor |> Node.value |> .name |> Node.value
-                        )
-                        constructors
-                    )
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
 
 
 findConstructors : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> List ( ModuleName, String )
@@ -3610,7 +3583,7 @@ introducesVariable node =
         Pattern.ListPattern nodes ->
             List.any introducesVariable nodes
 
-        Pattern.NamedPattern { name } nodes ->
+        Pattern.NamedPattern _ nodes ->
             List.any introducesVariable nodes
 
         _ ->
@@ -3645,19 +3618,6 @@ findUsedConstructors context node =
 
         _ ->
             []
-
-
-isIgnoredConstructor : ModuleContext -> Range -> String -> Bool
-isIgnoredConstructor context range name =
-    case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
-        Just [] ->
-            Set.member ( context.moduleName, name ) context.constructorsToIgnore
-
-        Just moduleName ->
-            Set.member ( moduleName, name ) context.constructorsToIgnore
-
-        Nothing ->
-            False
 
 
 isIgnoredConstructor2 : ModuleContext -> Range -> String -> Maybe ModuleName
