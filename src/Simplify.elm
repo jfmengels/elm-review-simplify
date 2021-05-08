@@ -730,7 +730,7 @@ declarationListVisitor constructorsToIgnore declarations context =
     , { context
         | localIgnoredCustomTypes = localIgnoredCustomTypes
         , ignoredCustomTypes = localIgnoredCustomTypes ++ context.ignoredCustomTypes
-        , constructorsToIgnore = Set.union localConstructors context.constructorsToIgnore
+        , constructorsToIgnore = Set.union (buildConstructorsToIgnore localIgnoredCustomTypes) context.constructorsToIgnore
       }
     )
 
