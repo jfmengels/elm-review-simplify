@@ -818,6 +818,19 @@ a = case value of
 """
                     |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "A.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
+        , test "should not replace case of with a single case when the constructor from a different file is ignored" <|
+            \() ->
+                [ """module A exposing (..)
+import Other exposing (B(..))
+a = case value of
+      C -> x
+"""
+                , """module Other exposing (..)
+type B = C
+"""
+                ]
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
+                    |> Review.Test.expectNoErrors
         , test "should replace case of with a single case with ignored arguments by the body of the case" <|
             \() ->
                 """module A exposing (..)
