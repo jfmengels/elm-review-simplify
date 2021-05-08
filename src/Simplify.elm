@@ -3506,6 +3506,38 @@ introducesVariable context node =
             False
 
 
+findUsedConstructors : ModuleContext -> Node Pattern -> Bool
+findUsedConstructors context node =
+    case Node.value node of
+        Pattern.VarPattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.AsPattern _ _ ->
+            True
+
+        Pattern.ParenthesizedPattern pattern ->
+            introducesVariable context pattern
+
+        Pattern.TuplePattern nodes ->
+            List.any (introducesVariable context) nodes
+
+        Pattern.UnConsPattern first rest ->
+            List.any (introducesVariable context) [ first, rest ]
+
+        Pattern.ListPattern nodes ->
+            List.any (introducesVariable context) nodes
+
+        Pattern.NamedPattern { name } nodes ->
+            isIgnoredConstructor context (Node.range node) name
+                || List.any (introducesVariable context) nodes
+
+        _ ->
+            False
+
+
 isIgnoredConstructor : ModuleContext -> Range -> String -> Bool
 isIgnoredConstructor context range name =
     case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
