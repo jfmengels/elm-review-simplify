@@ -521,21 +521,25 @@ defaults =
 
 {-| Ignore some reports about types used in case expressions.
 
+This rule simplifies the following construct:
+
+    module Module.Name exposing (..)
+
+    type Type = A | B
+
+    case value of
+        A -> x
+        B -> x
+    --> x
+
+In some cases, you may want to disable this simplification because you expect to change or add constructors to this custom type.
+Keeping the case expression as it is will make the compiler remind you to update this code, which can be valuable.
+
     config =
         [ Simplify.defaults
             |> Simplify.ignoreCaseOfWithConstructors [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
-
-This rule simplifies the following construct:
-
-    case value of
-        Module.Name.A -> x
-        Module.Name.B -> x
-    --> x
-
-In some cases, you may want to disable this simplification because you expect to change or add constructors to this custom type.
-Keeping the case expression as it is will make the compiler remind you to update this code, which can be valuable.
 
 I personally don't recommend to use this function too much, because this could be a sign of premature abstraction, and because
 I think that often [You Aren't Gonna Need this code](https://jfmengels.net/safe-dead-code-removal/#yagni-you-arent-gonna-need-it).
@@ -547,7 +551,7 @@ Note that if you use a wildcard, you may still get the simplification, since in 
 not remind you anyway.
 
     case value of
-        Module.Name.A -> x
+        A -> x
         _ -> x
     --> x
 
