@@ -712,7 +712,7 @@ errorForAddingEmptyLists range rangeToRemove =
 
 
 
--- DECLARATION List VISITOR
+-- DECLARATION LIST VISITOR
 
 
 declarationListVisitor : Set ( ModuleName, String ) -> List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
