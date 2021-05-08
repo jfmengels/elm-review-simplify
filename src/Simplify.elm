@@ -3545,7 +3545,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                             |> Set.fromList
                             |> Set.toList
                 in
-                if allConstructorsWereUsedOfAType context constructorsUsed then
+                if allConstructorsWereUsedOfAType context.ignoredCustomTypes constructorsUsed then
                     []
 
                 else
@@ -3565,22 +3565,22 @@ sameBodyForCaseOfChecks context parentRange cases =
                     ]
 
 
-allConstructorsWereUsedOfAType : ModuleContext -> List ( ModuleName, String ) -> Bool
-allConstructorsWereUsedOfAType context constructorsUsed =
+allConstructorsWereUsedOfAType : List Constructor -> List ( ModuleName, String ) -> Bool
+allConstructorsWereUsedOfAType ignoredCustomTypes constructorsUsed =
     case constructorsUsed of
         [] ->
             False
 
         ( moduleName, constructorName ) :: rest ->
-            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) context.ignoredCustomTypes of
+            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) ignoredCustomTypes of
                 Just customType ->
                     List.all
                         (\constructor -> List.member ( moduleName, constructor ) (( moduleName, constructorName ) :: rest))
                         customType.constructors
-                        || allConstructorsWereUsedOfAType context rest
+                        || allConstructorsWereUsedOfAType ignoredCustomTypes rest
 
                 Nothing ->
-                    allConstructorsWereUsedOfAType context rest
+                    allConstructorsWereUsedOfAType ignoredCustomTypes rest
 
 
 caseKeyWordRange : Range -> Range
