@@ -108,9 +108,14 @@ a = 1
                                 , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
                                 ]
                           }
-
-                        --  TODO Add test for finding custom type in dependencies
                         ]
+        , test "should not report global error if ignored type was found in the dependencies" <|
+            \() ->
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "Maybe.Maybe" ] defaults)
+                    |> Review.Test.expectNoErrors
         ]
 
 
