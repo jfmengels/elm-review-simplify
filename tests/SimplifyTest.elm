@@ -93,6 +93,24 @@ type D = D
                         { message = "Invalid type names: `_.B`, `A.f`, `B`"
                         , details = details
                         }
+        , test "should report global error if ignored types were not found in the project" <|
+            \() ->
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "A.B", "B.C" ] defaults)
+                    |> Review.Test.expectGlobalErrors
+                        [ { message = "Could not find type names: `A.B`, `B.C`"
+                          , details =
+                                [ "I expected to find these custom types in the code or dependencies, but I could not find them."
+                                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                                , "If you find that these types have been moved or renamed, please update your configuration."
+                                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                ]
+                          }
+
+                        --  TODO Add test for finding custom type in dependencies
+                        ]
         ]
 
 
