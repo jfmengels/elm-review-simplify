@@ -718,7 +718,7 @@ dependenciesVisitor dict _ =
                             (\union ->
                                 { moduleName = String.split "." mod.name
                                 , name = union.name
-                                , constructors = [ "Just", "Nothing" ]
+                                , constructors = List.map Tuple.first union.tags
                                 }
                             )
                             mod.unions
