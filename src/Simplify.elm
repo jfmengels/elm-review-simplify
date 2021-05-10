@@ -492,6 +492,7 @@ rule (Configuration config) =
                     , foldProjectContexts = foldProjectContexts
                     }
                 |> Rule.withContextFromImportedModules
+                |> Rule.withFinalProjectEvaluation finalEvaluation
                 |> Rule.fromProjectRuleSchema
 
         Err invalidTypes ->
@@ -696,6 +697,15 @@ foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
     }
+
+
+
+-- FINAL EVALUATION
+
+
+finalEvaluation : ProjectContext -> List (Error { useErrorForModule : () })
+finalEvaluation projectContext =
+    []
 
 
 
