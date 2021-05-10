@@ -720,6 +720,7 @@ dependenciesVisitor typeNames dict _ =
                                 String.split "." mod.name
                         in
                         mod.unions
+                            |> List.filter (\{ name } -> Set.member ( moduleName, name ) typeNames)
                             |> List.map
                                 (\union ->
                                     { moduleName = moduleName
