@@ -714,14 +714,14 @@ dependenciesVisitor typeNames dict _ =
                 |> List.concatMap Dependency.modules
                 |> List.concatMap
                     (\mod ->
-                        List.map
-                            (\union ->
-                                { moduleName = String.split "." mod.name
-                                , name = union.name
-                                , constructors = List.map Tuple.first union.tags
-                                }
-                            )
-                            mod.unions
+                        mod.unions
+                            |> List.map
+                                (\union ->
+                                    { moduleName = String.split "." mod.name
+                                    , name = union.name
+                                    , constructors = List.map Tuple.first union.tags
+                                    }
+                                )
                     )
       }
     )
