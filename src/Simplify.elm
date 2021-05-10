@@ -492,7 +492,7 @@ rule (Configuration config) =
                     , foldProjectContexts = foldProjectContexts
                     }
                 |> Rule.withContextFromImportedModules
-                |> Rule.withFinalProjectEvaluation (finalEvaluation [ "A.B", "B.C" ])
+                |> Rule.withFinalProjectEvaluation (finalEvaluation config.ignoreConstructors)
                 |> Rule.fromProjectRuleSchema
 
         Err invalidTypes ->
