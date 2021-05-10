@@ -686,6 +686,22 @@ fromModuleToProject =
         )
 
 
+initialModuleContext : Rule.ContextCreator () ModuleContext
+initialModuleContext =
+    Rule.initContextCreator
+        (\lookupTable metadata () ->
+            { lookupTable = lookupTable
+            , moduleName = Rule.moduleNameFromMetadata metadata
+            , rangesToIgnore = []
+            , localIgnoredCustomTypes = []
+            , ignoredCustomTypes = []
+            , constructorsToIgnore = Set.empty
+            }
+        )
+        |> Rule.withModuleNameLookupTable
+        |> Rule.withMetadata
+
+
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
 fromProjectToModule =
     Rule.initContextCreator
