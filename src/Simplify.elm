@@ -708,8 +708,7 @@ finalEvaluation ignoreConstructors projectContext =
     let
         list : List String
         list =
-            ignoreConstructors
-                |> Set.fromList
+            Set.fromList ignoreConstructors
                 |> Set.toList
     in
     [ Rule.globalError
