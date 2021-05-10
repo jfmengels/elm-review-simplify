@@ -715,6 +715,7 @@ dependenciesVisitor typeNames dict _ =
                 |> List.concatMap
                     (\mod ->
                         let
+                            moduleName : ModuleName
                             moduleName =
                                 String.split "." mod.name
                         in
