@@ -712,6 +712,7 @@ dependenciesVisitor dict _ =
             dict
                 |> Dict.values
                 |> List.concatMap Dependency.modules
+                |> List.concatMap .unions
                 |> List.map
                     (\dep ->
                         { moduleName = [ "Maybe" ]
