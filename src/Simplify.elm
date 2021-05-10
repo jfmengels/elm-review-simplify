@@ -486,7 +486,6 @@ rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok [] ->
             Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDependenciesProjectVisitor (dependenciesVisitor Set.empty)
                 |> Rule.withModuleVisitor (moduleVisitor Set.empty)
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
