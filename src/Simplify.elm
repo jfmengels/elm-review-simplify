@@ -715,9 +715,9 @@ dependenciesVisitor dict _ =
                 |> List.concatMap
                     (\mod ->
                         List.map
-                            (\_ ->
+                            (\union ->
                                 { moduleName = String.split "." mod.name
-                                , name = "Maybe"
+                                , name = union.name
                                 , constructors = [ "Just", "Nothing" ]
                                 }
                             )
