@@ -706,6 +706,7 @@ foldProjectContexts newContext previousContext =
 finalEvaluation : ProjectContext -> List (Error { useErrorForModule : () })
 finalEvaluation projectContext =
     let
+        list : List String
         list =
             [ "A.B", "B.C" ]
     in
