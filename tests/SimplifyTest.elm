@@ -854,6 +854,15 @@ type B = C
                 ]
                     |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
+        , test "should not replace case of with a single case when the constructor from a dependency is ignored" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      Just _ -> x
+      Nothing -> x
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "Maybe.Maybe" ] <| defaults)
+                    |> Review.Test.expectNoErrors
         , test "should not replace case of with multiple cases when all constructors of ignored type are used" <|
             \() ->
                 [ """module A exposing (..)
