@@ -484,7 +484,25 @@ import Simplify.Normalize as Normalize
 rule : Configuration -> Rule
 rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
-        Ok typeNames ->
+        Ok [] ->
+            Rule.newProjectRuleSchema "Simplify" initialContext
+                |> Rule.withDependenciesProjectVisitor (dependenciesVisitor Set.empty)
+                |> Rule.withModuleVisitor (moduleVisitor Set.empty)
+                |> Rule.withModuleContextUsingContextCreator
+                    { fromProjectToModule = fromProjectToModule
+                    , fromModuleToProject = fromModuleToProject
+                    , foldProjectContexts = foldProjectContexts
+                    }
+                |> Rule.withContextFromImportedModules
+                |> Rule.withFinalProjectEvaluation (finalEvaluation config.ignoreConstructors)
+                |> Rule.fromProjectRuleSchema
+
+        Ok typeNamesList ->
+            let
+                typeNames : Set ( ModuleName, String )
+                typeNames =
+                    Set.fromList typeNamesList
+            in
             Rule.newProjectRuleSchema "Simplify" initialContext
                 |> Rule.withDependenciesProjectVisitor (dependenciesVisitor typeNames)
                 |> Rule.withModuleVisitor (moduleVisitor typeNames)
@@ -586,7 +604,7 @@ ignoreCaseOfWithConstructors ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
 
 
-parseTypeNames : List String -> Result (List String) (Set ( ModuleName, String ))
+parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
 parseTypeNames strings =
     let
         parsedTypeNames : List (Result String ( ModuleName, String ))
@@ -609,7 +627,6 @@ parseTypeNames strings =
     if List.isEmpty invalidTypeNames then
         parsedTypeNames
             |> List.filterMap Result.toMaybe
-            |> Set.fromList
             |> Ok
 
     else
