@@ -705,7 +705,16 @@ foldProjectContexts newContext previousContext =
 
 finalEvaluation : ProjectContext -> List (Error { useErrorForModule : () })
 finalEvaluation projectContext =
-    []
+    [ Rule.globalError
+        { message = "Could not find type names: `A.B`, `B.C`"
+        , details =
+            [ "I expected to find these custom types in the code or dependencies, but I could not find them."
+            , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+            , "If you find that these types have been moved or renamed, please update your configuration."
+            , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+            ]
+        }
+    ]
 
 
 
