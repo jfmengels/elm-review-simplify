@@ -708,7 +708,12 @@ foldProjectContexts newContext previousContext =
 dependenciesVisitor : Dict String Review.Project.Dependency.Dependency -> ProjectContext -> ( List nothing, ProjectContext )
 dependenciesVisitor dict _ =
     ( []
-    , { ignoredCustomTypes = []
+    , { ignoredCustomTypes =
+            [ { moduleName = [ "Maybe" ]
+              , name = "Maybe"
+              , constructors = [ "Just", "Nothing" ]
+              }
+            ]
       }
     )
 
