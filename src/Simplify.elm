@@ -492,7 +492,7 @@ rule (Configuration config) =
                     , foldProjectContexts = foldProjectContexts
                     }
                 |> Rule.withContextFromImportedModules
-                |> Rule.withFinalProjectEvaluation finalEvaluation
+                |> Rule.withFinalProjectEvaluation (finalEvaluation [ "A.B", "B.C" ])
                 |> Rule.fromProjectRuleSchema
 
         Err invalidTypes ->
@@ -703,12 +703,12 @@ foldProjectContexts newContext previousContext =
 -- FINAL EVALUATION
 
 
-finalEvaluation : ProjectContext -> List (Error { useErrorForModule : () })
-finalEvaluation projectContext =
+finalEvaluation : List String -> ProjectContext -> List (Error { useErrorForModule : () })
+finalEvaluation ignoreConstructors projectContext =
     let
         list : List String
         list =
-            [ "A.B", "B.C" ]
+            ignoreConstructors
     in
     [ Rule.globalError
         { message = "Could not find type names: " ++ (String.join ", " <| List.map wrapInBackticks list)
