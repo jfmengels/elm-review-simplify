@@ -708,7 +708,9 @@ finalEvaluation ignoreConstructors projectContext =
     let
         list : List String
         list =
-            Set.empty
+            projectContext.ignoredCustomTypes
+                |> List.map (\type_ -> String.join "." type_.moduleName ++ "." ++ type_.name)
+                |> Set.fromList
                 |> Set.diff (Set.fromList ignoreConstructors)
                 |> Set.toList
     in
