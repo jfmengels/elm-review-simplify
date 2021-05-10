@@ -709,7 +709,8 @@ dependenciesVisitor : Dict String Review.Project.Dependency.Dependency -> Projec
 dependenciesVisitor dict _ =
     ( []
     , { ignoredCustomTypes =
-            [ 1 ]
+            dict
+                |> Dict.values
                 |> List.map
                     (\dep ->
                         { moduleName = [ "Maybe" ]
