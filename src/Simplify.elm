@@ -709,6 +709,8 @@ finalEvaluation ignoreConstructors projectContext =
         list : List String
         list =
             ignoreConstructors
+                |> Set.fromList
+                |> Set.toList
     in
     [ Rule.globalError
         { message = "Could not find type names: " ++ (String.join ", " <| List.map wrapInBackticks list)
