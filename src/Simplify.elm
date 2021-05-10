@@ -486,7 +486,7 @@ rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok typeNames ->
             Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDependenciesProjectVisitor dependenciesVisitor
+                |> Rule.withDependenciesProjectVisitor (dependenciesVisitor typeNames)
                 |> Rule.withModuleVisitor (moduleVisitor typeNames)
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
@@ -705,8 +705,8 @@ foldProjectContexts newContext previousContext =
 -- DEPENDENCIES VISITOR
 
 
-dependenciesVisitor : Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
-dependenciesVisitor dict _ =
+dependenciesVisitor : Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
+dependenciesVisitor typeNames dict _ =
     ( []
     , { ignoredCustomTypes =
             dict
