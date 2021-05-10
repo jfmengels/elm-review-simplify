@@ -473,6 +473,7 @@ import Elm.Type
 import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Review.Project.Dependency
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.Normalize as Normalize
@@ -485,6 +486,7 @@ rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok typeNames ->
             Rule.newProjectRuleSchema "Simplify" initialContext
+                |> Rule.withDependenciesProjectVisitor dependenciesVisitor
                 |> Rule.withModuleVisitor (moduleVisitor typeNames)
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
@@ -697,6 +699,18 @@ foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
     }
+
+
+
+-- DEPENDENCIES VISITOR
+
+
+dependenciesVisitor : Dict String Review.Project.Dependency.Dependency -> ProjectContext -> ( List nothing, ProjectContext )
+dependenciesVisitor dict { ignoredCustomTypes } =
+    ( []
+    , { ignoredCustomTypes = ignoredCustomTypes
+      }
+    )
 
 
 
