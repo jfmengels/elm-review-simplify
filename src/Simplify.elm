@@ -485,14 +485,9 @@ rule : Configuration -> Rule
 rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok [] ->
-            Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withModuleVisitor (moduleVisitor Set.empty)
-                |> Rule.withModuleContextUsingContextCreator
-                    { fromProjectToModule = fromProjectToModule
-                    , fromModuleToProject = fromModuleToProject
-                    , foldProjectContexts = foldProjectContexts
-                    }
-                |> Rule.fromProjectRuleSchema
+            Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialModuleContext
+                |> moduleVisitor Set.empty
+                |> Rule.fromModuleRuleSchema
 
         Ok typeNamesList ->
             let
