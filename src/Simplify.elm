@@ -503,50 +503,16 @@ rule (Configuration config) =
                 }
 
 
-fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
-fromModuleToProject =
-    Rule.initContextCreator
-        (\moduleContext ->
-            { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
-            }
-        )
-
-
-fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
-fromProjectToModule =
-    Rule.initContextCreator
-        (\lookupTable metadata projectContext ->
-            { lookupTable = lookupTable
-            , moduleName = Rule.moduleNameFromMetadata metadata
-            , rangesToIgnore = []
-            , localIgnoredCustomTypes = []
-            , ignoredCustomTypes = projectContext.ignoredCustomTypes
-            , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
-            }
-        )
-        |> Rule.withModuleNameLookupTable
-        |> Rule.withMetadata
-
-
-buildConstructorsToIgnore : List Constructor -> Set ( ModuleName, String )
-buildConstructorsToIgnore constructors =
-    constructors
-        |> List.concatMap (\c -> List.map (Tuple.pair c.moduleName) c.constructors)
-        |> Set.fromList
-
-
-foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
-foldProjectContexts newContext previousContext =
-    { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
-    }
-
-
 moduleVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor typeNames schema =
     schema
         |> Rule.withDeclarationListVisitor (declarationListVisitor typeNames)
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
+
+
+
+-- CONFIGURATION
 
 
 {-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfWithConstructors`](#ignoreCaseOfWithConstructors) to alter it.
@@ -662,6 +628,10 @@ isValidType typeAsString =
             Err typeAsString
 
 
+
+-- CONTEXT
+
+
 type alias ProjectContext =
     { ignoredCustomTypes : List Constructor
     }
@@ -690,24 +660,42 @@ initialContext =
     }
 
 
-errorForAddingEmptyStrings : Range -> Range -> Error {}
-errorForAddingEmptyStrings range rangeToRemove =
-    Rule.errorWithFix
-        { message = "Unnecessary concatenation with an empty string"
-        , details = [ "You should remove the concatenation with the empty string." ]
-        }
-        range
-        [ Fix.removeRange rangeToRemove ]
+fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
+fromModuleToProject =
+    Rule.initContextCreator
+        (\moduleContext ->
+            { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
+            }
+        )
 
 
-errorForAddingEmptyLists : Range -> Range -> Error {}
-errorForAddingEmptyLists range rangeToRemove =
-    Rule.errorWithFix
-        { message = "Concatenating with a single list doesn't have any effect"
-        , details = [ "You should remove the concatenation with the empty list." ]
-        }
-        range
-        [ Fix.removeRange rangeToRemove ]
+fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
+fromProjectToModule =
+    Rule.initContextCreator
+        (\lookupTable metadata projectContext ->
+            { lookupTable = lookupTable
+            , moduleName = Rule.moduleNameFromMetadata metadata
+            , rangesToIgnore = []
+            , localIgnoredCustomTypes = []
+            , ignoredCustomTypes = projectContext.ignoredCustomTypes
+            , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
+            }
+        )
+        |> Rule.withModuleNameLookupTable
+        |> Rule.withMetadata
+
+
+buildConstructorsToIgnore : List Constructor -> Set ( ModuleName, String )
+buildConstructorsToIgnore constructors =
+    constructors
+        |> List.concatMap (\c -> List.map (Tuple.pair c.moduleName) c.constructors)
+        |> Set.fromList
+
+
+foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
+foldProjectContexts newContext previousContext =
+    { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
+    }
 
 
 
@@ -1502,6 +1490,26 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right } =
 
         _ ->
             []
+
+
+errorForAddingEmptyStrings : Range -> Range -> Error {}
+errorForAddingEmptyStrings range rangeToRemove =
+    Rule.errorWithFix
+        { message = "Unnecessary concatenation with an empty string"
+        , details = [ "You should remove the concatenation with the empty string." ]
+        }
+        range
+        [ Fix.removeRange rangeToRemove ]
+
+
+errorForAddingEmptyLists : Range -> Range -> Error {}
+errorForAddingEmptyLists range rangeToRemove =
+    Rule.errorWithFix
+        { message = "Concatenating with a single list doesn't have any effect"
+        , details = [ "You should remove the concatenation with the empty list." ]
+        }
+        range
+        [ Fix.removeRange rangeToRemove ]
 
 
 consChecks : OperatorCheckInfo -> List (Error {})
