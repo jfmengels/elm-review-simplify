@@ -564,7 +564,7 @@ This rule simplifies the following construct:
     --> x
 
 In some cases, you may want to disable this simplification because you expect to change or add constructors to this custom type.
-Keeping the case expression as it is will make the compiler remind you to update this code, which can be valuable.
+Keeping the case expression as it is will make the compiler remind you to update this code when you add new variants, which can be valuable.
 
 Using the following configuration, case of expressions — where all variants of the `Type` custom type
 from the `Module.Name` module appear — will not be simplified.
@@ -586,8 +586,8 @@ not remind you anyway.
 I personally don't recommend to use this function too much, because this could be a sign of premature abstraction, and because
 I think that often [You Aren't Gonna Need this code](https://jfmengels.net/safe-dead-code-removal/#yagni-you-arent-gonna-need-it).
 
-Only use it for custom types that you think will change soon. When using it, I recommend not keeping it there too long
-and to come back after a while to see if this exception is still worth having. Maybe add a comment with the date and an
+Only use it for custom types that you think will change soon. When using it, I recommend not keeping it there too long.
+Come back after a while to see if this exception is still worth having. Maybe add a comment with the date and an
 explanation next to each exception?
 
 -}
