@@ -473,7 +473,7 @@ import Elm.Type
 import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
-import Review.Project.Dependency
+import Review.Project.Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.Normalize as Normalize
@@ -705,7 +705,7 @@ foldProjectContexts newContext previousContext =
 -- DEPENDENCIES VISITOR
 
 
-dependenciesVisitor : Dict String Review.Project.Dependency.Dependency -> ProjectContext -> ( List nothing, ProjectContext )
+dependenciesVisitor : Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
 dependenciesVisitor dict _ =
     ( []
     , { ignoredCustomTypes =
