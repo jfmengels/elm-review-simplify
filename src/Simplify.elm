@@ -473,7 +473,7 @@ import Elm.Type
 import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
-import Review.Project.Dependency exposing (Dependency)
+import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.Normalize as Normalize
@@ -711,6 +711,7 @@ dependenciesVisitor dict _ =
     , { ignoredCustomTypes =
             dict
                 |> Dict.values
+                |> List.concatMap Dependency.modules
                 |> List.map
                     (\dep ->
                         { moduleName = [ "Maybe" ]
