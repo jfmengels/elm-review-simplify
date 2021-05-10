@@ -712,13 +712,13 @@ dependenciesVisitor dict _ =
             dict
                 |> Dict.values
                 |> List.concatMap Dependency.modules
-                |> List.concatMap .unions
-                |> List.map
-                    (\dep ->
-                        { moduleName = [ "Maybe" ]
-                        , name = "Maybe"
-                        , constructors = [ "Just", "Nothing" ]
-                        }
+                |> List.concatMap
+                    (\mod ->
+                        [ { moduleName = [ "Maybe" ]
+                          , name = "Maybe"
+                          , constructors = [ "Just", "Nothing" ]
+                          }
+                        ]
                     )
       }
     )
