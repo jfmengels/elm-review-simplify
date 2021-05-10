@@ -497,7 +497,7 @@ rule (Configuration config) =
 
         Err invalidTypes ->
             Rule.configurationError "Simplify"
-                { message = "Invalid type names: " ++ (invalidTypes |> List.map (\s -> "`" ++ s ++ "`") |> String.join ", ")
+                { message = "Invalid type names: " ++ (invalidTypes |> List.map wrapInBackticks |> String.join ", ")
                 , details =
                     [ "I expect valid type names to be passed to Simplify.ignoreCaseOfWithConstructors, that include the module name, like `Module.Name.TypeName`."
                     ]
@@ -719,6 +719,11 @@ finalEvaluation projectContext =
             ]
         }
     ]
+
+
+wrapInBackticks : String -> String
+wrapInBackticks s =
+    "`" ++ s ++ "`"
 
 
 
