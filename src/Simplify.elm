@@ -492,7 +492,6 @@ rule (Configuration config) =
                     , fromModuleToProject = fromModuleToProject
                     , foldProjectContexts = foldProjectContexts
                     }
-                |> Rule.withFinalProjectEvaluation (finalEvaluation config.ignoreConstructors)
                 |> Rule.fromProjectRuleSchema
 
         Ok typeNamesList ->
