@@ -519,9 +519,18 @@ rule (Configuration config) =
 moduleVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor typeNames schema =
     schema
-        |> Rule.withDeclarationListVisitor (declarationListVisitor typeNames)
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
+        |> addDeclarationListVisitor typeNames
+
+
+addDeclarationListVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+addDeclarationListVisitor typeNames schema =
+    if Set.isEmpty typeNames then
+        schema
+
+    else
+        Rule.withDeclarationListVisitor (declarationListVisitor typeNames) schema
 
 
 
