@@ -3593,13 +3593,13 @@ sameBodyForCaseOfChecks context parentRange cases =
 
             else
                 let
-                    constructorsUsed : List ( ModuleName, String )
-                    constructorsUsed =
+                    constructorsUsed : () -> List ( ModuleName, String )
+                    constructorsUsed () =
                         List.concatMap (Tuple.first >> findUsedConstructors context) (first :: rest)
                             |> Set.fromList
                             |> Set.toList
                 in
-                if allConstructorsWereUsedOfAType context.ignoredCustomTypes constructorsUsed then
+                if not (List.isEmpty context.ignoredCustomTypes) && allConstructorsWereUsedOfAType context.ignoredCustomTypes (constructorsUsed ()) then
                     []
 
                 else
