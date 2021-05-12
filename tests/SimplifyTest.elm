@@ -1,7 +1,7 @@
 module SimplifyTest exposing (all)
 
 import Review.Test
-import Simplify exposing (defaults, ignoreCaseOfWithConstructors, rule)
+import Simplify exposing (defaults, ignoreCaseOfForTypes, rule)
 import Test exposing (Test, describe, test)
 
 
@@ -39,7 +39,7 @@ configurationTests =
     let
         details : List String
         details =
-            [ "I expect valid type names to be passed to Simplify.ignoreCaseOfWithConstructors, that include the module name, like `Module.Name.TypeName`."
+            [ "I expect valid type names to be passed to Simplify.ignoreCaseOfForTypes, that include the module name, like `Module.Name.TypeName`."
             ]
     in
     describe "Configuration"
@@ -51,11 +51,11 @@ type C = C
 """, """module B.C exposing (..)
 type D = D
 """ ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "A.B", "A.C", "B.C.D" ] defaults)
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "A.B", "A.C", "B.C.D" ] defaults)
                     |> Review.Test.expectNoErrors
         , test "should report configuration error if passed an invalid module name" <|
             \() ->
-                ignoreCaseOfWithConstructors [ "_.B" ] defaults
+                ignoreCaseOfForTypes [ "_.B" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `_.B`"
@@ -63,7 +63,7 @@ type D = D
                         }
         , test "should report configuration error if passed an invalid type name" <|
             \() ->
-                ignoreCaseOfWithConstructors [ "A.f" ] defaults
+                ignoreCaseOfForTypes [ "A.f" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `A.f`"
@@ -71,7 +71,7 @@ type D = D
                         }
         , test "should report configuration error if passed an empty type name" <|
             \() ->
-                ignoreCaseOfWithConstructors [ "" ] defaults
+                ignoreCaseOfForTypes [ "" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: ``"
@@ -79,7 +79,7 @@ type D = D
                         }
         , test "should report configuration error if passed a type name without a module name" <|
             \() ->
-                ignoreCaseOfWithConstructors [ "B" ] defaults
+                ignoreCaseOfForTypes [ "B" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `B`"
@@ -87,7 +87,7 @@ type D = D
                         }
         , test "should report configuration error if passed multiple invalid types" <|
             \() ->
-                ignoreCaseOfWithConstructors [ "_.B", "A.f", "B", "Is.Valid" ] defaults
+                ignoreCaseOfForTypes [ "_.B", "A.f", "B", "Is.Valid" ] defaults
                     |> rule
                     |> Review.Test.expectConfigurationError
                         { message = "Invalid type names: `_.B`, `A.f`, `B`"
@@ -98,7 +98,7 @@ type D = D
                 """module A exposing (..)
 a = 1
 """
-                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "A.B", "B.C" ] defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.B", "B.C" ] defaults)
                     |> Review.Test.expectGlobalErrors
                         [ { message = "Could not find type names: `A.B`, `B.C`"
                           , details =
@@ -114,7 +114,7 @@ a = 1
                 """module A exposing (..)
 a = 1
 """
-                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "Maybe.Maybe" ] defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe" ] defaults)
                     |> Review.Test.expectNoErrors
         ]
 
@@ -839,7 +839,7 @@ type B = C
 a = case value of
       C -> x
 """
-                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "A.B" ] <| defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should not replace case of with a single case when the constructor from a different file is ignored" <|
             \() ->
@@ -852,7 +852,7 @@ a = case value of
 type B = C
 """
                 ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should not replace case of with a single case when the constructor from a dependency is ignored" <|
             \() ->
@@ -861,7 +861,7 @@ a = case value of
       Just _ -> x
       Nothing -> x
 """
-                    |> Review.Test.run (rule <| ignoreCaseOfWithConstructors [ "Maybe.Maybe" ] <| defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should not replace case of with multiple cases when all constructors of ignored type are used" <|
             \() ->
@@ -875,7 +875,7 @@ a = case value of
 type B = C | D
 """
                 ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace case of with multiple cases when not all constructors of ignored type are used" <|
             \() ->
@@ -890,7 +890,7 @@ a = case value of
 type B = C | D | E
 """
                 ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfWithConstructors [ "Other.B" ] <| defaults)
+                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
                     |> Review.Test.expectErrorsForModules
                         [ ( "A"
                           , [ Review.Test.error

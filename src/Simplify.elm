@@ -1,6 +1,6 @@
 module Simplify exposing
     ( rule
-    , Configuration, defaults, ignoreCaseOfWithConstructors
+    , Configuration, defaults, ignoreCaseOfForTypes
     )
 
 {-| Reports when an expression can be simplified.
@@ -10,7 +10,7 @@ module Simplify exposing
         ]
 
 @docs rule
-@docs Configuration, defaults, ignoreCaseOfWithConstructors
+@docs Configuration, defaults, ignoreCaseOfForTypes
 
 
 ## Try it out
@@ -511,7 +511,7 @@ rule (Configuration config) =
             Rule.configurationError "Simplify"
                 { message = "Invalid type names: " ++ (invalidTypes |> List.map wrapInBackticks |> String.join ", ")
                 , details =
-                    [ "I expect valid type names to be passed to Simplify.ignoreCaseOfWithConstructors, that include the module name, like `Module.Name.TypeName`."
+                    [ "I expect valid type names to be passed to Simplify.ignoreCaseOfForTypes, that include the module name, like `Module.Name.TypeName`."
                     ]
                 }
 
@@ -537,7 +537,7 @@ addDeclarationListVisitor typeNames schema =
 -- CONFIGURATION
 
 
-{-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfWithConstructors`](#ignoreCaseOfWithConstructors) to alter it.
+{-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) to alter it.
 -}
 type Configuration
     = Configuration
@@ -545,11 +545,11 @@ type Configuration
         }
 
 
-{-| Default configuration for this rule. Use [`ignoreCaseOfWithConstructors`](#ignoreCaseOfWithConstructors) if you want to change the configuration.
+{-| Default configuration for this rule. Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to change the configuration.
 
     config =
         [ Simplify.defaults
-            |> Simplify.ignoreCaseOfWithConstructors [ "Module.Name.Type" ]
+            |> Simplify.ignoreCaseOfForTypes [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
 
@@ -580,7 +580,7 @@ from the `Module.Name` module appear — will not be simplified.
 
     config =
         [ Simplify.defaults
-            |> Simplify.ignoreCaseOfWithConstructors [ "Module.Name.Type" ]
+            |> Simplify.ignoreCaseOfForTypes [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
 
@@ -600,8 +600,8 @@ Come back after a while to see if this exception is still worth having. Maybe ad
 explanation next to each exception?
 
 -}
-ignoreCaseOfWithConstructors : List String -> Configuration -> Configuration
-ignoreCaseOfWithConstructors ignoreConstructors (Configuration config) =
+ignoreCaseOfForTypes : List String -> Configuration -> Configuration
+ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
 
 
