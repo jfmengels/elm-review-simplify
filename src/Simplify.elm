@@ -662,6 +662,7 @@ type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
     , rangesToIgnore : List Range
+    , rightSidesOfPlusPlus : List Range
     , ignoredCustomTypes : List Constructor
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
@@ -697,6 +698,7 @@ initialModuleContext =
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
+            , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
@@ -713,6 +715,7 @@ fromProjectToModule =
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
+            , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
@@ -847,7 +850,7 @@ findCustomTypes constructorsToIgnore context node =
 
 declarationVisitor : Node a -> ModuleContext -> ( List nothing, ModuleContext )
 declarationVisitor _ context =
-    ( [], { context | rangesToIgnore = [] } )
+    ( [], { context | rangesToIgnore = [], rightSidesOfPlusPlus = [] } )
 
 
 
@@ -861,13 +864,35 @@ expressionVisitor node context =
 
     else
         let
-            ( errors, rangesToIgnore ) =
+            { errors, rangesToIgnore, rightSidesOfPlusPlus } =
                 expressionVisitorHelp node context
         in
-        ( errors, { context | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore } )
+        ( errors
+        , { context
+            | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore
+            , rightSidesOfPlusPlus =
+                rightSidesOfPlusPlus ++ context.rightSidesOfPlusPlus
+          }
+        )
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> ( List (Error {}), List Range )
+errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range }
+errorsAndRangesToIgnore errors rangesToIgnore =
+    { errors = errors
+    , rangesToIgnore = rangesToIgnore
+    , rightSidesOfPlusPlus = []
+    }
+
+
+onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range }
+onlyErrors errors =
+    { errors = errors
+    , rangesToIgnore = []
+    , rightSidesOfPlusPlus = []
+    }
+
+
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range }
 expressionVisitorHelp node context =
     case Node.value node of
         --------------------
@@ -879,19 +904,19 @@ expressionVisitorHelp node context =
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
-                    ( checkFn
-                        { lookupTable = context.lookupTable
-                        , parentRange = Node.range node
-                        , fnRange = fnRange
-                        , firstArg = firstArg
-                        , secondArg = List.head restOfArguments
-                        , usingRightPizza = False
-                        }
-                    , []
-                    )
+                    onlyErrors
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = List.head restOfArguments
+                            , usingRightPizza = False
+                            }
+                        )
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         -------------------
         -- IF EXPRESSION --
@@ -899,7 +924,8 @@ expressionVisitorHelp node context =
         Expression.IfBlock cond trueBranch falseBranch ->
             case getBoolean context.lookupTable cond of
                 Just True ->
-                    ( [ Rule.errorWithFix
+                    onlyErrors
+                        [ Rule.errorWithFix
                             { message = "The condition will always evaluate to True"
                             , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
                             }
@@ -913,12 +939,11 @@ expressionVisitorHelp node context =
                                 , end = (Node.range node).end
                                 }
                             ]
-                      ]
-                    , []
-                    )
+                        ]
 
                 Just False ->
-                    ( [ Rule.errorWithFix
+                    onlyErrors
+                        [ Rule.errorWithFix
                             { message = "The condition will always evaluate to False"
                             , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
                             }
@@ -928,14 +953,13 @@ expressionVisitorHelp node context =
                                 , end = (Node.range falseBranch).start
                                 }
                             ]
-                      ]
-                    , []
-                    )
+                        ]
 
                 Nothing ->
                     case ( getBoolean context.lookupTable trueBranch, getBoolean context.lookupTable falseBranch ) of
                         ( Just True, Just False ) ->
-                            ( [ Rule.errorWithFix
+                            onlyErrors
+                                [ Rule.errorWithFix
                                     { message = "The if expression's value is the same as the condition"
                                     , details = [ "The expression can be replaced by the condition." ]
                                     }
@@ -949,12 +973,11 @@ expressionVisitorHelp node context =
                                         , end = (Node.range node).end
                                         }
                                     ]
-                              ]
-                            , []
-                            )
+                                ]
 
                         ( Just False, Just True ) ->
-                            ( [ Rule.errorWithFix
+                            onlyErrors
+                                [ Rule.errorWithFix
                                     { message = "The if expression's value is the inverse of the condition"
                                     , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
                                     }
@@ -970,13 +993,12 @@ expressionVisitorHelp node context =
                                         }
                                         ")"
                                     ]
-                              ]
-                            , []
-                            )
+                                ]
 
                         _ ->
                             if Normalize.areTheSame context.lookupTable trueBranch falseBranch then
-                                ( [ Rule.errorWithFix
+                                onlyErrors
+                                    [ Rule.errorWithFix
                                         { message = "The values in both branches is the same."
                                         , details = [ "The expression can be replaced by the contents of either branch." ]
                                         }
@@ -990,12 +1012,10 @@ expressionVisitorHelp node context =
                                             , end = (Node.range node).end
                                             }
                                         ]
-                                  ]
-                                , []
-                                )
+                                    ]
 
                             else
-                                ( [], [] )
+                                onlyErrors []
 
         -------------------------------
         --  APPLIED LAMBDA FUNCTIONS --
@@ -1003,7 +1023,8 @@ expressionVisitorHelp node context =
         Expression.Application ((Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)))) :: firstArgument :: _) ->
             case lambda.args of
                 (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
-                    ( [ Rule.errorWithFix
+                    onlyErrors
+                        [ Rule.errorWithFix
                             { message = "Unnecessary unit argument"
                             , details =
                                 [ "This function is expecting a unit, but also passing it directly."
@@ -1022,12 +1043,11 @@ expressionVisitorHelp node context =
                                     , Fix.removeRange (Node.range firstArgument)
                                     ]
                             )
-                      ]
-                    , []
-                    )
+                        ]
 
                 (Node allRange Pattern.AllPattern) :: otherPatterns ->
-                    ( [ Rule.errorWithFix
+                    onlyErrors
+                        [ Rule.errorWithFix
                             { message = "Unnecessary wildcard argument argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
@@ -1046,18 +1066,17 @@ expressionVisitorHelp node context =
                                     , Fix.removeRange (Node.range firstArgument)
                                     ]
                             )
-                      ]
-                    , []
-                    )
+                        ]
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         -----------------------------------
         -- FULLY APPLIED PREFIX OPERATOR --
         -----------------------------------
         Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), left, right ] ->
-            ( [ Rule.errorWithFix
+            onlyErrors
+                [ Rule.errorWithFix
                     { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
                     , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
                     }
@@ -1065,15 +1084,13 @@ expressionVisitorHelp node context =
                     [ Fix.removeRange { start = operatorRange.start, end = (Node.range left).start }
                     , Fix.insertAt (Node.range right).start (operator ++ " ")
                     ]
-              ]
-            , []
-            )
+                ]
 
         -------------
         -- CASE OF --
         -------------
         Expression.CaseExpression caseBlock ->
-            ( caseOfChecks context (Node.range node) caseBlock, [] )
+            onlyErrors (caseOfChecks context (Node.range node) caseBlock)
 
         ----------
         -- (<|) --
@@ -1084,19 +1101,19 @@ expressionVisitorHelp node context =
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
-                    ( checkFn
-                        { lookupTable = context.lookupTable
-                        , parentRange = Node.range node
-                        , fnRange = fnRange
-                        , firstArg = firstArg
-                        , secondArg = Nothing
-                        , usingRightPizza = False
-                        }
-                    , []
-                    )
+                    onlyErrors
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = Nothing
+                            , usingRightPizza = False
+                            }
+                        )
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) secondArgument ->
             case
@@ -1104,19 +1121,20 @@ expressionVisitorHelp node context =
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
-                    ( checkFn
-                        { lookupTable = context.lookupTable
-                        , parentRange = Node.range node
-                        , fnRange = fnRange
-                        , firstArg = firstArg
-                        , secondArg = Just secondArgument
-                        , usingRightPizza = False
-                        }
-                    , [ applicationRange ]
-                    )
+                    errorsAndRangesToIgnore
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = Just secondArgument
+                            , usingRightPizza = False
+                            }
+                        )
+                        [ applicationRange ]
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         ----------
         -- (|>) --
@@ -1127,19 +1145,19 @@ expressionVisitorHelp node context =
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
-                    ( checkFn
-                        { lookupTable = context.lookupTable
-                        , parentRange = Node.range node
-                        , fnRange = fnRange
-                        , firstArg = firstArg
-                        , secondArg = Nothing
-                        , usingRightPizza = True
-                        }
-                    , []
-                    )
+                    onlyErrors
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = Nothing
+                            , usingRightPizza = True
+                            }
+                        )
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         Expression.OperatorApplication "|>" _ secondArgument (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: []))) ->
             case
@@ -1147,88 +1165,97 @@ expressionVisitorHelp node context =
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
             of
                 Just checkFn ->
-                    ( checkFn
-                        { lookupTable = context.lookupTable
-                        , parentRange = Node.range node
-                        , fnRange = fnRange
-                        , firstArg = firstArg
-                        , secondArg = Just secondArgument
-                        , usingRightPizza = True
-                        }
-                    , [ applicationRange ]
-                    )
+                    errorsAndRangesToIgnore
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = Just secondArgument
+                            , usingRightPizza = True
+                            }
+                        )
+                        [ applicationRange ]
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
-            ( firstThatReportsError compositionChecks
-                { lookupTable = context.lookupTable
-                , fromLeftToRight = True
-                , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
-                , left = left
-                , leftRange = Node.range left
-                , right = right
-                , rightRange = Node.range right
-                }
-            , []
-            )
+            onlyErrors
+                (firstThatReportsError compositionChecks
+                    { lookupTable = context.lookupTable
+                    , fromLeftToRight = True
+                    , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
+                    , left = left
+                    , leftRange = Node.range left
+                    , right = right
+                    , rightRange = Node.range right
+                    }
+                )
 
         Expression.OperatorApplication ">>" _ left right ->
-            ( firstThatReportsError compositionChecks
-                { lookupTable = context.lookupTable
-                , fromLeftToRight = True
-                , parentRange = Node.range node
-                , left = left
-                , leftRange = Node.range left
-                , right = right
-                , rightRange = Node.range right
-                }
-            , []
-            )
+            onlyErrors
+                (firstThatReportsError compositionChecks
+                    { lookupTable = context.lookupTable
+                    , fromLeftToRight = True
+                    , parentRange = Node.range node
+                    , left = left
+                    , leftRange = Node.range left
+                    , right = right
+                    , rightRange = Node.range right
+                    }
+                )
 
         Expression.OperatorApplication "<<" _ (Node _ (Expression.OperatorApplication "<<" _ _ left)) right ->
-            ( firstThatReportsError compositionChecks
-                { lookupTable = context.lookupTable
-                , fromLeftToRight = False
-                , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
-                , left = left
-                , leftRange = Node.range left
-                , right = right
-                , rightRange = Node.range right
-                }
-            , []
-            )
+            onlyErrors
+                (firstThatReportsError compositionChecks
+                    { lookupTable = context.lookupTable
+                    , fromLeftToRight = False
+                    , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
+                    , left = left
+                    , leftRange = Node.range left
+                    , right = right
+                    , rightRange = Node.range right
+                    }
+                )
 
         Expression.OperatorApplication "<<" _ left right ->
-            ( firstThatReportsError compositionChecks
-                { lookupTable = context.lookupTable
-                , fromLeftToRight = False
-                , parentRange = Node.range node
-                , left = left
-                , leftRange = Node.range left
-                , right = right
-                , rightRange = Node.range right
-                }
-            , []
-            )
+            onlyErrors
+                (firstThatReportsError compositionChecks
+                    { lookupTable = context.lookupTable
+                    , fromLeftToRight = False
+                    , parentRange = Node.range node
+                    , left = left
+                    , leftRange = Node.range left
+                    , right = right
+                    , rightRange = Node.range right
+                    }
+                )
 
         Expression.OperatorApplication operator _ left right ->
             case Dict.get operator operatorChecks of
                 Just checkFn ->
-                    ( checkFn
-                        { lookupTable = context.lookupTable
-                        , parentRange = Node.range node
-                        , left = left
-                        , leftRange = Node.range left
-                        , right = right
-                        , rightRange = Node.range right
-                        }
-                    , []
-                    )
+                    { errors =
+                        checkFn
+                            { lookupTable = context.lookupTable
+                            , parentRange = Node.range node
+                            , left = left
+                            , leftRange = Node.range left
+                            , right = right
+                            , rightRange = Node.range right
+                            , isOnTheRightSideOfPlusPlus = List.member (Node.range node) context.rightSidesOfPlusPlus
+                            }
+                    , rangesToIgnore = []
+                    , rightSidesOfPlusPlus =
+                        if operator == "++" then
+                            [ Node.range <| removeParens right ]
+
+                        else
+                            []
+                    }
 
                 Nothing ->
-                    ( [], [] )
+                    onlyErrors []
 
         Expression.Negation baseExpr ->
             case removeParens baseExpr of
@@ -1240,21 +1267,20 @@ expressionVisitorHelp node context =
                             , end = { row = range.start.row, column = range.start.column + 1 }
                             }
                     in
-                    ( [ Rule.errorWithFix
+                    onlyErrors
+                        [ Rule.errorWithFix
                             { message = "Unnecessary double number negation"
                             , details = [ "Negating a number twice is the same as the number itself." ]
                             }
                             doubleNegationRange
                             [ Fix.replaceRangeBy doubleNegationRange "(" ]
-                      ]
-                    , []
-                    )
+                        ]
 
                 _ ->
-                    ( [], [] )
+                    onlyErrors []
 
         _ ->
-            ( [], [] )
+            onlyErrors []
 
 
 type alias CheckInfo =
@@ -1329,6 +1355,7 @@ type alias OperatorCheckInfo =
     , leftRange : Range
     , right : Node Expression
     , rightRange : Range
+    , isOnTheRightSideOfPlusPlus : Bool
     }
 
 
@@ -1530,7 +1557,7 @@ findMap mapper nodes =
 
 
 plusplusChecks : OperatorCheckInfo -> List (Error {})
-plusplusChecks { parentRange, leftRange, rightRange, left, right } =
+plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSideOfPlusPlus } =
     case ( Node.value left, Node.value right ) of
         ( Expression.Literal "", _ ) ->
             [ errorForAddingEmptyStrings leftRange
@@ -1575,23 +1602,27 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right } =
             ]
 
         ( Expression.ListExpr [ _ ], _ ) ->
-            [ Rule.errorWithFix
-                { message = "Should use (::) instead of (++)"
-                , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
-                }
-                parentRange
-                [ Fix.replaceRangeBy
-                    { start = leftRange.start
-                    , end = { row = leftRange.start.row, column = leftRange.start.column + 1 }
+            if isOnTheRightSideOfPlusPlus then
+                []
+
+            else
+                [ Rule.errorWithFix
+                    { message = "Should use (::) instead of (++)"
+                    , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
                     }
-                    "("
-                , Fix.replaceRangeBy
-                    { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
-                    , end = rightRange.start
-                    }
-                    ") :: "
+                    parentRange
+                    [ Fix.replaceRangeBy
+                        { start = leftRange.start
+                        , end = { row = leftRange.start.row, column = leftRange.start.column + 1 }
+                        }
+                        "("
+                    , Fix.replaceRangeBy
+                        { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
+                        , end = rightRange.start
+                        }
+                        ") :: "
+                    ]
                 ]
-            ]
 
         _ ->
             []

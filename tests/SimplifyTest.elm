@@ -2330,6 +2330,20 @@ a = [ b ] ++ c
 a = ( b ) :: c
 """
                         ]
+        , test "should not replace [b] ++ c when on the right of a ++ operator" <|
+            \() ->
+                """module A exposing (..)
+a = left ++ [ b ] ++ c
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not replace [b] ++ c when on the right of a ++ operator but inside parens" <|
+            \() ->
+                """module A exposing (..)
+a = left ++ ([ b ] ++ c)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         ]
 
 
