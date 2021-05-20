@@ -102,10 +102,10 @@ Below is the list of all kinds of simplifications this rule applies.
 ### Record updates
 
     { a | b = a.b }
-    -- a
+    --> a
 
     { a | b = a.b, c = 1 }
-    -- {a | c = 1 }
+    --> { a | c = 1 }
 
 
 ### Basics functions
