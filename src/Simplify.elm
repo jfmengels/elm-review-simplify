@@ -99,6 +99,15 @@ Below is the list of all kinds of simplifications this rule applies.
     --> x
 
 
+### Record updates
+
+    { a | b = a.b }
+    -- a
+
+    { a | b = a.b, c = 1 }
+    -- {a | c = 1 }
+
+
 ### Basics functions
 
     identity x
@@ -1085,6 +1094,12 @@ expressionVisitorHelp node context =
                     , Fix.insertAt (Node.range right).start (operator ++ " ")
                     ]
                 ]
+
+        -------------------
+        -- RECORD UPDATE --
+        -------------------
+        Expression.RecordUpdateExpression variable fields ->
+            onlyErrors (removeRecordFields (Node.range node) variable fields)
 
         -------------
         -- CASE OF --
@@ -3594,6 +3609,78 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 
             _ ->
                 Nothing
+
+
+
+-- RECORD UPDATE
+
+
+removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> List (Error {})
+removeRecordFields recordUpdateRange variable fields =
+    case fields of
+        [] ->
+            -- Not possible
+            []
+
+        (Node _ ( field, valueWithParens )) :: [] ->
+            let
+                value : Node Expression
+                value =
+                    removeParens valueWithParens
+            in
+            if isUnnecessaryRecordUpdateSetter variable field value then
+                [ Rule.errorWithFix
+                    { message = "Unnecessary field assignment"
+                    , details = [ "The field is being set to its own value." ]
+                    }
+                    (Node.range value)
+                    [ Fix.removeRange { start = recordUpdateRange.start, end = (Node.range variable).start }
+                    , Fix.removeRange { start = (Node.range variable).end, end = recordUpdateRange.end }
+                    ]
+                ]
+
+            else
+                []
+
+        (Node firstRange _) :: second :: _ ->
+            List.filterMap
+                (\( Node range ( field, valueWithParens ), previousRange ) ->
+                    let
+                        value : Node Expression
+                        value =
+                            removeParens valueWithParens
+                    in
+                    if isUnnecessaryRecordUpdateSetter variable field value then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Unnecessary field assignment"
+                                , details = [ "The field is being set to its own value." ]
+                                }
+                                (Node.range value)
+                                (case previousRange of
+                                    Just prevRange ->
+                                        [ Fix.removeRange { start = prevRange.end, end = range.end } ]
+
+                                    Nothing ->
+                                        -- It's the first element, so we can remove until the second element
+                                        [ Fix.removeRange { start = firstRange.start, end = (Node.range second).start } ]
+                                )
+                            )
+
+                    else
+                        Nothing
+                )
+                (List.map2 Tuple.pair fields (Nothing :: List.map (Node.range >> Just) fields))
+
+
+isUnnecessaryRecordUpdateSetter : Node String -> Node String -> Node Expression -> Bool
+isUnnecessaryRecordUpdateSetter variable field value =
+    case Node.value value of
+        Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) fieldName ->
+            Node.value field == Node.value fieldName && Node.value variable == valueHolder
+
+        _ ->
+            False
 
 
 
