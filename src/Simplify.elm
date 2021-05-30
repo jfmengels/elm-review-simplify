@@ -5,6 +5,8 @@ module Simplify exposing
 
 {-| Reports when an expression can be simplified.
 
+🔧 Running with `--fix` will automatically remove all the reported errors.
+
     config =
         [ Simplify.rule Simplify.defaults
         ]
