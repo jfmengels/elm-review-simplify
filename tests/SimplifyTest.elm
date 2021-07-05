@@ -4147,22 +4147,13 @@ b = List.repeat 5 list
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace List.repeat n [] by []" <|
+        , test "should not replace List.repeat n [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.repeat n []
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using List.repeat with an empty list will result in a empty list"
-                            , details = [ "You can replace this call by an empty list." ]
-                            , under = "List.repeat"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = []
-"""
-                        ]
+                    |> Review.Test.expectNoErrors
         , test "should replace List.repeat 0 list by []" <|
             \() ->
                 """module A exposing (..)
