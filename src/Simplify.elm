@@ -376,9 +376,6 @@ Below is the list of all kinds of simplifications this rule applies.
     List.length [ a ]
     --> 1
 
-    List.repeat n []
-    --> []
-
     List.repeat 0 list
     --> []
 
@@ -2854,33 +2851,22 @@ listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
 
 listRepeatChecks : CheckInfo -> List (Error {})
 listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
-    case secondArg of
-        Just (Node _ (Expression.ListExpr [])) ->
-            [ Rule.errorWithFix
-                { message = "Using List.repeat with an empty list will result in a empty list"
-                , details = [ "You can replace this call by an empty list." ]
-                }
-                fnRange
-                [ Fix.replaceRangeBy parentRange "[]" ]
-            ]
+    case getIntValue firstArg of
+        Just intValue ->
+            if intValue < 1 then
+                [ Rule.errorWithFix
+                    { message = "List.repeat will result in an empty list"
+                    , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                    }
+                    fnRange
+                    (replaceByEmptyFix "[]" parentRange secondArg)
+                ]
+
+            else
+                []
 
         _ ->
-            case getIntValue firstArg of
-                Just intValue ->
-                    if intValue < 1 then
-                        [ Rule.errorWithFix
-                            { message = "List.repeat will result in an empty list"
-                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
-                            }
-                            fnRange
-                            (replaceByEmptyFix "[]" parentRange secondArg)
-                        ]
-
-                    else
-                        []
-
-                _ ->
-                    []
+            []
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})
