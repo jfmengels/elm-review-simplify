@@ -174,6 +174,9 @@ compare lookupTable left_ right_ =
         ( Expression.Literal left, Expression.Literal right ) ->
             fromEquality (left == right)
 
+        ( Expression.Integer left, Expression.Integer right ) ->
+            fromEquality (left == right)
+
         _ ->
             Unconfirmed
 
