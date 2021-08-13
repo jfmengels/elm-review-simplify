@@ -170,6 +170,11 @@ type Comparison
 
 compare : ModuleNameLookupTable -> Node Expression -> Node Expression -> Comparison
 compare lookupTable leftNode right =
+    compareHelp lookupTable leftNode right True
+
+
+compareHelp : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool -> Comparison
+compareHelp lookupTable leftNode right canFlip =
     case Node.value leftNode of
         Expression.Literal left ->
             case Node.value right of
