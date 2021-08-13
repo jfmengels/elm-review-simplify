@@ -213,9 +213,6 @@ compareHelp lookupTable leftNode right canFlip =
             else
                 Unconfirmed
 
-        Expression.UnitExpr ->
-            ConfirmedEquality
-
         Expression.FunctionOrValue _ leftName ->
             let
                 right_ : Node Expression
@@ -240,6 +237,21 @@ compareHelp lookupTable leftNode right canFlip =
 
                     else
                         Unconfirmed
+
+        Expression.ListExpr leftList ->
+            case Node.value (removeParens right) of
+                Expression.ListExpr rightList ->
+                    if List.length leftList /= List.length rightList then
+                        ConfirmedInequality
+
+                    else
+                        Unconfirmed
+
+                _ ->
+                    Unconfirmed
+
+        Expression.UnitExpr ->
+            ConfirmedEquality
 
         _ ->
             if canFlip then
