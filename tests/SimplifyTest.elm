@@ -1907,6 +1907,40 @@ a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
 a = True
 """
                         ]
+        , test "should simplify equality of different literal comparisons to False" <|
+            \() ->
+                """module A exposing (..)
+a = "a" == "b"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "\"a\" == \"b\""
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify inequality of different literal comparisons to True" <|
+            \() ->
+                """module A exposing (..)
+a = "a" /= "b"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "\"a\" /= \"b\""
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should normalize module names" <|
             \() ->
                 [ """module A exposing (..)
