@@ -778,6 +778,102 @@ a = (not << a) << not
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should simplify 'not (not x)' to x" <|
+            \() ->
+                """module A exposing (..)
+a = not (not x)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not (not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x)
+"""
+                        ]
+        , test "should simplify 'x |> not |> not' to x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> not |> not
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not |> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should simplify '(x |> not) |> not' to x" <|
+            \() ->
+                """module A exposing (..)
+a = (x |> not) |> not
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not) |> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x)
+"""
+                        ]
+        , test "should simplify '(not <| x) |> not' to x" <|
+            \() ->
+                """module A exposing (..)
+a = (not <| x) |> not
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not <| x) |> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x)
+"""
+                        ]
+        , test "should simplify 'not x |> not' to x" <|
+            \() ->
+                """module A exposing (..)
+a = not x |> not
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not x |> not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should simplify 'not <| not x' to x" <|
+            \() ->
+                """module A exposing (..)
+a = not <| not x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            , under = "not <| not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
 
 

@@ -476,7 +476,7 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
-import Elm.Syntax.Range exposing (Range)
+import Elm.Syntax.Range as Range exposing (Range)
 import Elm.Type
 import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
@@ -1426,6 +1426,71 @@ compositionChecks =
     ]
 
 
+removeAlongWithOtherFunctionCheck :
+    { message : String, details : List String }
+    -> (ModuleNameLookupTable -> Node Expression -> Maybe Range)
+    -> CheckInfo
+    -> List (Error {})
+removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
+    case Node.value (removeParens checkInfo.firstArg) of
+        Expression.Application (secondFn :: firstArgOfSecondCall :: _) ->
+            case secondFunctionCheck checkInfo.lookupTable secondFn of
+                Just secondRange ->
+                    [ Rule.errorWithFix
+                        errorMessage
+                        (Range.combine [ checkInfo.fnRange, secondRange ])
+                        [ removeFunctionFromFunctionCall checkInfo
+                        , removeFunctionFromFunctionCall
+                            { fnRange = Node.range secondFn
+                            , firstArg = firstArgOfSecondCall
+                            , usingRightPizza = False
+                            }
+                        ]
+                    ]
+
+                Nothing ->
+                    []
+
+        Expression.OperatorApplication "|>" _ firstArgOfSecondCall secondFn ->
+            case secondFunctionCheck checkInfo.lookupTable secondFn of
+                Just secondRange ->
+                    [ Rule.errorWithFix
+                        errorMessage
+                        (Range.combine [ checkInfo.fnRange, secondRange ])
+                        [ removeFunctionFromFunctionCall checkInfo
+                        , removeFunctionFromFunctionCall
+                            { fnRange = Node.range secondFn
+                            , firstArg = firstArgOfSecondCall
+                            , usingRightPizza = True
+                            }
+                        ]
+                    ]
+
+                Nothing ->
+                    []
+
+        Expression.OperatorApplication "<|" _ secondFn firstArgOfSecondCall ->
+            case secondFunctionCheck checkInfo.lookupTable secondFn of
+                Just secondRange ->
+                    [ Rule.errorWithFix
+                        errorMessage
+                        (Range.combine [ checkInfo.fnRange, secondRange ])
+                        [ removeFunctionFromFunctionCall checkInfo
+                        , removeFunctionFromFunctionCall
+                            { fnRange = Node.range secondFn
+                            , firstArg = firstArgOfSecondCall
+                            , usingRightPizza = False
+                            }
+                        ]
+                    ]
+
+                Nothing ->
+                    []
+
+        _ ->
+            []
+
+
 plusChecks : OperatorCheckInfo -> List (Error {})
 plusChecks { leftRange, rightRange, left, right } =
     findMap
@@ -1800,19 +1865,19 @@ getNegateFunction lookupTable baseNode =
 
 
 basicsNotChecks : CheckInfo -> List (Error {})
-basicsNotChecks { lookupTable, parentRange, firstArg } =
-    case getBoolean lookupTable firstArg of
+basicsNotChecks checkInfo =
+    case getBoolean checkInfo.lookupTable checkInfo.firstArg of
         Just bool ->
             [ Rule.errorWithFix
                 { message = "Expression is equal to " ++ boolToString (not bool)
                 , details = [ "You can replace the call to `not` by the boolean value directly." ]
                 }
-                parentRange
-                [ Fix.replaceRangeBy parentRange (boolToString (not bool)) ]
+                checkInfo.parentRange
+                [ Fix.replaceRangeBy checkInfo.parentRange (boolToString (not bool)) ]
             ]
 
         Nothing ->
-            []
+            removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage getNotFunction checkInfo
 
 
 notNotCompositionCheck : CompositionCheckInfo -> List (Error {})
@@ -1820,9 +1885,7 @@ notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
     case Maybe.map2 Tuple.pair (getNotFunction lookupTable left) (getNotFunction lookupTable right) of
         Just _ ->
             [ Rule.errorWithFix
-                { message = "Unnecessary double negation"
-                , details = [ "Composing `not` with `not` cancel each other out." ]
-                }
+                notNotCompositionErrorMessage
                 parentRange
                 [ Fix.replaceRangeBy parentRange "identity" ]
             ]
@@ -1833,9 +1896,7 @@ notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
                     case getNotComposition lookupTable fromLeftToRight right of
                         Just rightNotRange ->
                             [ Rule.errorWithFix
-                                { message = "Unnecessary double negation"
-                                , details = [ "Composing `not` with `not` cancel each other out." ]
-                                }
+                                notNotCompositionErrorMessage
                                 { start = leftNotRange.start, end = rightNotRange.end }
                                 [ Fix.removeRange { start = leftNotRange.start, end = rightRange.start }
                                 , Fix.removeRange rightNotRange
@@ -1851,9 +1912,7 @@ notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
                             case getNotComposition lookupTable (not fromLeftToRight) left of
                                 Just leftNotRange ->
                                     [ Rule.errorWithFix
-                                        { message = "Unnecessary double negation"
-                                        , details = [ "Composing `not` with `not` cancel each other out." ]
-                                        }
+                                        notNotCompositionErrorMessage
                                         { start = leftNotRange.start, end = rightNotRange.end }
                                         [ Fix.removeRange leftNotRange
                                         , Fix.removeRange { start = leftRange.end, end = rightNotRange.end }
@@ -1865,6 +1924,13 @@ notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
 
                         Nothing ->
                             []
+
+
+notNotCompositionErrorMessage : { message : String, details : List String }
+notNotCompositionErrorMessage =
+    { message = "Unnecessary double negation"
+    , details = [ "Composing `not` with `not` cancel each other out." ]
+    }
 
 
 getNotComposition : ModuleNameLookupTable -> Bool -> Node Expression -> Maybe Range
@@ -2172,17 +2238,13 @@ targetIf node =
 
 
 basicsIdentityChecks : CheckInfo -> List (Error {})
-basicsIdentityChecks { parentRange, fnRange, firstArg, usingRightPizza } =
+basicsIdentityChecks ({ parentRange, fnRange, firstArg, usingRightPizza } as checkInfo) =
     [ Rule.errorWithFix
         { message = "`identity` should be removed"
         , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
         }
         fnRange
-        [ if usingRightPizza then
-            Fix.removeRange { start = (Node.range firstArg).end, end = parentRange.end }
-
-          else
-            Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
+        [ removeFunctionFromFunctionCall checkInfo
         ]
     ]
 
@@ -2214,7 +2276,7 @@ identityCompositionCheck { lookupTable, left, right } =
 
 
 basicsAlwaysChecks : CheckInfo -> List (Error {})
-basicsAlwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
+basicsAlwaysChecks ({ fnRange, firstArg, secondArg, usingRightPizza } as checkInfo) =
     case secondArg of
         Just (Node secondArgRange _) ->
             [ Rule.errorWithFix
@@ -2227,7 +2289,7 @@ basicsAlwaysChecks { fnRange, firstArg, secondArg, usingRightPizza } =
                     ]
 
                  else
-                    [ Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
+                    [ removeFunctionFromFunctionCall checkInfo
                     , Fix.removeRange { start = (Node.range firstArg).end, end = secondArgRange.end }
                     ]
                 )
@@ -3926,6 +3988,15 @@ getNumberValue node =
 
 
 -- FIX HELPERS
+
+
+removeFunctionFromFunctionCall : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Fix
+removeFunctionFromFunctionCall { fnRange, firstArg, usingRightPizza } =
+    if usingRightPizza then
+        Fix.removeRange { start = (Node.range firstArg).end, end = fnRange.end }
+
+    else
+        Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
 
 
 removeBoundariesFix : Node a -> List Fix
