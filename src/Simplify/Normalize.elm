@@ -188,28 +188,13 @@ compareHelp lookupTable leftNode right canFlip =
                     Unconfirmed
 
         Expression.Integer left ->
-            case getNumberValue right of
-                Just rightValue ->
-                    fromEquality (Basics.toFloat left == rightValue)
-
-                Nothing ->
-                    Unconfirmed
+            compareNumbers (Basics.toFloat left) right
 
         Expression.Floatable left ->
-            case getNumberValue right of
-                Just rightValue ->
-                    fromEquality (left == rightValue)
-
-                Nothing ->
-                    Unconfirmed
+            compareNumbers left right
 
         Expression.Hex left ->
-            case getNumberValue right of
-                Just rightValue ->
-                    fromEquality (Basics.toFloat left == rightValue)
-
-                Nothing ->
-                    Unconfirmed
+            compareNumbers (Basics.toFloat left) right
 
         Expression.OperatorApplication "+" _ _ _ ->
             case getNumberValue leftNode of
@@ -258,6 +243,16 @@ compareHelp lookupTable leftNode right canFlip =
 
             else
                 Unconfirmed
+
+
+compareNumbers : Float -> Node Expression -> Comparison
+compareNumbers leftValue right =
+    case getNumberValue right of
+        Just rightValue ->
+            fromEquality (leftValue == rightValue)
+
+        Nothing ->
+            Unconfirmed
 
 
 getNumberValue : Node Expression -> Maybe Float
