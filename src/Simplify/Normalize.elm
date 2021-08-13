@@ -187,6 +187,14 @@ compare lookupTable leftNode right =
                 Nothing ->
                     Unconfirmed
 
+        Expression.Floatable left ->
+            case getNumberValue right of
+                Just rightValue ->
+                    fromEquality (left == rightValue)
+
+                Nothing ->
+                    Unconfirmed
+
         _ ->
             Unconfirmed
 
