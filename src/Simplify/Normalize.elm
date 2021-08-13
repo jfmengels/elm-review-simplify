@@ -245,8 +245,11 @@ compareHelp lookupTable leftNode right canFlip =
             if canFlip then
                 compareHelp lookupTable right leftNode False
 
+            else if areTheSame lookupTable leftNode right then
+                ConfirmedEquality
+
             else
-                fromEquality (areTheSame lookupTable leftNode right)
+                Unconfirmed
 
 
 compareNumbers : Float -> Node Expression -> Comparison

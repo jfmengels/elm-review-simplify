@@ -2128,6 +2128,13 @@ a = (1) == (2)
 a = False
 """
                         ]
+        , test "should not simplify comparison of values for which we don't know if they're equal" <|
+            \() ->
+                """module A exposing (..)
+a = x == y
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should normalize module names" <|
             \() ->
                 [ """module A exposing (..)
