@@ -156,3 +156,42 @@ normalizePattern node =
 toNode : a -> Node a
 toNode =
     Node Range.emptyRange
+
+
+
+-- COMPARE
+
+
+type Comparison
+    = ConfirmedEquality
+    | ConfirmedInequality
+    | Unconfirmed
+
+
+compare : ModuleNameLookupTable -> Node Expression -> Node Expression -> Comparison
+compare lookupTable left_ right_ =
+    case ( Node.value left_, Node.value right_ ) of
+        ( Expression.Literal left, Expression.Literal right ) ->
+            fromEquality (left == right)
+
+        _ ->
+            Unconfirmed
+
+
+fromEquality : Bool -> Comparison
+fromEquality bool =
+    if bool then
+        ConfirmedEquality
+
+    else
+        ConfirmedInequality
+
+
+removeParens : Node Expression -> Node Expression
+removeParens node =
+    case Node.value node of
+        Expression.ParenthesizedExpression expr ->
+            removeParens expr
+
+        _ ->
+            node
