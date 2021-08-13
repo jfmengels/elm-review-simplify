@@ -246,7 +246,11 @@ compareHelp lookupTable leftNode right canFlip =
                         Unconfirmed
 
                 _ ->
-                    Unconfirmed
+                    if canFlip then
+                        compareHelp lookupTable right leftNode False
+
+                    else
+                        Unconfirmed
 
         _ ->
             if canFlip then
