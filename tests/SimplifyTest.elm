@@ -2128,6 +2128,40 @@ a = [ 1 ] == [ 1, 1 ]
 a = False
 """
                         ]
+        , test "should simplify equality of lists (same lengths but different values)" <|
+            \() ->
+                """module A exposing (..)
+a = [ 1, 2 ] == [ 1, 1 ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "[ 1, 2 ] == [ 1, 1 ]"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify equality of lists (same values)" <|
+            \() ->
+                """module A exposing (..)
+a = [ 1, 2 - 1 ] == [ 1, 1 ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "[ 1, 2 - 1 ] == [ 1, 1 ]"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should simplify equality of different integers comparisons to False (wrapped in parens)" <|
             \() ->
                 """module A exposing (..)

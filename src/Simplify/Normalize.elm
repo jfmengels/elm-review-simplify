@@ -245,7 +245,7 @@ compareHelp lookupTable leftNode right canFlip =
                         ConfirmedInequality
 
                     else
-                        Unconfirmed
+                        compareLists lookupTable leftList rightList ConfirmedEquality
 
                 _ ->
                     Unconfirmed
@@ -369,6 +369,24 @@ getNumberValue node =
 
         Expression.UnitExpr ->
             Nothing
+
+
+compareLists : ModuleNameLookupTable -> List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
+compareLists lookupTable leftList rightList acc =
+    case ( leftList, rightList ) of
+        ( left :: restOfLeft, right :: restOfRight ) ->
+            case compareHelp lookupTable left right True of
+                ConfirmedEquality ->
+                    compareLists lookupTable restOfLeft restOfRight acc
+
+                ConfirmedInequality ->
+                    ConfirmedInequality
+
+                Unconfirmed ->
+                    compareLists lookupTable restOfLeft restOfRight Unconfirmed
+
+        _ ->
+            acc
 
 
 fromEquality : Bool -> Comparison
