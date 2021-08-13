@@ -225,7 +225,11 @@ compareHelp lookupTable leftNode right canFlip =
             ConfirmedEquality
 
         _ ->
-            Unconfirmed
+            if canFlip then
+                compareHelp lookupTable right leftNode False
+
+            else
+                Unconfirmed
 
 
 getNumberValue : Node Expression -> Maybe Float
