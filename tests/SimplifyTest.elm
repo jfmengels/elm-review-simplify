@@ -2026,6 +2026,23 @@ a = 1 + 3 == 2
 a = False
 """
                         ]
+        , test "should simplify equality of same value (() left)" <|
+            \() ->
+                """module A exposing (..)
+a = () == x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "() == x"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should normalize module names" <|
             \() ->
                 [ """module A exposing (..)

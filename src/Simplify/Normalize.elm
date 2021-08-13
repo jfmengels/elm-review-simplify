@@ -216,6 +216,9 @@ compare lookupTable leftNode right =
                 Nothing ->
                     Unconfirmed
 
+        Expression.UnitExpr ->
+            ConfirmedEquality
+
         _ ->
             Unconfirmed
 
