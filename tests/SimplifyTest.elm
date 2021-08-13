@@ -1992,6 +1992,23 @@ a = 1.0 == 2
 a = False
 """
                         ]
+        , test "should simplify equality of different integer and float comparisons to False (hex left)" <|
+            \() ->
+                """module A exposing (..)
+a = 0x10 == 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "0x10 == 2"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should normalize module names" <|
             \() ->
                 [ """module A exposing (..)

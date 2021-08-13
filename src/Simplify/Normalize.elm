@@ -195,6 +195,14 @@ compare lookupTable leftNode right =
                 Nothing ->
                     Unconfirmed
 
+        Expression.Hex left ->
+            case getNumberValue right of
+                Just rightValue ->
+                    fromEquality (Basics.toFloat left == rightValue)
+
+                Nothing ->
+                    Unconfirmed
+
         _ ->
             Unconfirmed
 
