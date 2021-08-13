@@ -246,7 +246,7 @@ compareHelp lookupTable leftNode right canFlip =
                 compareHelp lookupTable right leftNode False
 
             else
-                Unconfirmed
+                fromEquality (areTheSame lookupTable leftNode right)
 
 
 compareNumbers : Float -> Node Expression -> Comparison
