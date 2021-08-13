@@ -2009,6 +2009,23 @@ a = 0x10 == 2
 a = False
 """
                         ]
+        , test "should simplify equality of different integer and float comparisons to False (addition left)" <|
+            \() ->
+                """module A exposing (..)
+a = 1 + 3 == 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "1 + 3 == 2"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should normalize module names" <|
             \() ->
                 [ """module A exposing (..)

@@ -203,6 +203,19 @@ compare lookupTable leftNode right =
                 Nothing ->
                     Unconfirmed
 
+        Expression.OperatorApplication "+" _ _ _ ->
+            case getNumberValue leftNode of
+                Just leftValue ->
+                    case getNumberValue right of
+                        Just rightValue ->
+                            fromEquality (leftValue == rightValue)
+
+                        Nothing ->
+                            Unconfirmed
+
+                Nothing ->
+                    Unconfirmed
+
         _ ->
             Unconfirmed
 
@@ -228,7 +241,27 @@ getNumberValue node =
         Expression.LetExpression { expression } ->
             getNumberValue expression
 
-        Expression.OperatorApplication string infixDirection left right ->
+        Expression.OperatorApplication "+" _ left right ->
+            Maybe.map2 (+)
+                (getNumberValue left)
+                (getNumberValue right)
+
+        Expression.OperatorApplication "-" _ left right ->
+            Maybe.map2 (+)
+                (getNumberValue left)
+                (getNumberValue right)
+
+        Expression.OperatorApplication "*" _ left right ->
+            Maybe.map2 (+)
+                (getNumberValue left)
+                (getNumberValue right)
+
+        Expression.OperatorApplication "/" _ left right ->
+            Maybe.map2 (+)
+                (getNumberValue left)
+                (getNumberValue right)
+
+        Expression.OperatorApplication _ _ _ _ ->
             Nothing
 
         Expression.FunctionOrValue _ _ ->
