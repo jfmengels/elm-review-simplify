@@ -1680,6 +1680,22 @@ a = (negate << a) << negate
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should simplify 'negate <| negate x' to x" <|
+            \() ->
+                """module A exposing (..)
+a = negate <| negate x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double negation"
+                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            , under = "negate <| negate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
 
 

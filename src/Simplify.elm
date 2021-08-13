@@ -1313,6 +1313,7 @@ functionCallChecks =
         [ ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
+        , ( ( [ "Basics" ], "negate" ), basicsNegateChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
@@ -1768,14 +1769,19 @@ consChecks { right, leftRange, rightRange } =
 -- NUMBERS
 
 
+negateNegateCompositionErrorMessage : { message : String, details : List String }
+negateNegateCompositionErrorMessage =
+    { message = "Unnecessary double negation"
+    , details = [ "Composing `negate` with `negate` cancel each other out." ]
+    }
+
+
 negateCompositionCheck : CompositionCheckInfo -> List (Error {})
 negateCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange } =
     case Maybe.map2 Tuple.pair (getNegateFunction lookupTable left) (getNegateFunction lookupTable right) of
         Just _ ->
             [ Rule.errorWithFix
-                { message = "Unnecessary double negation"
-                , details = [ "Composing `negate` with `negate` cancel each other out." ]
-                }
+                negateNegateCompositionErrorMessage
                 parentRange
                 [ Fix.replaceRangeBy parentRange "identity" ]
             ]
@@ -1786,9 +1792,7 @@ negateCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
                     case getNegateComposition lookupTable fromLeftToRight right of
                         Just rightNotRange ->
                             [ Rule.errorWithFix
-                                { message = "Unnecessary double negation"
-                                , details = [ "Composing `negate` with `negate` cancel each other out." ]
-                                }
+                                negateNegateCompositionErrorMessage
                                 { start = leftNotRange.start, end = rightNotRange.end }
                                 [ Fix.removeRange { start = leftNotRange.start, end = rightRange.start }
                                 , Fix.removeRange rightNotRange
@@ -1804,9 +1808,7 @@ negateCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
                             case getNegateComposition lookupTable (not fromLeftToRight) left of
                                 Just leftNotRange ->
                                     [ Rule.errorWithFix
-                                        { message = "Unnecessary double negation"
-                                        , details = [ "Composing `negate` with `negate` cancel each other out." ]
-                                        }
+                                        negateNegateCompositionErrorMessage
                                         { start = leftNotRange.start, end = rightNotRange.end }
                                         [ Fix.removeRange leftNotRange
                                         , Fix.removeRange { start = leftRange.end, end = rightNotRange.end }
@@ -1845,13 +1847,18 @@ getNegateComposition lookupTable takeFirstFunction node =
             Nothing
 
 
+basicsNegateChecks : CheckInfo -> List (Error {})
+basicsNegateChecks checkInfo =
+    removeAlongWithOtherFunctionCheck negateNegateCompositionErrorMessage getNegateFunction checkInfo
+
+
 getNegateFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNegateFunction lookupTable baseNode =
     case removeParens baseNode of
-        Node notRange (Expression.FunctionOrValue _ "negate") ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
+        Node range (Expression.FunctionOrValue _ "negate") ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable range of
                 Just [ "Basics" ] ->
-                    Just notRange
+                    Just range
 
                 _ ->
                     Nothing
