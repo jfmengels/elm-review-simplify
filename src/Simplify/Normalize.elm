@@ -250,6 +250,14 @@ compareHelp lookupTable leftNode right canFlip =
                 _ ->
                     Unconfirmed
 
+        Expression.TupledExpression leftList ->
+            case Node.value (removeParens right) of
+                Expression.TupledExpression rightList ->
+                    compareLists lookupTable leftList rightList ConfirmedEquality
+
+                _ ->
+                    Unconfirmed
+
         Expression.UnitExpr ->
             ConfirmedEquality
 
