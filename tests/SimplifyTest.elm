@@ -2561,6 +2561,7 @@ stringSimplificationTests =
         , stringRepeatTests
         , stringWordsTests
         , stringLinesTests
+        , stringReverseTests
         ]
 
 
@@ -2865,6 +2866,36 @@ a = String.lines ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        ]
+
+
+stringReverseTests : Test
+stringReverseTests =
+    describe "String.reverse"
+        [ test "should not report String.reverse that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse
+b = String.reverse str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.reverse \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse ""
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.reverse on an empty string will result in a empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         ]

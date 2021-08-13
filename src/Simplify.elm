@@ -1356,6 +1356,7 @@ functionCallChecks =
         , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
         , ( ( [ "String" ], "words" ), stringWordsChecks )
         , ( ( [ "String" ], "lines" ), stringLinesChecks )
+        , ( ( [ "String" ], "reverse" ), stringReverseChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
         , ( ( [ "Platform", "Cmd" ], "map" ), collectionMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
@@ -2449,6 +2450,22 @@ stringLinesChecks { parentRange, fnRange, firstArg } =
                 }
                 fnRange
                 [ Fix.replaceRangeBy parentRange "[]" ]
+            ]
+
+        _ ->
+            []
+
+
+stringReverseChecks : CheckInfo -> List (Error {})
+stringReverseChecks { parentRange, fnRange, firstArg } =
+    case Node.value firstArg of
+        Expression.Literal "" ->
+            [ Rule.errorWithFix
+                { message = "Using String.reverse on an empty string will result in a empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "\"\"" ]
             ]
 
         _ ->
