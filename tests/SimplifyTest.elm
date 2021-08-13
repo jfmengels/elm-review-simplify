@@ -2012,14 +2012,65 @@ a = False
         , test "should simplify equality of different integer and float comparisons to False (addition left)" <|
             \() ->
                 """module A exposing (..)
-a = 1 + 3 == 2
+a = 1 + 3 == 2 + 5
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Condition is always False"
                             , details = sameThingOnBothSidesDetails "False"
-                            , under = "1 + 3 == 2"
+                            , under = "1 + 3 == 2 + 5"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify equality of different integer and float comparisons to False (subtraction left)" <|
+            \() ->
+                """module A exposing (..)
+a = 1 - 3 == 2 - 5
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "1 - 3 == 2 - 5"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify equality of different integer and float comparisons to False (multiplication left)" <|
+            \() ->
+                """module A exposing (..)
+a = 2 * 3 == 2 * 5
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "2 * 3 == 2 * 5"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify equality of different integer and float comparisons to False (division left)" <|
+            \() ->
+                """module A exposing (..)
+a = 1 / 3 == 2 / 5
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "1 / 3 == 2 / 5"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
