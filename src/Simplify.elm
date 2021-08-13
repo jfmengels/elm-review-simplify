@@ -2180,7 +2180,29 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
                     ]
 
                 else
-                    []
+                    case Normalize.compare lookupTable left right of
+                        Normalize.ConfirmedEquality ->
+                            [ Rule.errorWithFix
+                                { message = "Condition is always " ++ boolToString isEqual
+                                , details = sameThingOnBothSidesDetails isEqual
+                                }
+                                parentRange
+                                [ Fix.replaceRangeBy parentRange (boolToString isEqual)
+                                ]
+                            ]
+
+                        Normalize.ConfirmedInequality ->
+                            [ Rule.errorWithFix
+                                { message = "Condition is always " ++ boolToString (not isEqual)
+                                , details = sameThingOnBothSidesDetails (not isEqual)
+                                }
+                                parentRange
+                                [ Fix.replaceRangeBy parentRange (boolToString (not isEqual))
+                                ]
+                            ]
+
+                        Normalize.Unconfirmed ->
+                            []
 
 
 getNotCall : ModuleNameLookupTable -> Node Expression -> Maybe Range
