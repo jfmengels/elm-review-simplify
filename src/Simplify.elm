@@ -1332,6 +1332,7 @@ functionCallChecks =
         , ( ( [ "List" ], "repeat" ), listRepeatChecks )
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
+        , ( ( [ "List" ], "reverse" ), listReverseChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -2980,6 +2981,25 @@ listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
 
         _ ->
             []
+
+
+listReverseChecks : CheckInfo -> List (Error {})
+listReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
+    case Node.value (removeParens firstArg) of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.reverse on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "[]" ]
+            ]
+
+        _ ->
+            removeAlongWithOtherFunctionCheck
+                reverseReverseCompositionErrorMessage
+                (getSpecificFunction ( [ "List" ], "reverse" ))
+                checkInfo
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})

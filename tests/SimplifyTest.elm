@@ -2937,6 +2937,7 @@ listSimplificationTests =
         , listLengthTests
         , listRepeatTests
         , listPartitionTests
+        , listReverseTests
         ]
 
 
@@ -4368,6 +4369,52 @@ a = List.repeat 1 x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        ]
+
+
+listReverseTests : Test
+listReverseTests =
+    describe "List.reverse"
+        [ test "should not report List.reverse that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse
+b = List.reverse str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.reverse [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.reverse on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.reverse <| List.reverse <| x by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse <| List.reverse <| x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double reversal"
+                            , details = [ "Composing `reverse` with `reverse` cancel each other out." ]
+                            , under = "List.reverse <| List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
 
 
