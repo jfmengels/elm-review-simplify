@@ -169,16 +169,103 @@ type Comparison
 
 
 compare : ModuleNameLookupTable -> Node Expression -> Node Expression -> Comparison
-compare lookupTable left_ right_ =
-    case ( Node.value left_, Node.value right_ ) of
-        ( Expression.Literal left, Expression.Literal right ) ->
-            fromEquality (left == right)
+compare lookupTable leftNode right =
+    case Node.value leftNode of
+        Expression.Literal left ->
+            case Node.value right of
+                Expression.Literal rightValue ->
+                    fromEquality (left == rightValue)
 
-        ( Expression.Integer left, Expression.Integer right ) ->
-            fromEquality (left == right)
+                _ ->
+                    Unconfirmed
+
+        Expression.Integer left ->
+            case getNumberValue right of
+                Just rightValue ->
+                    fromEquality (Basics.toFloat left == rightValue)
+
+                Nothing ->
+                    Unconfirmed
 
         _ ->
             Unconfirmed
+
+
+getNumberValue : Node Expression -> Maybe Float
+getNumberValue node =
+    case Node.value node of
+        Expression.Integer value ->
+            Just (Basics.toFloat value)
+
+        Expression.Hex int ->
+            Just (Basics.toFloat int)
+
+        Expression.Floatable float ->
+            Just float
+
+        Expression.ParenthesizedExpression expr ->
+            getNumberValue expr
+
+        Expression.Application nodes ->
+            Nothing
+
+        Expression.LetExpression { expression } ->
+            getNumberValue expression
+
+        Expression.OperatorApplication string infixDirection left right ->
+            Nothing
+
+        Expression.FunctionOrValue _ _ ->
+            Nothing
+
+        Expression.IfBlock _ _ _ ->
+            Nothing
+
+        Expression.PrefixOperator _ ->
+            Nothing
+
+        Expression.Operator string ->
+            Nothing
+
+        Expression.Negation expr ->
+            getNumberValue expr
+                |> Maybe.map negate
+
+        Expression.Literal string ->
+            Nothing
+
+        Expression.CharLiteral char ->
+            Nothing
+
+        Expression.TupledExpression nodes ->
+            Nothing
+
+        Expression.CaseExpression _ ->
+            Nothing
+
+        Expression.LambdaExpression _ ->
+            Nothing
+
+        Expression.RecordExpr _ ->
+            Nothing
+
+        Expression.ListExpr _ ->
+            Nothing
+
+        Expression.RecordAccess _ _ ->
+            Nothing
+
+        Expression.RecordAccessFunction _ ->
+            Nothing
+
+        Expression.RecordUpdateExpression _ _ ->
+            Nothing
+
+        Expression.GLSLExpression _ ->
+            Nothing
+
+        Expression.UnitExpr ->
+            Nothing
 
 
 fromEquality : Bool -> Comparison

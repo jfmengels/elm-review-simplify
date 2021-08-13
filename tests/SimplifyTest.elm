@@ -1958,6 +1958,23 @@ a = 1 == 2
 a = False
 """
                         ]
+        , test "should simplify equality of different integer and float comparisons to False" <|
+            \() ->
+                """module A exposing (..)
+a = 1 == 2.0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "1 == 2.0"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should normalize module names" <|
             \() ->
                 [ """module A exposing (..)
