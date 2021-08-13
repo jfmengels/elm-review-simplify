@@ -2898,6 +2898,22 @@ a = String.reverse ""
 a = ""
 """
                         ]
+        , test "should replace String.reverse <| String.reverse <| x by x" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse <| String.reverse <| x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double reversal"
+                            , details = [ "Composing `reverse` with `reverse` cancel each other out." ]
+                            , under = "String.reverse <| String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         ]
 
 

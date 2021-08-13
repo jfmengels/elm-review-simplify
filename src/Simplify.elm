@@ -2194,6 +2194,23 @@ getNotFunction lookupTable baseNode =
             Nothing
 
 
+getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificFunction ( moduleName, name ) lookupTable baseNode =
+    case removeParens baseNode of
+        Node notRange (Expression.FunctionOrValue _ foundName) ->
+            if
+                (foundName == name)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable notRange == Just moduleName)
+            then
+                Just notRange
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
 alwaysSameDetails : List String
 alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
@@ -2457,7 +2474,7 @@ stringLinesChecks { parentRange, fnRange, firstArg } =
 
 
 stringReverseChecks : CheckInfo -> List (Error {})
-stringReverseChecks { parentRange, fnRange, firstArg } =
+stringReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
     case Node.value firstArg of
         Expression.Literal "" ->
             [ Rule.errorWithFix
@@ -2469,7 +2486,17 @@ stringReverseChecks { parentRange, fnRange, firstArg } =
             ]
 
         _ ->
-            []
+            removeAlongWithOtherFunctionCheck
+                reverseReverseCompositionErrorMessage
+                (getSpecificFunction ( [ "String" ], "reverse" ))
+                checkInfo
+
+
+reverseReverseCompositionErrorMessage : { message : String, details : List String }
+reverseReverseCompositionErrorMessage =
+    { message = "Unnecessary double reversal"
+    , details = [ "Composing `reverse` with `reverse` cancel each other out." ]
+    }
 
 
 stringJoinChecks : CheckInfo -> List (Error {})
