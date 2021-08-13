@@ -227,6 +227,27 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.UnitExpr ->
             ConfirmedEquality
 
+        Expression.FunctionOrValue _ leftName ->
+            let
+                right_ : Node Expression
+                right_ =
+                    removeParens right
+            in
+            case Node.value right_ of
+                Expression.FunctionOrValue _ rightName ->
+                    if leftName == rightName then
+                        Maybe.map2 (==)
+                            (ModuleNameLookupTable.moduleNameFor lookupTable leftNode)
+                            (ModuleNameLookupTable.moduleNameFor lookupTable right_)
+                            |> Maybe.withDefault False
+                            |> fromEquality
+
+                    else
+                        Unconfirmed
+
+                _ ->
+                    Unconfirmed
+
         _ ->
             if canFlip then
                 compareHelp lookupTable right leftNode False
