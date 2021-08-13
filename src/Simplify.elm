@@ -61,6 +61,9 @@ Below is the list of all kinds of simplifications this rule applies.
     anything /= anything
     --> False
 
+    not (not x)
+    --> x
+
     not >> not
     --> identity
 
@@ -169,6 +172,9 @@ Below is the list of all kinds of simplifications this rule applies.
     negate >> negate
     --> identity
 
+    negate (negate x)
+    --> x
+
 
 ### Strings
 
@@ -207,6 +213,12 @@ Below is the list of all kinds of simplifications this rule applies.
 
     String.lines ""
     --> []
+
+    String.reverse ""
+    --> ""
+
+    String.reverse <| String.reverse x
+    --> x
 
 
 ### Maybe
@@ -384,6 +396,12 @@ Below is the list of all kinds of simplifications this rule applies.
 
     List.partition (always True) list
     --> ( list, [] )
+
+    List.reverse []
+    --> []
+
+    List.reverse <| List.reverse x
+    --> x
 
 
 ### Set
