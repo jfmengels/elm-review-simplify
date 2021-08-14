@@ -312,6 +312,25 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.UnitExpr ->
             ConfirmedEquality
 
+        Expression.IfBlock leftCond leftThen leftElse ->
+            case Node.value (removeParens right) of
+                Expression.IfBlock rightCond rightThen rightElse ->
+                    compareLists
+                        lookupTable
+                        [ leftCond, leftThen, leftElse ]
+                        [ rightCond, rightThen, rightElse ]
+                        ConfirmedEquality
+
+                _ ->
+                    if canFlip then
+                        compareHelp lookupTable right leftNode False
+
+                    else if areTheSame lookupTable leftNode right then
+                        ConfirmedEquality
+
+                    else
+                        Unconfirmed
+
         _ ->
             if canFlip then
                 compareHelp lookupTable right leftNode False
