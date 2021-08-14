@@ -258,6 +258,25 @@ compareHelp lookupTable leftNode right canFlip =
                 _ ->
                     Unconfirmed
 
+        Expression.RecordExpr leftList ->
+            case Node.value (removeParens right) of
+                Expression.RecordExpr rightList ->
+                    let
+                        valuesSortedByFieldName : List (Node ( Node comparable, b )) -> List b
+                        valuesSortedByFieldName list =
+                            list
+                                |> List.sortBy (Node.value >> Tuple.first >> Node.value)
+                                |> List.map (Node.value >> Tuple.second)
+                    in
+                    compareLists
+                        lookupTable
+                        (valuesSortedByFieldName leftList)
+                        (valuesSortedByFieldName rightList)
+                        ConfirmedEquality
+
+                _ ->
+                    Unconfirmed
+
         Expression.UnitExpr ->
             ConfirmedEquality
 
