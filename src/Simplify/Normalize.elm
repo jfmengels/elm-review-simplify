@@ -182,6 +182,18 @@ compare lookupTable leftNode right =
 
 compareHelp : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool -> Comparison
 compareHelp lookupTable leftNode right canFlip =
+    let
+        fallback : Node Expression -> Comparison
+        fallback rightNode =
+            if canFlip then
+                compareHelp lookupTable rightNode leftNode False
+
+            else if areTheSame lookupTable leftNode right then
+                ConfirmedEquality
+
+            else
+                Unconfirmed
+    in
     case Node.value leftNode of
         Expression.ParenthesizedExpression expr ->
             compareHelp lookupTable expr right canFlip
