@@ -211,8 +211,8 @@ compareHelp lookupTable leftNode right canFlip =
                 Nothing ->
                     fallback right
 
-        Expression.OperatorApplication op _ _ _ ->
-            if List.member op [ "+", "-", "*", "/" ] then
+        Expression.OperatorApplication leftOp _ leftLeft leftRight ->
+            if List.member leftOp [ "+", "-", "*", "/" ] then
                 case getNumberValue leftNode of
                     Just leftValue ->
                         case getNumberValue right of
@@ -226,7 +226,16 @@ compareHelp lookupTable leftNode right canFlip =
                         fallback right
 
             else
-                fallback right
+                case Node.value (removeParens right) of
+                    Expression.OperatorApplication rightOp _ rightLeft rightRight ->
+                        if leftOp == rightOp then
+                            compareEqualityOfAll lookupTable [ leftLeft, leftRight ] [ rightLeft, rightRight ] ConfirmedEquality
+
+                        else
+                            fallback right
+
+                    _ ->
+                        fallback right
 
         Expression.Literal left ->
             case Node.value (removeParens right) of
@@ -423,6 +432,24 @@ compareLists lookupTable leftList rightList acc =
 
                 ConfirmedInequality ->
                     ConfirmedInequality
+
+                Unconfirmed ->
+                    compareLists lookupTable restOfLeft restOfRight Unconfirmed
+
+        _ ->
+            acc
+
+
+compareEqualityOfAll : ModuleNameLookupTable -> List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
+compareEqualityOfAll lookupTable leftList rightList acc =
+    case ( leftList, rightList ) of
+        ( left :: restOfLeft, right :: restOfRight ) ->
+            case compareHelp lookupTable left right True of
+                ConfirmedEquality ->
+                    compareLists lookupTable restOfLeft restOfRight acc
+
+                ConfirmedInequality ->
+                    compareLists lookupTable restOfLeft restOfRight Unconfirmed
 
                 Unconfirmed ->
                     compareLists lookupTable restOfLeft restOfRight Unconfirmed

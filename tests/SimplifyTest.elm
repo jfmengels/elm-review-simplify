@@ -2356,6 +2356,22 @@ a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
 a = True
 """
                         ]
+        , test "should simplify operator expressions" <|
+            \() ->
+                """module A exposing (..)
+a = (1 |> fn) == (2 - 1 |> fn)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(1 |> fn) == (2 - 1 |> fn)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should not simplify with different fields" <|
             \() ->
                 """module A exposing (..)
