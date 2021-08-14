@@ -61,6 +61,9 @@ Below is the list of all kinds of simplifications this rule applies.
     anything /= anything
     --> False
 
+    { r | a = 1 } == { r | a = 2 }
+    --> False
+
     not (not x)
     --> x
 
