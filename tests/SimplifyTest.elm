@@ -2283,13 +2283,30 @@ b = 1
                                 , details = sameThingOnBothSidesDetails "True"
                                 , under = "B.b == b"
                                 }
-                                |> Review.Test.whenFixed
-                                    """module A exposing (..)
+                                |> Review.Test.whenFixed """module A exposing (..)
 import B exposing (b)
 a = True
 """
                             ]
                           )
+                        ]
+        , test "should simplify function calls with the same function and similar arguments" <|
+            \() ->
+                """module A exposing (..)
+import List exposing (map)
+a = List.map fn 1 == map fn (2 - 1)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "List.map fn 1 == map fn (2 - 1)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import List exposing (map)
+a = True
+"""
                         ]
         ]
 

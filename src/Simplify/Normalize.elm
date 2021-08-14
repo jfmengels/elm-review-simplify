@@ -5,7 +5,7 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
-import Elm.Syntax.Range as Range
+import Elm.Syntax.Range as Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 
 
@@ -289,6 +289,21 @@ compareHelp lookupTable leftNode right canFlip =
                 _ ->
                     Unconfirmed
 
+        Expression.Application leftArgs ->
+            case Node.value (removeParens right) of
+                Expression.Application rightArgs ->
+                    compareLists lookupTable leftArgs rightArgs ConfirmedEquality
+
+                _ ->
+                    if canFlip then
+                        compareHelp lookupTable right leftNode False
+
+                    else if areTheSame lookupTable leftNode right then
+                        ConfirmedEquality
+
+                    else
+                        Unconfirmed
+
         Expression.UnitExpr ->
             ConfirmedEquality
 
@@ -301,6 +316,18 @@ compareHelp lookupTable leftNode right canFlip =
 
             else
                 Unconfirmed
+
+
+isSameReference : ModuleNameLookupTable -> ( Range, String ) -> ( Range, String ) -> Bool
+isSameReference lookupTable ( leftFnRange, leftFnName ) ( rightFnRange, rightFnName ) =
+    if leftFnName == rightFnName then
+        Maybe.map2 (==)
+            (ModuleNameLookupTable.moduleNameAt lookupTable leftFnRange)
+            (ModuleNameLookupTable.moduleNameAt lookupTable rightFnRange)
+            |> Maybe.withDefault False
+
+    else
+        False
 
 
 compareNumbers : Float -> Node Expression -> Comparison
