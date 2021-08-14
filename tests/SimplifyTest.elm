@@ -409,8 +409,7 @@ a = True || x
                             , details = alwaysSameDetails
                             , under = "True || x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -426,8 +425,7 @@ a = x || True
                             , details = unnecessaryDetails
                             , under = "x || True"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -443,8 +441,7 @@ a = False || x
                             , details = unnecessaryDetails
                             , under = "False || x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -460,8 +457,7 @@ a = x || False
                             , details = unnecessaryDetails
                             , under = "x || False"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -477,8 +473,7 @@ a = x || (False)
                             , details = unnecessaryDetails
                             , under = "x || (False)"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -494,8 +489,7 @@ a = (True) || x
                             , details = alwaysSameDetails
                             , under = "(True) || x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = (True)
 """
                         ]
@@ -517,8 +511,7 @@ a = True && x
                             , details = unnecessaryDetails
                             , under = "True && x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -534,8 +527,7 @@ a = x && True
                             , details = unnecessaryDetails
                             , under = "x && True"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -551,8 +543,7 @@ a = False && x
                             , details = alwaysSameDetails
                             , under = "False && x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -568,8 +559,7 @@ a = x && False
                             , details = alwaysSameDetails
                             , under = "x && False"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -1721,8 +1711,7 @@ a = x == True
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
                             , under = "x == True"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -1745,8 +1734,7 @@ a = True == x
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
                             , under = "True == x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -1776,8 +1764,7 @@ a = x /= False
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
                             , under = "x /= False"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -1800,8 +1787,7 @@ a = False /= x
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
                             , under = "False /= x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
                         ]
@@ -1817,8 +1803,7 @@ a = not x == not y
                             , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
                             , under = "not x == not y"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a =  x ==  y
 """
                         ]
@@ -1834,8 +1819,7 @@ a = not x /= not y
                             , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
                             , under = "not x /= not y"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a =  x /=  y
 """
                         ]
@@ -1851,8 +1835,7 @@ a = x == x
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -1868,8 +1851,7 @@ a = x == (x)
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == (x)"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -1885,8 +1867,7 @@ a = x /= x
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "x /= x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -1902,8 +1883,7 @@ a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "List.map (\\a -> a.value) things == List.map (\\a -> a.value) things"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -1919,8 +1899,7 @@ a = "a" == "b"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "\"a\" == \"b\""
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -1952,8 +1931,7 @@ a = "a" /= "b"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "\"a\" /= \"b\""
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -1969,8 +1947,7 @@ a = 1 == 2
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 == 2"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -1986,8 +1963,7 @@ a = 1 == 2.0
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 == 2.0"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2003,8 +1979,7 @@ a = 1.0 == 2
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1.0 == 2"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2020,8 +1995,7 @@ a = 0x10 == 2
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "0x10 == 2"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2037,8 +2011,7 @@ a = 1 + 3 == 2 + 5
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 + 3 == 2 + 5"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2054,8 +2027,7 @@ a = 1 - 3 == 2 - 5
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 - 3 == 2 - 5"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2071,8 +2043,7 @@ a = 2 * 3 == 2 * 5
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "2 * 3 == 2 * 5"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2088,8 +2059,7 @@ a = 1 / 3 == 2 / 5
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 / 3 == 2 / 5"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2105,8 +2075,7 @@ a = () == x
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "() == x"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -2122,8 +2091,7 @@ a = x == ()
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == ()"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
                         ]
@@ -2139,8 +2107,7 @@ a = [ 1 ] == [ 1, 1 ]
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "[ 1 ] == [ 1, 1 ]"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2156,8 +2123,7 @@ a = [ 1, 2 ] == [ 1, 1 ]
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "[ 1, 2 ] == [ 1, 1 ]"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2173,8 +2139,7 @@ a = [ 1, 2 - 1 ] == [ 1, 1 ]
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "[ 1, 2 - 1 ] == [ 1, 1 ]"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2190,8 +2155,7 @@ a = (1) == (2)
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "(1) == (2)"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2207,8 +2171,7 @@ a = ( 1, 2 ) == ( 1, 1 )
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "( 1, 2 ) == ( 1, 1 )"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
@@ -2224,11 +2187,79 @@ a = { a = 1, b = 2 } == { b = 1, a = 1 }
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "{ a = 1, b = 2 } == { b = 1, a = 1 }"
                             }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
+                            |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
                         ]
+        , test "should simplify equality of record updates with same base values and different field values" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { x | a = 2 }
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "{ x | a = 1 } == { x | a = 2 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify equality of record updates with same base values and field values" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { x | a = 1 }
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "{ x | a = 1 } == { x | a = 1 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should not simplify equality of record updates with same base values and different fields" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { x | b = 2 }
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should simplify equality of record updates (different base values)" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { y | a = 2 }
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "{ x | a = 1 } == { y | a = 2 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not simplify equality of record updates with same field values but different base values" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { y | a = 1 }
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify equality of record updates with non-corresponding fields but otherwise similar field values and different base values" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { y | a = 1, b = 2 }
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should not simplify comparison of values for which we don't know if they're equal" <|
             \() ->
                 """module A exposing (..)

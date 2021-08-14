@@ -1,5 +1,6 @@
 module Simplify.Normalize exposing (Comparison(..), areAllTheSame, areTheSame, compare)
 
+import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -271,18 +272,19 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.RecordExpr leftList ->
             case Node.value (removeParens right) of
                 Expression.RecordExpr rightList ->
-                    let
-                        valuesSortedByFieldName : List (Node ( Node comparable, b )) -> List b
-                        valuesSortedByFieldName list =
-                            list
-                                |> List.sortBy (Node.value >> Tuple.first >> Node.value)
-                                |> List.map (Node.value >> Tuple.second)
-                    in
-                    compareLists
-                        lookupTable
-                        (valuesSortedByFieldName leftList)
-                        (valuesSortedByFieldName rightList)
-                        ConfirmedEquality
+                    compareRecords lookupTable leftList rightList ConfirmedEquality
+
+                _ ->
+                    Unconfirmed
+
+        Expression.RecordUpdateExpression leftBaseValue leftList ->
+            case Node.value (removeParens right) of
+                Expression.RecordUpdateExpression rightBaseValue rightList ->
+                    if Node.value leftBaseValue == Node.value rightBaseValue then
+                        compareRecords lookupTable leftList rightList ConfirmedEquality
+
+                    else
+                        compareRecords lookupTable leftList rightList Unconfirmed
 
                 _ ->
                     Unconfirmed
@@ -424,6 +426,72 @@ compareLists lookupTable leftList rightList acc =
 
         _ ->
             acc
+
+
+type RecordFieldComparison
+    = MissingOtherValue (Node Expression)
+    | HasBothValues (Node Expression) (Node Expression)
+
+
+compareRecords : ModuleNameLookupTable -> List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
+compareRecords lookupTable leftList rightList acc =
+    let
+        leftFields : List ( String, Node Expression )
+        leftFields =
+            List.map (Node.value >> Tuple.mapFirst Node.value) leftList
+
+        rightFields : List ( String, Node Expression )
+        rightFields =
+            List.map (Node.value >> Tuple.mapFirst Node.value) rightList
+
+        recordFieldComparisons : List RecordFieldComparison
+        recordFieldComparisons =
+            Dict.merge
+                (\key value -> Dict.insert key (MissingOtherValue value))
+                (\key a b -> Dict.insert key (HasBothValues a b))
+                (\key value -> Dict.insert key (MissingOtherValue value))
+                (Dict.fromList leftFields)
+                (Dict.fromList rightFields)
+                Dict.empty
+                |> Dict.values
+    in
+    compareRecordFields lookupTable recordFieldComparisons acc
+
+
+compareRecordFields lookupTable recordFieldComparisons acc =
+    case recordFieldComparisons of
+        [] ->
+            acc
+
+        (MissingOtherValue _) :: rest ->
+            compareRecordFields lookupTable rest Unconfirmed
+
+        (HasBothValues a b) :: rest ->
+            case compare lookupTable a b of
+                ConfirmedInequality ->
+                    ConfirmedInequality
+
+                ConfirmedEquality ->
+                    compareRecordFields lookupTable rest acc
+
+                Unconfirmed ->
+                    compareRecordFields lookupTable rest Unconfirmed
+
+
+compareRecordsHelp : ModuleNameLookupTable -> List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
+compareRecordsHelp lookupTable leftList rightList acc =
+    let
+        valuesSortedByFieldName : List (Node ( Node comparable, b )) -> List b
+        valuesSortedByFieldName list =
+            list
+                |> List.sortBy (Node.value >> Tuple.first >> Node.value)
+                |> List.map (Node.value >> Tuple.second)
+    in
+    compareLists
+        lookupTable
+        (valuesSortedByFieldName leftList)
+        (valuesSortedByFieldName rightList)
+        acc
 
 
 fromEquality : Bool -> Comparison
