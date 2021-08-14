@@ -2316,7 +2316,7 @@ a = List.map fn 1 == List.map fn 2
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should simplify if conditions that look like each other" <|
+        , test "should simplify if expressions that look like each other" <|
             \() ->
                 """module A exposing (..)
 a = (if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)
@@ -2332,6 +2332,13 @@ a = (if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)
 a = True
 """
                         ]
+        , test "should not simplify if expressions that don't look like each other" <|
+            \() ->
+                """module A exposing (..)
+a = (if a then 2 else 3) == (if a then 1 else 2)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should simplify negations that look like each other" <|
             \() ->
                 """module A exposing (..)

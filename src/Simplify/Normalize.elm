@@ -341,7 +341,7 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.IfBlock leftCond leftThen leftElse ->
             case Node.value (removeParens right) of
                 Expression.IfBlock rightCond rightThen rightElse ->
-                    compareLists
+                    compareEqualityOfAll
                         lookupTable
                         [ leftCond, leftThen, leftElse ]
                         [ rightCond, rightThen, rightElse ]
