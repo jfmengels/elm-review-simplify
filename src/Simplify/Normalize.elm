@@ -111,12 +111,14 @@ normalize lookupTable node =
 
         Expression.RecordExpr nodes ->
             nodes
+                |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
                 |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
                 |> Expression.RecordExpr
                 |> toNode
 
         Expression.RecordUpdateExpression (Node _ value) nodes ->
             nodes
+                |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
                 |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
                 |> Expression.RecordUpdateExpression (toNode value)
                 |> toNode
