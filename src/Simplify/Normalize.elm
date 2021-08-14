@@ -176,6 +176,10 @@ compare lookupTable leftNode right =
     compareHelp lookupTable leftNode right True
 
 
+
+-- TODO REPLACEME Handle OperatorApplication, IfBlock, Negation, CaseExpr(?), RecordAccess
+
+
 compareHelp : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool -> Comparison
 compareHelp lookupTable leftNode right canFlip =
     case Node.value leftNode of
