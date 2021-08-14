@@ -318,6 +318,18 @@ compareHelp lookupTable leftNode right canFlip =
                 _ ->
                     fallback right
 
+        Expression.RecordAccess leftExpr leftName ->
+            case Node.value (removeParens right) of
+                Expression.RecordAccess rightExpr rightName ->
+                    if Node.value leftName == Node.value rightName then
+                        compareHelp lookupTable leftExpr rightExpr canFlip
+
+                    else
+                        Unconfirmed
+
+                _ ->
+                    fallback right
+
         Expression.UnitExpr ->
             ConfirmedEquality
 

@@ -2340,6 +2340,29 @@ a = -1 == -(2 - 1)
 a = True
 """
                         ]
+        , test "should simplify record accesses that look like each other" <|
+            \() ->
+                """module A exposing (..)
+a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "({ a = 1 }).a == ({ a = 2 - 1 }).a"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should not simplify with different fields" <|
+            \() ->
+                """module A exposing (..)
+a = ({ a = 1 }).a == ({ a = 1 }).b
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         ]
 
 
