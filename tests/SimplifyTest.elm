@@ -2405,6 +2405,22 @@ a = if condition then x else x
 a = x
 """
                         ]
+        , test "should replace the expression by the branch if both branches are known to be equal" <|
+            \() ->
+                """module A exposing (..)
+a = if condition then 1 else 2 - 1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The values in both branches is the same."
+                            , details = [ "The expression can be replaced by the contents of either branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
         ]
 
 

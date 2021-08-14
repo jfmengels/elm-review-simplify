@@ -1025,26 +1025,30 @@ expressionVisitorHelp node context =
                                 ]
 
                         _ ->
-                            if Normalize.areTheSame context.lookupTable trueBranch falseBranch then
-                                onlyErrors
-                                    [ Rule.errorWithFix
-                                        { message = "The values in both branches is the same."
-                                        , details = [ "The expression can be replaced by the contents of either branch." ]
-                                        }
-                                        (targetIf node)
-                                        [ Fix.removeRange
-                                            { start = (Node.range node).start
-                                            , end = (Node.range trueBranch).start
+                            case Normalize.compare context.lookupTable trueBranch falseBranch of
+                                Normalize.ConfirmedEquality ->
+                                    onlyErrors
+                                        [ Rule.errorWithFix
+                                            { message = "The values in both branches is the same."
+                                            , details = [ "The expression can be replaced by the contents of either branch." ]
                                             }
-                                        , Fix.removeRange
-                                            { start = (Node.range trueBranch).end
-                                            , end = (Node.range node).end
-                                            }
+                                            (targetIf node)
+                                            [ Fix.removeRange
+                                                { start = (Node.range node).start
+                                                , end = (Node.range trueBranch).start
+                                                }
+                                            , Fix.removeRange
+                                                { start = (Node.range trueBranch).end
+                                                , end = (Node.range node).end
+                                                }
+                                            ]
                                         ]
-                                    ]
 
-                            else
-                                onlyErrors []
+                                Normalize.ConfirmedInequality ->
+                                    onlyErrors []
+
+                                Normalize.Unconfirmed ->
+                                    onlyErrors []
 
         -------------------------------
         --  APPLIED LAMBDA FUNCTIONS --
