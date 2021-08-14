@@ -216,10 +216,21 @@ compareHelp lookupTable leftNode right canFlip =
                                 fromEquality (leftValue == rightValue)
 
                             Nothing ->
-                                Unconfirmed
+                                if canFlip then
+                                    compareHelp lookupTable right leftNode False
+
+                                else
+                                    Unconfirmed
 
                     Nothing ->
-                        Unconfirmed
+                        if canFlip then
+                            compareHelp lookupTable right leftNode False
+
+                        else
+                            Unconfirmed
+
+            else if canFlip then
+                compareHelp lookupTable right leftNode False
 
             else
                 Unconfirmed
