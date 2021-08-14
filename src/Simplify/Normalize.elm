@@ -232,12 +232,13 @@ compareHelp lookupTable leftNode right canFlip =
             in
             case Node.value right_ of
                 Expression.FunctionOrValue _ rightName ->
-                    if leftName == rightName then
-                        Maybe.map2 (==)
-                            (ModuleNameLookupTable.moduleNameFor lookupTable leftNode)
-                            (ModuleNameLookupTable.moduleNameFor lookupTable right_)
-                            |> Maybe.withDefault False
-                            |> fromEquality
+                    if
+                        isSameReference
+                            lookupTable
+                            ( Node.range leftNode, leftName )
+                            ( Node.range right_, rightName )
+                    then
+                        ConfirmedEquality
 
                     else
                         Unconfirmed
