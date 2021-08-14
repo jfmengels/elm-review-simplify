@@ -195,6 +195,18 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.Hex left ->
             compareNumbers (Basics.toFloat left) right
 
+        Expression.Negation left ->
+            case getNumberValue left of
+                Just leftValue ->
+                    compareNumbers -leftValue right
+
+                Nothing ->
+                    if canFlip then
+                        compareHelp lookupTable right leftNode False
+
+                    else
+                        Unconfirmed
+
         Expression.OperatorApplication op _ _ _ ->
             if List.member op [ "+", "-", "*", "/" ] then
                 case getNumberValue leftNode of

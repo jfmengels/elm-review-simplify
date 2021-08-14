@@ -2324,6 +2324,22 @@ a = (if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)
 a = True
 """
                         ]
+        , test "should simplify negations that look like each other" <|
+            \() ->
+                """module A exposing (..)
+a = -1 == -(2 - 1)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "-1 == -(2 - 1)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
 
 
