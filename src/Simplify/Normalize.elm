@@ -337,17 +337,17 @@ getNumberValue node =
                 (getNumberValue right)
 
         Expression.OperatorApplication "-" _ left right ->
-            Maybe.map2 (+)
+            Maybe.map2 (-)
                 (getNumberValue left)
                 (getNumberValue right)
 
         Expression.OperatorApplication "*" _ left right ->
-            Maybe.map2 (+)
+            Maybe.map2 (*)
                 (getNumberValue left)
                 (getNumberValue right)
 
         Expression.OperatorApplication "/" _ left right ->
-            Maybe.map2 (+)
+            Maybe.map2 (/)
                 (getNumberValue left)
                 (getNumberValue right)
 
