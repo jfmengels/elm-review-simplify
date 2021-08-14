@@ -328,9 +328,6 @@ getNumberValue node =
         Expression.ParenthesizedExpression expr ->
             getNumberValue expr
 
-        Expression.Application nodes ->
-            Nothing
-
         Expression.LetExpression { expression } ->
             getNumberValue expression
 
@@ -354,59 +351,11 @@ getNumberValue node =
                 (getNumberValue left)
                 (getNumberValue right)
 
-        Expression.OperatorApplication _ _ _ _ ->
-            Nothing
-
-        Expression.FunctionOrValue _ _ ->
-            Nothing
-
-        Expression.IfBlock _ _ _ ->
-            Nothing
-
-        Expression.PrefixOperator _ ->
-            Nothing
-
-        Expression.Operator string ->
-            Nothing
-
         Expression.Negation expr ->
             getNumberValue expr
                 |> Maybe.map negate
 
-        Expression.Literal string ->
-            Nothing
-
-        Expression.CharLiteral char ->
-            Nothing
-
-        Expression.TupledExpression nodes ->
-            Nothing
-
-        Expression.CaseExpression _ ->
-            Nothing
-
-        Expression.LambdaExpression _ ->
-            Nothing
-
-        Expression.RecordExpr _ ->
-            Nothing
-
-        Expression.ListExpr _ ->
-            Nothing
-
-        Expression.RecordAccess _ _ ->
-            Nothing
-
-        Expression.RecordAccessFunction _ ->
-            Nothing
-
-        Expression.RecordUpdateExpression _ _ ->
-            Nothing
-
-        Expression.GLSLExpression _ ->
-            Nothing
-
-        Expression.UnitExpr ->
+        _ ->
             Nothing
 
 
