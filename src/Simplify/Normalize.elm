@@ -1,6 +1,6 @@
 module Simplify.Normalize exposing (Comparison(..), areAllTheSame, areTheSame, compare)
 
-import Dict exposing (Dict)
+import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -378,7 +378,7 @@ compareLists lookupTable leftList rightList acc =
 
 
 type RecordFieldComparison
-    = MissingOtherValue (Node Expression)
+    = MissingOtherValue
     | HasBothValues (Node Expression) (Node Expression)
 
 
@@ -396,9 +396,9 @@ compareRecords lookupTable leftList rightList acc =
         recordFieldComparisons : List RecordFieldComparison
         recordFieldComparisons =
             Dict.merge
-                (\key value -> Dict.insert key (MissingOtherValue value))
+                (\key _ -> Dict.insert key MissingOtherValue)
                 (\key a b -> Dict.insert key (HasBothValues a b))
-                (\key value -> Dict.insert key (MissingOtherValue value))
+                (\key _ -> Dict.insert key MissingOtherValue)
                 (Dict.fromList leftFields)
                 (Dict.fromList rightFields)
                 Dict.empty
@@ -407,12 +407,13 @@ compareRecords lookupTable leftList rightList acc =
     compareRecordFields lookupTable recordFieldComparisons acc
 
 
+compareRecordFields : ModuleNameLookupTable -> List RecordFieldComparison -> Comparison -> Comparison
 compareRecordFields lookupTable recordFieldComparisons acc =
     case recordFieldComparisons of
         [] ->
             acc
 
-        (MissingOtherValue _) :: rest ->
+        MissingOtherValue :: rest ->
             compareRecordFields lookupTable rest Unconfirmed
 
         (HasBothValues a b) :: rest ->
@@ -425,22 +426,6 @@ compareRecordFields lookupTable recordFieldComparisons acc =
 
                 Unconfirmed ->
                     compareRecordFields lookupTable rest Unconfirmed
-
-
-compareRecordsHelp : ModuleNameLookupTable -> List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
-compareRecordsHelp lookupTable leftList rightList acc =
-    let
-        valuesSortedByFieldName : List (Node ( Node comparable, b )) -> List b
-        valuesSortedByFieldName list =
-            list
-                |> List.sortBy (Node.value >> Tuple.first >> Node.value)
-                |> List.map (Node.value >> Tuple.second)
-    in
-    compareLists
-        lookupTable
-        (valuesSortedByFieldName leftList)
-        (valuesSortedByFieldName rightList)
-        acc
 
 
 fromEquality : Bool -> Comparison
