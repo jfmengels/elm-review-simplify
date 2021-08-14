@@ -318,7 +318,7 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.Application leftArgs ->
             case Node.value (removeParens right) of
                 Expression.Application rightArgs ->
-                    compareLists lookupTable leftArgs rightArgs ConfirmedEquality
+                    compareEqualityOfAll lookupTable leftArgs rightArgs ConfirmedEquality
 
                 _ ->
                     fallback right
@@ -446,13 +446,13 @@ compareEqualityOfAll lookupTable leftList rightList acc =
         ( left :: restOfLeft, right :: restOfRight ) ->
             case compareHelp lookupTable left right True of
                 ConfirmedEquality ->
-                    compareLists lookupTable restOfLeft restOfRight acc
+                    compareEqualityOfAll lookupTable restOfLeft restOfRight acc
 
                 ConfirmedInequality ->
-                    compareLists lookupTable restOfLeft restOfRight Unconfirmed
+                    Unconfirmed
 
                 Unconfirmed ->
-                    compareLists lookupTable restOfLeft restOfRight Unconfirmed
+                    Unconfirmed
 
         _ ->
             acc

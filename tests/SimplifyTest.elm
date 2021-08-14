@@ -2308,6 +2308,14 @@ import List exposing (map)
 a = True
 """
                         ]
+        , test "should not simplify function calls of the same function but with different arguments" <|
+            \() ->
+                """module A exposing (..)
+import List exposing (map)
+a = List.map fn 1 == List.map fn 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should simplify if conditions that look like each other" <|
             \() ->
                 """module A exposing (..)
