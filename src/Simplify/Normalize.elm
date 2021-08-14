@@ -213,11 +213,7 @@ compareHelp lookupTable leftNode right canFlip =
                     compareNumbers -leftValue right
 
                 Nothing ->
-                    if canFlip then
-                        compareHelp lookupTable right leftNode False
-
-                    else
-                        Unconfirmed
+                    fallback right
 
         Expression.OperatorApplication op _ _ _ ->
             if List.member op [ "+", "-", "*", "/" ] then
@@ -228,40 +224,29 @@ compareHelp lookupTable leftNode right canFlip =
                                 fromEquality (leftValue == rightValue)
 
                             Nothing ->
-                                if canFlip then
-                                    compareHelp lookupTable right leftNode False
-
-                                else
-                                    Unconfirmed
+                                fallback right
 
                     Nothing ->
-                        if canFlip then
-                            compareHelp lookupTable right leftNode False
-
-                        else
-                            Unconfirmed
-
-            else if canFlip then
-                compareHelp lookupTable right leftNode False
+                        fallback right
 
             else
-                Unconfirmed
+                fallback right
 
         Expression.Literal left ->
-            case Node.value right of
+            case Node.value (removeParens right) of
                 Expression.Literal rightValue ->
                     fromEquality (left == rightValue)
 
                 _ ->
-                    Unconfirmed
+                    fallback right
 
         Expression.CharLiteral left ->
-            case Node.value right of
+            case Node.value (removeParens right) of
                 Expression.CharLiteral rightValue ->
                     fromEquality (left == rightValue)
 
                 _ ->
-                    Unconfirmed
+                    fallback right
 
         Expression.FunctionOrValue _ leftName ->
             let
@@ -280,14 +265,10 @@ compareHelp lookupTable leftNode right canFlip =
                         ConfirmedEquality
 
                     else
-                        Unconfirmed
+                        fallback right_
 
                 _ ->
-                    if canFlip then
-                        compareHelp lookupTable right leftNode False
-
-                    else
-                        Unconfirmed
+                    fallback right
 
         Expression.ListExpr leftList ->
             case Node.value (removeParens right) of
@@ -299,7 +280,7 @@ compareHelp lookupTable leftNode right canFlip =
                         compareLists lookupTable leftList rightList ConfirmedEquality
 
                 _ ->
-                    Unconfirmed
+                    fallback right
 
         Expression.TupledExpression leftList ->
             case Node.value (removeParens right) of
@@ -307,7 +288,7 @@ compareHelp lookupTable leftNode right canFlip =
                     compareLists lookupTable leftList rightList ConfirmedEquality
 
                 _ ->
-                    Unconfirmed
+                    fallback right
 
         Expression.RecordExpr leftList ->
             case Node.value (removeParens right) of
@@ -315,7 +296,7 @@ compareHelp lookupTable leftNode right canFlip =
                     compareRecords lookupTable leftList rightList ConfirmedEquality
 
                 _ ->
-                    Unconfirmed
+                    fallback right
 
         Expression.RecordUpdateExpression leftBaseValue leftList ->
             case Node.value (removeParens right) of
@@ -327,7 +308,7 @@ compareHelp lookupTable leftNode right canFlip =
                         compareRecords lookupTable leftList rightList Unconfirmed
 
                 _ ->
-                    Unconfirmed
+                    fallback right
 
         Expression.Application leftArgs ->
             case Node.value (removeParens right) of
@@ -335,14 +316,7 @@ compareHelp lookupTable leftNode right canFlip =
                     compareLists lookupTable leftArgs rightArgs ConfirmedEquality
 
                 _ ->
-                    if canFlip then
-                        compareHelp lookupTable right leftNode False
-
-                    else if areTheSame lookupTable leftNode right then
-                        ConfirmedEquality
-
-                    else
-                        Unconfirmed
+                    fallback right
 
         Expression.UnitExpr ->
             ConfirmedEquality
@@ -357,24 +331,10 @@ compareHelp lookupTable leftNode right canFlip =
                         ConfirmedEquality
 
                 _ ->
-                    if canFlip then
-                        compareHelp lookupTable right leftNode False
-
-                    else if areTheSame lookupTable leftNode right then
-                        ConfirmedEquality
-
-                    else
-                        Unconfirmed
+                    fallback right
 
         _ ->
-            if canFlip then
-                compareHelp lookupTable right leftNode False
-
-            else if areTheSame lookupTable leftNode right then
-                ConfirmedEquality
-
-            else
-                Unconfirmed
+            fallback right
 
 
 isSameReference : ModuleNameLookupTable -> ( Range, String ) -> ( Range, String ) -> Bool
