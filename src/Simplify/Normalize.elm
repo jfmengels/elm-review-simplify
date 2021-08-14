@@ -229,7 +229,10 @@ compareHelp lookupTable leftNode right canFlip =
                 case Node.value (removeParens right) of
                     Expression.OperatorApplication rightOp _ rightLeft rightRight ->
                         if leftOp == rightOp then
-                            compareEqualityOfAll lookupTable [ leftLeft, leftRight ] [ rightLeft, rightRight ] ConfirmedEquality
+                            compareEqualityOfAll
+                                lookupTable
+                                [ leftLeft, leftRight ]
+                                [ rightLeft, rightRight ]
 
                         else
                             fallback right
@@ -318,7 +321,7 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.Application leftArgs ->
             case Node.value (removeParens right) of
                 Expression.Application rightArgs ->
-                    compareEqualityOfAll lookupTable leftArgs rightArgs ConfirmedEquality
+                    compareEqualityOfAll lookupTable leftArgs rightArgs
 
                 _ ->
                     fallback right
@@ -345,7 +348,6 @@ compareHelp lookupTable leftNode right canFlip =
                         lookupTable
                         [ leftCond, leftThen, leftElse ]
                         [ rightCond, rightThen, rightElse ]
-                        ConfirmedEquality
 
                 _ ->
                     fallback right
@@ -440,13 +442,13 @@ compareLists lookupTable leftList rightList acc =
             acc
 
 
-compareEqualityOfAll : ModuleNameLookupTable -> List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
-compareEqualityOfAll lookupTable leftList rightList acc =
+compareEqualityOfAll : ModuleNameLookupTable -> List (Node Expression) -> List (Node Expression) -> Comparison
+compareEqualityOfAll lookupTable leftList rightList =
     case ( leftList, rightList ) of
         ( left :: restOfLeft, right :: restOfRight ) ->
             case compareHelp lookupTable left right True of
                 ConfirmedEquality ->
-                    compareEqualityOfAll lookupTable restOfLeft restOfRight acc
+                    compareEqualityOfAll lookupTable restOfLeft restOfRight
 
                 ConfirmedInequality ->
                     Unconfirmed
@@ -455,7 +457,7 @@ compareEqualityOfAll lookupTable leftList rightList acc =
                     Unconfirmed
 
         _ ->
-            acc
+            ConfirmedEquality
 
 
 type RecordFieldComparison
