@@ -179,14 +179,6 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.ParenthesizedExpression expr ->
             compareHelp lookupTable expr right canFlip
 
-        Expression.Literal left ->
-            case Node.value right of
-                Expression.Literal rightValue ->
-                    fromEquality (left == rightValue)
-
-                _ ->
-                    Unconfirmed
-
         Expression.Integer left ->
             compareNumbers (Basics.toFloat left) right
 
@@ -212,6 +204,22 @@ compareHelp lookupTable leftNode right canFlip =
 
             else
                 Unconfirmed
+
+        Expression.Literal left ->
+            case Node.value right of
+                Expression.Literal rightValue ->
+                    fromEquality (left == rightValue)
+
+                _ ->
+                    Unconfirmed
+
+        Expression.CharLiteral left ->
+            case Node.value right of
+                Expression.CharLiteral rightValue ->
+                    fromEquality (left == rightValue)
+
+                _ ->
+                    Unconfirmed
 
         Expression.FunctionOrValue _ leftName ->
             let
