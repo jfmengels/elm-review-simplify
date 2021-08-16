@@ -585,6 +585,25 @@ a = x || (x || y)
 a = x || (False || y)
 """
                         ]
+        , test "should simply (x || y) || (z || x) to (x || y) || (z)" <|
+            \() ->
+                """module A exposing (..)
+a = (x || y) || (z || x)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is redundant"
+                            , details =
+                                [ "This condition is the same as another one found on the left side of the (||) operator, therefore one of them can be removed."
+                                ]
+                            , under = " || x"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 19 }, end = { row = 2, column = 24 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x || y) || (z)
+"""
+                        ]
         , test "should simply x && x to x" <|
             \() ->
                 """module A exposing (..)

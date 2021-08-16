@@ -2014,18 +2014,34 @@ type RedundantConditionResolution
 
 findSimilarConditionsError : OperatorCheckInfo -> List (Error {})
 findSimilarConditionsError operatorCheckInfo =
-    listConditions
-        operatorCheckInfo.operator
-        (RemoveFrom operatorCheckInfo.leftRange.end)
-        operatorCheckInfo.right
-        |> List.concatMap (areSimilarConditionsError operatorCheckInfo)
+    let
+        conditionsOnTheRight : List ( RedundantConditionResolution, Node Expression )
+        conditionsOnTheRight =
+            listConditions
+                operatorCheckInfo.operator
+                (RemoveFrom operatorCheckInfo.leftRange.end)
+                operatorCheckInfo.right
+
+        errorsForNode : Node Expression -> List (Error {})
+        errorsForNode nodeToCompareTo =
+            List.concatMap
+                (areSimilarConditionsError
+                    operatorCheckInfo.lookupTable
+                    operatorCheckInfo.operator
+                    nodeToCompareTo
+                )
+                conditionsOnTheRight
+    in
+    operatorCheckInfo.left
+        |> listConditions operatorCheckInfo.operator (RemoveFrom operatorCheckInfo.leftRange.end)
+        |> List.concatMap (Tuple.second >> errorsForNode)
 
 
-areSimilarConditionsError : OperatorCheckInfo -> ( RedundantConditionResolution, Node Expression ) -> List (Error {})
-areSimilarConditionsError operatorCheckInfo ( redundantConditionResolution, nodeToBeLookedAt ) =
-    case Normalize.compare operatorCheckInfo.lookupTable operatorCheckInfo.left nodeToBeLookedAt of
+areSimilarConditionsError : ModuleNameLookupTable -> String -> Node Expression -> ( RedundantConditionResolution, Node Expression ) -> List (Error {})
+areSimilarConditionsError lookupTable operator nodeToCompareTo ( redundantConditionResolution, nodeToLookAt ) =
+    case Normalize.compare lookupTable nodeToCompareTo nodeToLookAt of
         Normalize.ConfirmedEquality ->
-            errorForRedundantCondition operatorCheckInfo.operator redundantConditionResolution nodeToBeLookedAt
+            errorForRedundantCondition operator redundantConditionResolution nodeToLookAt
 
         Normalize.ConfirmedInequality ->
             []
