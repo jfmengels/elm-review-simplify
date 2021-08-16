@@ -1418,6 +1418,8 @@ operatorChecks =
         , ( "/=", equalityChecks False )
         , ( "<", comparisonChecks (<) )
         , ( ">", comparisonChecks (>) )
+        , ( "<=", comparisonChecks (<=) )
+        , ( ">=", comparisonChecks (>=) )
         ]
 
 

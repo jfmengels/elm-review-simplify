@@ -1907,6 +1907,38 @@ a = 1 > 2
 a = False
 """
                         ]
+        , test "should simplify 1 >= 2 to False" <|
+            \() ->
+                """module A exposing (..)
+a = 1 >= 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = comparisonIsAlwaysMessage "False"
+                            , details = comparisonIsAlwaysDetails "False"
+                            , under = "1 >= 2"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should simplify 1 <= 2 to True" <|
+            \() ->
+                """module A exposing (..)
+a = 1 <= 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = comparisonIsAlwaysMessage "True"
+                            , details = comparisonIsAlwaysDetails "True"
+                            , under = "1 <= 2"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
 
 
