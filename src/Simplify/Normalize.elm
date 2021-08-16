@@ -1,4 +1,4 @@
-module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare)
+module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, getNumberValue)
 
 import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)

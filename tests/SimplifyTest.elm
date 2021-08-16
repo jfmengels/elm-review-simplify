@@ -394,6 +394,17 @@ sameThingOnBothSidesDetails value =
     ]
 
 
+comparisonIsAlwaysMessage : String -> String
+comparisonIsAlwaysMessage value =
+    "Comparison is always " ++ value
+
+
+comparisonIsAlwaysDetails : String -> List String
+comparisonIsAlwaysDetails value =
+    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ value ++ "."
+    ]
+
+
 orTests : Test
 orTests =
     describe "||"
@@ -1383,6 +1394,7 @@ numberTests =
         , divisionTests
         , negationTest
         , basicsNegateTests
+        , comparisonTests
         ]
 
 
@@ -1832,6 +1844,51 @@ a = negate <| negate x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
+"""
+                        ]
+        ]
+
+
+comparisonTests : Test
+comparisonTests =
+    describe "Comparison operators"
+        [ lessThanTests
+        ]
+
+
+lessThanTests : Test
+lessThanTests =
+    describe "<"
+        [ test "should simplify 1 < 2 to False" <|
+            \() ->
+                """module A exposing (..)
+a = 1 < 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = comparisonIsAlwaysMessage "True"
+                            , details = comparisonIsAlwaysDetails "True"
+                            , under = "1 < 2"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify 2 < 1 to False" <|
+            \() ->
+                """module A exposing (..)
+a = 2 < 1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = comparisonIsAlwaysMessage "False"
+                            , details = comparisonIsAlwaysDetails "False"
+                            , under = "2 < 1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
 """
                         ]
         ]

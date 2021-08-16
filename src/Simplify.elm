@@ -1416,6 +1416,7 @@ operatorChecks =
         , ( "&&", andChecks )
         , ( "==", equalityChecks True )
         , ( "/=", equalityChecks False )
+        , ( "<", comparisonChecks )
         ]
 
 
@@ -2297,17 +2298,6 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
                 ]
 
             _ ->
-                --if Normalize.areTheSame lookupTable left right then
-                --    [ Rule.errorWithFix
-                --        { message = "Condition is always " ++ boolToString isEqual
-                --        , details = sameThingOnBothSidesDetails isEqual
-                --        }
-                --        parentRange
-                --        [ Fix.replaceRangeBy parentRange (boolToString isEqual)
-                --        ]
-                --    ]
-                --
-                --else
                 case Normalize.compare lookupTable left right of
                     Normalize.ConfirmedEquality ->
                         [ Rule.errorWithFix
@@ -2410,6 +2400,34 @@ sameThingOnBothSidesDetails computedResult =
     in
     [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ computedResultString ++ "."
     ]
+
+
+
+-- COMPARISONS
+
+
+comparisonChecks : OperatorCheckInfo -> List (Error {})
+comparisonChecks operatorCheckInfo =
+    case
+        Maybe.map2 (<)
+            (getNumberValue operatorCheckInfo.left)
+            (getNumberValue operatorCheckInfo.right)
+            |> Maybe.map boolToString
+    of
+        Just value ->
+            [ Rule.errorWithFix
+                { message = "Comparison is always " ++ value
+                , details =
+                    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ value ++ "."
+                    ]
+                }
+                operatorCheckInfo.parentRange
+                [ Fix.replaceRangeBy operatorCheckInfo.parentRange value
+                ]
+            ]
+
+        Nothing ->
+            []
 
 
 
