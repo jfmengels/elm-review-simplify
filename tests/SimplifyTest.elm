@@ -501,9 +501,9 @@ a = x || x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Conditions are redundant"
+                            { message = "Condition is redundant"
                             , details =
-                                [ "This condition is the same as the one found on the left side of the (||) operator, therefore one of them can be removed."
+                                [ "This condition is the same as another one found on the left side of the (||) operator, therefore one of them can be removed."
                                 ]
                             , under = " || x"
                             }
@@ -519,14 +519,70 @@ a = x || y || x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Conditions are redundant"
+                            { message = "Condition is redundant"
                             , details =
-                                [ "This condition is the same as the one found on the left side of the (||) operator, therefore one of them can be removed."
+                                [ "This condition is the same as another one found on the left side of the (||) operator, therefore one of them can be removed."
                                 ]
                             , under = " || x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x || y
+"""
+                        ]
+        , test "should simply x || x || y to x || y" <|
+            \() ->
+                """module A exposing (..)
+a = x || x || y
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is redundant"
+                            , details =
+                                [ "This condition is the same as another one found on the left side of the (||) operator, therefore one of them can be removed."
+                                ]
+                            , under = " || x"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x || y
+"""
+                        ]
+        , test "should simply x || (x) || y to x || False || y" <|
+            \() ->
+                """module A exposing (..)
+a = x || (x) || y
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is redundant"
+                            , details =
+                                [ "This condition is the same as another one found on the left side of the (||) operator, therefore one of them can be removed."
+                                ]
+                            , under = "x"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 11 }, end = { row = 2, column = 12 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x || (False) || y
+"""
+                        ]
+        , test "should simply x || (x || y) to x || (False || y)" <|
+            \() ->
+                """module A exposing (..)
+a = x || (x || y)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is redundant"
+                            , details =
+                                [ "This condition is the same as another one found on the left side of the (||) operator, therefore one of them can be removed."
+                                ]
+                            , under = "x"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 11 }, end = { row = 2, column = 12 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x || (False || y)
 """
                         ]
         , test "should simply x && x to x" <|
@@ -537,14 +593,33 @@ a = x && x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Conditions are redundant"
+                            { message = "Condition is redundant"
                             , details =
-                                [ "This condition is the same as the one found on the left side of the (&&) operator, therefore one of them can be removed."
+                                [ "This condition is the same as another one found on the left side of the (&&) operator, therefore one of them can be removed."
                                 ]
                             , under = " && x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
+"""
+                        ]
+        , test "should simply x && (x && y) to x && (True && y)" <|
+            \() ->
+                """module A exposing (..)
+a = x && (x && y)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is redundant"
+                            , details =
+                                [ "This condition is the same as another one found on the left side of the (&&) operator, therefore one of them can be removed."
+                                ]
+                            , under = "x"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 11 }, end = { row = 2, column = 12 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x && (True && y)
 """
                         ]
         ]

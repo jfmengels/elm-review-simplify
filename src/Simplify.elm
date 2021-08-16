@@ -497,7 +497,7 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
-import Elm.Syntax.Range as Range exposing (Range)
+import Elm.Syntax.Range as Range exposing (Location, Range)
 import Elm.Type
 import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
@@ -2002,37 +2002,102 @@ orChecks operatorCheckInfo =
                 [ or_isLeftSimplifiableError operatorCheckInfo
                 , or_isRightSimplifiableError operatorCheckInfo
                 ]
-        , \() -> areSimilarConditionsError operatorCheckInfo
+        , \() -> findSimilarConditionsError operatorCheckInfo
         ]
         ()
 
 
-areSimilarConditionsError : OperatorCheckInfo -> List (Error {})
-areSimilarConditionsError operatorCheckInfo =
-    case Normalize.compare operatorCheckInfo.lookupTable operatorCheckInfo.left operatorCheckInfo.right of
+type RedundantConditionResolution
+    = RemoveFrom Location
+    | ReplaceByNoop Bool
+
+
+findSimilarConditionsError : OperatorCheckInfo -> List (Error {})
+findSimilarConditionsError operatorCheckInfo =
+    listConditions
+        operatorCheckInfo.operator
+        (RemoveFrom operatorCheckInfo.leftRange.end)
+        operatorCheckInfo.right
+        |> List.concatMap (areSimilarConditionsError operatorCheckInfo)
+
+
+areSimilarConditionsError : OperatorCheckInfo -> ( RedundantConditionResolution, Node Expression ) -> List (Error {})
+areSimilarConditionsError operatorCheckInfo ( redundantConditionResolution, nodeToBeLookedAt ) =
+    case Normalize.compare operatorCheckInfo.lookupTable operatorCheckInfo.left nodeToBeLookedAt of
         Normalize.ConfirmedEquality ->
-            let
-                rangeFromOperatorToRightCondition : Range
-                rangeFromOperatorToRightCondition =
-                    { start = operatorCheckInfo.leftRange.end
-                    , end = operatorCheckInfo.rightRange.end
-                    }
-            in
-            [ Rule.errorWithFix
-                { message = "Conditions are redundant"
-                , details =
-                    [ "This condition is the same as the one found on the left side of the (" ++ operatorCheckInfo.operator ++ ") operator, therefore one of them can be removed."
-                    ]
-                }
-                rangeFromOperatorToRightCondition
-                [ Fix.removeRange rangeFromOperatorToRightCondition ]
-            ]
+            errorForRedundantCondition operatorCheckInfo.operator redundantConditionResolution nodeToBeLookedAt
 
         Normalize.ConfirmedInequality ->
             []
 
         Normalize.Unconfirmed ->
             []
+
+
+errorForRedundantCondition : String -> RedundantConditionResolution -> Node a -> List (Error {})
+errorForRedundantCondition operator redundantConditionResolution node =
+    let
+        ( range, fix ) =
+            rangeAndFixForRedundantCondition redundantConditionResolution node
+    in
+    [ Rule.errorWithFix
+        { message = "Condition is redundant"
+        , details =
+            [ "This condition is the same as another one found on the left side of the (" ++ operator ++ ") operator, therefore one of them can be removed."
+            ]
+        }
+        range
+        fix
+    ]
+
+
+rangeAndFixForRedundantCondition : RedundantConditionResolution -> Node a -> ( Range, List Fix )
+rangeAndFixForRedundantCondition redundantConditionResolution node =
+    case redundantConditionResolution of
+        RemoveFrom locationOfPrevElement ->
+            let
+                range : Range
+                range =
+                    { start = locationOfPrevElement
+                    , end = (Node.range node).end
+                    }
+            in
+            ( range
+            , [ Fix.removeRange range ]
+            )
+
+        ReplaceByNoop noopValue ->
+            let
+                range : Range
+                range =
+                    Node.range node
+            in
+            ( range
+            , [ Fix.replaceRangeBy range (boolToString noopValue) ]
+            )
+
+
+listConditions : String -> RedundantConditionResolution -> Node Expression -> List ( RedundantConditionResolution, Node Expression )
+listConditions operatorToLookFor redundantConditionResolution node =
+    case Node.value node of
+        Expression.ParenthesizedExpression expr ->
+            let
+                noopValue : Bool
+                noopValue =
+                    operatorToLookFor == "&&"
+            in
+            listConditions operatorToLookFor (ReplaceByNoop noopValue) expr
+
+        Expression.OperatorApplication operator _ left right ->
+            if operator == operatorToLookFor then
+                listConditions operatorToLookFor redundantConditionResolution left
+                    ++ listConditions operatorToLookFor (RemoveFrom (Node.range left).end) right
+
+            else
+                [ ( redundantConditionResolution, node ) ]
+
+        _ ->
+            [ ( redundantConditionResolution, node ) ]
 
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
@@ -2109,7 +2174,7 @@ andChecks operatorCheckInfo =
                 [ and_isLeftSimplifiableError operatorCheckInfo
                 , and_isRightSimplifiableError operatorCheckInfo
                 ]
-        , \() -> areSimilarConditionsError operatorCheckInfo
+        , \() -> findSimilarConditionsError operatorCheckInfo
         ]
         ()
 
