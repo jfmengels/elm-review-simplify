@@ -1529,7 +1529,7 @@ plusChecks : OperatorCheckInfo -> List (Error {})
 plusChecks { leftRange, rightRange, left, right } =
     findMap
         (\( node, getRange ) ->
-            if getNumberValue node == Just 0 then
+            if getUncomputedNumberValue node == Just 0 then
                 Just
                     [ Rule.errorWithFix
                         { message = "Unnecessary addition with 0"
@@ -1550,7 +1550,7 @@ plusChecks { leftRange, rightRange, left, right } =
 
 minusChecks : OperatorCheckInfo -> List (Error {})
 minusChecks { leftRange, rightRange, left, right } =
-    if getNumberValue right == Just 0 then
+    if getUncomputedNumberValue right == Just 0 then
         let
             range : Range
             range =
@@ -1564,7 +1564,7 @@ minusChecks { leftRange, rightRange, left, right } =
             [ Fix.removeRange range ]
         ]
 
-    else if getNumberValue left == Just 0 then
+    else if getUncomputedNumberValue left == Just 0 then
         let
             range : Range
             range =
@@ -1586,7 +1586,7 @@ multiplyChecks : OperatorCheckInfo -> List (Error {})
 multiplyChecks { parentRange, leftRange, rightRange, left, right } =
     findMap
         (\( node, getRange ) ->
-            case getNumberValue node of
+            case getUncomputedNumberValue node of
                 Just value ->
                     if value == 1 then
                         Just
@@ -1622,7 +1622,7 @@ multiplyChecks { parentRange, leftRange, rightRange, left, right } =
 
 divisionChecks : OperatorCheckInfo -> List (Error {})
 divisionChecks { leftRange, rightRange, right } =
-    if getNumberValue right == Just 1 then
+    if getUncomputedNumberValue right == Just 1 then
         let
             range : Range
             range =
@@ -2413,8 +2413,8 @@ comparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> List (Error 
 comparisonChecks operatorFunction operatorCheckInfo =
     case
         Maybe.map2 operatorFunction
-            (getNumberValue operatorCheckInfo.left)
-            (getNumberValue operatorCheckInfo.right)
+            (getUncomputedNumberValue operatorCheckInfo.left)
+            (getUncomputedNumberValue operatorCheckInfo.right)
             |> Maybe.map boolToString
     of
         Just value ->
@@ -4227,8 +4227,8 @@ getIntValue node =
             Nothing
 
 
-getNumberValue : Node Expression -> Maybe Float
-getNumberValue node =
+getUncomputedNumberValue : Node Expression -> Maybe Float
+getUncomputedNumberValue node =
     case Node.value (removeParens node) of
         Expression.Integer n ->
             Just (toFloat n)
@@ -4240,7 +4240,7 @@ getNumberValue node =
             Just n
 
         Expression.Negation expr ->
-            Maybe.map negate (getNumberValue expr)
+            Maybe.map negate (getUncomputedNumberValue expr)
 
         _ ->
             Nothing
