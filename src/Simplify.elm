@@ -1278,6 +1278,7 @@ expressionVisitorHelp node context =
                         checkFn
                             { lookupTable = context.lookupTable
                             , parentRange = Node.range node
+                            , operator = operator
                             , left = left
                             , leftRange = Node.range left
                             , right = right
@@ -1393,6 +1394,7 @@ functionCallChecks =
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , parentRange : Range
+    , operator : String
     , left : Node Expression
     , leftRange : Range
     , right : Node Expression
@@ -1994,10 +1996,43 @@ getNotComposition lookupTable takeFirstFunction node =
 
 orChecks : OperatorCheckInfo -> List (Error {})
 orChecks operatorCheckInfo =
-    List.concat
-        [ or_isLeftSimplifiableError operatorCheckInfo
-        , or_isRightSimplifiableError operatorCheckInfo
+    firstThatReportsError
+        [ \() ->
+            List.concat
+                [ or_isLeftSimplifiableError operatorCheckInfo
+                , or_isRightSimplifiableError operatorCheckInfo
+                ]
+        , \() -> areSimilarConditionsError operatorCheckInfo
         ]
+        ()
+
+
+areSimilarConditionsError : OperatorCheckInfo -> List (Error {})
+areSimilarConditionsError operatorCheckInfo =
+    case Normalize.compare operatorCheckInfo.lookupTable operatorCheckInfo.left operatorCheckInfo.right of
+        Normalize.ConfirmedEquality ->
+            let
+                rangeFromOperatorToRightCondition : Range
+                rangeFromOperatorToRightCondition =
+                    { start = operatorCheckInfo.leftRange.end
+                    , end = operatorCheckInfo.rightRange.end
+                    }
+            in
+            [ Rule.errorWithFix
+                { message = "Conditions are redundant"
+                , details =
+                    [ "This condition is the same as the one found on the left side of the (" ++ operatorCheckInfo.operator ++ ") operator, therefore one of them can be removed."
+                    ]
+                }
+                rangeFromOperatorToRightCondition
+                [ Fix.removeRange rangeFromOperatorToRightCondition ]
+            ]
+
+        Normalize.ConfirmedInequality ->
+            []
+
+        Normalize.Unconfirmed ->
+            []
 
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
