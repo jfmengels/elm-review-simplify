@@ -1875,6 +1875,22 @@ a = 1 < 2
 a = True
 """
                         ]
+        , test "should simplify 1 < 2 + 3 to False" <|
+            \() ->
+                """module A exposing (..)
+a = 1 < 2 + 3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = comparisonIsAlwaysMessage "True"
+                            , details = comparisonIsAlwaysDetails "True"
+                            , under = "1 < 2 + 3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify 2 < 1 to False" <|
             \() ->
                 """module A exposing (..)

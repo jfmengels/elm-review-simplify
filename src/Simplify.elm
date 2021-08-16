@@ -2413,8 +2413,8 @@ comparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> List (Error 
 comparisonChecks operatorFunction operatorCheckInfo =
     case
         Maybe.map2 operatorFunction
-            (getUncomputedNumberValue operatorCheckInfo.left)
-            (getUncomputedNumberValue operatorCheckInfo.right)
+            (Normalize.getNumberValue operatorCheckInfo.left)
+            (Normalize.getNumberValue operatorCheckInfo.right)
             |> Maybe.map boolToString
     of
         Just value ->
