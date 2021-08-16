@@ -511,6 +511,24 @@ a = x || x
 a = x
 """
                         ]
+        , test "should simply x || y || x to x || y" <|
+            \() ->
+                """module A exposing (..)
+a = x || y || x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Conditions are redundant"
+                            , details =
+                                [ "This condition is the same as the one found on the left side of the (||) operator, therefore one of them can be removed."
+                                ]
+                            , under = " || x"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x || y
+"""
+                        ]
         , test "should simply x && x to x" <|
             \() ->
                 """module A exposing (..)
