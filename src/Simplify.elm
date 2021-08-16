@@ -1416,7 +1416,8 @@ operatorChecks =
         , ( "&&", andChecks )
         , ( "==", equalityChecks True )
         , ( "/=", equalityChecks False )
-        , ( "<", comparisonChecks )
+        , ( "<", comparisonChecks (<) )
+        , ( ">", comparisonChecks (>) )
         ]
 
 
@@ -2406,10 +2407,10 @@ sameThingOnBothSidesDetails computedResult =
 -- COMPARISONS
 
 
-comparisonChecks : OperatorCheckInfo -> List (Error {})
-comparisonChecks operatorCheckInfo =
+comparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> List (Error {})
+comparisonChecks operatorFunction operatorCheckInfo =
     case
-        Maybe.map2 (<)
+        Maybe.map2 operatorFunction
             (getNumberValue operatorCheckInfo.left)
             (getNumberValue operatorCheckInfo.right)
             |> Maybe.map boolToString
