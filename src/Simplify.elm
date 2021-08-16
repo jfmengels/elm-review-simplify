@@ -2103,10 +2103,15 @@ or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightR
 
 andChecks : OperatorCheckInfo -> List (Error {})
 andChecks operatorCheckInfo =
-    List.concat
-        [ and_isLeftSimplifiableError operatorCheckInfo
-        , and_isRightSimplifiableError operatorCheckInfo
+    firstThatReportsError
+        [ \() ->
+            List.concat
+                [ and_isLeftSimplifiableError operatorCheckInfo
+                , and_isRightSimplifiableError operatorCheckInfo
+                ]
+        , \() -> areSimilarConditionsError operatorCheckInfo
         ]
+        ()
 
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
