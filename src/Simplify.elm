@@ -211,6 +211,15 @@ Below is the list of all kinds of simplifications this rule applies.
     String.repeat 1 str
     --> str
 
+    String.replace x y ""
+    --> ""
+
+    String.replace x x z
+    --> z
+
+    String.replace "x" "y" "z"
+    --> "z" -- only when resulting string is unchanged
+
     String.words ""
     --> []
 
@@ -940,6 +949,7 @@ expressionVisitorHelp node context =
                             , fnRange = fnRange
                             , firstArg = firstArg
                             , secondArg = List.head restOfArguments
+                            , thirdArg = List.head (List.drop 1 restOfArguments)
                             , usingRightPizza = False
                             }
                         )
@@ -1147,6 +1157,7 @@ expressionVisitorHelp node context =
                             , fnRange = fnRange
                             , firstArg = firstArg
                             , secondArg = Nothing
+                            , thirdArg = Nothing
                             , usingRightPizza = False
                             }
                         )
@@ -1167,6 +1178,7 @@ expressionVisitorHelp node context =
                             , fnRange = fnRange
                             , firstArg = firstArg
                             , secondArg = Just secondArgument
+                            , thirdArg = Nothing
                             , usingRightPizza = False
                             }
                         )
@@ -1191,6 +1203,7 @@ expressionVisitorHelp node context =
                             , fnRange = fnRange
                             , firstArg = firstArg
                             , secondArg = Nothing
+                            , thirdArg = Nothing
                             , usingRightPizza = True
                             }
                         )
@@ -1211,6 +1224,7 @@ expressionVisitorHelp node context =
                             , fnRange = fnRange
                             , firstArg = firstArg
                             , secondArg = Just secondArgument
+                            , thirdArg = Nothing
                             , usingRightPizza = True
                             }
                         )
@@ -1329,6 +1343,7 @@ type alias CheckInfo =
     , fnRange : Range
     , firstArg : Node Expression
     , secondArg : Maybe (Node Expression)
+    , thirdArg : Maybe (Node Expression)
     , usingRightPizza : Bool
     }
 
@@ -1381,6 +1396,7 @@ functionCallChecks =
         , ( ( [ "String" ], "join" ), stringJoinChecks )
         , ( ( [ "String" ], "length" ), stringLengthChecks )
         , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
+        , ( ( [ "String" ], "replace" ), stringReplaceChecks )
         , ( ( [ "String" ], "words" ), stringWordsChecks )
         , ( ( [ "String" ], "lines" ), stringLinesChecks )
         , ( ( [ "String" ], "reverse" ), stringReverseChecks )
@@ -2770,6 +2786,74 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
 
                 _ ->
                     []
+
+
+stringReplaceChecks : CheckInfo -> List (Error {})
+stringReplaceChecks { lookupTable, fnRange, firstArg, secondArg, thirdArg } =
+    case secondArg of
+        Just secondArg_ ->
+            case Normalize.compare lookupTable firstArg secondArg_ of
+                Normalize.ConfirmedEquality ->
+                    [ Rule.errorWithFix
+                        { message = "The result of String.replace will be the original string"
+                        , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                        }
+                        fnRange
+                        (case thirdArg of
+                            Just thirdArg_ ->
+                                [ Fix.removeRange
+                                    { start = fnRange.start
+                                    , end = (Node.range thirdArg_).start
+                                    }
+                                ]
+
+                            Nothing ->
+                                [ Fix.replaceRangeBy
+                                    { start = fnRange.start
+                                    , end = (Node.range secondArg_).end
+                                    }
+                                    "identity"
+                                ]
+                        )
+                    ]
+
+                _ ->
+                    case ( Node.value firstArg, Node.value secondArg_, thirdArg ) of
+                        ( _, _, Just (Node thirdRange (Expression.Literal "")) ) ->
+                            [ Rule.errorWithFix
+                                { message = "The result of String.replace will be the empty string"
+                                , details = [ "Replacing anything on an empty string results in an empty string." ]
+                                }
+                                fnRange
+                                [ Fix.removeRange
+                                    { start = fnRange.start
+                                    , end = thirdRange.start
+                                    }
+                                ]
+                            ]
+
+                        ( Expression.Literal first, Expression.Literal second, Just (Node thirdRange (Expression.Literal third)) ) ->
+                            if String.replace first second third == third then
+                                [ Rule.errorWithFix
+                                    { message = "The result of String.replace will be the original string"
+                                    , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
+                                    }
+                                    fnRange
+                                    [ Fix.removeRange
+                                        { start = fnRange.start
+                                        , end = thirdRange.start
+                                        }
+                                    ]
+                                ]
+
+                            else
+                                []
+
+                        _ ->
+                            []
+
+        Nothing ->
+            []
 
 
 

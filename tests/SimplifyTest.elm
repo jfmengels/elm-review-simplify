@@ -3307,6 +3307,7 @@ stringSimplificationTests =
         , concatTests
         , joinTests
         , stringRepeatTests
+        , stringReplaceTests
         , stringWordsTests
         , stringLinesTests
         , stringReverseTests
@@ -3554,6 +3555,84 @@ a = String.repeat 1 str
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =  str
+"""
+                        ]
+        ]
+
+
+stringReplaceTests : Test
+stringReplaceTests =
+    describe "String.replace"
+        [ test "should not report String.replace that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = String.replace n str
+b = String.replace 5 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.replace n n by identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.replace n n
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The result of String.replace will be the original string"
+                            , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                            , under = "String.replace"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace String.replace n n x by x" <|
+            \() ->
+                """module A exposing (..)
+a = String.replace n n x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The result of String.replace will be the original string"
+                            , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                            , under = "String.replace"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace String.replace x y \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.replace x y ""
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The result of String.replace will be the empty string"
+                            , details = [ "Replacing anything on an empty string results in an empty string." ]
+                            , under = "String.replace"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.replace x y z by z when we know what the value will be and that it is unchanged" <|
+            \() ->
+                """module A exposing (..)
+a = String.replace "x" "y" "z"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The result of String.replace will be the original string"
+                            , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
+                            , under = "String.replace"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "z"
 """
                         ]
         ]
