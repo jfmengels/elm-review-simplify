@@ -498,6 +498,12 @@ All of these also apply for `Sub`.
     Cmd.map fn Cmd.none
     --> Cmd.none
 
+
+### Parser
+
+    Parser.oneOf [a]
+    -- a
+
 -}
 
 import Dict exposing (Dict)
@@ -1404,6 +1410,8 @@ functionCallChecks =
         , ( ( [ "Platform", "Cmd" ], "map" ), collectionMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
         , ( ( [ "Platform", "Sub" ], "map" ), collectionMapChecks subCollection )
+        , ( ( [ "Parser" ], "oneOf" ), parserOneOfChecks )
+        , ( ( [ "Parser", "Advanced" ], "oneOf" ), parserOneOfChecks )
         ]
 
 
@@ -3334,6 +3342,28 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                             _ ->
                                 Nothing
                     )
+
+        _ ->
+            []
+
+
+
+-- PARSER
+
+
+parserOneOfChecks : CheckInfo -> List (Error {})
+parserOneOfChecks { parentRange, fnRange, firstArg } =
+    case removeParens firstArg of
+        Node listRange (Expression.ListExpr [ Node singleElementRange _ ]) ->
+            [ Rule.errorWithFix
+                { message = "Unnecessary oneOf"
+                , details = [ "There is only a single element in the list of elements to try out." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy { start = fnRange.start, end = singleElementRange.start } "("
+                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                ]
+            ]
 
         _ ->
             []
