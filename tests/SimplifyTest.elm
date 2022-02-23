@@ -29,6 +29,7 @@ all =
         , cmdTests
         , subTests
         , parserTests
+        , jsonDecodeTests
         ]
 
 
@@ -8143,6 +8144,43 @@ a = Parser.Advanced.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Parser.Advanced
+a = (x)
+"""
+                        ]
+        ]
+
+
+
+-- Json.Decode
+
+
+jsonDecodeTests : Test
+jsonDecodeTests =
+    describe "Json.Decode.oneOf"
+        [ test "should not report Json.Decode.oneOf used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.oneOf x
+b = Json.Decode.oneOf [ y, z ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace Json.Decode.oneOf [ x ] by ( x )" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.oneOf [ x ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary oneOf"
+                            , details = [ "There is only a single element in the list of elements to try out." ]
+                            , under = "Json.Decode.oneOf"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
 a = (x)
 """
                         ]

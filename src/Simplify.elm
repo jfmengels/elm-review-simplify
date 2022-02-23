@@ -499,6 +499,12 @@ All of these also apply for `Sub`.
     --> Cmd.none
 
 
+### Json.Decode
+
+    Json.Decode.oneOf [a]
+    -- a
+
+
 ### Parser
 
     Parser.oneOf [a]
@@ -1410,8 +1416,9 @@ functionCallChecks =
         , ( ( [ "Platform", "Cmd" ], "map" ), collectionMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
         , ( ( [ "Platform", "Sub" ], "map" ), collectionMapChecks subCollection )
-        , ( ( [ "Parser" ], "oneOf" ), parserOneOfChecks )
-        , ( ( [ "Parser", "Advanced" ], "oneOf" ), parserOneOfChecks )
+        , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
+        , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
+        , ( ( [ "Parser", "Advanced" ], "oneOf" ), oneOfChecks )
         ]
 
 
@@ -3351,8 +3358,8 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 -- PARSER
 
 
-parserOneOfChecks : CheckInfo -> List (Error {})
-parserOneOfChecks { parentRange, fnRange, firstArg } =
+oneOfChecks : CheckInfo -> List (Error {})
+oneOfChecks { fnRange, firstArg } =
     case removeParens firstArg of
         Node listRange (Expression.ListExpr [ Node singleElementRange _ ]) ->
             [ Rule.errorWithFix
