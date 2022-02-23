@@ -3183,6 +3183,13 @@ a = "a" ++ ""
 a = "a"
 """
                         ]
+        , test """should not report x ++ "" (because this can lead to better performance)""" <|
+            \() ->
+                """module A exposing (..)
+a = x ++ ""
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test """should replace "" ++ "a" by "a\"""" <|
             \() ->
                 """module A exposing (..)

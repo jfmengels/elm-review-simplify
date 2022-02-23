@@ -1688,14 +1688,14 @@ findMap mapper nodes =
 plusplusChecks : OperatorCheckInfo -> List (Error {})
 plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSideOfPlusPlus } =
     case ( Node.value left, Node.value right ) of
-        ( Expression.Literal "", _ ) ->
+        ( Expression.Literal "", Expression.Literal _ ) ->
             [ errorForAddingEmptyStrings leftRange
                 { start = leftRange.start
                 , end = rightRange.start
                 }
             ]
 
-        ( _, Expression.Literal "" ) ->
+        ( Expression.Literal _, Expression.Literal "" ) ->
             [ errorForAddingEmptyStrings rightRange
                 { start = leftRange.end
                 , end = rightRange.end
