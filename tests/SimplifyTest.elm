@@ -3644,6 +3644,13 @@ a = String.replace "x" "y" "z"
 a = "z"
 """
                         ]
+        , test "should not replace String.replace x y z by z when we know what the value will be but it will be different" <|
+            \() ->
+                """module A exposing (..)
+a = String.replace "x" "y" "xz"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         ]
 
 
