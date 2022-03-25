@@ -508,13 +508,13 @@ All of these also apply for `Sub`.
 ### Json.Decode
 
     Json.Decode.oneOf [a]
-    -- a
+    --> a
 
 
 ### Parser
 
     Parser.oneOf [a]
-    -- a
+    --> a
 
 -}
 
