@@ -4795,6 +4795,54 @@ a = List.filterMap (\\a b -> Just a) x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should replace List.filterMap identity (List.map f x) by List.filterMap f x" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap identity (List.map f x)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.filterMap f x)
+"""
+                        ]
+        , test "should replace List.filterMap identity <| List.map f <| x by List.filterMap f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap identity <| List.map f <| x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filterMap f <| x
+"""
+                        ]
+        , test "should replace x |> List.map f |> List.filterMap identity by x |> List.filterMap f" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.map f |> List.filterMap identity
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> List.filterMap f
+"""
+                        ]
         ]
 
 

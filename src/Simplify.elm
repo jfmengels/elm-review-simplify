@@ -2395,17 +2395,50 @@ getNotFunction lookupTable baseNode =
 getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificFunction ( moduleName, name ) lookupTable baseNode =
     case removeParens baseNode of
-        Node notRange (Expression.FunctionOrValue _ foundName) ->
+        Node fnRange (Expression.FunctionOrValue _ foundName) ->
             if
                 (foundName == name)
-                    && (ModuleNameLookupTable.moduleNameAt lookupTable notRange == Just moduleName)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
             then
-                Just notRange
+                Just fnRange
 
             else
                 Nothing
 
         _ ->
+            Nothing
+
+
+getSpecificFunctionCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe { nodeRange : Range, fnRange : Range }
+getSpecificFunctionCall ( moduleName, name ) lookupTable baseNode =
+    let
+        match : Maybe ( Range, String )
+        match =
+            case Node.value (removeParens baseNode) of
+                Expression.Application ((Node fnRange (Expression.FunctionOrValue _ foundName)) :: _ :: _) ->
+                    Just ( fnRange, foundName )
+
+                Expression.OperatorApplication "|>" _ _ (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ foundName)) :: _))) ->
+                    Just ( fnRange, foundName )
+
+                Expression.OperatorApplication "<|" _ (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ foundName)) :: _))) _ ->
+                    Just ( fnRange, foundName )
+
+                _ ->
+                    Nothing
+    in
+    case match of
+        Just ( fnRange, foundName ) ->
+            if
+                (foundName == name)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
+            then
+                Just { nodeRange = Node.range baseNode, fnRange = fnRange }
+
+            else
+                Nothing
+
+        Nothing ->
             Nothing
 
 
@@ -3212,7 +3245,7 @@ listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 
 
 listFilterMapChecks : CheckInfo -> List (Error {})
-listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
         Just (Just _) ->
             [ Rule.errorWithFix
@@ -3229,11 +3262,28 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, secondArg } 
                 , details = [ "You can remove this call and replace it by an empty list." ]
                 }
                 fnRange
-                (replaceByEmptyFix "[]" parentRange secondArg)
+                (replaceByEmptyFix "[]" parentRange checkInfo.secondArg)
             ]
 
         Nothing ->
-            []
+            if isIdentity lookupTable firstArg then
+                case Maybe.andThen (getSpecificFunctionCall ( [ "List" ], "map" ) lookupTable) checkInfo.secondArg of
+                    Just secondArg ->
+                        [ Rule.errorWithFix
+                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            }
+                            (Range.combine [ fnRange, Node.range firstArg ])
+                            [ removeFunctionAndFirstArg checkInfo secondArg.nodeRange
+                            , Fix.replaceRangeBy secondArg.fnRange "List.filterMap"
+                            ]
+                        ]
+
+                    Nothing ->
+                        []
+
+            else
+                []
 
 
 listRangeChecks : CheckInfo -> List (Error {})
@@ -4383,6 +4433,15 @@ removeFunctionFromFunctionCall { fnRange, firstArg, usingRightPizza } =
 
     else
         Fix.removeRange { start = fnRange.start, end = (Node.range firstArg).start }
+
+
+removeFunctionAndFirstArg : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Range -> Fix
+removeFunctionAndFirstArg { fnRange, firstArg, usingRightPizza } secondArgRange =
+    if usingRightPizza then
+        Fix.removeRange { start = secondArgRange.end, end = (Node.range firstArg).end }
+
+    else
+        Fix.removeRange { start = fnRange.start, end = secondArgRange.start }
 
 
 removeBoundariesFix : Node a -> List Fix
