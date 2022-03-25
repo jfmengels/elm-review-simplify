@@ -4891,6 +4891,38 @@ a = x |> List.map f |> List.filterMap identity
 a = x |> List.filterMap f
 """
                         ]
+        , test "should replace List.map f >> List.filterMap identity by List.filterMap f" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f >> List.filterMap identity
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filterMap f
+"""
+                        ]
+        , test "should replace List.filterMap identity << List.map f by List.filterMap f" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap identity << List.map f
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filterMap f
+"""
+                        ]
         ]
 
 

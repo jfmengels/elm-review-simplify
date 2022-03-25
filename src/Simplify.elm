@@ -373,6 +373,9 @@ Below is the list of all kinds of simplifications this rule applies.
     List.filterMap (always Nothing)
     --> (always [])
 
+    List.filterMap identity (List.map f x)
+    --> List.filterMap f x
+
     List.isEmpty []
     --> True
 
@@ -1488,6 +1491,7 @@ compositionChecks =
     , alwaysCompositionCheck
     , maybeMapCompositionChecks
     , resultMapCompositionChecks
+    , filterAndMapCompositionCheck
     ]
 
 
@@ -3286,7 +3290,7 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInf
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
                             }
-                            (Range.combine [ fnRange, Node.range firstArg ])
+                            { start = fnRange.start, end = (Node.range firstArg).end }
                             [ removeFunctionAndFirstArg checkInfo secondArg.nodeRange
                             , Fix.replaceRangeBy secondArg.fnRange "List.filterMap"
                             ]
@@ -3296,6 +3300,67 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInf
                         []
 
             else
+                []
+
+
+filterAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
+filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
+    if fromLeftToRight then
+        case Node.value (removeParens right) of
+            Expression.Application [ rightFunction, arg ] ->
+                if isSpecificFunction [ "List" ] "filterMap" lookupTable rightFunction && isIdentity lookupTable arg then
+                    case Node.value (removeParens left) of
+                        Expression.Application [ leftFunction, _ ] ->
+                            if isSpecificFunction [ "List" ] "map" lookupTable leftFunction then
+                                [ Rule.errorWithFix
+                                    { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                                    , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                                    }
+                                    (Node.range right)
+                                    [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
+                                    , Fix.replaceRangeBy (Node.range leftFunction) "List.filterMap"
+                                    ]
+                                ]
+
+                            else
+                                []
+
+                        _ ->
+                            []
+
+                else
+                    []
+
+            _ ->
+                []
+
+    else
+        case Node.value (removeParens left) of
+            Expression.Application [ leftFunction, arg ] ->
+                if isSpecificFunction [ "List" ] "filterMap" lookupTable leftFunction && isIdentity lookupTable arg then
+                    case Node.value (removeParens right) of
+                        Expression.Application [ rightFunction, _ ] ->
+                            if isSpecificFunction [ "List" ] "map" lookupTable rightFunction then
+                                [ Rule.errorWithFix
+                                    { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                                    , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                                    }
+                                    (Node.range left)
+                                    [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
+                                    , Fix.replaceRangeBy (Node.range rightFunction) "List.filterMap"
+                                    ]
+                                ]
+
+                            else
+                                []
+
+                        _ ->
+                            []
+
+                else
+                    []
+
+            _ ->
                 []
 
 
