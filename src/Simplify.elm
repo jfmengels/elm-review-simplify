@@ -1953,48 +1953,53 @@ basicsNotChecks checkInfo =
 
 notNotCompositionCheck : CompositionCheckInfo -> List (Error {})
 notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange } =
-    case Maybe.map2 Tuple.pair (getNotFunction lookupTable left) (getNotFunction lookupTable right) of
-        Just _ ->
+    let
+        notOnLeft : Maybe Range
+        notOnLeft =
+            getNotFunction lookupTable left
+
+        notOnRight : Maybe Range
+        notOnRight =
+            getNotFunction lookupTable right
+    in
+    case ( notOnLeft, notOnRight ) of
+        ( Just _, Just _ ) ->
             [ Rule.errorWithFix
                 notNotCompositionErrorMessage
                 parentRange
                 [ Fix.replaceRangeBy parentRange "identity" ]
             ]
 
-        _ ->
-            case getNotFunction lookupTable left of
-                Just leftNotRange ->
-                    case getNotComposition lookupTable fromLeftToRight right of
-                        Just rightNotRange ->
-                            [ Rule.errorWithFix
-                                notNotCompositionErrorMessage
-                                { start = leftNotRange.start, end = rightNotRange.end }
-                                [ Fix.removeRange { start = leftNotRange.start, end = rightRange.start }
-                                , Fix.removeRange rightNotRange
-                                ]
-                            ]
-
-                        Nothing ->
-                            []
+        ( Just leftNotRange, _ ) ->
+            case getNotComposition lookupTable fromLeftToRight right of
+                Just rightNotRange ->
+                    [ Rule.errorWithFix
+                        notNotCompositionErrorMessage
+                        { start = leftNotRange.start, end = rightNotRange.end }
+                        [ Fix.removeRange { start = leftNotRange.start, end = rightRange.start }
+                        , Fix.removeRange rightNotRange
+                        ]
+                    ]
 
                 Nothing ->
-                    case getNotFunction lookupTable right of
-                        Just rightNotRange ->
-                            case getNotComposition lookupTable (not fromLeftToRight) left of
-                                Just leftNotRange ->
-                                    [ Rule.errorWithFix
-                                        notNotCompositionErrorMessage
-                                        { start = leftNotRange.start, end = rightNotRange.end }
-                                        [ Fix.removeRange leftNotRange
-                                        , Fix.removeRange { start = leftRange.end, end = rightNotRange.end }
-                                        ]
-                                    ]
+                    []
 
-                                Nothing ->
-                                    []
+        ( _, Just rightNotRange ) ->
+            case getNotComposition lookupTable (not fromLeftToRight) left of
+                Just leftNotRange ->
+                    [ Rule.errorWithFix
+                        notNotCompositionErrorMessage
+                        { start = leftNotRange.start, end = rightNotRange.end }
+                        [ Fix.removeRange leftNotRange
+                        , Fix.removeRange { start = leftRange.end, end = rightNotRange.end }
+                        ]
+                    ]
 
-                        Nothing ->
-                            []
+                Nothing ->
+                    []
+
+        _ ->
+            []
 
 
 notNotCompositionErrorMessage : { message : String, details : List String }
