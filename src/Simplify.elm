@@ -310,30 +310,6 @@ Below is the list of all kinds of simplifications this rule applies.
     [ a, b ] ++ [ c ]
     --> [ a, b, c ]
 
-    List.concat []
-    --> []
-
-    List.concat [ [ a, b ], [ c ] ]
-    --> [ a, b, c ]
-
-    List.concat [ a, [ 1 ], [ 2 ] ]
-    --> List.concat [ a, [ 1, 2 ] ]
-
-    List.concatMap identity x
-    --> List.concat list
-
-    List.concatMap identity
-    --> List.concat
-
-    List.concatMap (\a -> a) list
-    --> List.concat list
-
-    List.concatMap fn [ x ]
-    --> fn x
-
-    List.concatMap (always []) list
-    --> []
-
     List.map fn [] -- same for List.filter, List.filterMap, ...
     --> []
 
@@ -375,6 +351,33 @@ Below is the list of all kinds of simplifications this rule applies.
 
     List.filterMap identity (List.map f x)
     --> List.filterMap f x
+
+    List.concat []
+    --> []
+
+    List.concat [ [ a, b ], [ c ] ]
+    --> [ a, b, c ]
+
+    List.concat [ a, [ 1 ], [ 2 ] ]
+    --> List.concat [ a, [ 1, 2 ] ]
+
+    List.concatMap identity x
+    --> List.concat list
+
+    List.concatMap identity
+    --> List.concat
+
+    List.concatMap (\a -> a) list
+    --> List.concat list
+
+    List.concatMap fn [ x ]
+    --> fn x
+
+    List.concatMap (always []) list
+    --> []
+
+    List.concat (List.map f x)
+    --> List.concatMap f x
 
     List.isEmpty []
     --> True
@@ -1492,6 +1495,7 @@ compositionChecks =
     , maybeMapCompositionChecks
     , resultMapCompositionChecks
     , filterAndMapCompositionCheck
+    , concatAndMapCompositionCheck
     ]
 
 
@@ -3205,6 +3209,56 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
 
             _ ->
                 []
+
+
+concatAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
+concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
+    if fromLeftToRight then
+        if isSpecificFunction [ "List" ] "concat" lookupTable right then
+            case Node.value (removeParens left) of
+                Expression.Application [ leftFunction, _ ] ->
+                    if isSpecificFunction [ "List" ] "map" lookupTable leftFunction then
+                        [ Rule.errorWithFix
+                            { message = "List.map and List.concat can be combined using List.concatMap"
+                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            }
+                            (Node.range right)
+                            [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
+                            , Fix.replaceRangeBy (Node.range leftFunction) "List.concatMap"
+                            ]
+                        ]
+
+                    else
+                        []
+
+                _ ->
+                    []
+
+        else
+            []
+
+    else if isSpecificFunction [ "List" ] "concat" lookupTable left then
+        case Node.value (removeParens right) of
+            Expression.Application [ rightFunction, _ ] ->
+                if isSpecificFunction [ "List" ] "map" lookupTable rightFunction then
+                    [ Rule.errorWithFix
+                        { message = "List.map and List.concat can be combined using List.concatMap"
+                        , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                        }
+                        (Node.range left)
+                        [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
+                        , Fix.replaceRangeBy (Node.range rightFunction) "List.concatMap"
+                        ]
+                    ]
+
+                else
+                    []
+
+            _ ->
+                []
+
+    else
+        []
 
 
 listAllChecks : CheckInfo -> List (Error {})

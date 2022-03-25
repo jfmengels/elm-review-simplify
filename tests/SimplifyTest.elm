@@ -4150,6 +4150,38 @@ a = [ b c ] |> List.concatMap f
 a = (b c) |>  f
 """
                         ]
+        , test "should replace List.map f >> List.concat by List.concatMap f" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f >> List.concat
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.concat can be combined using List.concatMap"
+                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concatMap f
+"""
+                        ]
+        , test "should replace List.concat << List.map f by List.concatMap f" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat << List.map f
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.concat can be combined using List.concatMap"
+                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concatMap f
+"""
+                        ]
         ]
 
 
