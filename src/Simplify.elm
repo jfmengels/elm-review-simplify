@@ -3078,7 +3078,7 @@ resultMapChecks checkInfo =
 
 
 listConcatChecks : CheckInfo -> List (Error {})
-listConcatChecks { parentRange, fnRange, firstArg } =
+listConcatChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) =
     case Node.value firstArg of
         Expression.ListExpr list ->
             case list of
@@ -3123,7 +3123,20 @@ listConcatChecks { parentRange, fnRange, firstArg } =
                     []
 
         _ ->
-            []
+            case getSpecificFunctionCall ( [ "List" ], "map" ) lookupTable firstArg of
+                Just match ->
+                    [ Rule.errorWithFix
+                        { message = "List.map and List.concat can be combined using List.concatMap"
+                        , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                        }
+                        fnRange
+                        [ removeFunctionFromFunctionCall checkInfo
+                        , Fix.replaceRangeBy match.fnRange "List.concatMap"
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
 
 findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix

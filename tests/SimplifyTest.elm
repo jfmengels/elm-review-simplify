@@ -3938,6 +3938,54 @@ a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ], [ 4, 5, 6], [7], c, [8], [9 ] ]
 a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ,  4, 5, 6, 7], c, [8, 9 ] ]
 """
                         ]
+        , test "should replace List.concat (List.map f x) by List.concatMap f x" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat (List.map f x)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.concat can be combined using List.concatMap"
+                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.concatMap f x)
+"""
+                        ]
+        , test "should replace List.concat <| List.map f <| x by List.concatMap f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat <| List.map f <| x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.concat can be combined using List.concatMap"
+                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concatMap f <| x
+"""
+                        ]
+        , test "should replace x |> List.map f |> List.concat by x |> List.concatMap f" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.map f |> List.concat
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map and List.concat can be combined using List.concatMap"
+                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> List.concatMap f
+"""
+                        ]
         ]
 
 
