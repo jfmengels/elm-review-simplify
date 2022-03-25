@@ -3686,6 +3686,7 @@ listSimplificationTests =
         , listRepeatTests
         , listPartitionTests
         , listReverseTests
+        , listMapPlusFilterMapTests
         ]
 
 
@@ -5165,6 +5166,26 @@ a = x
                         ]
         ]
 
+listMapPlusFilterMapTests : Test
+listMapPlusFilterMapTests =
+    describe "List.map + List.filterMap identity"
+        [ test "should replace List.filterMap identity <| List.map f <| x by List.filterMap f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap identity <| List.map f <| x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME Unnecessary separation of List.map and List.filterMap"
+                            , details = [ "REPLACEME Composing `reverse` with `reverse` cancel each other out." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filterMap f <| x
+"""
+                        ]
+        ]
 
 listPartitionTests : Test
 listPartitionTests =
