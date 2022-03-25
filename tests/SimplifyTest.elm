@@ -4955,6 +4955,43 @@ a = List.filterMap identity << List.map f
 a = List.filterMap f
 """
                         ]
+        , test "should replace List.filterMap identity [ Just x, Just y ] by [ x, y ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap identity [ Just x, Just y ]
+b = List.filterMap f [ Just x, Just y ]
+c = List.filterMap identity [ Just x, y ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary use of List.filterMap identity"
+                            , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 28 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ x, y ]
+b = List.filterMap f [ Just x, Just y ]
+c = List.filterMap identity [ Just x, y ]
+"""
+                        ]
+        , test "should replace [ Just x, Just y ] |> List.filterMap identity by [ x, y ]" <|
+            \() ->
+                """module A exposing (..)
+a = [ Just x, Just y ] |> List.filterMap identity
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary use of List.filterMap identity"
+                            , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                            , under = "List.filterMap identity"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ x, y ]
+"""
+                        ]
         ]
 
 

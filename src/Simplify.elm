@@ -352,6 +352,9 @@ Below is the list of all kinds of simplifications this rule applies.
     List.filterMap identity (List.map f x)
     --> List.filterMap f x
 
+    List.filterMap identity [ Just x, Just y ]
+    --> [ x, y ]
+
     List.concat []
     --> []
 
@@ -3351,10 +3354,53 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInf
                         ]
 
                     Nothing ->
-                        []
+                        case checkInfo.secondArg of
+                            Just (Node listRange (Expression.ListExpr list)) ->
+                                case collectJusts lookupTable list [] of
+                                    Just justRanges ->
+                                        [ Rule.errorWithFix
+                                            { message = "Unnecessary use of List.filterMap identity"
+                                            , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                            }
+                                            { start = fnRange.start, end = (Node.range firstArg).end }
+                                            ((if checkInfo.usingRightPizza then
+                                                Fix.removeRange { start = listRange.end, end = (Node.range firstArg).end }
+
+                                              else
+                                                Fix.removeRange { start = fnRange.start, end = listRange.start }
+                                             )
+                                                :: List.map Fix.removeRange justRanges
+                                            )
+                                        ]
+
+                                    Nothing ->
+                                        []
+
+                            _ ->
+                                []
 
             else
                 []
+
+
+collectJusts : ModuleNameLookupTable -> List (Node Expression) -> List Range -> Maybe (List Range)
+collectJusts lookupTable list acc =
+    case list of
+        [] ->
+            Just acc
+
+        element :: restOfList ->
+            case Node.value element of
+                Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: justArg :: []) ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+                        Just [ "Maybe" ] ->
+                            collectJusts lookupTable restOfList ({ start = justRange.start, end = (Node.range justArg).start } :: acc)
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
 
 
 filterAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
