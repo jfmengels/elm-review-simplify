@@ -310,7 +310,7 @@ Below is the list of all kinds of simplifications this rule applies.
     [ a, b ] ++ [ c ]
     --> [ a, b, c ]
 
-    List.map fn [] -- same for List.filter, List.filterMap, ...
+    List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
     List.map identity list
@@ -355,8 +355,6 @@ Below is the list of all kinds of simplifications this rule applies.
     List.filterMap identity [ Just x, Just y ]
     --> [ x, y ]
 
-    List.concat []
-    --> []
 
     List.concat [ [ a, b ], [ c ] ]
     --> [ a, b, c ]
@@ -418,14 +416,14 @@ Below is the list of all kinds of simplifications this rule applies.
     List.partition (always True) list
     --> ( list, [] )
 
-    List.take n []
-    --> []
 
     List.take 0 x
     --> []
 
-    List.reverse []
-    --> []
+
+    List.drop 0 x
+    --> x
+
 
     List.reverse <| List.reverse x
     --> x
@@ -1402,6 +1400,7 @@ functionCallChecks =
         , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
         , ( ( [ "List" ], "reverse" ), listReverseChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
+        , ( ( [ "List" ], "drop" ), listDropChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -3552,6 +3551,48 @@ listTakeChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
             Just (Exactly 0) ->
                 [ Rule.errorWithFix
                     { message = "Using List.take on [] will result in []"
+                    , details = [ "You can replace this call by []." ]
+                    }
+                    fnRange
+                    [ Fix.replaceRangeBy parentRange "[]" ]
+                ]
+
+            _ ->
+                []
+
+
+listDropChecks : CheckInfo -> List (Error {})
+listDropChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
+    if getUncomputedNumberValue firstArg == Just 0 then
+        case secondArg of
+            Just (Node secondArgRange _) ->
+                [ Rule.errorWithFix
+                    { message = "Dropping 0 items from a list will result in the list itself"
+                    , details = [ "You can replace this call by the list itself." ]
+                    }
+                    fnRange
+                    [ if usingRightPizza then
+                        Fix.removeRange { start = secondArgRange.end, end = parentRange.end }
+
+                      else
+                        Fix.removeRange { start = parentRange.start, end = secondArgRange.start }
+                    ]
+                ]
+
+            Nothing ->
+                [ Rule.errorWithFix
+                    { message = "Dropping 0 items from a list will result in the list itself"
+                    , details = [ "You can replace this function by identity." ]
+                    }
+                    fnRange
+                    [ Fix.replaceRangeBy parentRange "identity" ]
+                ]
+
+    else
+        case Maybe.andThen (determineListLength lookupTable) secondArg of
+            Just (Exactly 0) ->
+                [ Rule.errorWithFix
+                    { message = "Using List.drop on [] will result in []"
                     , details = [ "You can replace this call by []." ]
                     }
                     fnRange

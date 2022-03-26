@@ -3782,6 +3782,7 @@ listSimplificationTests =
         , listPartitionTests
         , listReverseTests
         , listTakeTests
+        , listDropTests
         ]
 
 
@@ -5516,6 +5517,84 @@ a = List.take 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (always [])
+"""
+                        ]
+        ]
+
+
+listDropTests : Test
+listDropTests =
+    describe "List.drop"
+        [ test "should not report List.drop that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop 2 x
+b = List.drop y [ 1, 2, 3 ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.drop n [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop n []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.drop on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.drop 0 x by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop 0 x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dropping 0 items from a list will result in the list itself"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace x |> List.drop 0 by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> List.drop 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dropping 0 items from a list will result in the list itself"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.drop 0 by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dropping 0 items from a list will result in the list itself"
+                            , details = [ "You can replace this function by identity." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
