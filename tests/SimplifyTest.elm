@@ -5502,6 +5502,22 @@ a = List.take 0 x
 a = []
 """
                         ]
+        , test "should replace List.take 0 by (always [])" <|
+            \() ->
+                """module A exposing (..)
+a = List.take 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Taking 0 items from a list will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always [])
+"""
+                        ]
         ]
 
 

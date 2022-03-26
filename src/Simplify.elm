@@ -421,6 +421,9 @@ Below is the list of all kinds of simplifications this rule applies.
     List.take n []
     --> []
 
+    List.take 0 x
+    --> []
+
     List.reverse []
     --> []
 
@@ -3528,19 +3531,35 @@ listReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
 
 
 listTakeChecks : CheckInfo -> List (Error {})
-listTakeChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) =
-    case Maybe.andThen (determineListLength lookupTable) checkInfo.secondArg of
-        Just (Exactly 0) ->
-            [ Rule.errorWithFix
-                { message = "Using List.take on [] will result in []"
-                , details = [ "You can replace this call by []." ]
-                }
-                fnRange
-                [ Fix.replaceRangeBy parentRange "[]" ]
-            ]
+listTakeChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
+    if getUncomputedNumberValue firstArg == Just 0 then
+        [ Rule.errorWithFix
+            { message = "Taking 0 items from a list will result in []"
+            , details = [ "You can replace this call by []." ]
+            }
+            fnRange
+            (case secondArg of
+                Just _ ->
+                    [ Fix.replaceRangeBy parentRange "[]" ]
 
-        _ ->
-            []
+                Nothing ->
+                    [ Fix.replaceRangeBy parentRange "(always [])" ]
+            )
+        ]
+
+    else
+        case Maybe.andThen (determineListLength lookupTable) secondArg of
+            Just (Exactly 0) ->
+                [ Rule.errorWithFix
+                    { message = "Using List.take on [] will result in []"
+                    , details = [ "You can replace this call by []." ]
+                    }
+                    fnRange
+                    [ Fix.replaceRangeBy parentRange "[]" ]
+                ]
+
+            _ ->
+                []
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})
