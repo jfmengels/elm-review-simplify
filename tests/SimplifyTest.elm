@@ -3781,6 +3781,7 @@ listSimplificationTests =
         , listRepeatTests
         , listPartitionTests
         , listReverseTests
+        , listTakeTests
         ]
 
 
@@ -5453,6 +5454,52 @@ a = List.reverse <| List.reverse <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
+"""
+                        ]
+        ]
+
+
+listTakeTests : Test
+listTakeTests =
+    describe "List.take"
+        [ test "should not report List.take that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = List.take 2 x
+b = List.take y [ 1, 2, 3 ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.take n [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.take on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.take 0 x by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.take 0 x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Taking 0 items from a list will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]

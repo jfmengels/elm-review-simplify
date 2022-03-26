@@ -418,6 +418,9 @@ Below is the list of all kinds of simplifications this rule applies.
     List.partition (always True) list
     --> ( list, [] )
 
+    List.take n []
+    --> []
+
     List.reverse []
     --> []
 
@@ -1395,6 +1398,7 @@ functionCallChecks =
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
         , ( ( [ "List" ], "reverse" ), listReverseChecks )
+        , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -3521,6 +3525,22 @@ listReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
                 reverseReverseCompositionErrorMessage
                 (getSpecificFunction ( [ "List" ], "reverse" ))
                 checkInfo
+
+
+listTakeChecks : CheckInfo -> List (Error {})
+listTakeChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) =
+    case Maybe.andThen (determineListLength lookupTable) checkInfo.secondArg of
+        Just (Exactly 0) ->
+            [ Rule.errorWithFix
+                { message = "Using List.take on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                fnRange
+                [ Fix.replaceRangeBy parentRange "[]" ]
+            ]
+
+        _ ->
+            []
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})
