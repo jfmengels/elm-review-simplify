@@ -4346,13 +4346,91 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 
             Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
                 if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    Just (Exactly (List.length list))
+                    case ( moduleName, list, List.all isComparableValue list ) of
+                        ( [ "Set" ], [], _ ) ->
+                            Just (Exactly 0)
+
+                        ( [ "Set" ], [ _ ], _ ) ->
+                            Just (Exactly 1)
+
+                        ( [ "Set" ], _, True ) ->
+                            list |> List.filterMap extractComparable |> Set.fromList |> Set.size |> Exactly |> Just
+
+                        ( [ "Set" ], _, False ) ->
+                            Just NotEmpty
+
+                        _ ->
+                            Just (Exactly (List.length list))
 
                 else
                     Nothing
 
             _ ->
                 Nothing
+
+
+isComparableValue : Node Expression -> Bool
+isComparableValue (Node _ expression) =
+    case expression of
+        Expression.Integer _ ->
+            True
+
+        Expression.Hex _ ->
+            True
+
+        Expression.Floatable _ ->
+            True
+
+        Expression.Negation expr ->
+            isComparableValue expr
+
+        Expression.Literal _ ->
+            True
+
+        Expression.CharLiteral _ ->
+            True
+
+        Expression.ParenthesizedExpression expr ->
+            isComparableValue expr
+
+        _ ->
+            False
+
+
+extractComparable : Node Expression -> Maybe ( Int, ( Int, Float ), ( Char, String ) )
+extractComparable (Node _ expression) =
+    let
+        sign x =
+            if x >= 0 then
+                1
+
+            else
+                -1
+    in
+    case expression of
+        Expression.Integer int ->
+            Just ( sign int, ( abs int, 0.0 ), ( ' ', "" ) )
+
+        Expression.Hex hex ->
+            Just ( sign hex, ( abs hex, 0.0 ), ( ' ', "" ) )
+
+        Expression.Floatable float ->
+            Just ( sign float, ( 0, abs float ), ( ' ', "" ) )
+
+        Expression.Negation expr ->
+            Maybe.map (\( neg, a, b ) -> ( -1 * neg, a, b )) (extractComparable expr)
+
+        Expression.CharLiteral char ->
+            Just ( 0, ( 0, 0.0 ), ( char, "" ) )
+
+        Expression.Literal string ->
+            Just ( 0, ( 0, 0.0 ), ( ' ', string ) )
+
+        Expression.ParenthesizedExpression expr ->
+            extractComparable expr
+
+        _ ->
+            Nothing
 
 
 
