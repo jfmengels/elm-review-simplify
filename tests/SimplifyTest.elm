@@ -7377,6 +7377,22 @@ a = Set.size (Set.fromList ['a', 'b', ('a')])
 a = 2
 """
                         ]
+        , test "should replace Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])]) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 2"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2
+"""
+                        ]
         , test "should replace Set.empty |> Set.size by 0" <|
             \() ->
                 """module A exposing (..)
