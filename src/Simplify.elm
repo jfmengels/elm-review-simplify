@@ -4346,21 +4346,24 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 
             Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
                 if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    case ( moduleName, list, List.all isComparableValue list ) of
-                        ( [ "Set" ], [], _ ) ->
-                            Just (Exactly 0)
+                    if moduleName == [ "Set" ] then
+                        case list of
+                            [] ->
+                                Just (Exactly 0)
 
-                        ( [ "Set" ], [ _ ], _ ) ->
-                            Just (Exactly 1)
+                            [ _ ] ->
+                                Just (Exactly 1)
 
-                        ( [ "Set" ], _, True ) ->
-                            list |> List.map simplifyComparableExpression |> unique |> List.length |> Exactly |> Just
+                            _ ->
+                                case traverse getComparableExpression list of
+                                    Nothing ->
+                                        Just NotEmpty
 
-                        ( [ "Set" ], _, False ) ->
-                            Just NotEmpty
+                                    Just comparableExpressions ->
+                                        comparableExpressions |> unique |> List.length |> Exactly |> Just
 
-                        _ ->
-                            Just (Exactly (List.length list))
+                    else
+                        Just (Exactly (List.length list))
 
                 else
                     Nothing
@@ -4369,71 +4372,67 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
                 Nothing
 
 
-isComparableValue : Node Expression -> Bool
-isComparableValue (Node _ expression) =
-    case expression of
-        Expression.Integer _ ->
-            True
-
-        Expression.Hex _ ->
-            True
-
-        Expression.Floatable _ ->
-            True
-
-        Expression.Negation expr ->
-            isComparableValue expr
-
-        Expression.Literal _ ->
-            True
-
-        Expression.CharLiteral _ ->
-            True
-
-        Expression.ParenthesizedExpression expr ->
-            isComparableValue expr
-
-        Expression.TupledExpression exprs ->
-            List.all isComparableValue exprs
-
-        Expression.ListExpr exprs ->
-            List.all isComparableValue exprs
-
-        _ ->
-            False
+getComparableExpression : Node Expression -> Maybe (List Expression)
+getComparableExpression =
+    getComparableExpressionHelper 1
 
 
-simplifyComparableExpression : Node Expression -> List Expression
-simplifyComparableExpression =
-    simplifyComparableExpressionHelper 1
-
-
-simplifyComparableExpressionHelper : Int -> Node Expression -> List Expression
-simplifyComparableExpressionHelper sign (Node _ expression) =
+getComparableExpressionHelper : Int -> Node Expression -> Maybe (List Expression)
+getComparableExpressionHelper sign (Node _ expression) =
     case expression of
         Expression.Integer int ->
-            [ Expression.Integer (sign * int) ]
+            Just [ Expression.Integer (sign * int) ]
 
         Expression.Hex hex ->
-            [ Expression.Integer (sign * hex) ]
+            Just [ Expression.Integer (sign * hex) ]
 
         Expression.Floatable float ->
-            [ Expression.Floatable (toFloat sign * float) ]
+            Just [ Expression.Floatable (toFloat sign * float) ]
 
         Expression.Negation expr ->
-            simplifyComparableExpressionHelper (-1 * sign) expr
+            getComparableExpressionHelper (-1 * sign) expr
+
+        Expression.Literal string ->
+            Just [ Expression.Literal string ]
+
+        Expression.CharLiteral char ->
+            Just [ Expression.CharLiteral char ]
 
         Expression.ParenthesizedExpression expr ->
-            simplifyComparableExpressionHelper 1 expr
+            getComparableExpressionHelper 1 expr
 
         Expression.TupledExpression exprs ->
-            List.concatMap (simplifyComparableExpressionHelper 1) exprs
+            exprs
+                |> traverse (getComparableExpressionHelper 1)
+                |> Maybe.map List.concat
 
         Expression.ListExpr exprs ->
-            List.concatMap (simplifyComparableExpressionHelper 1) exprs
+            exprs
+                |> traverse (getComparableExpressionHelper 1)
+                |> Maybe.map List.concat
 
         _ ->
-            [ expression ]
+            Nothing
+
+
+traverse : (a -> Maybe b) -> List a -> Maybe (List b)
+traverse f list =
+    traverseHelp f list []
+
+
+traverseHelp : (a -> Maybe b) -> List a -> List b -> Maybe (List b)
+traverseHelp f list acc =
+    case list of
+        head :: tail ->
+            case f head of
+                Just a ->
+                    traverseHelp f tail (a :: acc)
+
+                Nothing ->
+                    Nothing
+
+        [] ->
+            Just (List.reverse acc)
 
 
 unique : List a -> List a
