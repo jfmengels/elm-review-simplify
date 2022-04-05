@@ -7234,10 +7234,57 @@ a = Set.size Set.empty
 a = 0
 """
                         ]
-        , test "should replace Set.size (Set.fromList [b, c, d]) by 3" <|
+        , test "should not replace Set.size (Set.fromList [b, c, d])" <|
             \() ->
                 """module A exposing (..)
 a = Set.size (Set.fromList [b, c, d])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.size (Set.fromList []) by 0" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Set.fromList will result in Set.empty"
+                            , details = [ "You can replace this call by Set.empty." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.size (Set.empty)
+"""
+                        , Review.Test.error
+                            { message = "The size of the set is 0"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [a]) by 1" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [a])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 1"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [1, 2, 3]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [1, 2, 3])
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -7248,6 +7295,102 @@ a = Set.size (Set.fromList [b, c, d])
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 3
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [1, 2, 3, 3, 0x3]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [1, 2, 3, 3, 0x3])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 3"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [2, -2, -(-2)]) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [2, -2, -2])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 2"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 3"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [\"foo\", \"bar\", \"foo\"]) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList ["foo", "bar", "foo"])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 2"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList ['a', 'b', ('a')]) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList ['a', 'b', ('a')])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 2"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])]) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])])
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the set is 2"
+                            , details = [ "The size of the set can be determined by looking at the code." ]
+                            , under = "Set.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2
 """
                         ]
         , test "should replace Set.empty |> Set.size by 0" <|

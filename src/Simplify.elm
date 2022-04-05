@@ -4346,13 +4346,112 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 
             Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
                 if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    Just (Exactly (List.length list))
+                    if moduleName == [ "Set" ] then
+                        case list of
+                            [] ->
+                                Just (Exactly 0)
+
+                            [ _ ] ->
+                                Just (Exactly 1)
+
+                            _ ->
+                                case traverse getComparableExpression list of
+                                    Nothing ->
+                                        Just NotEmpty
+
+                                    Just comparableExpressions ->
+                                        comparableExpressions |> unique |> List.length |> Exactly |> Just
+
+                    else
+                        Just (Exactly (List.length list))
 
                 else
                     Nothing
 
             _ ->
                 Nothing
+
+
+getComparableExpression : Node Expression -> Maybe (List Expression)
+getComparableExpression =
+    getComparableExpressionHelper 1
+
+
+getComparableExpressionHelper : Int -> Node Expression -> Maybe (List Expression)
+getComparableExpressionHelper sign (Node _ expression) =
+    case expression of
+        Expression.Integer int ->
+            Just [ Expression.Integer (sign * int) ]
+
+        Expression.Hex hex ->
+            Just [ Expression.Integer (sign * hex) ]
+
+        Expression.Floatable float ->
+            Just [ Expression.Floatable (toFloat sign * float) ]
+
+        Expression.Negation expr ->
+            getComparableExpressionHelper (-1 * sign) expr
+
+        Expression.Literal string ->
+            Just [ Expression.Literal string ]
+
+        Expression.CharLiteral char ->
+            Just [ Expression.CharLiteral char ]
+
+        Expression.ParenthesizedExpression expr ->
+            getComparableExpressionHelper 1 expr
+
+        Expression.TupledExpression exprs ->
+            exprs
+                |> traverse (getComparableExpressionHelper 1)
+                |> Maybe.map List.concat
+
+        Expression.ListExpr exprs ->
+            exprs
+                |> traverse (getComparableExpressionHelper 1)
+                |> Maybe.map List.concat
+
+        _ ->
+            Nothing
+
+
+traverse : (a -> Maybe b) -> List a -> Maybe (List b)
+traverse f list =
+    traverseHelp f list []
+
+
+traverseHelp : (a -> Maybe b) -> List a -> List b -> Maybe (List b)
+traverseHelp f list acc =
+    case list of
+        head :: tail ->
+            case f head of
+                Just a ->
+                    traverseHelp f tail (a :: acc)
+
+                Nothing ->
+                    Nothing
+
+        [] ->
+            Just (List.reverse acc)
+
+
+unique : List a -> List a
+unique list =
+    uniqueHelp [] list []
+
+
+uniqueHelp : List a -> List a -> List a -> List a
+uniqueHelp existing remaining accumulator =
+    case remaining of
+        [] ->
+            List.reverse accumulator
+
+        first :: rest ->
+            if List.member first existing then
+                uniqueHelp existing rest accumulator
+
+            else
+                uniqueHelp (first :: existing) rest (first :: accumulator)
 
 
 
