@@ -545,6 +545,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
+import Simplify.Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 
 
@@ -993,7 +994,7 @@ expressionVisitorHelp node context =
         -------------------
         Expression.IfBlock cond trueBranch falseBranch ->
             case getBoolean context.lookupTable cond of
-                Just True ->
+                Determined True ->
                     onlyErrors
                         [ Rule.errorWithFix
                             { message = "The condition will always evaluate to True"
@@ -1011,7 +1012,7 @@ expressionVisitorHelp node context =
                             ]
                         ]
 
-                Just False ->
+                Determined False ->
                     onlyErrors
                         [ Rule.errorWithFix
                             { message = "The condition will always evaluate to False"
@@ -1025,9 +1026,9 @@ expressionVisitorHelp node context =
                             ]
                         ]
 
-                Nothing ->
+                Undetermined ->
                     case ( getBoolean context.lookupTable trueBranch, getBoolean context.lookupTable falseBranch ) of
-                        ( Just True, Just False ) ->
+                        ( Determined True, Determined False ) ->
                             onlyErrors
                                 [ Rule.errorWithFix
                                     { message = "The if expression's value is the same as the condition"
@@ -1045,7 +1046,7 @@ expressionVisitorHelp node context =
                                     ]
                                 ]
 
-                        ( Just False, Just True ) ->
+                        ( Determined False, Determined True ) ->
                             onlyErrors
                                 [ Rule.errorWithFix
                                     { message = "The if expression's value is the inverse of the condition"
@@ -1961,7 +1962,7 @@ getNegateFunction lookupTable baseNode =
 basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
     case getBoolean checkInfo.lookupTable checkInfo.firstArg of
-        Just bool ->
+        Determined bool ->
             [ Rule.errorWithFix
                 { message = "Expression is equal to " ++ boolToString (not bool)
                 , details = [ "You can replace the call to `not` by the boolean value directly." ]
@@ -1970,7 +1971,7 @@ basicsNotChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange (boolToString (not bool)) ]
             ]
 
-        Nothing ->
+        Undetermined ->
             removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage getNotFunction checkInfo
 
 
@@ -2182,7 +2183,7 @@ listConditions operatorToLookFor redundantConditionResolution node =
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
 or_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRange } =
     case getBoolean lookupTable left of
-        Just True ->
+        Determined True ->
             [ Rule.errorWithFix
                 { message = "Condition is always True"
                 , details = alwaysSameDetails
@@ -2195,7 +2196,7 @@ or_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRan
                 ]
             ]
 
-        Just False ->
+        Determined False ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
@@ -2208,14 +2209,14 @@ or_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRan
                 ]
             ]
 
-        Nothing ->
+        Undetermined ->
             []
 
 
 or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
 or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightRange } =
     case getBoolean lookupTable right of
-        Just True ->
+        Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
@@ -2228,7 +2229,7 @@ or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightR
                 ]
             ]
 
-        Just False ->
+        Determined False ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
@@ -2241,7 +2242,7 @@ or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightR
                 ]
             ]
 
-        Nothing ->
+        Undetermined ->
             []
 
 
@@ -2261,7 +2262,7 @@ andChecks operatorCheckInfo =
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
 and_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRange } =
     case getBoolean lookupTable left of
-        Just True ->
+        Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
@@ -2274,7 +2275,7 @@ and_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRa
                 ]
             ]
 
-        Just False ->
+        Determined False ->
             [ Rule.errorWithFix
                 { message = "Condition is always False"
                 , details = alwaysSameDetails
@@ -2287,14 +2288,14 @@ and_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRa
                 ]
             ]
 
-        Nothing ->
+        Undetermined ->
             []
 
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
 and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, rightRange } =
     case getBoolean lookupTable right of
-        Just True ->
+        Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
                 , details = unnecessaryDetails
@@ -2307,7 +2308,7 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, right
                 ]
             ]
 
-        Just False ->
+        Determined False ->
             [ Rule.errorWithFix
                 { message = "Condition is always False"
                 , details = alwaysSameDetails
@@ -2320,7 +2321,7 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, right
                 ]
             ]
 
-        Nothing ->
+        Undetermined ->
             []
 
 
@@ -2330,7 +2331,7 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, right
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
 equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, rightRange } =
-    if getBoolean lookupTable right == Just isEqual then
+    if getBoolean lookupTable right == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -2339,7 +2340,7 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
             [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
         ]
 
-    else if getBoolean lookupTable left == Just isEqual then
+    else if getBoolean lookupTable left == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -3290,7 +3291,7 @@ listAllChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 
         _ ->
             case isAlwaysBoolean lookupTable firstArg of
-                Just True ->
+                Determined True ->
                     [ Rule.errorWithFix
                         { message = "The call to List.all will result in True"
                         , details = [ "You can replace this call by True." ]
@@ -3317,7 +3318,7 @@ listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 
         _ ->
             case isAlwaysBoolean lookupTable firstArg of
-                Just False ->
+                Determined False ->
                     [ Rule.errorWithFix
                         { message = "The call to List.any will result in False"
                         , details = [ "You can replace this call by False." ]
@@ -4012,7 +4013,7 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
 
         _ ->
             case isAlwaysBoolean lookupTable firstArg of
-                Just True ->
+                Determined True ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
                         , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
@@ -4021,7 +4022,7 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
                         (noopFix checkInfo)
                     ]
 
-                Just False ->
+                Determined False ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collection.emptyAsString
                         , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
@@ -4030,7 +4031,7 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
                         (replaceByEmptyFix collection.emptyAsString parentRange secondArg)
                     ]
 
-                Nothing ->
+                Undetermined ->
                     []
 
 
@@ -4278,7 +4279,7 @@ collectionPartitionChecks collection checkInfo =
 
         _ ->
             case isAlwaysBoolean checkInfo.lookupTable checkInfo.firstArg of
-                Just True ->
+                Determined True ->
                     case checkInfo.secondArg of
                         Just listArg ->
                             [ Rule.errorWithFix
@@ -4294,7 +4295,7 @@ collectionPartitionChecks collection checkInfo =
                         Nothing ->
                             []
 
-                Just False ->
+                Determined False ->
                     [ Rule.errorWithFix
                         { message = "All elements will go to the second " ++ collection.represents
                         , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.emptyAsString ++ "." ]
@@ -4311,7 +4312,7 @@ collectionPartitionChecks collection checkInfo =
                         )
                     ]
 
-                Nothing ->
+                Undetermined ->
                     []
 
 
@@ -4982,7 +4983,7 @@ removeParens node =
             node
 
 
-isAlwaysBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+isAlwaysBoolean : ModuleNameLookupTable -> Node Expression -> Match Bool
 isAlwaysBoolean lookupTable node =
     case Node.value (removeParens node) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
@@ -4991,16 +4992,16 @@ isAlwaysBoolean lookupTable node =
                     getBoolean lookupTable boolean
 
                 _ ->
-                    Nothing
+                    Undetermined
 
         Expression.LambdaExpression { expression } ->
             getBoolean lookupTable expression
 
         _ ->
-            Nothing
+            Undetermined
 
 
-getBoolean : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+getBoolean : ModuleNameLookupTable -> Node Expression -> Match Bool
 getBoolean lookupTable baseNode =
     let
         node : Node Expression
@@ -5011,21 +5012,21 @@ getBoolean lookupTable baseNode =
         Expression.FunctionOrValue _ "True" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Basics" ] ->
-                    Just True
+                    Determined True
 
                 _ ->
-                    Nothing
+                    Undetermined
 
         Expression.FunctionOrValue _ "False" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Basics" ] ->
-                    Just False
+                    Determined False
 
                 _ ->
-                    Nothing
+                    Undetermined
 
         _ ->
-            Nothing
+            Undetermined
 
 
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
