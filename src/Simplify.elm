@@ -4354,9 +4354,13 @@ determineListLength lookupTable node =
         Expression.ListExpr list ->
             Just (Exactly (List.length list))
 
-        Expression.OperatorApplication "::" _ _ _ ->
-            -- TODO Try to determine the size of the right hand size
-            Just NotEmpty
+        Expression.OperatorApplication "::" _ _ right ->
+            case determineListLength lookupTable right of
+                Just (Exactly n) ->
+                    Just (Exactly (n + 1))
+
+                _ ->
+                    Just NotEmpty
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
             if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
