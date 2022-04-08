@@ -253,6 +253,9 @@ Below is the list of all kinds of simplifications this rule applies.
     Maybe.andThen (\a -> Just b) x
     --> Maybe.map (\a -> b) x
 
+    Maybe.andThen (\a -> if condition a then Just b else Just c) x
+    --> Maybe.map (\a -> if condition a then b else c) x
+
     Maybe.andThen f (Just x)
     --> f x
 
@@ -342,6 +345,9 @@ Below is the list of all kinds of simplifications this rule applies.
 
     List.filterMap Just
     --> identity
+
+    List.filterMap (\a -> if condition a then Just b else Just c) list
+    --> List.map (\a -> if condition a then b else c) list
 
     List.filterMap (always Nothing) list
     --> []
@@ -2935,24 +2941,24 @@ maybeMapChecks checkInfo =
     firstThatReportsError
         [ \() -> collectionMapChecks maybeCollection checkInfo
         , \() ->
-            case Maybe.andThen (getMaybeValue checkInfo.lookupTable) checkInfo.secondArg of
-                Just (Just justRange) ->
+            case Maybe.andThen (getMaybeValues checkInfo.lookupTable) checkInfo.secondArg of
+                Just (Just justRanges) ->
                     [ Rule.errorWithFix
                         { message = "Calling Maybe.map on a value that is Just"
                         , details = [ "The function can be called without Maybe.map." ]
                         }
                         checkInfo.fnRange
                         (if checkInfo.usingRightPizza then
-                            [ Fix.removeRange justRange
-                            , Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
                             , Fix.insertAt (Node.range checkInfo.firstArg).end " |> Just"
                             ]
+                                ++ List.map Fix.removeRange justRanges
 
                          else
                             [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start } "Just ("
-                            , Fix.removeRange justRange
                             , Fix.insertAt checkInfo.parentRange.end ")"
                             ]
+                                ++ List.map Fix.removeRange justRanges
                         )
                     ]
 
@@ -3327,14 +3333,26 @@ listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
-        Just (Just _) ->
-            [ Rule.errorWithFix
-                { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                , details = [ "You can remove this call and replace it by the list itself." ]
-                }
-                fnRange
-                (noopFix checkInfo)
-            ]
+        Just (Just { ranges, throughLambdaFunction }) ->
+            if throughLambdaFunction then
+                [ Rule.errorWithFix
+                    { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                    , details = [ "You can remove the `Just`s and replace the call by List.map." ]
+                    }
+                    fnRange
+                    (Fix.replaceRangeBy fnRange "List.map"
+                        :: List.map Fix.removeRange ranges
+                    )
+                ]
+
+            else
+                [ Rule.errorWithFix
+                    { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
+                    , details = [ "You can remove this call and replace it by the list itself." ]
+                    }
+                    fnRange
+                    (noopFix checkInfo)
+                ]
 
         Just Nothing ->
             [ Rule.errorWithFix
@@ -3836,16 +3854,16 @@ maybeAndThenChecks : CheckInfo -> List (Error {})
 maybeAndThenChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Maybe.andThen (getMaybeValue checkInfo.lookupTable) checkInfo.secondArg of
-                Just (Just justRange) ->
+            case Maybe.andThen (getMaybeValues checkInfo.lookupTable) checkInfo.secondArg of
+                Just (Just justRanges) ->
                     [ Rule.errorWithFix
                         { message = "Calling " ++ maybeCollection.moduleName ++ ".andThen on a value that is known to be Just"
                         , details = [ "You can remove the Just and just call the function directly." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                        , Fix.removeRange justRange
-                        ]
+                        (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                            :: List.map Fix.removeRange justRanges
+                        )
                     ]
 
                 Just Nothing ->
@@ -3861,16 +3879,26 @@ maybeAndThenChecks checkInfo =
                     []
         , \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Just (Just justRange) ->
-                    [ Rule.errorWithFix
-                        { message = "Use " ++ maybeCollection.moduleName ++ ".map instead"
-                        , details = [ "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.fnRange (maybeCollection.moduleName ++ ".map")
-                        , Fix.removeRange justRange
+                Just (Just { ranges, throughLambdaFunction }) ->
+                    if throughLambdaFunction then
+                        [ Rule.errorWithFix
+                            { message = "Use " ++ maybeCollection.moduleName ++ ".map instead"
+                            , details = [ "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange (maybeCollection.moduleName ++ ".map")
+                                :: List.map Fix.removeRange ranges
+                            )
                         ]
-                    ]
+
+                    else
+                        [ Rule.errorWithFix
+                            { message = "Using Maybe.andThen with a function that will always return Just is the same as not using Maybe.andThen"
+                            , details = [ "You can remove this call and replace it by the value itself." ]
+                            }
+                            checkInfo.fnRange
+                            (noopFix checkInfo)
+                        ]
 
                 Just Nothing ->
                     [ Rule.errorWithFix
@@ -4279,14 +4307,14 @@ collectionPartitionChecks collection checkInfo =
 
 maybeWithDefaultChecks : CheckInfo -> List (Error {})
 maybeWithDefaultChecks checkInfo =
-    case Maybe.andThen (getMaybeValue checkInfo.lookupTable) checkInfo.secondArg of
-        Just (Just justRange) ->
+    case Maybe.andThen (getMaybeValues checkInfo.lookupTable) checkInfo.secondArg of
+        Just (Just justRanges) ->
             [ Rule.errorWithFix
                 { message = "Using Maybe.withDefault on a value that is Just will result in that value"
                 , details = [ "You can replace this call by the value wrapped in Just." ]
                 }
                 checkInfo.fnRange
-                (Fix.removeRange justRange :: noopFix checkInfo)
+                (List.map Fix.removeRange justRanges ++ noopFix checkInfo)
             ]
 
         Just Nothing ->
@@ -5019,7 +5047,7 @@ getBooleanPattern lookupTable node =
             Nothing
 
 
-isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe Range)
+isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe { ranges : List Range, throughLambdaFunction : Bool })
 isAlwaysMaybe lookupTable baseNode =
     let
         node : Node Expression
@@ -5030,7 +5058,7 @@ isAlwaysMaybe lookupTable baseNode =
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
                 Just [ "Maybe" ] ->
-                    Just (Just (Node.range node))
+                    Just (Just { ranges = [ Node.range node ], throughLambdaFunction = False })
 
                 _ ->
                     Nothing
@@ -5038,47 +5066,22 @@ isAlwaysMaybe lookupTable baseNode =
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getMaybeValue lookupTable value
+                    getMaybeValues lookupTable value
+                        |> Maybe.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
 
                 _ ->
                     Nothing
 
-        Expression.LambdaExpression { args, expression } ->
-            case Node.value expression of
-                Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: (Node argRange (Expression.FunctionOrValue [] justArgName)) :: []) ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
-                        Just [ "Maybe" ] ->
-                            case args of
-                                (Node _ (Pattern.VarPattern lambdaArgName)) :: [] ->
-                                    if lambdaArgName == justArgName then
-                                        Just (Just { start = justRange.start, end = argRange.start })
-
-                                    else
-                                        Nothing
-
-                                _ ->
-                                    Nothing
-
-                        _ ->
-                            Nothing
-
-                Expression.FunctionOrValue _ "Nothing" ->
-                    case ModuleNameLookupTable.moduleNameFor lookupTable expression of
-                        Just [ "Maybe" ] ->
-                            Just Nothing
-
-                        _ ->
-                            Nothing
-
-                _ ->
-                    Nothing
+        Expression.LambdaExpression { expression } ->
+            getMaybeValues lookupTable expression
+                |> Maybe.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
 
         _ ->
             Nothing
 
 
-getMaybeValue : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe Range)
-getMaybeValue lookupTable baseNode =
+getMaybeValues : ModuleNameLookupTable -> Node Expression -> Maybe (Maybe (List Range))
+getMaybeValues lookupTable baseNode =
     let
         node : Node Expression
         node =
@@ -5088,7 +5091,7 @@ getMaybeValue lookupTable baseNode =
         Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: arg :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
                 Just [ "Maybe" ] ->
-                    Just (Just { start = justRange.start, end = (Node.range arg).start })
+                    Just (Just [ { start = justRange.start, end = (Node.range arg).start } ])
 
                 _ ->
                     Nothing
@@ -5096,7 +5099,7 @@ getMaybeValue lookupTable baseNode =
         Expression.OperatorApplication "|>" _ arg (Node justRange (Expression.FunctionOrValue _ "Just")) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
                 Just [ "Maybe" ] ->
-                    Just (Just { start = (Node.range arg).end, end = justRange.end })
+                    Just (Just [ { start = (Node.range arg).end, end = justRange.end } ])
 
                 _ ->
                     Nothing
@@ -5104,7 +5107,7 @@ getMaybeValue lookupTable baseNode =
         Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Just")) arg ->
             case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
                 Just [ "Maybe" ] ->
-                    Just (Just { start = justRange.start, end = (Node.range arg).start })
+                    Just (Just [ { start = justRange.start, end = (Node.range arg).start } ])
 
                 _ ->
                     Nothing
@@ -5117,8 +5120,55 @@ getMaybeValue lookupTable baseNode =
                 _ ->
                     Nothing
 
+        Expression.IfBlock _ thenBranch elseBranch ->
+            combineMaybeValues lookupTable [ thenBranch, elseBranch ]
+
+        Expression.CaseExpression { cases } ->
+            combineMaybeValues lookupTable (List.map Tuple.second cases)
+
         _ ->
             Nothing
+
+
+combineMaybeValues : ModuleNameLookupTable -> List (Node Expression) -> Maybe (Maybe (List Range))
+combineMaybeValues lookupTable nodes =
+    case nodes of
+        node :: restOfNodes ->
+            case getMaybeValues lookupTable node of
+                Nothing ->
+                    Nothing
+
+                Just nodeValue ->
+                    combineMaybeValuesHelp lookupTable restOfNodes nodeValue
+
+        [] ->
+            Nothing
+
+
+combineMaybeValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Maybe (List Range) -> Maybe (Maybe (List Range))
+combineMaybeValuesHelp lookupTable nodes soFar =
+    case nodes of
+        node :: restOfNodes ->
+            case getMaybeValues lookupTable node of
+                Nothing ->
+                    Nothing
+
+                Just nodeValue ->
+                    case ( nodeValue, soFar ) of
+                        ( Just _, Nothing ) ->
+                            Nothing
+
+                        ( Nothing, Just _ ) ->
+                            Nothing
+
+                        ( Nothing, Nothing ) ->
+                            combineMaybeValuesHelp lookupTable restOfNodes Nothing
+
+                        ( Just a, Just b ) ->
+                            combineMaybeValuesHelp lookupTable restOfNodes (Just (a ++ b))
+
+        [] ->
+            Just soFar
 
 
 getResultValue : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range Range)

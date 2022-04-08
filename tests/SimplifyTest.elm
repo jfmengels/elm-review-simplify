@@ -4759,7 +4759,7 @@ a = List.filterMap Just x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
                             , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -4775,7 +4775,7 @@ a = List.filterMap Just <| x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
                             , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -4791,7 +4791,7 @@ a = x |> List.filterMap Just
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
                             , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -4807,7 +4807,7 @@ a = List.filterMap Just
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
                             , details = [ "You can remove this call and replace it by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -4839,12 +4839,12 @@ a = List.filterMap (\\a -> Just a) x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x
+a = List.map (\\a -> a) x
 """
                         ]
         , test "should replace List.filterMap (\\a -> Just a) by identity" <|
@@ -4855,28 +4855,30 @@ a = List.filterMap (\\a -> Just a)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = identity
+a = List.map (\\a -> a)
 """
                         ]
-        , test "should not report List.filterMap (\\a -> Just b) x" <|
+        , test "should replace List.map (\\a -> Just b) x by List.filterMap (\\a -> b) x" <|
             \() ->
                 """module A exposing (..)
 a = List.filterMap (\\a -> Just b) x
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectNoErrors
-        , test "should not report List.filterMap (\\a b -> Just a) x" <|
-            \() ->
-                """module A exposing (..)
-a = List.filterMap (\\a b -> Just a) x
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            , details = [ "You can remove the `Just`s and replace the call by List.map." ]
+                            , under = "List.filterMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.map (\\a -> b) x
 """
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectNoErrors
+                        ]
         , test "should replace List.filterMap identity (List.map f x) by List.filterMap f x" <|
             \() ->
                 """module A exposing (..)
@@ -6107,6 +6109,22 @@ a = Maybe.andThen f Nothing
 a = Nothing
 """
                         ]
+        , test "should replace Maybe.andThen Just x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen Just x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.andThen with a function that will always return Just is the same as not using Maybe.andThen"
+                            , details = [ "You can remove this call and replace it by the value itself." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         , test "should replace Maybe.andThen (always Nothing) x by Nothing" <|
             \() ->
                 """module A exposing (..)
@@ -6139,6 +6157,67 @@ a = Maybe.andThen (\\b -> Just b) x
 a = Maybe.map (\\b -> b) x
 """
                         ]
+        , test "should replace Maybe.andThen (\\b -> if cond then Just b else Just c) x by Maybe.map (\\b -> if cond then b else c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (\\b -> if cond then Just b else Just c) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Maybe.map instead"
+                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Maybe.map (\\b -> if cond then b else c) x
+"""
+                        ]
+        , test "should not report Maybe.andThen (\\b -> if cond then Just b else Nothing) x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (\\b -> if cond then Just b else Nothing) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace Maybe.andThen (\\b -> case b of C -> Just b ; D -> Just c) x by Maybe.map (\\b -> case b of C -> b ; D -> c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (
+    \\b ->
+        case b of
+            C -> Just b
+            D -> Just c
+    ) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Maybe.map instead"
+                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Maybe.map (
+    \\b ->
+        case b of
+            C -> b
+            D -> c
+    ) x
+"""
+                        ]
+        , test "should not report Maybe.andThen (\\b -> case b of C -> Just b ; D -> Nothing) x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (
+    \\b ->
+        case b of
+            C -> Just b
+            D -> Nothing
+    ) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should replace Maybe.andThen f (Just x) by f (x)" <|
             \() ->
                 """module A exposing (..)
