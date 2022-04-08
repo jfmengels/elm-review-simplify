@@ -1,4 +1,16 @@
-module Simplify.Match exposing (Match(..), map)
+module Simplify.Match exposing
+    ( Match(..)
+    , map
+    , maybeAndThen
+    )
+
+{-|
+
+@docs Match
+@docs map
+@docs maybeAndThen
+
+-}
 
 
 type Match a
@@ -13,4 +25,14 @@ map mapper match =
             Determined (mapper a)
 
         Undetermined ->
+            Undetermined
+
+
+maybeAndThen : (a -> Match b) -> Maybe a -> Match b
+maybeAndThen fn maybe =
+    case maybe of
+        Just a ->
+            fn a
+
+        Nothing ->
             Undetermined
