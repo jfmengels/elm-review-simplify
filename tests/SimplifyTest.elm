@@ -6709,6 +6709,22 @@ a = Result.andThen (always (Err z)) x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should replace Result.andThen Ok x by Result.map identity x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen Ok x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.andThen with a function that will always return Just is the same as not using Result.andThen"
+                            , details = [ "You can remove this call and replace it by the value itself." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         , test "should replace Result.andThen (\\b -> Ok b) x by Result.map (\\b -> b) x" <|
             \() ->
                 """module A exposing (..)
@@ -6725,6 +6741,29 @@ a = Result.andThen (\\b -> Ok b) x
 a = Result.map (\\b -> b) x
 """
                         ]
+        , test "should replace Result.andThen (\\b -> if cond then Ok b else Ok c) x by Result.map (\\b -> if cond then b else c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen (\\b -> if cond then Ok b else Ok c) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Result.map instead"
+                            , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.map (\\b -> if cond then b else c) x
+"""
+                        ]
+        , test "should not report Result.andThen (\\b -> if cond then Ok b else Err c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen (\\b -> if cond then Ok b else Err c) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should replace Result.andThen f (Ok x) by f (x)" <|
             \() ->
                 """module A exposing (..)
