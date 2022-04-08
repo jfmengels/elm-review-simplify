@@ -377,6 +377,9 @@ Below is the list of all kinds of simplifications this rule applies.
     List.concatMap (\a -> a) list
     --> List.concat list
 
+    List.concatMap (\a -> [ b ]) list
+    --> List.map (\a -> b) list
+
     List.concatMap fn [ x ]
     --> fn x
 
@@ -3202,29 +3205,34 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
         ]
 
     else
-        case secondArg of
-            Just (Node listRange (Expression.ListExpr [ Node singleElementRange _ ])) ->
-                [ Rule.errorWithFix
-                    { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                    , details = [ "You can replace this call by a call to the function directly." ]
-                    }
-                    fnRange
-                    (if usingRightPizza then
-                        [ Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                        , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                        , Fix.removeRange fnRange
+        case replaceSingleElementListBySingleValue_RENAME lookupTable fnRange firstArg of
+            Just errors ->
+                errors
+
+            Nothing ->
+                case secondArg of
+                    Just (Node listRange (Expression.ListExpr [ Node singleElementRange _ ])) ->
+                        [ Rule.errorWithFix
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly." ]
+                            }
+                            fnRange
+                            (if usingRightPizza then
+                                [ Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                                , Fix.removeRange fnRange
+                                ]
+
+                             else
+                                [ Fix.removeRange fnRange
+                                , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                                ]
+                            )
                         ]
 
-                     else
-                        [ Fix.removeRange fnRange
-                        , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                        , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                        ]
-                    )
-                ]
-
-            _ ->
-                []
+                    _ ->
+                        []
 
 
 concatAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
@@ -4371,6 +4379,73 @@ determineListLength lookupTable node =
 
         _ ->
             Nothing
+
+
+replaceSingleElementListBySingleValue_RENAME : ModuleNameLookupTable -> Range -> Node Expression -> Maybe (List (Error {}))
+replaceSingleElementListBySingleValue_RENAME lookupTable fnRange node =
+    case Node.value (removeParens node) of
+        Expression.LambdaExpression { expression } ->
+            case replaceSingleElementListBySingleValue lookupTable expression of
+                Just fixes ->
+                    Just
+                        [ Rule.errorWithFix
+                            { message = "Use List.map instead"
+                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                            }
+                            fnRange
+                            (Fix.replaceRangeBy fnRange "List.map" :: fixes)
+                        ]
+
+                Nothing ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
+replaceSingleElementListBySingleValue lookupTable rawNode =
+    let
+        (Node { start, end } nodeValue) =
+            removeParens rawNode
+    in
+    case nodeValue of
+        Expression.ListExpr [ _ ] ->
+            Just
+                [ Fix.replaceRangeBy { start = start, end = { start | column = start.column + 1 } } "("
+                , Fix.replaceRangeBy { start = { end | column = end.column - 1 }, end = end } ")"
+                ]
+
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
+                Just [ Fix.removeRange fnRange ]
+
+            else
+                Nothing
+
+        Expression.IfBlock _ thenBranch elseBranch ->
+            combineSingleElementFixes lookupTable [ thenBranch, elseBranch ] []
+
+        Expression.CaseExpression { cases } ->
+            combineSingleElementFixes lookupTable (List.map Tuple.second cases) []
+
+        _ ->
+            Nothing
+
+
+combineSingleElementFixes : ModuleNameLookupTable -> List (Node Expression) -> List Fix -> Maybe (List Fix)
+combineSingleElementFixes lookupTable nodes soFar =
+    case nodes of
+        [] ->
+            Just soFar
+
+        node :: restOfNodes ->
+            case replaceSingleElementListBySingleValue lookupTable node of
+                Nothing ->
+                    Nothing
+
+                Just fixes ->
+                    combineSingleElementFixes lookupTable restOfNodes (fixes ++ soFar)
 
 
 determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
