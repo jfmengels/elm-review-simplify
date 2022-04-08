@@ -4104,6 +4104,22 @@ a = List.concatMap (always [])
 a = (always [])
 """
                         ]
+        , test "should replace List.concatMap (\\_ -> [a]) x by List.map (\\_ -> a) x" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap (\\_ -> [a]) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.map instead"
+                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.map (\\_ -> a) x
+"""
+                        ]
         , test "should replace List.concatMap f [ a ] by f a" <|
             \() ->
                 """module A exposing (..)
