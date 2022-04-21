@@ -2473,16 +2473,6 @@ getSpecificFunctionCall ( moduleName, name ) lookupTable baseNode =
             Nothing
 
 
-getLambda : Node Expression -> Maybe ( Range, Expression.Lambda )
-getLambda baseNode =
-    case removeParens baseNode of
-        Node range (Expression.LambdaExpression lambda) ->
-            Just ( range, lambda )
-
-        _ ->
-            Nothing
-
-
 alwaysSameDetails : List String
 alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
@@ -3301,8 +3291,8 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 listIndexedMapChecks : CheckInfo -> List (Error {})
 listIndexedMapChecks { fnRange, firstArg } =
-    case getLambda firstArg of
-        Just ( lambdaRange, { args, expression } ) ->
+    case removeParens firstArg of
+        Node lambdaRange (Expression.LambdaExpression { args, expression }) ->
             case Maybe.map removeParensFromPattern (List.head args) of
                 Just (Node patternRange Pattern.AllPattern) ->
                     let
@@ -3332,7 +3322,7 @@ listIndexedMapChecks { fnRange, firstArg } =
                 _ ->
                     []
 
-        Nothing ->
+        _ ->
             []
 
 
