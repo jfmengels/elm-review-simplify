@@ -2473,16 +2473,6 @@ getSpecificFunctionCall ( moduleName, name ) lookupTable baseNode =
             Nothing
 
 
-getLambda : Node Expression -> Maybe ( Range, Expression.Lambda )
-getLambda baseNode =
-    case removeParens baseNode of
-        Node range (Expression.LambdaExpression lambda) ->
-            Just ( range, lambda )
-
-        _ ->
-            Nothing
-
-
 alwaysSameDetails : List String
 alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
@@ -2660,6 +2650,43 @@ isAlwaysCall lookupTable node =
 
         _ ->
             False
+
+
+getAlwaysArgument : ModuleNameLookupTable -> Node Expression -> Maybe { alwaysRange : Range, rangeToRemove : Range }
+getAlwaysArgument lookupTable node =
+    case Node.value (removeParens node) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: arg :: []) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
+                Just
+                    { alwaysRange = alwaysRange
+                    , rangeToRemove = { start = alwaysRange.start, end = (Node.range arg).start }
+                    }
+
+            else
+                Nothing
+
+        Expression.OperatorApplication "<|" _ (Node alwaysRange (Expression.FunctionOrValue _ "always")) arg ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
+                Just
+                    { alwaysRange = alwaysRange
+                    , rangeToRemove = { start = alwaysRange.start, end = (Node.range arg).start }
+                    }
+
+            else
+                Nothing
+
+        Expression.OperatorApplication "|>" _ arg (Node alwaysRange (Expression.FunctionOrValue _ "always")) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
+                Just
+                    { alwaysRange = alwaysRange
+                    , rangeToRemove = { start = (Node.range arg).end, end = alwaysRange.end }
+                    }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
@@ -3300,9 +3327,9 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 
 listIndexedMapChecks : CheckInfo -> List (Error {})
-listIndexedMapChecks { fnRange, firstArg } =
-    case getLambda firstArg of
-        Just ( lambdaRange, { args, expression } ) ->
+listIndexedMapChecks { lookupTable, fnRange, firstArg } =
+    case removeParens firstArg of
+        Node lambdaRange (Expression.LambdaExpression { args, expression }) ->
             case Maybe.map removeParensFromPattern (List.head args) of
                 Just (Node patternRange Pattern.AllPattern) ->
                     let
@@ -3332,8 +3359,21 @@ listIndexedMapChecks { fnRange, firstArg } =
                 _ ->
                     []
 
-        Nothing ->
-            []
+        _ ->
+            case getAlwaysArgument lookupTable firstArg of
+                Just { alwaysRange, rangeToRemove } ->
+                    [ Rule.errorWithFix
+                        { message = "Use List.map instead"
+                        , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                        }
+                        alwaysRange
+                        [ Fix.replaceRangeBy fnRange "List.map"
+                        , Fix.removeRange rangeToRemove
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
 
 listAllChecks : CheckInfo -> List (Error {})
