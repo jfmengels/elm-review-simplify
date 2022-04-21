@@ -1401,6 +1401,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
         , ( ( [ "List" ], "any" ), listAnyChecks )
         , ( ( [ "List" ], "range" ), listRangeChecks )
@@ -3283,6 +3284,11 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
     else
         []
+
+
+listIndexedMapChecks : CheckInfo -> List (Error {})
+listIndexedMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
+    []
 
 
 listAllChecks : CheckInfo -> List (Error {})

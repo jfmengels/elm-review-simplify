@@ -3773,6 +3773,7 @@ listSimplificationTests =
         , listMapTests
         , listFilterTests
         , listFilterMapTests
+        , listIndexedMapTests
         , listIsEmptyTests
         , listAllTests
         , listAnyTests
@@ -5068,6 +5069,35 @@ a = [ Just x, Just y ] |> List.filterMap identity
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ x, y ]
+"""
+                        ]
+        ]
+
+
+listIndexedMapTests : Test
+listIndexedMapTests =
+    describe "List.indexedMap"
+        [ test "should not report List.indexedMap used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.indexedMap f x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.indexedMap f [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.indexedMap f []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.indexedMap on an empty list will result in a empty list"
+                            , details = [ "You can replace this call by an empty list." ]
+                            , under = "List.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]
