@@ -5210,6 +5210,12 @@ getMaybeValues lookupTable baseNode =
                 _ ->
                     Undetermined
 
+        Expression.LetExpression { expression } ->
+            getMaybeValues lookupTable expression
+
+        Expression.ParenthesizedExpression expression ->
+            getMaybeValues lookupTable expression
+
         Expression.IfBlock _ thenBranch elseBranch ->
             combineMaybeValues lookupTable [ thenBranch, elseBranch ]
 

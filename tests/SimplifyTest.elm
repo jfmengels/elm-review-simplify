@@ -6280,6 +6280,34 @@ a = Maybe.map (
     ) x
 """
                         ]
+        , test "should replace Maybe.andThen (\\b -> let y = 1 in Just y) x by Maybe.map (\\b -> let y = 1 in y) x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (
+    \\b ->
+        let
+            y = 1
+        in
+        Just y
+    ) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Maybe.map instead"
+                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Maybe.map (
+    \\b ->
+        let
+            y = 1
+        in
+        y
+    ) x
+"""
+                        ]
         , test "should not report Maybe.andThen (\\b -> case b of C -> Just b ; D -> Nothing) x" <|
             \() ->
                 """module A exposing (..)
