@@ -5364,6 +5364,12 @@ getResultValues lookupTable baseNode =
                 _ ->
                     Nothing
 
+        Expression.LetExpression { expression } ->
+            getResultValues lookupTable expression
+
+        Expression.ParenthesizedExpression expression ->
+            getResultValues lookupTable expression
+
         Expression.IfBlock _ thenBranch elseBranch ->
             combineResultValues lookupTable [ thenBranch, elseBranch ]
 

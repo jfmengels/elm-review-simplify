@@ -6843,6 +6843,22 @@ a = Result.andThen (\\b -> Ok b) x
 a = Result.map (\\b -> b) x
 """
                         ]
+        , test "should replace Result.andThen (\\b -> let y = 1 in Ok y) x by Result.map (\\b -> let y = 1 in y) x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen (\\b -> let y = 1 in Ok y) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use Result.map instead"
+                            , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.map (\\b -> let y = 1 in y) x
+"""
+                        ]
         , test "should replace Result.andThen (\\b -> if cond then Ok b else Ok c) x by Result.map (\\b -> if cond then b else c) x" <|
             \() ->
                 """module A exposing (..)
