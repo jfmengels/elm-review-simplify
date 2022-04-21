@@ -5081,6 +5081,7 @@ listIndexedMapTests =
             \() ->
                 """module A exposing (..)
 a = List.indexedMap f x
+b = List.indexedMap (\\i value -> i + value) x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
@@ -5098,6 +5099,38 @@ a = List.indexedMap f []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.indexedMap (\\_ y -> y) x by List.map (\\y -> y) x" <|
+            \() ->
+                """module A exposing (..)
+a = List.indexedMap (\\_ y -> y) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.map instead"
+                            , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.map (\\y -> y) x
+"""
+                        ]
+        , test "should replace List.indexedMap (\\_ -> f) x by List.map f x" <|
+            \() ->
+                """module A exposing (..)
+a = List.indexedMap (\\_ -> f) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.map instead"
+                            , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.map (f) x
 """
                         ]
         ]

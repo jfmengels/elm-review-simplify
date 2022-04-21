@@ -389,6 +389,9 @@ Below is the list of all kinds of simplifications this rule applies.
     List.concat (List.map f x)
     --> List.concatMap f x
 
+    List.filterMap (\_ value -> f value) list
+    --> List.map (\value -> f value) list
+
     List.isEmpty []
     --> True
 
@@ -2470,6 +2473,16 @@ getSpecificFunctionCall ( moduleName, name ) lookupTable baseNode =
             Nothing
 
 
+getLambda : Node Expression -> Maybe ( Range, Expression.Lambda )
+getLambda baseNode =
+    case removeParens baseNode of
+        Node range (Expression.LambdaExpression lambda) ->
+            Just ( range, lambda )
+
+        _ ->
+            Nothing
+
+
 alwaysSameDetails : List String
 alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
@@ -3287,8 +3300,40 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 
 listIndexedMapChecks : CheckInfo -> List (Error {})
-listIndexedMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
-    []
+listIndexedMapChecks { fnRange, firstArg } =
+    case getLambda firstArg of
+        Just ( lambdaRange, { args, expression } ) ->
+            case Maybe.map removeParensFromPattern (List.head args) of
+                Just (Node patternRange Pattern.AllPattern) ->
+                    let
+                        rangeToRemove : Range
+                        rangeToRemove =
+                            case args of
+                                [] ->
+                                    Range.emptyRange
+
+                                [ _ ] ->
+                                    -- Only one argument, remove the entire lambda except the expression
+                                    { start = lambdaRange.start, end = (Node.range expression).start }
+
+                                first :: second :: _ ->
+                                    { start = (Node.range first).start, end = (Node.range second).start }
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Use List.map instead"
+                        , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                        }
+                        patternRange
+                        [ Fix.replaceRangeBy fnRange "List.map"
+                        , Fix.removeRange rangeToRemove
+                        ]
+                    ]
+
+                _ ->
+                    []
+
+        Nothing ->
+            []
 
 
 listAllChecks : CheckInfo -> List (Error {})
@@ -5063,6 +5108,16 @@ removeParens node =
     case Node.value node of
         Expression.ParenthesizedExpression expr ->
             removeParens expr
+
+        _ ->
+            node
+
+
+removeParensFromPattern : Node Pattern -> Node Pattern
+removeParensFromPattern node =
+    case Node.value node of
+        Pattern.ParenthesizedPattern pattern ->
+            removeParensFromPattern pattern
 
         _ ->
             node
