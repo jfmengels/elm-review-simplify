@@ -389,7 +389,7 @@ Below is the list of all kinds of simplifications this rule applies.
     List.concat (List.map f x)
     --> List.concatMap f x
 
-    List.filterMap (\_ value -> f value) list
+    List.indexedMap (\_ value -> f value) list
     --> List.map (\value -> f value) list
 
     List.isEmpty []
