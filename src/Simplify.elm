@@ -2652,6 +2652,21 @@ isAlwaysCall lookupTable node =
             False
 
 
+getAlwaysArgument : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getAlwaysArgument lookupTable node =
+    case Node.value (removeParens node) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: _ :: []) ->
+            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
+                Just alwaysRange
+
+            else
+                Nothing
+
+        -- TODO SUPPORT PIPELINES "always <| ..."
+        _ ->
+            Nothing
+
+
 reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
 reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
     ( ( moduleName, name )
@@ -3290,7 +3305,7 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 
 listIndexedMapChecks : CheckInfo -> List (Error {})
-listIndexedMapChecks { fnRange, firstArg } =
+listIndexedMapChecks { lookupTable, fnRange, firstArg } =
     case removeParens firstArg of
         Node lambdaRange (Expression.LambdaExpression { args, expression }) ->
             case Maybe.map removeParensFromPattern (List.head args) of
@@ -3323,7 +3338,20 @@ listIndexedMapChecks { fnRange, firstArg } =
                     []
 
         _ ->
-            []
+            case getAlwaysArgument lookupTable firstArg of
+                Just alwaysRange ->
+                    [ Rule.errorWithFix
+                        { message = "Use List.map instead"
+                        , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                        }
+                        alwaysRange
+                        [ Fix.replaceRangeBy fnRange "List.map"
+                        , Fix.removeRange alwaysRange
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
 
 listAllChecks : CheckInfo -> List (Error {})

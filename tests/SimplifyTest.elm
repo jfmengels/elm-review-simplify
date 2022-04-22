@@ -5146,7 +5146,7 @@ a = List.indexedMap (always f) x
                             , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (f) x
+a = List.map ( f) x
 """
                         ]
         ]
