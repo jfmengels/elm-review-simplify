@@ -1405,6 +1405,7 @@ functionCallChecks =
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), listIndexedMapChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
         , ( ( [ "List" ], "any" ), listAnyChecks )
         , ( ( [ "List" ], "range" ), listRangeChecks )
@@ -2696,7 +2697,7 @@ reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
         case checkInfo.secondArg of
             Just (Node _ (Expression.ListExpr [])) ->
                 [ Rule.errorWithFix
-                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
+                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in an empty list"
                     , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
@@ -2715,7 +2716,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
         case checkInfo.firstArg of
             Node _ (Expression.ListExpr []) ->
                 [ Rule.errorWithFix
-                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in a empty list"
+                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in an empty list"
                     , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
@@ -2773,7 +2774,7 @@ stringWordsChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.Literal "" ->
             [ Rule.errorWithFix
-                { message = "Using String.words on an empty string will result in a empty list"
+                { message = "Using String.words on an empty string will result in an empty list"
                 , details = [ "You can replace this call by an empty list." ]
                 }
                 fnRange
@@ -2789,7 +2790,7 @@ stringLinesChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.Literal "" ->
             [ Rule.errorWithFix
-                { message = "Using String.lines on an empty string will result in a empty list"
+                { message = "Using String.lines on an empty string will result in an empty list"
                 , details = [ "You can replace this call by an empty list." ]
                 }
                 fnRange

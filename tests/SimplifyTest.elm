@@ -3673,7 +3673,7 @@ a = String.words ""
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.words on an empty string will result in a empty list"
+                            { message = "Using String.words on an empty string will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "String.words"
                             }
@@ -3703,7 +3703,7 @@ a = String.lines ""
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.lines on an empty string will result in a empty list"
+                            { message = "Using String.lines on an empty string will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "String.lines"
                             }
@@ -3784,6 +3784,7 @@ listSimplificationTests =
         , listReverseTests
         , listTakeTests
         , listDropTests
+        , listIntersperseTests
         ]
 
 
@@ -3853,7 +3854,7 @@ a = List.concat []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on an empty list will result in a empty list"
+                            { message = "Using List.concat on an empty list will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "List.concat"
                             }
@@ -4065,7 +4066,7 @@ a = List.concatMap f []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an empty list will result in a empty list"
+                            { message = "Using List.concatMap on an empty list will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "List.concatMap"
                             }
@@ -4690,7 +4691,7 @@ a = List.filterMap f []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on an empty list will result in a empty list"
+                            { message = "Using List.filterMap on an empty list will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "List.filterMap"
                             }
@@ -4706,7 +4707,7 @@ a = List.filterMap f <| []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on an empty list will result in a empty list"
+                            { message = "Using List.filterMap on an empty list will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "List.filterMap"
                             }
@@ -4722,7 +4723,7 @@ a = [] |> List.filterMap f
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on an empty list will result in a empty list"
+                            { message = "Using List.filterMap on an empty list will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "List.filterMap"
                             }
@@ -5093,7 +5094,7 @@ a = List.indexedMap f []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.indexedMap on an empty list will result in a empty list"
+                            { message = "Using List.indexedMap on an empty list will result in an empty list"
                             , details = [ "You can replace this call by an empty list." ]
                             , under = "List.indexedMap"
                             }
@@ -5933,6 +5934,36 @@ a = always False |> List.partition
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (Tuple.pair [])
+"""
+                        ]
+        ]
+
+
+listIntersperseTests : Test
+listIntersperseTests =
+    describe "List.intersperse"
+        [ test "should not report List.intersperse that contains a variable or expression" <|
+            \() ->
+                """module A exposing (..)
+a = List.intersperse 2 x
+b = List.intersperse y [ 1, 2, 3 ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.intersperse n [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.intersperse x []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.intersperse on an empty list will result in an empty list"
+                            , details = [ "You can replace this call by an empty list." ]
+                            , under = "List.intersperse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
 """
                         ]
         ]
