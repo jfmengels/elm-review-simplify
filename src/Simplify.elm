@@ -1416,6 +1416,7 @@ functionCallChecks =
         , ( ( [ "List" ], "reverse" ), listReverseChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
+        , ( ( [ "List" ], "member" ), collectionMemberChecks listCollection )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )

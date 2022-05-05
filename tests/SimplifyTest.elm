@@ -3785,6 +3785,7 @@ listSimplificationTests =
         , listTakeTests
         , listDropTests
         , listIntersperseTests
+        , listMemberTests
         ]
 
 
@@ -5964,6 +5965,35 @@ a = List.intersperse x []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        ]
+
+
+listMemberTests : Test
+listMemberTests =
+    describe "List.member"
+        [ test "should not report List.member used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.member x y
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.member x List.empty by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.member x []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on [] will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
 """
                         ]
         ]
@@ -8157,7 +8187,7 @@ setMemberTests =
         [ test "should not report Set.member used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = Set.member x x
+a = Set.member x y
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
