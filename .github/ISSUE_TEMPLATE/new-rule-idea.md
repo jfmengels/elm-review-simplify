@@ -1,6 +1,6 @@
 ---
-name: New rule idea
-about: Propose a new rule idea
+name: New simplification idea
+about: Propose a new simplification idea
 title: ''
 labels: ''
 assignees: ''
@@ -24,19 +24,21 @@ Don't forget to be respectful, and to give enough details for others to pitch in
 **Example of things the rule would report:**
 
 ```elm
-
+<some code>
+--> <suggested fix>
 ```
 
 **Example of things the rule would not report:**
 
 ```elm
-
+<some code>
 ```
 
-**When (not) to enable this rule:**
 
-<!-- It is useful to think when a rule would be especially valuable, and where it is counter-productive or just not useful.
--->
+**Should this be part of the Simplify rule or should it be a new rule?**
+
+<!-- The idea so far is to have everything in one rule, but maybe in this case a new rule would be more appropriate.
+If you think it should be a new rule, please write about when you think users should (and should not) enable the rule.
 
 **I am looking for:**
 
