@@ -31,7 +31,36 @@ normalize lookupTable node =
             normalize lookupTable expr
 
         Expression.Application nodes ->
-            toNode (Expression.Application (List.map (normalize lookupTable) nodes))
+            case nodes of
+                fn :: arg1 :: restOrArgs ->
+                    let
+                        normalizedArg1 : Node Expression
+                        normalizedArg1 =
+                            normalize lookupTable arg1
+                    in
+                    case normalize lookupTable fn of
+                        Node _ (Expression.RecordAccessFunction fieldAccess) ->
+                            let
+                                recordAccess : Node Expression
+                                recordAccess =
+                                    Expression.RecordAccess normalizedArg1 (toNode (String.dropLeft 1 fieldAccess))
+                                        |> toNode
+                            in
+                            if List.isEmpty restOrArgs then
+                                recordAccess
+
+                            else
+                                (recordAccess :: List.map (normalize lookupTable) restOrArgs)
+                                    |> Expression.Application
+                                    |> toNode
+
+                        normalizedFn ->
+                            (normalizedFn :: normalizedArg1 :: List.map (normalize lookupTable) restOrArgs)
+                                |> Expression.Application
+                                |> toNode
+
+                _ ->
+                    node
 
         Expression.OperatorApplication "<|" _ function extraArgument ->
             addToFunctionCall
@@ -158,6 +187,10 @@ addToFunctionCall functionCall extraArgument =
 
         Expression.CaseExpression { expression, cases } ->
             Expression.CaseExpression { expression = expression, cases = List.map (\( cond, expr ) -> ( cond, addToFunctionCall expr extraArgument )) cases }
+                |> toNode
+
+        Expression.RecordAccessFunction fieldAccess ->
+            Expression.RecordAccess extraArgument (toNode (String.dropLeft 1 fieldAccess))
                 |> toNode
 
         _ ->

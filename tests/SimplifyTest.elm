@@ -2302,6 +2302,38 @@ a = (case x of
 a = True
 """
                         ]
+        , test "should simplify record access comparison" <|
+            \() ->
+                """module A exposing (..)
+a = (b.c) == (.c b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(b.c) == (.c b)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify record access comparison using pipeline" <|
+            \() ->
+                """module A exposing (..)
+a = (b.c) == (.c <| b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(b.c) == (.c <| b)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify equality of different literals to False" <|
             \() ->
                 """module A exposing (..)
