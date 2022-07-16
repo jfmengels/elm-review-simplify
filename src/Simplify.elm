@@ -46,6 +46,15 @@ Below is the list of all kinds of simplifications this rule applies.
     not True
     --> False
 
+    not (not x)
+    --> x
+
+    not >> not
+    --> identity
+
+
+### Comparisons
+
     x == True
     --> x
 
@@ -63,12 +72,6 @@ Below is the list of all kinds of simplifications this rule applies.
 
     { r | a = 1 } == { r | a = 2 }
     --> False
-
-    not (not x)
-    --> x
-
-    not >> not
-    --> identity
 
 
 ### If expressions
@@ -446,8 +449,8 @@ Below is the list of all kinds of simplifications this rule applies.
     Set.map fn Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
 
-    Set.map identity list
-    --> list
+    Set.map identity set
+    --> set
 
     Set.map identity
     --> identity
@@ -486,7 +489,7 @@ Below is the list of all kinds of simplifications this rule applies.
     --> ( Set.empty, Set.empty )
 
     Set.partition (always True) set
-    --> ( list, Set.empty )
+    --> ( set, Set.empty )
 
 
 ### Dict
