@@ -2158,6 +2158,150 @@ a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
 a = True
 """
                         ]
+        , test "should simplify calls with a single arg that use `<|`" <|
+            \() ->
+                """module A exposing (..)
+a = (f b) == (f <| b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(f b) == (f <| b)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify calls with multiple args that use `<|`" <|
+            \() ->
+                """module A exposing (..)
+a = (f b c) == (f b <| c)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(f b c) == (f b <| c)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify calls with a single arg that use `|>`" <|
+            \() ->
+                """module A exposing (..)
+a = (f b) == (b |> f)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(f b) == (b |> f)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify calls with multiple args that use `|>`" <|
+            \() ->
+                """module A exposing (..)
+a = (f b c) == (c |> f b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(f b c) == (c |> f b)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify nested function calls using `|>`" <|
+            \() ->
+                """module A exposing (..)
+a = (f b c) == (c |> (b |> f))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(f b c) == (c |> (b |> f))"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify nested function calls using `|>`, even when function is wrapped in let expression" <|
+            \() ->
+                """module A exposing (..)
+a = (let x = 1 in f b c) == (c |> (let x = 1 in f b))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(let x = 1 in f b c) == (c |> (let x = 1 in f b))"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify nested function calls using `|>`, even when function is wrapped in if expression" <|
+            \() ->
+                """module A exposing (..)
+a = (if cond then f b c else g d c) == (c |> (if cond then f b else g d))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "(if cond then f b c else g d c) == (c |> (if cond then f b else g d))"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify nested function calls using `|>`, even when function is wrapped in case expression" <|
+            \() ->
+                """module A exposing (..)
+a = (case x of
+        X -> f b c
+        Y -> g d c
+    )
+    ==
+    ((case x of
+        X -> f b
+        Y -> g d
+    ) <| c)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = """(case x of
+        X -> f b c
+        Y -> g d c
+    )
+    ==
+    ((case x of
+        X -> f b
+        Y -> g d
+    ) <| c)"""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify equality of different literals to False" <|
             \() ->
                 """module A exposing (..)

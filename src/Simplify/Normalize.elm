@@ -33,6 +33,16 @@ normalize lookupTable node =
         Expression.Application nodes ->
             toNode (Expression.Application (List.map (normalize lookupTable) nodes))
 
+        Expression.OperatorApplication "<|" _ function extraArgument ->
+            addToFunctionCall
+                (normalize lookupTable function)
+                (normalize lookupTable extraArgument)
+
+        Expression.OperatorApplication "|>" _ extraArgument function ->
+            addToFunctionCall
+                (normalize lookupTable function)
+                (normalize lookupTable extraArgument)
+
         Expression.OperatorApplication string infixDirection left right ->
             toNode (Expression.OperatorApplication string infixDirection (normalize lookupTable left) (normalize lookupTable right))
 
@@ -126,6 +136,33 @@ normalize lookupTable node =
 
         expr ->
             toNode expr
+
+
+addToFunctionCall : Node Expression -> Node Expression -> Node Expression
+addToFunctionCall functionCall extraArgument =
+    case Node.value functionCall of
+        Expression.ParenthesizedExpression expr ->
+            addToFunctionCall expr extraArgument
+
+        Expression.Application (fnCall :: args) ->
+            Expression.Application (fnCall :: (args ++ [ extraArgument ]))
+                |> toNode
+
+        Expression.LetExpression { declarations, expression } ->
+            Expression.LetExpression { declarations = declarations, expression = addToFunctionCall expression extraArgument }
+                |> toNode
+
+        Expression.IfBlock condition ifBranch elseBranch ->
+            Expression.IfBlock condition (addToFunctionCall ifBranch extraArgument) (addToFunctionCall elseBranch extraArgument)
+                |> toNode
+
+        Expression.CaseExpression { expression, cases } ->
+            Expression.CaseExpression { expression = expression, cases = List.map (\( cond, expr ) -> ( cond, addToFunctionCall expr extraArgument )) cases }
+                |> toNode
+
+        _ ->
+            Expression.Application [ functionCall, extraArgument ]
+                |> toNode
 
 
 normalizePattern : Node Pattern -> Node Pattern
