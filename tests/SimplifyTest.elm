@@ -3293,6 +3293,13 @@ a =
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+
+        -- TODO
+        -- Comparisons : if x == 2 then: don't only store booleans
+        -- Unhappy && and || cases:
+        --   if a && b then ... else <not a || not b>
+        --   if a || b then ... else <not a && not b>
+        --   if a || b then ... else (if a then (if b then <can't happen> else x) else y)
         ]
 
 
