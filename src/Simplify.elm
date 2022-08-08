@@ -92,6 +92,17 @@ Below is the list of all kinds of simplifications this rule applies.
     --> not condition
 
 
+    a =
+        if condition then
+            if condition then
+                1
+            else
+                2
+        else
+            3
+    --> if condition then 1 else 3
+
+
 ### Case expressions
 
     case condition of
@@ -556,6 +567,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
+import Simplify.RangeDict as RangeDict exposing (RangeDict)
 
 
 {-| Rule to simplify Elm code.
@@ -600,6 +612,7 @@ moduleVisitor typeNames schema =
     schema
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
+        |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
         |> addDeclarationListVisitor typeNames
 
 
@@ -745,7 +758,14 @@ type alias ModuleContext =
     , ignoredCustomTypes : List Constructor
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
+    , inferredConstantsDict : RangeDict InferredConstants
+    , inferredConstantsStack : ( InferredConstants, List InferredConstants )
+    , inferredConstants : InferredConstants
     }
+
+
+type alias InferredConstants =
+    Dict ( ModuleName, String ) Bool
 
 
 type alias Constructor =
@@ -781,6 +801,9 @@ initialModuleContext =
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
+            , inferredConstantsDict = Dict.empty
+            , inferredConstantsStack = ( Dict.empty, [] )
+            , inferredConstants = Dict.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -798,6 +821,9 @@ fromProjectToModule =
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
+            , inferredConstantsDict = RangeDict.empty
+            , inferredConstantsStack = ( Dict.empty, [] )
+            , inferredConstants = Dict.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -929,7 +955,13 @@ findCustomTypes constructorsToIgnore context node =
 
 declarationVisitor : Node a -> ModuleContext -> ( List nothing, ModuleContext )
 declarationVisitor _ context =
-    ( [], { context | rangesToIgnore = [], rightSidesOfPlusPlus = [] } )
+    ( []
+    , { context
+        | rangesToIgnore = []
+        , rightSidesOfPlusPlus = []
+        , inferredConstantsDict = RangeDict.empty
+      }
+    )
 
 
 
@@ -938,40 +970,86 @@ declarationVisitor _ context =
 
 expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node context =
-    if List.member (Node.range node) context.rangesToIgnore then
-        ( [], context )
+    let
+        newContext : ModuleContext
+        newContext =
+            case RangeDict.get (Node.range node) context.inferredConstantsDict of
+                Just inferredConstants ->
+                    let
+                        ( previous, previousStack ) =
+                            context.inferredConstantsStack
+
+                        newKInferredConstants : InferredConstants
+                        newKInferredConstants =
+                            mergeKInferredConstants inferredConstants previous
+                    in
+                    { context
+                        | inferredConstantsStack = ( newKInferredConstants, previous :: previousStack )
+                        , inferredConstants = newKInferredConstants
+                    }
+
+                Nothing ->
+                    context
+    in
+    if List.member (Node.range node) newContext.rangesToIgnore then
+        ( [], newContext )
 
     else
         let
-            { errors, rangesToIgnore, rightSidesOfPlusPlus } =
-                expressionVisitorHelp node context
+            { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
+                expressionVisitorHelp node newContext
         in
         ( errors
-        , { context
-            | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore
-            , rightSidesOfPlusPlus =
-                rightSidesOfPlusPlus ++ context.rightSidesOfPlusPlus
+        , { newContext
+            | rangesToIgnore = rangesToIgnore ++ newContext.rangesToIgnore
+            , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext.rightSidesOfPlusPlus
+            , inferredConstantsDict = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext.inferredConstantsDict inferredConstants
           }
         )
 
 
-errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range }
+expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
+expressionExitVisitor node context =
+    if RangeDict.member (Node.range node) context.inferredConstantsDict then
+        case Tuple.second context.inferredConstantsStack of
+            [] ->
+                -- should never be empty
+                context
+
+            topOfStack :: restOfStack ->
+                { context
+                    | inferredConstantsStack = ( topOfStack, restOfStack )
+                    , inferredConstants = topOfStack
+                }
+
+    else
+        context
+
+
+mergeKInferredConstants : InferredConstants -> InferredConstants -> InferredConstants
+mergeKInferredConstants constants acc =
+    Dict.union constants acc
+
+
+errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
 errorsAndRangesToIgnore errors rangesToIgnore =
     { errors = errors
     , rangesToIgnore = rangesToIgnore
     , rightSidesOfPlusPlus = []
+    , inferredConstants = []
     }
 
 
-onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range }
+onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
 onlyErrors errors =
     { errors = errors
     , rangesToIgnore = []
     , rightSidesOfPlusPlus = []
+    , inferredConstants = []
     }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range }
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
 expressionVisitorHelp node context =
     case Node.value node of
         --------------------
@@ -986,6 +1064,7 @@ expressionVisitorHelp node context =
                     onlyErrors
                         (checkFn
                             { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1001,105 +1080,14 @@ expressionVisitorHelp node context =
         -------------------
         -- IF EXPRESSION --
         -------------------
-        Expression.IfBlock cond trueBranch falseBranch ->
-            case getBoolean context.lookupTable cond of
-                Determined True ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "The condition will always evaluate to True"
-                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
-                            }
-                            (targetIf node)
-                            [ Fix.removeRange
-                                { start = (Node.range node).start
-                                , end = (Node.range trueBranch).start
-                                }
-                            , Fix.removeRange
-                                { start = (Node.range trueBranch).end
-                                , end = (Node.range node).end
-                                }
-                            ]
-                        ]
-
-                Determined False ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "The condition will always evaluate to False"
-                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
-                            }
-                            (targetIf node)
-                            [ Fix.removeRange
-                                { start = (Node.range node).start
-                                , end = (Node.range falseBranch).start
-                                }
-                            ]
-                        ]
-
-                Undetermined ->
-                    case ( getBoolean context.lookupTable trueBranch, getBoolean context.lookupTable falseBranch ) of
-                        ( Determined True, Determined False ) ->
-                            onlyErrors
-                                [ Rule.errorWithFix
-                                    { message = "The if expression's value is the same as the condition"
-                                    , details = [ "The expression can be replaced by the condition." ]
-                                    }
-                                    (targetIf node)
-                                    [ Fix.removeRange
-                                        { start = (Node.range node).start
-                                        , end = (Node.range cond).start
-                                        }
-                                    , Fix.removeRange
-                                        { start = (Node.range cond).end
-                                        , end = (Node.range node).end
-                                        }
-                                    ]
-                                ]
-
-                        ( Determined False, Determined True ) ->
-                            onlyErrors
-                                [ Rule.errorWithFix
-                                    { message = "The if expression's value is the inverse of the condition"
-                                    , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
-                                    }
-                                    (targetIf node)
-                                    [ Fix.replaceRangeBy
-                                        { start = (Node.range node).start
-                                        , end = (Node.range cond).start
-                                        }
-                                        "not ("
-                                    , Fix.replaceRangeBy
-                                        { start = (Node.range cond).end
-                                        , end = (Node.range node).end
-                                        }
-                                        ")"
-                                    ]
-                                ]
-
-                        _ ->
-                            case Normalize.compare context.lookupTable trueBranch falseBranch of
-                                Normalize.ConfirmedEquality ->
-                                    onlyErrors
-                                        [ Rule.errorWithFix
-                                            { message = "The values in both branches is the same."
-                                            , details = [ "The expression can be replaced by the contents of either branch." ]
-                                            }
-                                            (targetIf node)
-                                            [ Fix.removeRange
-                                                { start = (Node.range node).start
-                                                , end = (Node.range trueBranch).start
-                                                }
-                                            , Fix.removeRange
-                                                { start = (Node.range trueBranch).end
-                                                , end = (Node.range node).end
-                                                }
-                                            ]
-                                        ]
-
-                                Normalize.ConfirmedInequality ->
-                                    onlyErrors []
-
-                                Normalize.Unconfirmed ->
-                                    onlyErrors []
+        Expression.IfBlock condition trueBranch falseBranch ->
+            ifChecks
+                context
+                (Node.range node)
+                { condition = condition
+                , trueBranch = trueBranch
+                , falseBranch = falseBranch
+                }
 
         -------------------------------
         --  APPLIED LAMBDA FUNCTIONS --
@@ -1194,6 +1182,7 @@ expressionVisitorHelp node context =
                     onlyErrors
                         (checkFn
                             { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1215,6 +1204,7 @@ expressionVisitorHelp node context =
                     errorsAndRangesToIgnore
                         (checkFn
                             { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1240,6 +1230,7 @@ expressionVisitorHelp node context =
                     onlyErrors
                         (checkFn
                             { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1261,6 +1252,7 @@ expressionVisitorHelp node context =
                     errorsAndRangesToIgnore
                         (checkFn
                             { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1332,6 +1324,7 @@ expressionVisitorHelp node context =
                     { errors =
                         checkFn
                             { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , operator = operator
                             , left = left
@@ -1347,6 +1340,7 @@ expressionVisitorHelp node context =
 
                         else
                             []
+                    , inferredConstants = []
                     }
 
                 Nothing ->
@@ -1380,6 +1374,7 @@ expressionVisitorHelp node context =
 
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , inferredConstants : InferredConstants
     , parentRange : Range
     , fnRange : Range
     , firstArg : Node Expression
@@ -1458,6 +1453,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , inferredConstants : InferredConstants
     , parentRange : Range
     , operator : String
     , left : Node Expression
@@ -1973,7 +1969,7 @@ getNegateFunction lookupTable baseNode =
 
 basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
-    case getBoolean checkInfo.lookupTable checkInfo.firstArg of
+    case getBoolean checkInfo.lookupTable checkInfo.inferredConstants checkInfo.firstArg of
         Determined bool ->
             [ Rule.errorWithFix
                 { message = "Expression is equal to " ++ boolToString (not bool)
@@ -2193,8 +2189,8 @@ listConditions operatorToLookFor redundantConditionResolution node =
 
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
-or_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRange } =
-    case getBoolean lookupTable left of
+or_isLeftSimplifiableError { lookupTable, inferredConstants, parentRange, left, leftRange, rightRange } =
+    case getBoolean lookupTable inferredConstants left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = "Condition is always True"
@@ -2226,8 +2222,8 @@ or_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRan
 
 
 or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
-or_isRightSimplifiableError { lookupTable, parentRange, right, leftRange, rightRange } =
-    case getBoolean lookupTable right of
+or_isRightSimplifiableError { lookupTable, inferredConstants, parentRange, right, leftRange, rightRange } =
+    case getBoolean lookupTable inferredConstants right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2272,8 +2268,8 @@ andChecks operatorCheckInfo =
 
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRange } =
-    case getBoolean lookupTable left of
+and_isLeftSimplifiableError { lookupTable, inferredConstants, parentRange, left, leftRange, rightRange } =
+    case getBoolean lookupTable inferredConstants left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2305,8 +2301,8 @@ and_isLeftSimplifiableError { lookupTable, parentRange, left, leftRange, rightRa
 
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, rightRange } =
-    case getBoolean lookupTable right of
+and_isRightSimplifiableError { lookupTable, inferredConstants, parentRange, leftRange, right, rightRange } =
+    case getBoolean lookupTable inferredConstants right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2342,8 +2338,8 @@ and_isRightSimplifiableError { lookupTable, parentRange, leftRange, right, right
 
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
-equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, rightRange } =
-    if getBoolean lookupTable right == Determined isEqual then
+equalityChecks isEqual { lookupTable, inferredConstants, parentRange, left, right, leftRange, rightRange } =
+    if getBoolean lookupTable inferredConstants right == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -2352,7 +2348,7 @@ equalityChecks isEqual { lookupTable, parentRange, left, right, leftRange, right
             [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
         ]
 
-    else if getBoolean lookupTable left == Determined isEqual then
+    else if getBoolean lookupTable inferredConstants left == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -2542,12 +2538,8 @@ comparisonChecks operatorFunction operatorCheckInfo =
 -- IF EXPRESSIONS
 
 
-targetIf : Node a -> Range
-targetIf node =
-    let
-        { start } =
-            Node.range node
-    in
+targetIfKeyword : Range -> Range
+targetIfKeyword { start } =
     { start = start
     , end = { start | column = start.column + 2 }
     }
@@ -3382,7 +3374,7 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
 
 
 listAllChecks : CheckInfo -> List (Error {})
-listAllChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
+listAllChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -3394,7 +3386,7 @@ listAllChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
             ]
 
         _ ->
-            case isAlwaysBoolean lookupTable firstArg of
+            case isAlwaysBoolean lookupTable inferredConstants firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "The call to List.all will result in True"
@@ -3409,7 +3401,7 @@ listAllChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 
 
 listAnyChecks : CheckInfo -> List (Error {})
-listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
+listAnyChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -3421,7 +3413,7 @@ listAnyChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
             ]
 
         _ ->
-            case isAlwaysBoolean lookupTable firstArg of
+            case isAlwaysBoolean lookupTable inferredConstants firstArg of
                 Determined False ->
                     [ Rule.errorWithFix
                         { message = "The call to List.any will result in False"
@@ -4104,7 +4096,7 @@ resultWithDefaultChecks checkInfo =
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
-collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+collectionFilterChecks collection ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
@@ -4116,7 +4108,7 @@ collectionFilterChecks collection ({ lookupTable, parentRange, fnRange, firstArg
             ]
 
         _ ->
-            case isAlwaysBoolean lookupTable firstArg of
+            case isAlwaysBoolean lookupTable inferredConstants firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
@@ -4382,7 +4374,7 @@ collectionPartitionChecks collection checkInfo =
             ]
 
         _ ->
-            case isAlwaysBoolean checkInfo.lookupTable checkInfo.firstArg of
+            case isAlwaysBoolean checkInfo.lookupTable checkInfo.inferredConstants checkInfo.firstArg of
                 Determined True ->
                     case checkInfo.secondArg of
                         Just listArg ->
@@ -4738,6 +4730,159 @@ isUnnecessaryRecordUpdateSetter variable field value =
 
         _ ->
             False
+
+
+
+-- IF
+
+
+ifChecks :
+    ModuleContext
+    -> Range
+    ->
+        { condition : Node Expression
+        , trueBranch : Node Expression
+        , falseBranch : Node Expression
+        }
+    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
+ifChecks context nodeRange { condition, trueBranch, falseBranch } =
+    case getBoolean context.lookupTable context.inferredConstants condition of
+        Determined True ->
+            onlyErrors
+                [ Rule.errorWithFix
+                    { message = "The condition will always evaluate to True"
+                    , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                    }
+                    (targetIfKeyword nodeRange)
+                    [ Fix.removeRange
+                        { start = nodeRange.start
+                        , end = (Node.range trueBranch).start
+                        }
+                    , Fix.removeRange
+                        { start = (Node.range trueBranch).end
+                        , end = nodeRange.end
+                        }
+                    ]
+                ]
+
+        Determined False ->
+            onlyErrors
+                [ Rule.errorWithFix
+                    { message = "The condition will always evaluate to False"
+                    , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                    }
+                    (targetIfKeyword nodeRange)
+                    [ Fix.removeRange
+                        { start = nodeRange.start
+                        , end = (Node.range falseBranch).start
+                        }
+                    ]
+                ]
+
+        Undetermined ->
+            case ( getBoolean context.lookupTable context.inferredConstants trueBranch, getBoolean context.lookupTable context.inferredConstants falseBranch ) of
+                ( Determined True, Determined False ) ->
+                    onlyErrors
+                        [ Rule.errorWithFix
+                            { message = "The if expression's value is the same as the condition"
+                            , details = [ "The expression can be replaced by the condition." ]
+                            }
+                            (targetIfKeyword nodeRange)
+                            [ Fix.removeRange
+                                { start = nodeRange.start
+                                , end = (Node.range condition).start
+                                }
+                            , Fix.removeRange
+                                { start = (Node.range condition).end
+                                , end = nodeRange.end
+                                }
+                            ]
+                        ]
+
+                ( Determined False, Determined True ) ->
+                    onlyErrors
+                        [ Rule.errorWithFix
+                            { message = "The if expression's value is the inverse of the condition"
+                            , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                            }
+                            (targetIfKeyword nodeRange)
+                            [ Fix.replaceRangeBy
+                                { start = nodeRange.start
+                                , end = (Node.range condition).start
+                                }
+                                "not ("
+                            , Fix.replaceRangeBy
+                                { start = (Node.range condition).end
+                                , end = nodeRange.end
+                                }
+                                ")"
+                            ]
+                        ]
+
+                _ ->
+                    case Normalize.compare context.lookupTable trueBranch falseBranch of
+                        Normalize.ConfirmedEquality ->
+                            onlyErrors
+                                [ Rule.errorWithFix
+                                    { message = "The values in both branches is the same."
+                                    , details = [ "The expression can be replaced by the contents of either branch." ]
+                                    }
+                                    (targetIfKeyword nodeRange)
+                                    [ Fix.removeRange
+                                        { start = nodeRange.start
+                                        , end = (Node.range trueBranch).start
+                                        }
+                                    , Fix.removeRange
+                                        { start = (Node.range trueBranch).end
+                                        , end = nodeRange.end
+                                        }
+                                    ]
+                                ]
+
+                        _ ->
+                            { errors = []
+                            , rangesToIgnore = []
+                            , rightSidesOfPlusPlus = []
+                            , inferredConstants =
+                                [ ( Node.range trueBranch, inferConstants context.lookupTable [ condition ] True Dict.empty )
+                                , ( Node.range falseBranch, inferConstants context.lookupTable [ condition ] False Dict.empty )
+                                ]
+                            }
+
+
+inferConstants : ModuleNameLookupTable -> List (Node Expression) -> Bool -> InferredConstants -> InferredConstants
+inferConstants lookupTable nodes expressionValue dict =
+    case nodes of
+        [] ->
+            dict
+
+        first :: rest ->
+            case Node.value (Normalize.normalize lookupTable first) of
+                Expression.FunctionOrValue moduleName name ->
+                    inferConstants lookupTable rest expressionValue (Dict.insert ( moduleName, name ) expressionValue dict)
+
+                Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
+                    inferConstants lookupTable
+                        rest
+                        expressionValue
+                        (inferConstants lookupTable [ expression ] (not expressionValue) dict)
+
+                Expression.OperatorApplication "&&" _ left right ->
+                    if expressionValue then
+                        inferConstants lookupTable (left :: right :: rest) expressionValue dict
+
+                    else
+                        inferConstants lookupTable rest expressionValue dict
+
+                Expression.OperatorApplication "||" _ left right ->
+                    if not expressionValue then
+                        inferConstants lookupTable (left :: right :: rest) expressionValue dict
+
+                    else
+                        inferConstants lookupTable rest expressionValue dict
+
+                _ ->
+                    inferConstants lookupTable rest expressionValue dict
 
 
 
@@ -5172,26 +5317,26 @@ removeParensFromPattern node =
             node
 
 
-isAlwaysBoolean : ModuleNameLookupTable -> Node Expression -> Match Bool
-isAlwaysBoolean lookupTable node =
+isAlwaysBoolean : ModuleNameLookupTable -> InferredConstants -> Node Expression -> Match Bool
+isAlwaysBoolean lookupTable inferredConstants node =
     case Node.value (removeParens node) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getBoolean lookupTable boolean
+                    getBoolean lookupTable inferredConstants boolean
 
                 _ ->
                     Undetermined
 
         Expression.LambdaExpression { expression } ->
-            getBoolean lookupTable expression
+            getBoolean lookupTable inferredConstants expression
 
         _ ->
             Undetermined
 
 
-getBoolean : ModuleNameLookupTable -> Node Expression -> Match Bool
-getBoolean lookupTable baseNode =
+getBoolean : ModuleNameLookupTable -> InferredConstants -> Node Expression -> Match Bool
+getBoolean lookupTable inferredConstants baseNode =
     let
         node : Node Expression
         node =
@@ -5212,6 +5357,17 @@ getBoolean lookupTable baseNode =
                     Determined False
 
                 _ ->
+                    Undetermined
+
+        Expression.FunctionOrValue _ name ->
+            case
+                ModuleNameLookupTable.moduleNameFor lookupTable node
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, name ) inferredConstants)
+            of
+                Just bool ->
+                    Determined bool
+
+                Nothing ->
                     Undetermined
 
         _ ->
