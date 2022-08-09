@@ -4909,7 +4909,11 @@ booleanToConstant expressionValue =
 injectConstant : Expression -> ConstantValue -> InferredConstants -> InferredConstants
 injectConstant expression value constants =
     constants
-        |> AssocList.map (\expr v -> v)
+        |> AssocList.foldl
+            (\expr v acc ->
+                AssocList.insert expr v acc
+            )
+            AssocList.empty
         |> AssocList.insert expression value
 
 
