@@ -768,6 +768,13 @@ type alias InferredConstants =
     Dict ( ModuleName, String ) ConstantValue
 
 
+type alias InferMaterial a =
+    { a
+        | lookupTable : ModuleNameLookupTable
+        , inferredConstants : InferredConstants
+    }
+
+
 type ConstantValue
     = BooleanConstant Expression
 
@@ -1969,7 +1976,7 @@ getNegateFunction lookupTable baseNode =
 
 basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
-    case getBoolean checkInfo.lookupTable checkInfo.inferredConstants checkInfo.firstArg of
+    case getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
             [ Rule.errorWithFix
                 { message = "Expression is equal to " ++ boolToString (not bool)
@@ -2189,8 +2196,8 @@ listConditions operatorToLookFor redundantConditionResolution node =
 
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
-or_isLeftSimplifiableError { lookupTable, inferredConstants, parentRange, left, leftRange, rightRange } =
-    case getBoolean lookupTable inferredConstants left of
+or_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as checkInfo) =
+    case getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = "Condition is always True"
@@ -2222,8 +2229,8 @@ or_isLeftSimplifiableError { lookupTable, inferredConstants, parentRange, left, 
 
 
 or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
-or_isRightSimplifiableError { lookupTable, inferredConstants, parentRange, right, leftRange, rightRange } =
-    case getBoolean lookupTable inferredConstants right of
+or_isRightSimplifiableError ({ parentRange, right, leftRange, rightRange } as checkInfo) =
+    case getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2268,8 +2275,8 @@ andChecks operatorCheckInfo =
 
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isLeftSimplifiableError { lookupTable, inferredConstants, parentRange, left, leftRange, rightRange } =
-    case getBoolean lookupTable inferredConstants left of
+and_isLeftSimplifiableError ({ lookupTable, inferredConstants, parentRange, left, leftRange, rightRange } as checkInfo) =
+    case getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2301,8 +2308,8 @@ and_isLeftSimplifiableError { lookupTable, inferredConstants, parentRange, left,
 
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isRightSimplifiableError { lookupTable, inferredConstants, parentRange, leftRange, right, rightRange } =
-    case getBoolean lookupTable inferredConstants right of
+and_isRightSimplifiableError ({ lookupTable, inferredConstants, parentRange, leftRange, right, rightRange } as checkInfo) =
+    case getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2338,8 +2345,8 @@ and_isRightSimplifiableError { lookupTable, inferredConstants, parentRange, left
 
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
-equalityChecks isEqual { lookupTable, inferredConstants, parentRange, left, right, leftRange, rightRange } =
-    if getBoolean lookupTable inferredConstants right == Determined isEqual then
+equalityChecks isEqual ({ lookupTable, inferredConstants, parentRange, left, right, leftRange, rightRange } as checkInfo) =
+    if getBoolean checkInfo right == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -2348,7 +2355,7 @@ equalityChecks isEqual { lookupTable, inferredConstants, parentRange, left, righ
             [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
         ]
 
-    else if getBoolean lookupTable inferredConstants left == Determined isEqual then
+    else if getBoolean checkInfo left == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -3374,7 +3381,7 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
 
 
 listAllChecks : CheckInfo -> List (Error {})
-listAllChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } =
+listAllChecks ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -3386,7 +3393,7 @@ listAllChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, 
             ]
 
         _ ->
-            case isAlwaysBoolean lookupTable inferredConstants firstArg of
+            case isAlwaysBoolean checkInfo firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "The call to List.all will result in True"
@@ -3401,7 +3408,7 @@ listAllChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, 
 
 
 listAnyChecks : CheckInfo -> List (Error {})
-listAnyChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } =
+listAnyChecks ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -3413,7 +3420,7 @@ listAnyChecks { lookupTable, inferredConstants, parentRange, fnRange, firstArg, 
             ]
 
         _ ->
-            case isAlwaysBoolean lookupTable inferredConstants firstArg of
+            case isAlwaysBoolean checkInfo firstArg of
                 Determined False ->
                     [ Rule.errorWithFix
                         { message = "The call to List.any will result in False"
@@ -4108,7 +4115,7 @@ collectionFilterChecks collection ({ lookupTable, inferredConstants, parentRange
             ]
 
         _ ->
-            case isAlwaysBoolean lookupTable inferredConstants firstArg of
+            case isAlwaysBoolean checkInfo firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
@@ -4374,7 +4381,7 @@ collectionPartitionChecks collection checkInfo =
             ]
 
         _ ->
-            case isAlwaysBoolean checkInfo.lookupTable checkInfo.inferredConstants checkInfo.firstArg of
+            case isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     case checkInfo.secondArg of
                         Just listArg ->
@@ -4746,7 +4753,7 @@ ifChecks :
         }
     -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
-    case getBoolean context.lookupTable context.inferredConstants condition of
+    case getBoolean context condition of
         Determined True ->
             onlyErrors
                 [ Rule.errorWithFix
@@ -4780,7 +4787,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                 ]
 
         Undetermined ->
-            case ( getBoolean context.lookupTable context.inferredConstants trueBranch, getBoolean context.lookupTable context.inferredConstants falseBranch ) of
+            case ( getBoolean context trueBranch, getBoolean context falseBranch ) of
                 ( Determined True, Determined False ) ->
                     onlyErrors
                         [ Rule.errorWithFix
@@ -5335,26 +5342,26 @@ removeParensFromPattern node =
             node
 
 
-isAlwaysBoolean : ModuleNameLookupTable -> InferredConstants -> Node Expression -> Match Bool
-isAlwaysBoolean lookupTable inferredConstants node =
+isAlwaysBoolean : InferMaterial a -> Node Expression -> Match Bool
+isAlwaysBoolean inferMaterial node =
     case Node.value (removeParens node) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+            case ModuleNameLookupTable.moduleNameAt inferMaterial.lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getBoolean lookupTable inferredConstants boolean
+                    getBoolean inferMaterial boolean
 
                 _ ->
                     Undetermined
 
         Expression.LambdaExpression { expression } ->
-            getBoolean lookupTable inferredConstants expression
+            getBoolean inferMaterial expression
 
         _ ->
             Undetermined
 
 
-getBoolean : ModuleNameLookupTable -> InferredConstants -> Node Expression -> Match Bool
-getBoolean lookupTable inferredConstants baseNode =
+getBoolean : InferMaterial a -> Node Expression -> Match Bool
+getBoolean inferMaterial baseNode =
     let
         node : Node Expression
         node =
@@ -5362,7 +5369,7 @@ getBoolean lookupTable inferredConstants baseNode =
     in
     case Node.value node of
         Expression.FunctionOrValue _ "True" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
                 Just [ "Basics" ] ->
                     Determined True
 
@@ -5370,7 +5377,7 @@ getBoolean lookupTable inferredConstants baseNode =
                     Undetermined
 
         Expression.FunctionOrValue _ "False" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
                 Just [ "Basics" ] ->
                     Determined False
 
@@ -5379,8 +5386,8 @@ getBoolean lookupTable inferredConstants baseNode =
 
         Expression.FunctionOrValue _ name ->
             case
-                ModuleNameLookupTable.moduleNameFor lookupTable node
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, name ) inferredConstants)
+                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, name ) inferMaterial.inferredConstants)
             of
                 Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "True")) ->
                     Determined True
