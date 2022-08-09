@@ -3388,6 +3388,19 @@ a =
     3
 """
                         ]
+        , test "should not spread inferred things from one branch to another" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x == 1 then
+    1
+  else if x == 2 then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should remove branches where the condition always matches (/=)" <|
             \() ->
                 """module A exposing (..)
