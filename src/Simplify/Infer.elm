@@ -228,6 +228,7 @@ getBoolean inferMaterial baseNode =
                     Undetermined
 
         _ ->
+            -- TODO Here is likely where we want to compare stuff
             Undetermined
 
 
