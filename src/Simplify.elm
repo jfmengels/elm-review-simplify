@@ -2087,7 +2087,7 @@ findSimilarConditionsError operatorCheckInfo =
         errorsForNode nodeToCompareTo =
             List.concatMap
                 (areSimilarConditionsError
-                    operatorCheckInfo.lookupTable
+                    operatorCheckInfo
                     operatorCheckInfo.operator
                     nodeToCompareTo
                 )
@@ -2098,9 +2098,9 @@ findSimilarConditionsError operatorCheckInfo =
         |> List.concatMap (Tuple.second >> errorsForNode)
 
 
-areSimilarConditionsError : ModuleNameLookupTable -> String -> Node Expression -> ( RedundantConditionResolution, Node Expression ) -> List (Error {})
-areSimilarConditionsError lookupTable operator nodeToCompareTo ( redundantConditionResolution, nodeToLookAt ) =
-    case Normalize.compare lookupTable nodeToCompareTo nodeToLookAt of
+areSimilarConditionsError : Infer.Resources a -> String -> Node Expression -> ( RedundantConditionResolution, Node Expression ) -> List (Error {})
+areSimilarConditionsError resources operator nodeToCompareTo ( redundantConditionResolution, nodeToLookAt ) =
+    case Normalize.compare resources nodeToCompareTo nodeToLookAt of
         Normalize.ConfirmedEquality ->
             errorForRedundantCondition operator redundantConditionResolution nodeToLookAt
 
@@ -2358,7 +2358,7 @@ equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, righ
                 ]
 
             _ ->
-                case Normalize.compare lookupTable left right of
+                case Normalize.compare checkInfo left right of
                     Normalize.ConfirmedEquality ->
                         [ Rule.errorWithFix
                             { message = "Condition is always " ++ boolToString isEqual
@@ -2896,10 +2896,10 @@ stringRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) 
 
 
 stringReplaceChecks : CheckInfo -> List (Error {})
-stringReplaceChecks { lookupTable, fnRange, firstArg, secondArg, thirdArg } =
+stringReplaceChecks ({ fnRange, firstArg, secondArg, thirdArg } as checkInfo) =
     case secondArg of
         Just secondArg_ ->
-            case Normalize.compare lookupTable firstArg secondArg_ of
+            case Normalize.compare checkInfo firstArg secondArg_ of
                 Normalize.ConfirmedEquality ->
                     [ Rule.errorWithFix
                         { message = "The result of String.replace will be the original string"
@@ -4814,7 +4814,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                         ]
 
                 _ ->
-                    case Normalize.compare context.lookupTable trueBranch falseBranch of
+                    case Normalize.compare context trueBranch falseBranch of
                         Normalize.ConfirmedEquality ->
                             onlyErrors
                                 [ Rule.errorWithFix

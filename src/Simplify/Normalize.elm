@@ -7,6 +7,7 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Simplify.Infer as Infer
 
 
 areTheSame : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool
@@ -245,20 +246,20 @@ type Comparison
     | Unconfirmed
 
 
-compare : ModuleNameLookupTable -> Node Expression -> Node Expression -> Comparison
-compare lookupTable leftNode right =
-    compareHelp lookupTable leftNode right True
+compare : Infer.Resources a -> Node Expression -> Node Expression -> Comparison
+compare resources leftNode right =
+    compareHelp resources leftNode right True
 
 
-compareHelp : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool -> Comparison
-compareHelp lookupTable leftNode right canFlip =
+compareHelp : Infer.Resources a -> Node Expression -> Node Expression -> Bool -> Comparison
+compareHelp resources leftNode right canFlip =
     let
         fallback : Node Expression -> Comparison
         fallback rightNode =
             if canFlip then
-                compareHelp lookupTable rightNode leftNode False
+                compareHelp resources rightNode leftNode False
 
-            else if areTheSame lookupTable leftNode right then
+            else if areTheSame resources.lookupTable leftNode right then
                 ConfirmedEquality
 
             else
@@ -266,7 +267,7 @@ compareHelp lookupTable leftNode right canFlip =
     in
     case Node.value leftNode of
         Expression.ParenthesizedExpression expr ->
-            compareHelp lookupTable expr right canFlip
+            compareHelp resources expr right canFlip
 
         Expression.Integer left ->
             compareNumbers (Basics.toFloat left) right
@@ -304,7 +305,7 @@ compareHelp lookupTable leftNode right canFlip =
                     Expression.OperatorApplication rightOp _ rightLeft rightRight ->
                         if leftOp == rightOp then
                             compareEqualityOfAll
-                                lookupTable
+                                resources
                                 [ leftLeft, leftRight ]
                                 [ rightLeft, rightRight ]
 
@@ -340,7 +341,7 @@ compareHelp lookupTable leftNode right canFlip =
                 Expression.FunctionOrValue _ rightName ->
                     if
                         isSameReference
-                            lookupTable
+                            resources.lookupTable
                             ( Node.range leftNode, leftName )
                             ( Node.range right_, rightName )
                     then
@@ -359,7 +360,7 @@ compareHelp lookupTable leftNode right canFlip =
                         ConfirmedInequality
 
                     else
-                        compareLists lookupTable leftList rightList ConfirmedEquality
+                        compareLists resources leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback right
@@ -367,7 +368,7 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.TupledExpression leftList ->
             case Node.value (removeParens right) of
                 Expression.TupledExpression rightList ->
-                    compareLists lookupTable leftList rightList ConfirmedEquality
+                    compareLists resources leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback right
@@ -375,7 +376,7 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.RecordExpr leftList ->
             case Node.value (removeParens right) of
                 Expression.RecordExpr rightList ->
-                    compareRecords lookupTable leftList rightList ConfirmedEquality
+                    compareRecords resources leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback right
@@ -384,10 +385,10 @@ compareHelp lookupTable leftNode right canFlip =
             case Node.value (removeParens right) of
                 Expression.RecordUpdateExpression rightBaseValue rightList ->
                     if Node.value leftBaseValue == Node.value rightBaseValue then
-                        compareRecords lookupTable leftList rightList ConfirmedEquality
+                        compareRecords resources leftList rightList ConfirmedEquality
 
                     else
-                        compareRecords lookupTable leftList rightList Unconfirmed
+                        compareRecords resources leftList rightList Unconfirmed
 
                 _ ->
                     fallback right
@@ -395,7 +396,7 @@ compareHelp lookupTable leftNode right canFlip =
         Expression.Application leftArgs ->
             case Node.value (removeParens right) of
                 Expression.Application rightArgs ->
-                    compareEqualityOfAll lookupTable leftArgs rightArgs
+                    compareEqualityOfAll resources leftArgs rightArgs
 
                 _ ->
                     fallback right
@@ -404,7 +405,7 @@ compareHelp lookupTable leftNode right canFlip =
             case Node.value (removeParens right) of
                 Expression.RecordAccess rightExpr rightName ->
                     if Node.value leftName == Node.value rightName then
-                        compareHelp lookupTable leftExpr rightExpr canFlip
+                        compareHelp resources leftExpr rightExpr canFlip
 
                     else
                         Unconfirmed
@@ -419,7 +420,7 @@ compareHelp lookupTable leftNode right canFlip =
             case Node.value (removeParens right) of
                 Expression.IfBlock rightCond rightThen rightElse ->
                     compareEqualityOfAll
-                        lookupTable
+                        resources
                         [ leftCond, leftThen, leftElse ]
                         [ rightCond, rightThen, rightElse ]
 
@@ -498,31 +499,31 @@ getNumberValue node =
             Nothing
 
 
-compareLists : ModuleNameLookupTable -> List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
-compareLists lookupTable leftList rightList acc =
+compareLists : Infer.Resources a -> List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
+compareLists resources leftList rightList acc =
     case ( leftList, rightList ) of
         ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareHelp lookupTable left right True of
+            case compareHelp resources left right True of
                 ConfirmedEquality ->
-                    compareLists lookupTable restOfLeft restOfRight acc
+                    compareLists resources restOfLeft restOfRight acc
 
                 ConfirmedInequality ->
                     ConfirmedInequality
 
                 Unconfirmed ->
-                    compareLists lookupTable restOfLeft restOfRight Unconfirmed
+                    compareLists resources restOfLeft restOfRight Unconfirmed
 
         _ ->
             acc
 
 
-compareEqualityOfAll : ModuleNameLookupTable -> List (Node Expression) -> List (Node Expression) -> Comparison
-compareEqualityOfAll lookupTable leftList rightList =
+compareEqualityOfAll : Infer.Resources a -> List (Node Expression) -> List (Node Expression) -> Comparison
+compareEqualityOfAll resources leftList rightList =
     case ( leftList, rightList ) of
         ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareHelp lookupTable left right True of
+            case compareHelp resources left right True of
                 ConfirmedEquality ->
-                    compareEqualityOfAll lookupTable restOfLeft restOfRight
+                    compareEqualityOfAll resources restOfLeft restOfRight
 
                 ConfirmedInequality ->
                     Unconfirmed
@@ -539,8 +540,8 @@ type RecordFieldComparison
     | HasBothValues (Node Expression) (Node Expression)
 
 
-compareRecords : ModuleNameLookupTable -> List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
-compareRecords lookupTable leftList rightList acc =
+compareRecords : Infer.Resources a -> List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
+compareRecords resources leftList rightList acc =
     let
         leftFields : List ( String, Node Expression )
         leftFields =
@@ -561,28 +562,28 @@ compareRecords lookupTable leftList rightList acc =
                 Dict.empty
                 |> Dict.values
     in
-    compareRecordFields lookupTable recordFieldComparisons acc
+    compareRecordFields resources recordFieldComparisons acc
 
 
-compareRecordFields : ModuleNameLookupTable -> List RecordFieldComparison -> Comparison -> Comparison
-compareRecordFields lookupTable recordFieldComparisons acc =
+compareRecordFields : Infer.Resources a -> List RecordFieldComparison -> Comparison -> Comparison
+compareRecordFields resources recordFieldComparisons acc =
     case recordFieldComparisons of
         [] ->
             acc
 
         MissingOtherValue :: rest ->
-            compareRecordFields lookupTable rest Unconfirmed
+            compareRecordFields resources rest Unconfirmed
 
         (HasBothValues a b) :: rest ->
-            case compare lookupTable a b of
+            case compare resources a b of
                 ConfirmedInequality ->
                     ConfirmedInequality
 
                 ConfirmedEquality ->
-                    compareRecordFields lookupTable rest acc
+                    compareRecordFields resources rest acc
 
                 Unconfirmed ->
-                    compareRecordFields lookupTable rest Unconfirmed
+                    compareRecordFields resources rest Unconfirmed
 
 
 fromEquality : Bool -> Comparison
