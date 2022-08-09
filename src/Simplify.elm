@@ -1034,11 +1034,6 @@ expressionExitVisitor node context =
         context
 
 
-mergeInferredConstants : InferredConstants -> InferredConstants -> InferredConstants
-mergeInferredConstants constants acc =
-    AssocList.union constants acc
-
-
 errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
 errorsAndRangesToIgnore errors rangesToIgnore =
     { errors = errors
@@ -4909,6 +4904,11 @@ booleanToConstant expressionValue =
                 "False"
             )
         )
+
+
+mergeInferredConstants : InferredConstants -> InferredConstants -> InferredConstants
+mergeInferredConstants constants acc =
+    AssocList.union constants acc
 
 
 
