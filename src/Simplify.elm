@@ -566,6 +566,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
+import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 import Simplify.RangeDict as RangeDict exposing (RangeDict)
@@ -759,25 +760,10 @@ type alias ModuleContext =
     , ignoredCustomTypes : List Constructor
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
-    , inferredConstantsDict : RangeDict InferredConstants
-    , inferredConstantsStack : ( InferredConstants, List InferredConstants )
-    , inferredConstants : InferredConstants
+    , inferredConstantsDict : RangeDict Infer.Inferred
+    , inferredConstantsStack : ( Infer.Inferred, List Infer.Inferred )
+    , inferredConstants : Infer.Inferred
     }
-
-
-type alias InferredConstants =
-    AssocList.Dict Expression ConstantValue
-
-
-type alias InferMaterial a =
-    { a
-        | lookupTable : ModuleNameLookupTable
-        , inferredConstants : InferredConstants
-    }
-
-
-type alias ConstantValue =
-    Expression
 
 
 type alias Constructor =
@@ -1034,7 +1020,7 @@ expressionExitVisitor node context =
         context
 
 
-errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
+errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 errorsAndRangesToIgnore errors rangesToIgnore =
     { errors = errors
     , rangesToIgnore = rangesToIgnore
@@ -1043,7 +1029,7 @@ errorsAndRangesToIgnore errors rangesToIgnore =
     }
 
 
-onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
+onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 onlyErrors errors =
     { errors = errors
     , rangesToIgnore = []
@@ -1052,7 +1038,7 @@ onlyErrors errors =
     }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp node context =
     case Node.value node of
         --------------------
@@ -1377,7 +1363,7 @@ expressionVisitorHelp node context =
 
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
-    , inferredConstants : InferredConstants
+    , inferredConstants : Infer.Inferred
     , parentRange : Range
     , fnRange : Range
     , firstArg : Node Expression
@@ -1456,7 +1442,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
-    , inferredConstants : InferredConstants
+    , inferredConstants : Infer.Inferred
     , parentRange : Range
     , operator : String
     , left : Node Expression
@@ -4752,7 +4738,7 @@ ifChecks :
         , trueBranch : Node Expression
         , falseBranch : Node Expression
         }
-    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
+    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
     case getBoolean context condition of
         Determined True ->
@@ -4857,69 +4843,10 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             , rangesToIgnore = []
                             , rightSidesOfPlusPlus = []
                             , inferredConstants =
-                                [ ( Node.range trueBranch, inferConstants [ normalizedCondition ] True context.inferredConstants )
-                                , ( Node.range falseBranch, inferConstants [ normalizedCondition ] False context.inferredConstants )
+                                [ ( Node.range trueBranch, Infer.infer [ normalizedCondition ] True context.inferredConstants )
+                                , ( Node.range falseBranch, Infer.infer [ normalizedCondition ] False context.inferredConstants )
                                 ]
                             }
-
-
-inferConstants : List Expression -> Bool -> InferredConstants -> InferredConstants
-inferConstants nodes expressionValue dict =
-    case nodes of
-        [] ->
-            dict
-
-        first :: rest ->
-            case first of
-                Expression.FunctionOrValue _ _ ->
-                    inferConstants rest expressionValue (injectConstant first (booleanToConstant expressionValue) dict)
-
-                Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
-                    inferConstants
-                        rest
-                        expressionValue
-                        (inferConstants [ Node.value expression ] (not expressionValue) dict)
-
-                Expression.OperatorApplication "&&" _ left right ->
-                    if expressionValue then
-                        inferConstants (Node.value left :: Node.value right :: rest) expressionValue dict
-
-                    else
-                        inferConstants rest expressionValue dict
-
-                Expression.OperatorApplication "||" _ left right ->
-                    if not expressionValue then
-                        inferConstants (Node.value left :: Node.value right :: rest) expressionValue dict
-
-                    else
-                        inferConstants rest expressionValue dict
-
-                _ ->
-                    inferConstants rest expressionValue dict
-
-
-booleanToConstant : Bool -> ConstantValue
-booleanToConstant expressionValue =
-    Expression.FunctionOrValue [ "Basics" ]
-        (if expressionValue then
-            "True"
-
-         else
-            "False"
-        )
-
-
-injectConstant : Expression -> ConstantValue -> InferredConstants -> InferredConstants
-injectConstant expression value constants =
-    constants
-        |> AssocList.foldl
-            (\expr v acc ->
-                case expr of
-                    _ ->
-                        AssocList.insert expr v acc
-            )
-            AssocList.empty
-        |> AssocList.insert expression value
 
 
 
@@ -5144,7 +5071,7 @@ isSpecificCall moduleName fnName lookupTable node =
             False
 
 
-getIntValue : InferMaterial a -> Node Expression -> Maybe Int
+getIntValue : Infer.Resources a -> Node Expression -> Maybe Int
 getIntValue inferMaterial baseNode =
     let
         node : Node Expression
@@ -5370,7 +5297,7 @@ removeParensFromPattern node =
             node
 
 
-isAlwaysBoolean : InferMaterial a -> Node Expression -> Match Bool
+isAlwaysBoolean : Infer.Resources a -> Node Expression -> Match Bool
 isAlwaysBoolean inferMaterial node =
     case Node.value (removeParens node) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
@@ -5388,7 +5315,7 @@ isAlwaysBoolean inferMaterial node =
             Undetermined
 
 
-getBoolean : InferMaterial a -> Node Expression -> Match Bool
+getBoolean : Infer.Resources a -> Node Expression -> Match Bool
 getBoolean inferMaterial baseNode =
     let
         node : Node Expression
