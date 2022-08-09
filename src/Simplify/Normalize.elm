@@ -77,13 +77,12 @@ normalize resources node =
             toNode (Expression.OperatorApplication string infixDirection (normalize resources left) (normalize resources right))
 
         Expression.FunctionOrValue rawModuleName string ->
-            let
-                moduleName : ModuleName
-                moduleName =
-                    ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                        |> Maybe.withDefault rawModuleName
-            in
-            toNode (Expression.FunctionOrValue moduleName string)
+            case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
+                Just moduleName ->
+                    toNode (Expression.FunctionOrValue moduleName string)
+
+                Nothing ->
+                    toNode (Expression.FunctionOrValue rawModuleName string)
 
         Expression.IfBlock cond then_ else_ ->
             toNode (Expression.IfBlock (normalize resources cond) (normalize resources then_) (normalize resources else_))
