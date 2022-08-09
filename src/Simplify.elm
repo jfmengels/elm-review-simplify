@@ -4837,7 +4837,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             let
                                 normalizedCondition : Expression
                                 normalizedCondition =
-                                    Node.value (Normalize.normalize context.lookupTable condition)
+                                    Node.value (Normalize.normalize context condition)
                             in
                             { errors = []
                             , rangesToIgnore = []
@@ -4871,7 +4871,7 @@ sameBodyForCaseOfChecks context parentRange cases =
         first :: rest ->
             if
                 List.any (Tuple.first >> introducesVariable) (first :: rest)
-                    || not (Normalize.areAllTheSame context.lookupTable (Tuple.second first) (List.map Tuple.second rest))
+                    || not (Normalize.areAllTheSame context (Tuple.second first) (List.map Tuple.second rest))
             then
                 []
 

@@ -10,26 +10,26 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Simplify.Infer as Infer
 
 
-areTheSame : ModuleNameLookupTable -> Node Expression -> Node Expression -> Bool
-areTheSame lookupTable left right =
-    normalize lookupTable left == normalize lookupTable right
+areTheSame : Infer.Resources a -> Node Expression -> Node Expression -> Bool
+areTheSame resources left right =
+    normalize resources left == normalize resources right
 
 
-areAllTheSame : ModuleNameLookupTable -> Node Expression -> List (Node Expression) -> Bool
-areAllTheSame lookupTable first rest =
+areAllTheSame : Infer.Resources a -> Node Expression -> List (Node Expression) -> Bool
+areAllTheSame resources first rest =
     let
         normalizedFirst : Node Expression
         normalizedFirst =
-            normalize lookupTable first
+            normalize resources first
     in
-    List.all (\node -> normalize lookupTable node == normalizedFirst) rest
+    List.all (\node -> normalize resources node == normalizedFirst) rest
 
 
-normalize : ModuleNameLookupTable -> Node Expression -> Node Expression
-normalize lookupTable node =
+normalize : Infer.Resources a -> Node Expression -> Node Expression
+normalize resources node =
     case Node.value node of
         Expression.ParenthesizedExpression expr ->
-            normalize lookupTable expr
+            normalize resources expr
 
         Expression.Application nodes ->
             case nodes of
@@ -37,9 +37,9 @@ normalize lookupTable node =
                     let
                         normalizedArg1 : Node Expression
                         normalizedArg1 =
-                            normalize lookupTable arg1
+                            normalize resources arg1
                     in
-                    case normalize lookupTable fn of
+                    case normalize resources fn of
                         Node _ (Expression.RecordAccessFunction fieldAccess) ->
                             let
                                 recordAccess : Node Expression
@@ -51,12 +51,12 @@ normalize lookupTable node =
                                 recordAccess
 
                             else
-                                (recordAccess :: List.map (normalize lookupTable) restOrArgs)
+                                (recordAccess :: List.map (normalize resources) restOrArgs)
                                     |> Expression.Application
                                     |> toNode
 
                         normalizedFn ->
-                            (normalizedFn :: normalizedArg1 :: List.map (normalize lookupTable) restOrArgs)
+                            (normalizedFn :: normalizedArg1 :: List.map (normalize resources) restOrArgs)
                                 |> Expression.Application
                                 |> toNode
 
@@ -65,34 +65,34 @@ normalize lookupTable node =
 
         Expression.OperatorApplication "<|" _ function extraArgument ->
             addToFunctionCall
-                (normalize lookupTable function)
-                (normalize lookupTable extraArgument)
+                (normalize resources function)
+                (normalize resources extraArgument)
 
         Expression.OperatorApplication "|>" _ extraArgument function ->
             addToFunctionCall
-                (normalize lookupTable function)
-                (normalize lookupTable extraArgument)
+                (normalize resources function)
+                (normalize resources extraArgument)
 
         Expression.OperatorApplication string infixDirection left right ->
-            toNode (Expression.OperatorApplication string infixDirection (normalize lookupTable left) (normalize lookupTable right))
+            toNode (Expression.OperatorApplication string infixDirection (normalize resources left) (normalize resources right))
 
         Expression.FunctionOrValue rawModuleName string ->
             let
                 moduleName : ModuleName
                 moduleName =
-                    ModuleNameLookupTable.moduleNameFor lookupTable node
+                    ModuleNameLookupTable.moduleNameFor resources.lookupTable node
                         |> Maybe.withDefault rawModuleName
             in
             toNode (Expression.FunctionOrValue moduleName string)
 
         Expression.IfBlock cond then_ else_ ->
-            toNode (Expression.IfBlock (normalize lookupTable cond) (normalize lookupTable then_) (normalize lookupTable else_))
+            toNode (Expression.IfBlock (normalize resources cond) (normalize resources then_) (normalize resources else_))
 
         Expression.Negation expr ->
-            toNode (Expression.Negation (normalize lookupTable expr))
+            toNode (Expression.Negation (normalize resources expr))
 
         Expression.TupledExpression nodes ->
-            toNode (Expression.TupledExpression (List.map (normalize lookupTable) nodes))
+            toNode (Expression.TupledExpression (List.map (normalize resources) nodes))
 
         Expression.LetExpression letBlock ->
             toNode
@@ -115,23 +115,23 @@ normalize lookupTable node =
                                                     toNode
                                                         { name = toNode (Node.value declaration.name)
                                                         , arguments = List.map normalizePattern declaration.arguments
-                                                        , expression = normalize lookupTable declaration.expression
+                                                        , expression = normalize resources declaration.expression
                                                         }
                                                 }
                                             )
 
                                     Expression.LetDestructuring pattern expr ->
-                                        toNode (Expression.LetDestructuring (normalizePattern pattern) (normalize lookupTable expr))
+                                        toNode (Expression.LetDestructuring (normalizePattern pattern) (normalize resources expr))
                             )
                             letBlock.declarations
-                    , expression = normalize lookupTable letBlock.expression
+                    , expression = normalize resources letBlock.expression
                     }
                 )
 
         Expression.CaseExpression caseBlock ->
             toNode
                 (Expression.CaseExpression
-                    { cases = List.map (\( pattern, expr ) -> ( normalizePattern pattern, normalize lookupTable expr )) caseBlock.cases
+                    { cases = List.map (\( pattern, expr ) -> ( normalizePattern pattern, normalize resources expr )) caseBlock.cases
                     , expression = toNode <| Node.value caseBlock.expression
                     }
                 )
@@ -140,27 +140,27 @@ normalize lookupTable node =
             toNode
                 (Expression.LambdaExpression
                     { args = List.map normalizePattern lambda.args
-                    , expression = normalize lookupTable lambda.expression
+                    , expression = normalize resources lambda.expression
                     }
                 )
 
         Expression.ListExpr nodes ->
-            toNode (Expression.ListExpr (List.map (normalize lookupTable) nodes))
+            toNode (Expression.ListExpr (List.map (normalize resources) nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
-            toNode (Expression.RecordAccess (normalize lookupTable expr) (toNode field))
+            toNode (Expression.RecordAccess (normalize resources expr) (toNode field))
 
         Expression.RecordExpr nodes ->
             nodes
                 |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize resources expr ))
                 |> Expression.RecordExpr
                 |> toNode
 
         Expression.RecordUpdateExpression (Node _ value) nodes ->
             nodes
                 |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize lookupTable expr ))
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize resources expr ))
                 |> Expression.RecordUpdateExpression (toNode value)
                 |> toNode
 
@@ -259,7 +259,7 @@ compareHelp resources leftNode right canFlip =
             if canFlip then
                 compareHelp resources rightNode leftNode False
 
-            else if areTheSame resources.lookupTable leftNode right then
+            else if areTheSame resources leftNode right then
                 ConfirmedEquality
 
             else
