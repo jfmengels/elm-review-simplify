@@ -227,10 +227,23 @@ getBoolean resources baseNode =
                 Nothing ->
                     Undetermined
 
-        Expression.OperatorApplication _ _ _ _ ->
-            -- TODO Here is likely where we want to compare stuff
-            Debug.log "oo" (Determined False)
+        Expression.OperatorApplication "/=" _ left _ ->
+            let
+                ( Inferred inferred, _ ) =
+                    resources.inferredConstants
+            in
+            case AssocList.get (Node.value left) inferred of
+                Just (Equals value) ->
+                    Undetermined
 
+                Just (NotEquals value) ->
+                    Undetermined
+
+                Nothing ->
+                    Undetermined
+
+        -- TODO Here is likely where we want to compare stuff
+        --Debug.log "oo" (Determined False)
         _ ->
             Undetermined
 
