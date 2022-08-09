@@ -3471,6 +3471,34 @@ a =
     3
 """
                         ]
+        , test "should remove branches where the condition always matches (== in else)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x /= 1 then
+    1
+  else if x == 1 then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "x == 1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x /= 1 then
+    1
+  else if True then
+    2
+  else
+    3
+"""
+                        ]
 
         -- TODO
         -- Unhappy && and || cases:
