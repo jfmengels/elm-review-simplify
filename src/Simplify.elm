@@ -551,7 +551,6 @@ All of these also apply for `Sub`.
 
 -}
 
-import AssocList
 import Dict exposing (Dict)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -800,8 +799,8 @@ initialModuleContext =
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = Dict.empty
-            , inferredConstantsStack = ( AssocList.empty, [] )
-            , inferredConstants = AssocList.empty
+            , inferredConstantsStack = ( Infer.empty, [] )
+            , inferredConstants = Infer.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -820,8 +819,8 @@ fromProjectToModule =
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
-            , inferredConstantsStack = ( AssocList.empty, [] )
-            , inferredConstants = AssocList.empty
+            , inferredConstantsStack = ( Infer.empty, [] )
+            , inferredConstants = Infer.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -5091,7 +5090,7 @@ getIntValue inferMaterial baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> AssocList.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
             of
                 Just (Expression.Integer int) ->
                     Just int
@@ -5342,7 +5341,7 @@ getBoolean inferMaterial baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> AssocList.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
             of
                 Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
                     Determined True

@@ -6,8 +6,8 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
 
 
-type alias Inferred =
-    AssocList.Dict Expression Expression
+type Inferred
+    = Inferred (AssocList.Dict Expression Expression)
 
 
 type alias Resources a =
@@ -15,6 +15,16 @@ type alias Resources a =
         | lookupTable : ModuleNameLookupTable
         , inferredConstants : Inferred
     }
+
+
+empty : Inferred
+empty =
+    Inferred AssocList.empty
+
+
+get : Expression -> Inferred -> Maybe Expression
+get expr (Inferred inferred) =
+    AssocList.get expr inferred
 
 
 infer : List Expression -> Bool -> Inferred -> Inferred
@@ -64,8 +74,8 @@ booleanToConstant expressionValue =
 
 
 injectConstant : Expression -> Expression -> Inferred -> Inferred
-injectConstant expression value constants =
-    constants
+injectConstant expression value (Inferred inferred) =
+    inferred
         |> AssocList.foldl
             (\expr v acc ->
                 case expr of
@@ -74,3 +84,4 @@ injectConstant expression value constants =
             )
             AssocList.empty
         |> AssocList.insert expression value
+        |> Inferred
