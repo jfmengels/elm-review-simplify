@@ -261,10 +261,10 @@ compare resources leftNode right =
 compareHelp : Infer.Resources a -> Node Expression -> Node Expression -> Bool -> Comparison
 compareHelp resources leftNode right canFlip =
     let
-        fallback : Node Expression -> Comparison
-        fallback rightNode =
+        fallback : () -> Comparison
+        fallback () =
             if canFlip then
-                compareHelp resources rightNode leftNode False
+                compareHelp resources right leftNode False
 
             else if leftNode == right then
                 ConfirmedEquality
@@ -288,7 +288,7 @@ compareHelp resources leftNode right canFlip =
                     compareNumbers -leftValue right
 
                 Nothing ->
-                    fallback right
+                    fallback ()
 
         Expression.OperatorApplication leftOp _ leftLeft leftRight ->
             if List.member leftOp [ "+", "-", "*", "/" ] then
@@ -299,10 +299,10 @@ compareHelp resources leftNode right canFlip =
                                 fromEquality (leftValue == rightValue)
 
                             Nothing ->
-                                fallback right
+                                fallback ()
 
                     Nothing ->
-                        fallback right
+                        fallback ()
 
             else
                 case Node.value (removeParens right) of
@@ -314,10 +314,10 @@ compareHelp resources leftNode right canFlip =
                                 [ rightLeft, rightRight ]
 
                         else
-                            fallback right
+                            fallback ()
 
                     _ ->
-                        fallback right
+                        fallback ()
 
         Expression.Literal left ->
             case Node.value (removeParens right) of
@@ -325,7 +325,7 @@ compareHelp resources leftNode right canFlip =
                     fromEquality (left == rightValue)
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.CharLiteral left ->
             case Node.value (removeParens right) of
@@ -333,7 +333,7 @@ compareHelp resources leftNode right canFlip =
                     fromEquality (left == rightValue)
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.FunctionOrValue _ leftName ->
             case Node.value right of
@@ -347,10 +347,10 @@ compareHelp resources leftNode right canFlip =
                         ConfirmedEquality
 
                     else
-                        fallback right
+                        fallback ()
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.ListExpr leftList ->
             case Node.value (removeParens right) of
@@ -362,7 +362,7 @@ compareHelp resources leftNode right canFlip =
                         compareLists resources leftList rightList ConfirmedEquality
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.TupledExpression leftList ->
             case Node.value (removeParens right) of
@@ -370,7 +370,7 @@ compareHelp resources leftNode right canFlip =
                     compareLists resources leftList rightList ConfirmedEquality
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.RecordExpr leftList ->
             case Node.value (removeParens right) of
@@ -378,7 +378,7 @@ compareHelp resources leftNode right canFlip =
                     compareRecords resources leftList rightList ConfirmedEquality
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.RecordUpdateExpression leftBaseValue leftList ->
             case Node.value (removeParens right) of
@@ -390,7 +390,7 @@ compareHelp resources leftNode right canFlip =
                         compareRecords resources leftList rightList Unconfirmed
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.Application leftArgs ->
             case Node.value (removeParens right) of
@@ -398,7 +398,7 @@ compareHelp resources leftNode right canFlip =
                     compareEqualityOfAll resources leftArgs rightArgs
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.RecordAccess leftExpr leftName ->
             case Node.value (removeParens right) of
@@ -410,7 +410,7 @@ compareHelp resources leftNode right canFlip =
                         Unconfirmed
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         Expression.UnitExpr ->
             ConfirmedEquality
@@ -424,10 +424,10 @@ compareHelp resources leftNode right canFlip =
                         [ rightCond, rightThen, rightElse ]
 
                 _ ->
-                    fallback right
+                    fallback ()
 
         _ ->
-            fallback right
+            fallback ()
 
 
 isSameReference : ModuleNameLookupTable -> ( Range, String ) -> ( Range, String ) -> Bool
