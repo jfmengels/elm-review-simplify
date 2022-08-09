@@ -776,8 +776,8 @@ type alias InferMaterial a =
     }
 
 
-type ConstantValue
-    = BooleanConstant Expression
+type alias ConstantValue =
+    Expression
 
 
 type alias Constructor =
@@ -4900,14 +4900,12 @@ inferConstants nodes expressionValue dict =
 
 booleanToConstant : Bool -> ConstantValue
 booleanToConstant expressionValue =
-    BooleanConstant
-        (Expression.FunctionOrValue [ "Basics" ]
-            (if expressionValue then
-                "True"
+    Expression.FunctionOrValue [ "Basics" ]
+        (if expressionValue then
+            "True"
 
-             else
-                "False"
-            )
+         else
+            "False"
         )
 
 
@@ -5168,7 +5166,7 @@ getIntValue inferMaterial baseNode =
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
                     |> Maybe.andThen (\moduleName -> AssocList.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
             of
-                Just (BooleanConstant (Expression.Integer int)) ->
+                Just (Expression.Integer int) ->
                     Just int
 
                 _ ->
@@ -5419,13 +5417,13 @@ getBoolean inferMaterial baseNode =
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
                     |> Maybe.andThen (\moduleName -> AssocList.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
             of
-                Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "True")) ->
+                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
                     Determined True
 
-                Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "False")) ->
+                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
                     Determined False
 
-                Just (BooleanConstant _) ->
+                Just _ ->
                     Undetermined
 
                 Nothing ->
