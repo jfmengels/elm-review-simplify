@@ -4844,49 +4844,54 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                 ]
 
                         _ ->
+                            let
+                                normalizedCondition : Node Expression
+                                normalizedCondition =
+                                    Normalize.normalize context.lookupTable condition
+                            in
                             { errors = []
                             , rangesToIgnore = []
                             , rightSidesOfPlusPlus = []
                             , inferredConstants =
-                                [ ( Node.range trueBranch, inferConstants context.lookupTable [ condition ] True Dict.empty )
-                                , ( Node.range falseBranch, inferConstants context.lookupTable [ condition ] False Dict.empty )
+                                [ ( Node.range trueBranch, inferConstants [ normalizedCondition ] True Dict.empty )
+                                , ( Node.range falseBranch, inferConstants [ normalizedCondition ] False Dict.empty )
                                 ]
                             }
 
 
-inferConstants : ModuleNameLookupTable -> List (Node Expression) -> Bool -> InferredConstants -> InferredConstants
-inferConstants lookupTable nodes expressionValue dict =
+inferConstants : List (Node Expression) -> Bool -> InferredConstants -> InferredConstants
+inferConstants nodes expressionValue dict =
     case nodes of
         [] ->
             dict
 
         first :: rest ->
-            case Node.value (Normalize.normalize lookupTable first) of
+            case Node.value first of
                 Expression.FunctionOrValue moduleName name ->
-                    inferConstants lookupTable rest expressionValue (Dict.insert ( moduleName, name ) (BooleanConstant expressionValue) dict)
+                    inferConstants rest expressionValue (Dict.insert ( moduleName, name ) (BooleanConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
-                    inferConstants lookupTable
+                    inferConstants
                         rest
                         expressionValue
-                        (inferConstants lookupTable [ expression ] (not expressionValue) dict)
+                        (inferConstants [ expression ] (not expressionValue) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
                     if expressionValue then
-                        inferConstants lookupTable (left :: right :: rest) expressionValue dict
+                        inferConstants (left :: right :: rest) expressionValue dict
 
                     else
-                        inferConstants lookupTable rest expressionValue dict
+                        inferConstants rest expressionValue dict
 
                 Expression.OperatorApplication "||" _ left right ->
                     if not expressionValue then
-                        inferConstants lookupTable (left :: right :: rest) expressionValue dict
+                        inferConstants (left :: right :: rest) expressionValue dict
 
                     else
-                        inferConstants lookupTable rest expressionValue dict
+                        inferConstants rest expressionValue dict
 
                 _ ->
-                    inferConstants lookupTable rest expressionValue dict
+                    inferConstants rest expressionValue dict
 
 
 
