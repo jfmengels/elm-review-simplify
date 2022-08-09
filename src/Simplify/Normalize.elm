@@ -327,14 +327,6 @@ compareHelp resources leftNode right canFlip =
         Expression.Floatable left ->
             compareNumbers left right
 
-        Expression.Negation left ->
-            case getNumberValue left of
-                Just leftValue ->
-                    compareNumbers -leftValue right
-
-                Nothing ->
-                    fallback ()
-
         Expression.OperatorApplication leftOp _ leftLeft leftRight ->
             if List.member leftOp [ "+", "-", "*", "/" ] then
                 case getNumberValue leftNode of
