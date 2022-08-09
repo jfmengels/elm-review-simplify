@@ -138,6 +138,24 @@ getBoolean inferMaterial baseNode =
             Undetermined
 
 
+isAlwaysBoolean : Resources a -> Node Expression -> Match Bool
+isAlwaysBoolean inferMaterial node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
+            case ModuleNameLookupTable.moduleNameAt inferMaterial.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    getBoolean inferMaterial boolean
+
+                _ ->
+                    Undetermined
+
+        Expression.LambdaExpression { expression } ->
+            getBoolean inferMaterial expression
+
+        _ ->
+            Undetermined
+
+
 getInt : Resources a -> Node Expression -> Maybe Int
 getInt inferMaterial baseNode =
     let

@@ -3375,7 +3375,7 @@ listAllChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
             ]
 
         _ ->
-            case isAlwaysBoolean checkInfo firstArg of
+            case Infer.isAlwaysBoolean checkInfo firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "The call to List.all will result in True"
@@ -3402,7 +3402,7 @@ listAnyChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
             ]
 
         _ ->
-            case isAlwaysBoolean checkInfo firstArg of
+            case Infer.isAlwaysBoolean checkInfo firstArg of
                 Determined False ->
                     [ Rule.errorWithFix
                         { message = "The call to List.any will result in False"
@@ -4102,7 +4102,7 @@ collectionFilterChecks collection ({ parentRange, fnRange, firstArg, secondArg }
             ]
 
         _ ->
-            case isAlwaysBoolean checkInfo firstArg of
+            case Infer.isAlwaysBoolean checkInfo firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
@@ -4368,7 +4368,7 @@ collectionPartitionChecks collection checkInfo =
             ]
 
         _ ->
-            case isAlwaysBoolean checkInfo checkInfo.firstArg of
+            case Infer.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     case checkInfo.secondArg of
                         Just listArg ->
@@ -5243,24 +5243,6 @@ isListLiteral node =
 
         _ ->
             False
-
-
-isAlwaysBoolean : Infer.Resources a -> Node Expression -> Match Bool
-isAlwaysBoolean inferMaterial node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
-            case ModuleNameLookupTable.moduleNameAt inferMaterial.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Infer.getBoolean inferMaterial boolean
-
-                _ ->
-                    Undetermined
-
-        Expression.LambdaExpression { expression } ->
-            Infer.getBoolean inferMaterial expression
-
-        _ ->
-            Undetermined
 
 
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
