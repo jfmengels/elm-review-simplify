@@ -4734,7 +4734,7 @@ ifChecks :
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
     case Evaluate.getBoolean context condition of
         Determined True ->
-            onlyErrors
+            errorsAndRangesToIgnore
                 [ Rule.errorWithFix
                     { message = "The condition will always evaluate to True"
                     , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
@@ -4750,9 +4750,10 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                         }
                     ]
                 ]
+                [ Node.range condition ]
 
         Determined False ->
-            onlyErrors
+            errorsAndRangesToIgnore
                 [ Rule.errorWithFix
                     { message = "The condition will always evaluate to False"
                     , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
@@ -4764,6 +4765,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                         }
                     ]
                 ]
+                [ Node.range condition ]
 
         Undetermined ->
             case ( Evaluate.getBoolean context trueBranch, Evaluate.getBoolean context falseBranch ) of
