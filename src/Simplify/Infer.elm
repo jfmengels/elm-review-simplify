@@ -1,4 +1,13 @@
-module Simplify.Infer exposing (..)
+module Simplify.Infer exposing
+    ( Inferred
+    , Resources
+    , empty
+    , get
+    , getBoolean
+    , getInt
+    , inferForIfCondition
+    , isAlwaysBoolean
+    )
 
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
