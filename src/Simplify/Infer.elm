@@ -93,7 +93,14 @@ infer nodes constraint dict =
                 Expression.OperatorApplication "==" _ left right ->
                     case Node.value right of
                         Expression.Integer _ ->
-                            injectConstraint (Node.value left) (Equals (Node.value right)) dict
+                            if constraint == constraintTrue then
+                                injectConstraint (Node.value left) (Equals (Node.value right)) dict
+
+                            else if constraint == constraintFalse then
+                                injectConstraint (Node.value left) (NotEquals (Node.value right)) dict
+
+                            else
+                                infer rest constraint dict
 
                         _ ->
                             infer rest constraint dict
