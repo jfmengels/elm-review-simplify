@@ -766,7 +766,7 @@ type alias ModuleContext =
 
 
 type alias InferredConstants =
-    AssocList.Dict ( ModuleName, String ) ConstantValue
+    AssocList.Dict Expression ConstantValue
 
 
 type alias InferMaterial a =
@@ -4866,8 +4866,8 @@ inferConstants nodes expressionValue dict =
 
         first :: rest ->
             case Node.value first of
-                Expression.FunctionOrValue moduleName name ->
-                    inferConstants rest expressionValue (AssocList.insert ( moduleName, name ) (booleanToConstant expressionValue) dict)
+                Expression.FunctionOrValue _ _ ->
+                    inferConstants rest expressionValue (AssocList.insert (Node.value first) (booleanToConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     inferConstants
@@ -5388,7 +5388,7 @@ getBoolean inferMaterial baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> AssocList.get ( moduleName, name ) inferMaterial.inferredConstants)
+                    |> Maybe.andThen (\moduleName -> AssocList.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
             of
                 Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "True")) ->
                     Determined True
