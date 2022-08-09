@@ -114,29 +114,38 @@ infer nodes constraint acc =
                             infer rest constraint dict
 
                 Expression.OperatorApplication "/=" _ left right ->
-                    -- TODO Also do left
-                    case Node.value right of
-                        Expression.Integer int ->
-                            if constraint == constraintTrue then
-                                injectConstraint
-                                    (Node.value left)
-                                    (NotEquals (Expression.Floatable (Basics.toFloat int)))
-                                    dict
-
-                            else if constraint == constraintFalse then
-                                injectConstraint
-                                    (Node.value left)
-                                    (Equals (Expression.Floatable (Basics.toFloat int)))
-                                    dict
-
-                            else
-                                infer rest constraint dict
-
-                        _ ->
-                            infer rest constraint dict
+                    infer rest
+                        constraint
+                        (dict
+                            |> inferOnEquality left right constraint
+                            |> inferOnEquality right left constraint
+                        )
 
                 _ ->
                     infer rest constraint dict
+
+
+inferOnEquality : Node Expression -> Node Expression -> Constraint -> Inferred -> Inferred
+inferOnEquality node other constraint dict =
+    case Node.value node of
+        Expression.Integer int ->
+            if constraint == constraintTrue then
+                injectConstraint
+                    (Node.value other)
+                    (NotEquals (Expression.Floatable (Basics.toFloat int)))
+                    dict
+
+            else if constraint == constraintFalse then
+                injectConstraint
+                    (Node.value other)
+                    (Equals (Expression.Floatable (Basics.toFloat int)))
+                    dict
+
+            else
+                dict
+
+        _ ->
+            dict
 
 
 constraintTrue : Constraint
