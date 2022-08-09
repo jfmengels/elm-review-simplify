@@ -4911,7 +4911,9 @@ injectConstant expression value constants =
     constants
         |> AssocList.foldl
             (\expr v acc ->
-                AssocList.insert expr v acc
+                case expr of
+                    _ ->
+                        AssocList.insert expr v acc
             )
             AssocList.empty
         |> AssocList.insert expression value
