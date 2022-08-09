@@ -70,7 +70,7 @@ getBoolean resources baseNode =
                             Determined False
 
                         Normalize.ConfirmedInequality ->
-                            Determined True
+                            Undetermined
 
                         Normalize.Unconfirmed ->
                             Undetermined
