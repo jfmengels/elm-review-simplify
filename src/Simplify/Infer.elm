@@ -52,10 +52,10 @@ infer nodes expressionValue dict =
         [] ->
             dict
 
-        first :: rest ->
-            case first of
+        node :: rest ->
+            case node of
                 Expression.FunctionOrValue _ _ ->
-                    infer rest expressionValue (injectConstant first (booleanToConstant expressionValue) dict)
+                    infer rest expressionValue (injectConstant node (booleanToConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer
