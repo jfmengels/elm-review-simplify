@@ -24,6 +24,7 @@ type Inferred
 
 type Constraint
     = Equals Expression
+    | NotEquals Expression
 
 
 type alias Resources a =
@@ -43,6 +44,9 @@ get expr (Inferred inferred) =
     case AssocList.get expr inferred of
         Just (Equals value) ->
             Just value
+
+        Just (NotEquals _) ->
+            Nothing
 
         Nothing ->
             Nothing
