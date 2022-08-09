@@ -761,8 +761,7 @@ type alias ModuleContext =
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
-    , inferredConstantsStack : ( Infer.Inferred, List Infer.Inferred )
-    , inferredConstants : Infer.Inferred
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     }
 
 
@@ -800,8 +799,7 @@ initialModuleContext =
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = Dict.empty
-            , inferredConstantsStack = ( Infer.empty, [] )
-            , inferredConstants = Infer.empty
+            , inferredConstants = ( Infer.empty, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -820,8 +818,7 @@ fromProjectToModule =
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
-            , inferredConstantsStack = ( Infer.empty, [] )
-            , inferredConstants = Infer.empty
+            , inferredConstants = ( Infer.empty, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -975,12 +972,9 @@ expressionVisitor node context =
                 Just inferredConstants ->
                     let
                         ( previous, previousStack ) =
-                            context.inferredConstantsStack
+                            context.inferredConstants
                     in
-                    { context
-                        | inferredConstantsStack = ( inferredConstants, previous :: previousStack )
-                        , inferredConstants = inferredConstants
-                    }
+                    { context | inferredConstants = ( inferredConstants, previous :: previousStack ) }
 
                 Nothing ->
                     context
@@ -1005,16 +999,13 @@ expressionVisitor node context =
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
 expressionExitVisitor node context =
     if RangeDict.member (Node.range node) context.inferredConstantsDict then
-        case Tuple.second context.inferredConstantsStack of
+        case Tuple.second context.inferredConstants of
+            topOfStack :: restOfStack ->
+                { context | inferredConstants = ( topOfStack, restOfStack ) }
+
             [] ->
                 -- should never be empty
                 context
-
-            topOfStack :: restOfStack ->
-                { context
-                    | inferredConstantsStack = ( topOfStack, restOfStack )
-                    , inferredConstants = topOfStack
-                }
 
     else
         context
@@ -1363,7 +1354,7 @@ expressionVisitorHelp node context =
 
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
-    , inferredConstants : Infer.Inferred
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
     , firstArg : Node Expression
@@ -1442,7 +1433,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
-    , inferredConstants : Infer.Inferred
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , operator : String
     , left : Node Expression
@@ -4843,7 +4834,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                     { trueBranchRange = Node.range trueBranch
                                     , falseBranchRange = Node.range falseBranch
                                     }
-                                    context.inferredConstants
+                                    (Tuple.first context.inferredConstants)
                             }
 
 

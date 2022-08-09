@@ -25,7 +25,7 @@ type Inferred
 type alias Resources a =
     { a
         | lookupTable : ModuleNameLookupTable
-        , inferredConstants : Inferred
+        , inferredConstants : ( Inferred, List Inferred )
     }
 
 
@@ -137,7 +137,7 @@ getBoolean inferMaterial baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first inferMaterial.inferredConstants))
             of
                 Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
                     Determined True
@@ -193,7 +193,7 @@ getInt inferMaterial baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first inferMaterial.inferredConstants))
             of
                 Just (Expression.Integer int) ->
                     Just int
