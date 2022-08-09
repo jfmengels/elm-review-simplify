@@ -10,10 +10,6 @@ type alias Inferred =
     AssocList.Dict Expression Expression
 
 
-type alias ConstantValue =
-    Expression
-
-
 type alias Resources a =
     { a
         | lookupTable : ModuleNameLookupTable
@@ -56,7 +52,7 @@ infer nodes expressionValue dict =
                     infer rest expressionValue dict
 
 
-booleanToConstant : Bool -> ConstantValue
+booleanToConstant : Bool -> Expression
 booleanToConstant expressionValue =
     Expression.FunctionOrValue [ "Basics" ]
         (if expressionValue then
@@ -67,7 +63,7 @@ booleanToConstant expressionValue =
         )
 
 
-injectConstant : Expression -> ConstantValue -> Inferred -> Inferred
+injectConstant : Expression -> Expression -> Inferred -> Inferred
 injectConstant expression value constants =
     constants
         |> AssocList.foldl
