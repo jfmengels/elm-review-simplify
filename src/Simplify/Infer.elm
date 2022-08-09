@@ -117,6 +117,7 @@ infer nodes constraint acc =
                             infer rest constraint dict
 
                 Expression.OperatorApplication "/=" _ left right ->
+                    -- TODO Also do left
                     case Node.value right of
                         Expression.Integer _ ->
                             if constraint == constraintTrue then
