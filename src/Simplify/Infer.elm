@@ -64,15 +64,20 @@ inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
 
 
 infer : List Expression -> Constraint -> Inferred -> Inferred
-infer nodes constraint dict =
+infer nodes constraint acc =
     case nodes of
         [] ->
-            dict
+            acc
 
         node :: rest ->
+            let
+                dict : Inferred
+                dict =
+                    injectConstraint node constraint acc
+            in
             case node of
                 Expression.FunctionOrValue _ _ ->
-                    infer rest constraint (injectConstraint node constraint dict)
+                    infer rest constraint dict
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer
