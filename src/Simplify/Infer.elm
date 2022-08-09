@@ -138,8 +138,8 @@ getBoolean inferMaterial baseNode =
             Undetermined
 
 
-getIntValue : Resources a -> Node Expression -> Maybe Int
-getIntValue inferMaterial baseNode =
+getInt : Resources a -> Node Expression -> Maybe Int
+getInt inferMaterial baseNode =
     let
         node : Node Expression
         node =
@@ -153,7 +153,7 @@ getIntValue inferMaterial baseNode =
             Just n
 
         Expression.Negation expr ->
-            Maybe.map negate (getIntValue inferMaterial expr)
+            Maybe.map negate (getInt inferMaterial expr)
 
         Expression.FunctionOrValue _ name ->
             case
