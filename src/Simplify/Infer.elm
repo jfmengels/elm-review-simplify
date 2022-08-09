@@ -47,10 +47,7 @@ get expr (Inferred inferred) =
         Just (Equals value) ->
             Just value
 
-        Just (NotEquals _) ->
-            Nothing
-
-        Nothing ->
+        _ ->
             Nothing
 
 
