@@ -3327,7 +3327,38 @@ a =
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should remove values that can't match" <|
+        , test "should remove branches where the condition always matches" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x == 1 then
+    if x == 1 then
+      1
+    else
+      2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always True"
+                            , details = sameThingOnBothSidesDetails "True"
+                            , under = "x == 1"
+                            }
+                            |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x == 1 then
+    if True then
+      1
+    else
+      2
+  else
+    3
+"""
+                        ]
+        , test "should remove branches where the condition never matches" <|
             \() ->
                 """module A exposing (..)
 a =
@@ -3359,7 +3390,6 @@ a =
                         ]
 
         -- TODO
-        -- Comparisons : if x == 2 then: don't only store booleans
         -- Unhappy && and || cases:
         --   if a && b then ... else <not a || not b>
         --   if a || b then ... else <not a && not b>
