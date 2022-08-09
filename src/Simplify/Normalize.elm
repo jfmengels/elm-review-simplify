@@ -332,23 +332,18 @@ compareHelp resources leftNode right canFlip =
                     fallback right
 
         Expression.FunctionOrValue _ leftName ->
-            let
-                right_ : Node Expression
-                right_ =
-                    removeParens right
-            in
-            case Node.value right_ of
+            case Node.value right of
                 Expression.FunctionOrValue _ rightName ->
                     if
                         isSameReference
                             resources.lookupTable
                             ( Node.range leftNode, leftName )
-                            ( Node.range right_, rightName )
+                            ( Node.range right, rightName )
                     then
                         ConfirmedEquality
 
                     else
-                        fallback right_
+                        fallback right
 
                 _ ->
                     fallback right
