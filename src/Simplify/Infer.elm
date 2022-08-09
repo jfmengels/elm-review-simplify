@@ -19,7 +19,7 @@ import Simplify.Match exposing (Match(..))
 
 
 type Inferred
-    = Inferred (AssocList.Dict Expression Expression)
+    = Inferred (AssocList.Dict Expression Constraint)
 
 
 type Constraint
@@ -40,7 +40,12 @@ empty =
 
 get : Expression -> Inferred -> Maybe Expression
 get expr (Inferred inferred) =
-    AssocList.get expr inferred
+    case AssocList.get expr inferred of
+        Just (Equals value) ->
+            Just value
+
+        Nothing ->
+            Nothing
 
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
@@ -126,7 +131,7 @@ injectConstant expression value (Inferred inferred) =
                         AssocList.insert expr v acc
             )
             AssocList.empty
-        |> AssocList.insert expression value
+        |> AssocList.insert expression (Equals value)
         |> Inferred
 
 
