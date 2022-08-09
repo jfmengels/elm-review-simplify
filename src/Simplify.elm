@@ -769,7 +769,7 @@ type alias InferredConstants =
 
 
 type ConstantValue
-    = BooleanConstant Bool
+    = BooleanConstant Expression
 
 
 type alias Constructor =
@@ -4868,7 +4868,7 @@ inferConstants nodes expressionValue dict =
         first :: rest ->
             case Node.value first of
                 Expression.FunctionOrValue moduleName name ->
-                    inferConstants rest expressionValue (Dict.insert ( moduleName, name ) (BooleanConstant expressionValue) dict)
+                    inferConstants rest expressionValue (Dict.insert ( moduleName, name ) (booleanToConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     inferConstants
@@ -4892,6 +4892,19 @@ inferConstants nodes expressionValue dict =
 
                 _ ->
                     inferConstants rest expressionValue dict
+
+
+booleanToConstant : Bool -> ConstantValue
+booleanToConstant expressionValue =
+    BooleanConstant
+        (Expression.FunctionOrValue [ "Basics" ]
+            (if expressionValue then
+                "True"
+
+             else
+                "False"
+            )
+        )
 
 
 
@@ -5373,8 +5386,14 @@ getBoolean lookupTable inferredConstants baseNode =
                 ModuleNameLookupTable.moduleNameFor lookupTable node
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, name ) inferredConstants)
             of
-                Just (BooleanConstant bool) ->
-                    Determined bool
+                Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "True")) ->
+                    Determined True
+
+                Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "False")) ->
+                    Determined False
+
+                Just (BooleanConstant _) ->
+                    Undetermined
 
                 Nothing ->
                     Undetermined
