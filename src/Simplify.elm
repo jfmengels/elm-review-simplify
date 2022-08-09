@@ -551,6 +551,7 @@ All of these also apply for `Sub`.
 
 -}
 
+import AssocList
 import Dict exposing (Dict)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -765,7 +766,7 @@ type alias ModuleContext =
 
 
 type alias InferredConstants =
-    Dict ( ModuleName, String ) ConstantValue
+    AssocList.Dict ( ModuleName, String ) ConstantValue
 
 
 type alias InferMaterial a =
@@ -813,8 +814,8 @@ initialModuleContext =
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = Dict.empty
-            , inferredConstantsStack = ( Dict.empty, [] )
-            , inferredConstants = Dict.empty
+            , inferredConstantsStack = ( AssocList.empty, [] )
+            , inferredConstants = AssocList.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -833,8 +834,8 @@ fromProjectToModule =
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
-            , inferredConstantsStack = ( Dict.empty, [] )
-            , inferredConstants = Dict.empty
+            , inferredConstantsStack = ( AssocList.empty, [] )
+            , inferredConstants = AssocList.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -1033,9 +1034,9 @@ expressionExitVisitor node context =
         context
 
 
-mergeKInferredConstants : InferredConstants -> InferredConstants -> InferredConstants
-mergeKInferredConstants constants acc =
-    Dict.union constants acc
+mergeInferredConstants : InferredConstants -> InferredConstants -> InferredConstants
+mergeInferredConstants constants acc =
+    AssocList.union constants acc
 
 
 errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, InferredConstants ) }
@@ -4871,7 +4872,7 @@ inferConstants nodes expressionValue dict =
         first :: rest ->
             case Node.value first of
                 Expression.FunctionOrValue moduleName name ->
-                    inferConstants rest expressionValue (Dict.insert ( moduleName, name ) (booleanToConstant expressionValue) dict)
+                    inferConstants rest expressionValue (AssocList.insert ( moduleName, name ) (booleanToConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     inferConstants
@@ -5387,7 +5388,7 @@ getBoolean inferMaterial baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, name ) inferMaterial.inferredConstants)
+                    |> Maybe.andThen (\moduleName -> AssocList.get ( moduleName, name ) inferMaterial.inferredConstants)
             of
                 Just (BooleanConstant (Expression.FunctionOrValue [ "Basics" ] "True")) ->
                     Determined True
