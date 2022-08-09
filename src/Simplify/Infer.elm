@@ -77,6 +77,14 @@ infer nodes expressionValue dict =
                     else
                         infer rest expressionValue dict
 
+                Expression.OperatorApplication "==" _ left right ->
+                    case Node.value right of
+                        Expression.Integer _ ->
+                            injectConstant (Node.value left) (Node.value right) dict
+
+                        _ ->
+                            infer rest expressionValue dict
+
                 _ ->
                     infer rest expressionValue dict
 
