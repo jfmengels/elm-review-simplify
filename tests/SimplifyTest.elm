@@ -3342,18 +3342,15 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
-                            , details = sameThingOnBothSidesDetails "True"
-                            , under = "x == 1"
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
                             }
-                            |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
+                            |> Review.Test.atExactly { start = { row = 4, column = 5 }, end = { row = 4, column = 7 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if x == 1 then
-    if True then
-      1
-    else
-      2
+    1
   else
     3
 """
@@ -3373,17 +3370,15 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
-                            , details = sameThingOnBothSidesDetails "False"
-                            , under = "x == 2"
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
                             }
+                            |> Review.Test.atExactly { start = { row = 4, column = 5 }, end = { row = 4, column = 7 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if x == 1 then
-    if False then
-      1
-    else
-      2
+    2
   else
     3
 """
@@ -3469,18 +3464,16 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
-                            , details = sameThingOnBothSidesDetails "True"
-                            , under = "x == 1"
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
                             }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if x /= 1 then
     1
-  else if True then
-    2
-  else
-    3
+  else 2
 """
                         ]
         , test "should remove branches where the condition never matches (literal on the left using ==)" <|
@@ -3497,18 +3490,16 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
-                            , details = sameThingOnBothSidesDetails "False"
-                            , under = "x == 1"
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
                             }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if 1 == x then
     1
-  else if False then
-    2
-  else
-    3
+  else 3
 """
                         ]
         , test "should remove branches where the condition always matches (literal on the left using /=)" <|
@@ -3525,18 +3516,16 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
-                            , details = sameThingOnBothSidesDetails "True"
-                            , under = "x == 1"
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
                             }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if 1 /= x then
     1
-  else if True then
-    2
-  else
-    3
+  else 2
 """
                         ]
 
