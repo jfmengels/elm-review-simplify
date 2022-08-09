@@ -99,26 +99,24 @@ infer nodes constraint acc =
                         infer rest constraint dict
 
                 Expression.OperatorApplication "==" _ left right ->
-                    case Node.value right of
-                        Expression.Integer _ ->
-                            if constraint == constraintTrue then
-                                injectConstraint (Node.value left) (Equals (Node.value right)) dict
-
-                            else if constraint == constraintFalse then
-                                injectConstraint (Node.value left) (NotEquals (Node.value right)) dict
-
-                            else
-                                infer rest constraint dict
-
-                        _ ->
-                            infer rest constraint dict
-
-                Expression.OperatorApplication "/=" _ left right ->
                     infer rest
                         constraint
                         (dict
                             |> inferOnEquality left right constraint
                             |> inferOnEquality right left constraint
+                        )
+
+                Expression.OperatorApplication "/=" _ left right ->
+                    let
+                        inversedConstraint : Constraint
+                        inversedConstraint =
+                            inverseConstraint constraint
+                    in
+                    infer rest
+                        constraint
+                        (dict
+                            |> inferOnEquality left right inversedConstraint
+                            |> inferOnEquality right left inversedConstraint
                         )
 
                 _ ->
@@ -132,13 +130,13 @@ inferOnEquality node other constraint dict =
             if constraint == constraintTrue then
                 injectConstraint
                     (Node.value other)
-                    (NotEquals (Expression.Floatable (Basics.toFloat int)))
+                    (Equals (Expression.Floatable (Basics.toFloat int)))
                     dict
 
             else if constraint == constraintFalse then
                 injectConstraint
                     (Node.value other)
-                    (Equals (Expression.Floatable (Basics.toFloat int)))
+                    (NotEquals (Expression.Floatable (Basics.toFloat int)))
                     dict
 
             else
