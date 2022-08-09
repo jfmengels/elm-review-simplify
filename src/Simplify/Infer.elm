@@ -119,12 +119,18 @@ infer nodes constraint acc =
                 Expression.OperatorApplication "/=" _ left right ->
                     -- TODO Also do left
                     case Node.value right of
-                        Expression.Integer _ ->
+                        Expression.Integer int ->
                             if constraint == constraintTrue then
-                                injectConstraint (Node.value left) (NotEquals (Node.value right)) dict
+                                injectConstraint
+                                    (Node.value left)
+                                    (NotEquals (Expression.Floatable (Basics.toFloat int)))
+                                    dict
 
                             else if constraint == constraintFalse then
-                                injectConstraint (Node.value left) (Equals (Node.value right)) dict
+                                injectConstraint
+                                    (Node.value left)
+                                    (Equals (Expression.Floatable (Basics.toFloat int)))
+                                    dict
 
                             else
                                 infer rest constraint dict
