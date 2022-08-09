@@ -3,7 +3,9 @@ module Simplify.Infer exposing (..)
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
-import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Simplify.AstHelpers as AstHelpers
+import Simplify.Match exposing (Match(..))
 
 
 type Inferred
@@ -85,3 +87,52 @@ injectConstant expression value (Inferred inferred) =
             AssocList.empty
         |> AssocList.insert expression value
         |> Inferred
+
+
+
+--
+
+
+getBoolean : Resources a -> Node Expression -> Match Bool
+getBoolean inferMaterial baseNode =
+    let
+        node : Node Expression
+        node =
+            AstHelpers.removeParens baseNode
+    in
+    case Node.value node of
+        Expression.FunctionOrValue _ "True" ->
+            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
+                Just [ "Basics" ] ->
+                    Determined True
+
+                _ ->
+                    Undetermined
+
+        Expression.FunctionOrValue _ "False" ->
+            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
+                Just [ "Basics" ] ->
+                    Determined False
+
+                _ ->
+                    Undetermined
+
+        Expression.FunctionOrValue _ name ->
+            case
+                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+            of
+                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
+                    Determined True
+
+                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
+                    Determined False
+
+                Just _ ->
+                    Undetermined
+
+                Nothing ->
+                    Undetermined
+
+        _ ->
+            Undetermined

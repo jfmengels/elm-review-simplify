@@ -1958,7 +1958,7 @@ getNegateFunction lookupTable baseNode =
 
 basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
-    case getBoolean checkInfo checkInfo.firstArg of
+    case Infer.getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
             [ Rule.errorWithFix
                 { message = "Expression is equal to " ++ boolToString (not bool)
@@ -2179,7 +2179,7 @@ listConditions operatorToLookFor redundantConditionResolution node =
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
 or_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as checkInfo) =
-    case getBoolean checkInfo left of
+    case Infer.getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = "Condition is always True"
@@ -2212,7 +2212,7 @@ or_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as chec
 
 or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
 or_isRightSimplifiableError ({ parentRange, right, leftRange, rightRange } as checkInfo) =
-    case getBoolean checkInfo right of
+    case Infer.getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2258,7 +2258,7 @@ andChecks operatorCheckInfo =
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
 and_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as checkInfo) =
-    case getBoolean checkInfo left of
+    case Infer.getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2291,7 +2291,7 @@ and_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as che
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
 and_isRightSimplifiableError ({ parentRange, leftRange, right, rightRange } as checkInfo) =
-    case getBoolean checkInfo right of
+    case Infer.getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2328,7 +2328,7 @@ and_isRightSimplifiableError ({ parentRange, leftRange, right, rightRange } as c
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
 equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, rightRange } as checkInfo) =
-    if getBoolean checkInfo right == Determined isEqual then
+    if Infer.getBoolean checkInfo right == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -2337,7 +2337,7 @@ equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, righ
             [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
         ]
 
-    else if getBoolean checkInfo left == Determined isEqual then
+    else if Infer.getBoolean checkInfo left == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -4740,7 +4740,7 @@ ifChecks :
         }
     -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
-    case getBoolean context condition of
+    case Infer.getBoolean context condition of
         Determined True ->
             onlyErrors
                 [ Rule.errorWithFix
@@ -4774,7 +4774,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                 ]
 
         Undetermined ->
-            case ( getBoolean context trueBranch, getBoolean context falseBranch ) of
+            case ( Infer.getBoolean context trueBranch, Infer.getBoolean context falseBranch ) of
                 ( Determined True, Determined False ) ->
                     onlyErrors
                         [ Rule.errorWithFix
@@ -5283,58 +5283,13 @@ isAlwaysBoolean inferMaterial node =
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
             case ModuleNameLookupTable.moduleNameAt inferMaterial.lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getBoolean inferMaterial boolean
+                    Infer.getBoolean inferMaterial boolean
 
                 _ ->
                     Undetermined
 
         Expression.LambdaExpression { expression } ->
-            getBoolean inferMaterial expression
-
-        _ ->
-            Undetermined
-
-
-getBoolean : Infer.Resources a -> Node Expression -> Match Bool
-getBoolean inferMaterial baseNode =
-    let
-        node : Node Expression
-        node =
-            AstHelpers.removeParens baseNode
-    in
-    case Node.value node of
-        Expression.FunctionOrValue _ "True" ->
-            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
-                Just [ "Basics" ] ->
-                    Determined True
-
-                _ ->
-                    Undetermined
-
-        Expression.FunctionOrValue _ "False" ->
-            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
-                Just [ "Basics" ] ->
-                    Determined False
-
-                _ ->
-                    Undetermined
-
-        Expression.FunctionOrValue _ name ->
-            case
-                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
-            of
-                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
-                    Determined True
-
-                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
-                    Determined False
-
-                Just _ ->
-                    Undetermined
-
-                Nothing ->
-                    Undetermined
+            Infer.getBoolean inferMaterial expression
 
         _ ->
             Undetermined
