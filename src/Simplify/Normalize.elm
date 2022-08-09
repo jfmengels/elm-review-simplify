@@ -163,6 +163,10 @@ normalize lookupTable node =
                 |> Expression.RecordUpdateExpression (toNode value)
                 |> toNode
 
+        Expression.Hex int ->
+            Expression.Integer int
+                |> toNode
+
         expr ->
             toNode expr
 
