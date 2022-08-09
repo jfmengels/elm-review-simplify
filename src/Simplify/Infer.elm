@@ -22,6 +22,10 @@ type Inferred
     = Inferred (AssocList.Dict Expression Expression)
 
 
+type Constraint
+    = Equals Expression
+
+
 type alias Resources a =
     { a
         | lookupTable : ModuleNameLookupTable
