@@ -279,9 +279,6 @@ compareHelp resources leftNode right canFlip =
         Expression.Floatable left ->
             compareNumbers left right
 
-        Expression.Hex left ->
-            compareNumbers (Basics.toFloat left) right
-
         Expression.Negation left ->
             case getNumberValue left of
                 Just leftValue ->
