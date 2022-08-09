@@ -4854,7 +4854,7 @@ findUsedConstructors : ModuleContext -> Node Pattern -> List ( ModuleName, Strin
 findUsedConstructors context node =
     case Node.value node of
         Pattern.NamedPattern { name } nodes ->
-            case isIgnoredConstructor2 context (Node.range node) name of
+            case isIgnoredConstructor context (Node.range node) name of
                 Just moduleName ->
                     ( moduleName, name ) :: List.concatMap (findUsedConstructors context) nodes
 
@@ -4880,8 +4880,8 @@ findUsedConstructors context node =
             []
 
 
-isIgnoredConstructor2 : ModuleContext -> Range -> String -> Maybe ModuleName
-isIgnoredConstructor2 context range name =
+isIgnoredConstructor : ModuleContext -> Range -> String -> Maybe ModuleName
+isIgnoredConstructor context range name =
     case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
         Just [] ->
             if Set.member ( context.moduleName, name ) context.constructorsToIgnore then
