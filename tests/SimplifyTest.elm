@@ -3416,18 +3416,15 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
-                            , details = sameThingOnBothSidesDetails "True"
-                            , under = "x /= 1"
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
                             }
-                            |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
+                            |> Review.Test.atExactly { start = { row = 4, column = 5 }, end = { row = 4, column = 7 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if x /= 1 then
-    if True then
-      1
-    else
-      2
+    1
   else
     3
 """
@@ -3445,7 +3442,20 @@ a =
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
+                        -- TODO There are two errors. Kind of a waste but in practice probably not a problem.
                         [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x /= 1 then
+    1
+  else 3
+"""
+                        , Review.Test.error
                             { message = "Condition is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "x /= 1"

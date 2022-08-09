@@ -2,10 +2,12 @@ module Simplify.Evaluate exposing (..)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Range as Range
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
 import Simplify.Match exposing (Match(..))
+import Simplify.Normalize as Normalize
 
 
 getBoolean : Infer.Resources a -> Node Expression -> Match Bool
@@ -49,19 +51,33 @@ getBoolean resources baseNode =
                 Nothing ->
                     Undetermined
 
-        Expression.OperatorApplication "/=" _ left _ ->
+        Expression.OperatorApplication "/=" _ left right ->
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
                 Just (Infer.Equals value) ->
-                    Undetermined
+                    case Normalize.compare resources (Node Range.emptyRange value) right of
+                        Normalize.ConfirmedEquality ->
+                            Determined False
+
+                        Normalize.ConfirmedInequality ->
+                            Determined True
+
+                        Normalize.Unconfirmed ->
+                            Undetermined
 
                 Just (Infer.NotEquals value) ->
-                    Undetermined
+                    case Normalize.compare resources (Node Range.emptyRange value) right of
+                        Normalize.ConfirmedEquality ->
+                            Determined True
+
+                        Normalize.ConfirmedInequality ->
+                            Determined False
+
+                        Normalize.Unconfirmed ->
+                            Undetermined
 
                 Nothing ->
                     Undetermined
 
-        -- TODO Here is likely where we want to compare stuff
-        --Debug.log "oo" (Determined False)
         _ ->
             Undetermined
 
