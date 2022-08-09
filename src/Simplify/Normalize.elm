@@ -92,7 +92,20 @@ normalize resources node =
             toNode (Expression.IfBlock (normalize resources cond) (normalize resources then_) (normalize resources else_))
 
         Expression.Negation expr ->
-            toNode (Expression.Negation (normalize resources expr))
+            let
+                normalized : Node Expression
+                normalized =
+                    normalize resources expr
+            in
+            case Node.value normalized of
+                Expression.Integer int ->
+                    toNode (Expression.Integer -int)
+
+                Expression.Floatable float ->
+                    toNode (Expression.Floatable -float)
+
+                _ ->
+                    toNode (Expression.Negation normalized)
 
         Expression.TupledExpression nodes ->
             toNode (Expression.TupledExpression (List.map (normalize resources) nodes))
