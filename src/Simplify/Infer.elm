@@ -227,8 +227,11 @@ getBoolean inferMaterial baseNode =
                 Nothing ->
                     Undetermined
 
-        _ ->
+        Expression.OperatorApplication _ _ _ _ ->
             -- TODO Here is likely where we want to compare stuff
+            Debug.log "oo" (Determined False)
+
+        _ ->
             Undetermined
 
 
