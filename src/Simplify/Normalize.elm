@@ -9,11 +9,6 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Simplify.Infer as Infer
 
 
-areTheSame : Infer.Resources a -> Node Expression -> Node Expression -> Bool
-areTheSame resources left right =
-    normalize resources left == normalize resources right
-
-
 areAllTheSame : Infer.Resources a -> Node Expression -> List (Node Expression) -> Bool
 areAllTheSame resources first rest =
     let
