@@ -251,7 +251,7 @@ type Comparison
 
 compare : Infer.Resources a -> Node Expression -> Node Expression -> Comparison
 compare resources leftNode right =
-    compareHelp resources leftNode right True
+    compareHelp resources (normalize resources leftNode) (normalize resources right) True
 
 
 compareHelp : Infer.Resources a -> Node Expression -> Node Expression -> Bool -> Comparison
@@ -262,7 +262,7 @@ compareHelp resources leftNode right canFlip =
             if canFlip then
                 compareHelp resources rightNode leftNode False
 
-            else if areTheSame resources leftNode right then
+            else if leftNode == right then
                 ConfirmedEquality
 
             else
