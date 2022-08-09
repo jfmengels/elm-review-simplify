@@ -4867,7 +4867,7 @@ inferConstants nodes expressionValue dict =
         first :: rest ->
             case Node.value first of
                 Expression.FunctionOrValue _ _ ->
-                    inferConstants rest expressionValue (AssocList.insert (Node.value first) (booleanToConstant expressionValue) dict)
+                    inferConstants rest expressionValue (injectConstant (Node.value first) (booleanToConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     inferConstants
@@ -4906,9 +4906,9 @@ booleanToConstant expressionValue =
         )
 
 
-mergeInferredConstants : InferredConstants -> InferredConstants -> InferredConstants
-mergeInferredConstants constants acc =
-    AssocList.union constants acc
+injectConstant : Expression -> ConstantValue -> InferredConstants -> InferredConstants
+injectConstant expression value constants =
+    AssocList.insert expression value constants
 
 
 
