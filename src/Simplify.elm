@@ -768,8 +768,8 @@ type alias InferredConstants =
     Dict ( ModuleName, String ) ConstantValue
 
 
-type alias ConstantValue =
-    Bool
+type ConstantValue
+    = BooleanConstant Bool
 
 
 type alias Constructor =
@@ -4863,7 +4863,7 @@ inferConstants lookupTable nodes expressionValue dict =
         first :: rest ->
             case Node.value (Normalize.normalize lookupTable first) of
                 Expression.FunctionOrValue moduleName name ->
-                    inferConstants lookupTable rest expressionValue (Dict.insert ( moduleName, name ) expressionValue dict)
+                    inferConstants lookupTable rest expressionValue (Dict.insert ( moduleName, name ) (BooleanConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     inferConstants lookupTable
@@ -5368,7 +5368,7 @@ getBoolean lookupTable inferredConstants baseNode =
                 ModuleNameLookupTable.moduleNameFor lookupTable node
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, name ) inferredConstants)
             of
-                Just bool ->
+                Just (BooleanConstant bool) ->
                     Determined bool
 
                 Nothing ->
