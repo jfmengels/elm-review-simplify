@@ -251,7 +251,11 @@ type Comparison
 
 compare : Infer.Resources a -> Node Expression -> Node Expression -> Comparison
 compare resources leftNode right =
-    compareHelp resources (normalize resources leftNode) (normalize resources right) True
+    compareHelp
+        resources
+        (normalize resources leftNode)
+        (normalize resources right)
+        True
 
 
 compareHelp : Infer.Resources a -> Node Expression -> Node Expression -> Bool -> Comparison
