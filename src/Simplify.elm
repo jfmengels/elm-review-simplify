@@ -566,6 +566,7 @@ import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers
+import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
@@ -1949,7 +1950,7 @@ getNegateFunction lookupTable baseNode =
 
 basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
-    case Infer.getBoolean checkInfo checkInfo.firstArg of
+    case Evaluate.getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
             [ Rule.errorWithFix
                 { message = "Expression is equal to " ++ boolToString (not bool)
@@ -2170,7 +2171,7 @@ listConditions operatorToLookFor redundantConditionResolution node =
 
 or_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
 or_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as checkInfo) =
-    case Infer.getBoolean checkInfo left of
+    case Evaluate.getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = "Condition is always True"
@@ -2203,7 +2204,7 @@ or_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as chec
 
 or_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
 or_isRightSimplifiableError ({ parentRange, right, leftRange, rightRange } as checkInfo) =
-    case Infer.getBoolean checkInfo right of
+    case Evaluate.getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2249,7 +2250,7 @@ andChecks operatorCheckInfo =
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
 and_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as checkInfo) =
-    case Infer.getBoolean checkInfo left of
+    case Evaluate.getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2282,7 +2283,7 @@ and_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as che
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
 and_isRightSimplifiableError ({ parentRange, leftRange, right, rightRange } as checkInfo) =
-    case Infer.getBoolean checkInfo right of
+    case Evaluate.getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
                 { message = unnecessaryMessage
@@ -2319,7 +2320,7 @@ and_isRightSimplifiableError ({ parentRange, leftRange, right, rightRange } as c
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
 equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, rightRange } as checkInfo) =
-    if Infer.getBoolean checkInfo right == Determined isEqual then
+    if Evaluate.getBoolean checkInfo right == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -2328,7 +2329,7 @@ equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, righ
             [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
         ]
 
-    else if Infer.getBoolean checkInfo left == Determined isEqual then
+    else if Evaluate.getBoolean checkInfo left == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
@@ -3366,7 +3367,7 @@ listAllChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
             ]
 
         _ ->
-            case Infer.isAlwaysBoolean checkInfo firstArg of
+            case Evaluate.isAlwaysBoolean checkInfo firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "The call to List.all will result in True"
@@ -3393,7 +3394,7 @@ listAnyChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
             ]
 
         _ ->
-            case Infer.isAlwaysBoolean checkInfo firstArg of
+            case Evaluate.isAlwaysBoolean checkInfo firstArg of
                 Determined False ->
                     [ Rule.errorWithFix
                         { message = "The call to List.any will result in False"
@@ -4093,7 +4094,7 @@ collectionFilterChecks collection ({ parentRange, fnRange, firstArg, secondArg }
             ]
 
         _ ->
-            case Infer.isAlwaysBoolean checkInfo firstArg of
+            case Evaluate.isAlwaysBoolean checkInfo firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
@@ -4359,7 +4360,7 @@ collectionPartitionChecks collection checkInfo =
             ]
 
         _ ->
-            case Infer.isAlwaysBoolean checkInfo checkInfo.firstArg of
+            case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     case checkInfo.secondArg of
                         Just listArg ->
@@ -4731,7 +4732,7 @@ ifChecks :
         }
     -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
-    case Infer.getBoolean context condition of
+    case Evaluate.getBoolean context condition of
         Determined True ->
             onlyErrors
                 [ Rule.errorWithFix
@@ -4765,7 +4766,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                 ]
 
         Undetermined ->
-            case ( Infer.getBoolean context trueBranch, Infer.getBoolean context falseBranch ) of
+            case ( Evaluate.getBoolean context trueBranch, Evaluate.getBoolean context falseBranch ) of
                 ( Determined True, Determined False ) ->
                     onlyErrors
                         [ Rule.errorWithFix
