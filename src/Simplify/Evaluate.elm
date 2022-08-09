@@ -51,6 +51,33 @@ getBoolean resources baseNode =
                 Nothing ->
                     Undetermined
 
+        Expression.OperatorApplication "==" _ left right ->
+            case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
+                Just (Infer.Equals value) ->
+                    case Normalize.compare resources (Node Range.emptyRange value) right of
+                        Normalize.ConfirmedEquality ->
+                            Determined True
+
+                        Normalize.ConfirmedInequality ->
+                            Determined False
+
+                        Normalize.Unconfirmed ->
+                            Undetermined
+
+                Just (Infer.NotEquals value) ->
+                    case Normalize.compare resources (Node Range.emptyRange value) right of
+                        Normalize.ConfirmedEquality ->
+                            Determined False
+
+                        Normalize.ConfirmedInequality ->
+                            Determined True
+
+                        Normalize.Unconfirmed ->
+                            Undetermined
+
+                Nothing ->
+                    Undetermined
+
         Expression.OperatorApplication "/=" _ left right ->
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
                 Just (Infer.Equals value) ->
