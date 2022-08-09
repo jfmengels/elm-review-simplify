@@ -187,7 +187,7 @@ injectConstraint expression constraint (Inferred inferred) =
 
 
 getBoolean : Resources a -> Node Expression -> Match Bool
-getBoolean inferMaterial baseNode =
+getBoolean resources baseNode =
     let
         node : Node Expression
         node =
@@ -195,7 +195,7 @@ getBoolean inferMaterial baseNode =
     in
     case Node.value node of
         Expression.FunctionOrValue _ "True" ->
-            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
+            case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
                 Just [ "Basics" ] ->
                     Determined True
 
@@ -203,7 +203,7 @@ getBoolean inferMaterial baseNode =
                     Undetermined
 
         Expression.FunctionOrValue _ "False" ->
-            case ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node of
+            case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
                 Just [ "Basics" ] ->
                     Determined False
 
@@ -212,8 +212,8 @@ getBoolean inferMaterial baseNode =
 
         Expression.FunctionOrValue _ name ->
             case
-                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first inferMaterial.inferredConstants))
+                ModuleNameLookupTable.moduleNameFor resources.lookupTable node
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
             of
                 Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
                     Determined True
@@ -236,25 +236,25 @@ getBoolean inferMaterial baseNode =
 
 
 isAlwaysBoolean : Resources a -> Node Expression -> Match Bool
-isAlwaysBoolean inferMaterial node =
+isAlwaysBoolean resources node =
     case Node.value (AstHelpers.removeParens node) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
-            case ModuleNameLookupTable.moduleNameAt inferMaterial.lookupTable alwaysRange of
+            case ModuleNameLookupTable.moduleNameAt resources.lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getBoolean inferMaterial boolean
+                    getBoolean resources boolean
 
                 _ ->
                     Undetermined
 
         Expression.LambdaExpression { expression } ->
-            getBoolean inferMaterial expression
+            getBoolean resources expression
 
         _ ->
             Undetermined
 
 
 getInt : Resources a -> Node Expression -> Maybe Int
-getInt inferMaterial baseNode =
+getInt resources baseNode =
     let
         node : Node Expression
         node =
@@ -268,12 +268,12 @@ getInt inferMaterial baseNode =
             Just n
 
         Expression.Negation expr ->
-            Maybe.map negate (getInt inferMaterial expr)
+            Maybe.map negate (getInt resources expr)
 
         Expression.FunctionOrValue _ name ->
             case
-                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first inferMaterial.inferredConstants))
+                ModuleNameLookupTable.moduleNameFor resources.lookupTable node
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
             of
                 Just (Expression.Integer int) ->
                     Just int
