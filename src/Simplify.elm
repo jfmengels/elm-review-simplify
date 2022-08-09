@@ -3590,19 +3590,24 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 listRangeChecks : CheckInfo -> List (Error {})
 listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
-    case Maybe.map2 Tuple.pair (getIntValue firstArg) (Maybe.andThen getIntValue secondArg) of
-        Just ( first, second ) ->
-            if first > second then
-                [ Rule.errorWithFix
-                    { message = "The call to List.range will result in []"
-                    , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
-                    }
-                    fnRange
-                    (replaceByEmptyFix "[]" parentRange secondArg)
-                ]
+    case Maybe.andThen getIntValue secondArg of
+        Just second ->
+            case getIntValue firstArg of
+                Just first ->
+                    if first > second then
+                        [ Rule.errorWithFix
+                            { message = "The call to List.range will result in []"
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
+                            }
+                            fnRange
+                            (replaceByEmptyFix "[]" parentRange secondArg)
+                        ]
 
-            else
-                []
+                    else
+                        []
+
+                Nothing ->
+                    []
 
         Nothing ->
             []
