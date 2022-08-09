@@ -79,7 +79,12 @@ normalize resources node =
         Expression.FunctionOrValue rawModuleName string ->
             case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
                 Just moduleName ->
-                    toNode (Expression.FunctionOrValue moduleName string)
+                    case Infer.get (Expression.FunctionOrValue moduleName string) resources.inferredConstants of
+                        Just value ->
+                            toNode value
+
+                        Nothing ->
+                            toNode (Expression.FunctionOrValue moduleName string)
 
                 Nothing ->
                     toNode (Expression.FunctionOrValue rawModuleName string)
