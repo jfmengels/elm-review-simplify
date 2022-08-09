@@ -90,6 +90,7 @@ infer nodes constraint acc =
                         infer (Node.value left :: Node.value right :: rest) constraint dict
 
                     else
+                        -- TODO Add inverse constraint
                         infer rest constraint dict
 
                 Expression.OperatorApplication "||" _ left right ->
@@ -97,6 +98,7 @@ infer nodes constraint acc =
                         infer (Node.value left :: Node.value right :: rest) constraint dict
 
                     else
+                        -- TODO Add inverse constraint
                         infer rest constraint dict
 
                 Expression.OperatorApplication "==" _ left right ->
