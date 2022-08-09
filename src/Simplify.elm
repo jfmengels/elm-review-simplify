@@ -4834,18 +4834,16 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                 ]
 
                         _ ->
-                            let
-                                normalizedCondition : Expression
-                                normalizedCondition =
-                                    Node.value (Normalize.normalize context condition)
-                            in
                             { errors = []
                             , rangesToIgnore = []
                             , rightSidesOfPlusPlus = []
                             , inferredConstants =
-                                [ ( Node.range trueBranch, Infer.infer [ normalizedCondition ] True context.inferredConstants )
-                                , ( Node.range falseBranch, Infer.infer [ normalizedCondition ] False context.inferredConstants )
-                                ]
+                                Infer.inferForIfCondition
+                                    (Node.value (Normalize.normalize context condition))
+                                    { trueBranchRange = Node.range trueBranch
+                                    , falseBranchRange = Node.range falseBranch
+                                    }
+                                    context.inferredConstants
                             }
 
 

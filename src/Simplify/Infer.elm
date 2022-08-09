@@ -3,6 +3,7 @@ module Simplify.Infer exposing (..)
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Match exposing (Match(..))
@@ -27,6 +28,13 @@ empty =
 get : Expression -> Inferred -> Maybe Expression
 get expr (Inferred inferred) =
     AssocList.get expr inferred
+
+
+inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
+inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
+    [ ( trueBranchRange, infer [ condition ] True inferred )
+    , ( falseBranchRange, infer [ condition ] False inferred )
+    ]
 
 
 infer : List Expression -> Bool -> Inferred -> Inferred

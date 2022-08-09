@@ -2,7 +2,6 @@ module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, getN
 
 import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Range)
