@@ -2271,7 +2271,7 @@ andChecks operatorCheckInfo =
 
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isLeftSimplifiableError ({ lookupTable, inferredConstants, parentRange, left, leftRange, rightRange } as checkInfo) =
+and_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as checkInfo) =
     case getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
@@ -2304,7 +2304,7 @@ and_isLeftSimplifiableError ({ lookupTable, inferredConstants, parentRange, left
 
 
 and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
-and_isRightSimplifiableError ({ lookupTable, inferredConstants, parentRange, leftRange, right, rightRange } as checkInfo) =
+and_isRightSimplifiableError ({ parentRange, leftRange, right, rightRange } as checkInfo) =
     case getBoolean checkInfo right of
         Determined True ->
             [ Rule.errorWithFix
@@ -2341,7 +2341,7 @@ and_isRightSimplifiableError ({ lookupTable, inferredConstants, parentRange, lef
 
 
 equalityChecks : Bool -> OperatorCheckInfo -> List (Error {})
-equalityChecks isEqual ({ lookupTable, inferredConstants, parentRange, left, right, leftRange, rightRange } as checkInfo) =
+equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, rightRange } as checkInfo) =
     if getBoolean checkInfo right == Determined isEqual then
         [ Rule.errorWithFix
             { message = "Unnecessary comparison with boolean"
@@ -2870,7 +2870,7 @@ stringLengthChecks { parentRange, fnRange, firstArg } =
 
 
 stringRepeatChecks : CheckInfo -> List (Error {})
-stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
+stringRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case secondArg of
         Just (Node _ (Expression.Literal "")) ->
             [ Rule.errorWithFix
@@ -2882,7 +2882,7 @@ stringRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
             ]
 
         _ ->
-            case getIntValue firstArg of
+            case getIntValue checkInfo firstArg of
                 Just intValue ->
                     if intValue == 1 then
                         [ Rule.errorWithFix
@@ -3377,7 +3377,7 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
 
 
 listAllChecks : CheckInfo -> List (Error {})
-listAllChecks ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+listAllChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -3404,7 +3404,7 @@ listAllChecks ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg,
 
 
 listAnyChecks : CheckInfo -> List (Error {})
-listAnyChecks ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+listAnyChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.map (removeParens >> Node.value) secondArg of
         Just (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -3589,10 +3589,10 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 
 listRangeChecks : CheckInfo -> List (Error {})
-listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
-    case Maybe.andThen getIntValue secondArg of
+listRangeChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case Maybe.andThen (getIntValue checkInfo) secondArg of
         Just second ->
-            case getIntValue firstArg of
+            case getIntValue checkInfo firstArg of
                 Just first ->
                     if first > second then
                         [ Rule.errorWithFix
@@ -3614,8 +3614,8 @@ listRangeChecks { parentRange, fnRange, firstArg, secondArg } =
 
 
 listRepeatChecks : CheckInfo -> List (Error {})
-listRepeatChecks { parentRange, fnRange, firstArg, secondArg } =
-    case getIntValue firstArg of
+listRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+    case getIntValue checkInfo firstArg of
         Just intValue ->
             if intValue < 1 then
                 [ Rule.errorWithFix
@@ -4104,7 +4104,7 @@ resultWithDefaultChecks checkInfo =
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
-collectionFilterChecks collection ({ lookupTable, inferredConstants, parentRange, fnRange, firstArg, secondArg } as checkInfo) =
+collectionFilterChecks collection ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) checkInfo.secondArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
@@ -5146,9 +5146,14 @@ isSpecificCall moduleName fnName lookupTable node =
             False
 
 
-getIntValue : Node Expression -> Maybe Int
-getIntValue node =
-    case Node.value (removeParens node) of
+getIntValue : InferMaterial a -> Node Expression -> Maybe Int
+getIntValue inferMaterial baseNode =
+    let
+        node : Node Expression
+        node =
+            removeParens baseNode
+    in
+    case Node.value node of
         Expression.Integer n ->
             Just n
 
@@ -5156,7 +5161,18 @@ getIntValue node =
             Just n
 
         Expression.Negation expr ->
-            Maybe.map negate (getIntValue expr)
+            Maybe.map negate (getIntValue inferMaterial expr)
+
+        Expression.FunctionOrValue _ name ->
+            case
+                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
+                    |> Maybe.andThen (\moduleName -> AssocList.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+            of
+                Just (BooleanConstant (Expression.Integer int)) ->
+                    Just int
+
+                _ ->
+                    Nothing
 
         _ ->
             Nothing
