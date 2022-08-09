@@ -41,12 +41,12 @@ get expr (Inferred inferred) =
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer [ condition ] True inferred )
-    , ( falseBranchRange, infer [ condition ] False inferred )
+    [ ( trueBranchRange, infer [ condition ] constantTrue inferred )
+    , ( falseBranchRange, infer [ condition ] constantFalse inferred )
     ]
 
 
-infer : List Expression -> Bool -> Inferred -> Inferred
+infer : List Expression -> Expression -> Inferred -> Inferred
 infer nodes expressionValue dict =
     case nodes of
         [] ->
@@ -55,23 +55,23 @@ infer nodes expressionValue dict =
         node :: rest ->
             case node of
                 Expression.FunctionOrValue _ _ ->
-                    infer rest expressionValue (injectConstant node (booleanToConstant expressionValue) dict)
+                    infer rest expressionValue (injectConstant node expressionValue dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer
                         rest
                         expressionValue
-                        (infer [ Node.value expression ] (not expressionValue) dict)
+                        (infer [ Node.value expression ] (inverseExpression expressionValue) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
-                    if expressionValue then
+                    if expressionValue == constantTrue then
                         infer (Node.value left :: Node.value right :: rest) expressionValue dict
 
                     else
                         infer rest expressionValue dict
 
                 Expression.OperatorApplication "||" _ left right ->
-                    if not expressionValue then
+                    if expressionValue == constantFalse then
                         infer (Node.value left :: Node.value right :: rest) expressionValue dict
 
                     else
@@ -81,15 +81,27 @@ infer nodes expressionValue dict =
                     infer rest expressionValue dict
 
 
-booleanToConstant : Bool -> Expression
-booleanToConstant expressionValue =
-    Expression.FunctionOrValue [ "Basics" ]
-        (if expressionValue then
-            "True"
+constantTrue : Expression
+constantTrue =
+    Expression.FunctionOrValue [ "Basics" ] "True"
 
-         else
-            "False"
-        )
+
+constantFalse : Expression
+constantFalse =
+    Expression.FunctionOrValue [ "Basics" ] "False"
+
+
+inverseExpression : Expression -> Expression
+inverseExpression expr =
+    case expr of
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            constantFalse
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            constantTrue
+
+        _ ->
+            expr
 
 
 injectConstant : Expression -> Expression -> Inferred -> Inferred
