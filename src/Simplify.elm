@@ -4770,8 +4770,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                 let
                     constructorsUsed : () -> List ( ModuleName, String )
                     constructorsUsed () =
-                        List.concatMap (Tuple.first >> findUsedConstructors context) (first :: rest)
-                            |> Set.fromList
+                        findUsedConstructors context (List.map Tuple.first (first :: rest)) Set.empty
                             |> Set.toList
                 in
                 if not (List.isEmpty context.ignoredCustomTypes) && allConstructorsWereUsedOfAType context.ignoredCustomTypes (constructorsUsed ()) then
@@ -4850,34 +4849,39 @@ introducesVariable node =
             False
 
 
-findUsedConstructors : ModuleContext -> Node Pattern -> List ( ModuleName, String )
-findUsedConstructors context node =
-    case Node.value node of
-        Pattern.NamedPattern { name } nodes ->
-            case isIgnoredConstructor context (Node.range node) name of
-                Just moduleName ->
-                    ( moduleName, name ) :: List.concatMap (findUsedConstructors context) nodes
+findUsedConstructors : ModuleContext -> List (Node Pattern) -> Set ( ModuleName, String ) -> Set ( ModuleName, String )
+findUsedConstructors context remainingNodes acc =
+    case remainingNodes of
+        [] ->
+            acc
 
-                Nothing ->
-                    List.concatMap (findUsedConstructors context) nodes
+        node :: rest ->
+            case Node.value node of
+                Pattern.NamedPattern { name } nodes ->
+                    case isIgnoredConstructor context (Node.range node) name of
+                        Just moduleName ->
+                            findUsedConstructors context (nodes ++ rest) (Set.insert ( moduleName, name ) acc)
 
-        Pattern.AsPattern pattern _ ->
-            findUsedConstructors context pattern
+                        Nothing ->
+                            findUsedConstructors context rest acc
 
-        Pattern.ParenthesizedPattern pattern ->
-            findUsedConstructors context pattern
+                Pattern.AsPattern pattern _ ->
+                    findUsedConstructors context (pattern :: rest) acc
 
-        Pattern.TuplePattern nodes ->
-            List.concatMap (findUsedConstructors context) nodes
+                Pattern.ParenthesizedPattern pattern ->
+                    findUsedConstructors context (pattern :: rest) acc
 
-        Pattern.UnConsPattern first rest ->
-            List.concatMap (findUsedConstructors context) [ first, rest ]
+                Pattern.TuplePattern nodes ->
+                    findUsedConstructors context (nodes ++ rest) acc
 
-        Pattern.ListPattern nodes ->
-            List.concatMap (findUsedConstructors context) nodes
+                Pattern.UnConsPattern first second ->
+                    findUsedConstructors context (first :: second :: rest) acc
 
-        _ ->
-            []
+                Pattern.ListPattern nodes ->
+                    findUsedConstructors context (nodes ++ rest) acc
+
+                _ ->
+                    findUsedConstructors context rest acc
 
 
 isIgnoredConstructor : ModuleContext -> Range -> String -> Maybe ModuleName
