@@ -269,9 +269,6 @@ compareHelp resources leftNode right canFlip =
                 Unconfirmed
     in
     case Node.value leftNode of
-        Expression.ParenthesizedExpression expr ->
-            compareHelp resources expr right canFlip
-
         Expression.Integer left ->
             compareNumbers (Basics.toFloat left) right
 
