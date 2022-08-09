@@ -982,14 +982,10 @@ expressionVisitor node context =
                     let
                         ( previous, previousStack ) =
                             context.inferredConstantsStack
-
-                        newKInferredConstants : InferredConstants
-                        newKInferredConstants =
-                            mergeKInferredConstants inferredConstants previous
                     in
                     { context
-                        | inferredConstantsStack = ( newKInferredConstants, previous :: previousStack )
-                        , inferredConstants = newKInferredConstants
+                        | inferredConstantsStack = ( inferredConstants, previous :: previousStack )
+                        , inferredConstants = inferredConstants
                     }
 
                 Nothing ->
@@ -4853,8 +4849,8 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             , rangesToIgnore = []
                             , rightSidesOfPlusPlus = []
                             , inferredConstants =
-                                [ ( Node.range trueBranch, inferConstants [ normalizedCondition ] True Dict.empty )
-                                , ( Node.range falseBranch, inferConstants [ normalizedCondition ] False Dict.empty )
+                                [ ( Node.range trueBranch, inferConstants [ normalizedCondition ] True context.inferredConstants )
+                                , ( Node.range falseBranch, inferConstants [ normalizedCondition ] False context.inferredConstants )
                                 ]
                             }
 

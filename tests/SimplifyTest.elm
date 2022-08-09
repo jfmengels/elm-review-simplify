@@ -3209,6 +3209,40 @@ a =
     3
 """
                         ]
+        , test "should remove duplicate deeply nested conditions" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x then
+    if y then
+      if x then
+        1
+      else
+        2
+    else
+      3
+  else
+    4
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 7 }, end = { row = 5, column = 9 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x then
+    if y then
+      1
+    else
+      3
+  else
+    4
+"""
+                        ]
         , test "should remove duplicate nested conditions (x part of the top && condition)" <|
             \() ->
                 """module A exposing (..)
