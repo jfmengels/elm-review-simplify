@@ -2868,7 +2868,7 @@ stringRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) 
             ]
 
         _ ->
-            case getIntValue checkInfo firstArg of
+            case Infer.getIntValue checkInfo firstArg of
                 Just intValue ->
                     if intValue == 1 then
                         [ Rule.errorWithFix
@@ -3576,9 +3576,9 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 listRangeChecks : CheckInfo -> List (Error {})
 listRangeChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Maybe.andThen (getIntValue checkInfo) secondArg of
+    case Maybe.andThen (Infer.getIntValue checkInfo) secondArg of
         Just second ->
-            case getIntValue checkInfo firstArg of
+            case Infer.getIntValue checkInfo firstArg of
                 Just first ->
                     if first > second then
                         [ Rule.errorWithFix
@@ -3601,7 +3601,7 @@ listRangeChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
 
 listRepeatChecks : CheckInfo -> List (Error {})
 listRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case getIntValue checkInfo firstArg of
+    case Infer.getIntValue checkInfo firstArg of
         Just intValue ->
             if intValue < 1 then
                 [ Rule.errorWithFix
@@ -5069,38 +5069,6 @@ isSpecificCall moduleName fnName lookupTable node =
 
         _ ->
             False
-
-
-getIntValue : Infer.Resources a -> Node Expression -> Maybe Int
-getIntValue inferMaterial baseNode =
-    let
-        node : Node Expression
-        node =
-            AstHelpers.removeParens baseNode
-    in
-    case Node.value node of
-        Expression.Integer n ->
-            Just n
-
-        Expression.Hex n ->
-            Just n
-
-        Expression.Negation expr ->
-            Maybe.map negate (getIntValue inferMaterial expr)
-
-        Expression.FunctionOrValue _ name ->
-            case
-                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
-            of
-                Just (Expression.Integer int) ->
-                    Just int
-
-                _ ->
-                    Nothing
-
-        _ ->
-            Nothing
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float

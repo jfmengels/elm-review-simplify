@@ -136,3 +136,35 @@ getBoolean inferMaterial baseNode =
 
         _ ->
             Undetermined
+
+
+getIntValue : Resources a -> Node Expression -> Maybe Int
+getIntValue inferMaterial baseNode =
+    let
+        node : Node Expression
+        node =
+            AstHelpers.removeParens baseNode
+    in
+    case Node.value node of
+        Expression.Integer n ->
+            Just n
+
+        Expression.Hex n ->
+            Just n
+
+        Expression.Negation expr ->
+            Maybe.map negate (getIntValue inferMaterial expr)
+
+        Expression.FunctionOrValue _ name ->
+            case
+                ModuleNameLookupTable.moduleNameFor inferMaterial.lookupTable node
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) inferMaterial.inferredConstants)
+            of
+                Just (Expression.Integer int) ->
+                    Just int
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
