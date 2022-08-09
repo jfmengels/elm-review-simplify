@@ -1,9 +1,11 @@
 module Simplify.Infer exposing
-    ( Inferred
+    ( Constraint(..)
+    , Inferred
     , Resources
     , empty
     , get
     , getBoolean
+    , getConstraint
     , getInt
     , inferForIfCondition
     , isAlwaysBoolean
@@ -50,6 +52,11 @@ get expr (Inferred inferred) =
 
         Nothing ->
             Nothing
+
+
+getConstraint : Expression -> Inferred -> Maybe Constraint
+getConstraint expr (Inferred inferred) =
+    AssocList.get expr inferred
 
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
