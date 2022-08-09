@@ -54,13 +54,13 @@ get expr (Inferred inferred) =
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer [ condition ] constantTrue inferred )
-    , ( falseBranchRange, infer [ condition ] constantFalse inferred )
+    [ ( trueBranchRange, infer [ condition ] constraintTrue inferred )
+    , ( falseBranchRange, infer [ condition ] constraintFalse inferred )
     ]
 
 
-infer : List Expression -> Expression -> Inferred -> Inferred
-infer nodes expressionValue dict =
+infer : List Expression -> Constraint -> Inferred -> Inferred
+infer nodes constraint dict =
     case nodes of
         [] ->
             dict
@@ -68,65 +68,68 @@ infer nodes expressionValue dict =
         node :: rest ->
             case node of
                 Expression.FunctionOrValue _ _ ->
-                    infer rest expressionValue (injectConstant node expressionValue dict)
+                    infer rest constraint (injectConstraint node constraint dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer
                         rest
-                        expressionValue
-                        (infer [ Node.value expression ] (inverseExpression expressionValue) dict)
+                        constraint
+                        (infer [ Node.value expression ] (inverseConstraint constraint) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
-                    if expressionValue == constantTrue then
-                        infer (Node.value left :: Node.value right :: rest) expressionValue dict
+                    if constraint == constraintTrue then
+                        infer (Node.value left :: Node.value right :: rest) constraint dict
 
                     else
-                        infer rest expressionValue dict
+                        infer rest constraint dict
 
                 Expression.OperatorApplication "||" _ left right ->
-                    if expressionValue == constantFalse then
-                        infer (Node.value left :: Node.value right :: rest) expressionValue dict
+                    if constraint == constraintFalse then
+                        infer (Node.value left :: Node.value right :: rest) constraint dict
 
                     else
-                        infer rest expressionValue dict
+                        infer rest constraint dict
 
                 Expression.OperatorApplication "==" _ left right ->
                     case Node.value right of
                         Expression.Integer _ ->
-                            injectConstant (Node.value left) (Node.value right) dict
+                            injectConstraint (Node.value left) (Equals (Node.value right)) dict
 
                         _ ->
-                            infer rest expressionValue dict
+                            infer rest constraint dict
 
                 _ ->
-                    infer rest expressionValue dict
+                    infer rest constraint dict
 
 
-constantTrue : Expression
-constantTrue =
-    Expression.FunctionOrValue [ "Basics" ] "True"
+constraintTrue : Constraint
+constraintTrue =
+    Equals (Expression.FunctionOrValue [ "Basics" ] "True")
 
 
-constantFalse : Expression
-constantFalse =
-    Expression.FunctionOrValue [ "Basics" ] "False"
+constraintFalse : Constraint
+constraintFalse =
+    Equals (Expression.FunctionOrValue [ "Basics" ] "False")
 
 
-inverseExpression : Expression -> Expression
-inverseExpression expr =
-    case expr of
-        Expression.FunctionOrValue [ "Basics" ] "True" ->
-            constantFalse
+inverseConstraint : Constraint -> Constraint
+inverseConstraint constraint =
+    case constraint of
+        Equals (Expression.FunctionOrValue [ "Basics" ] "True") ->
+            constraintFalse
 
-        Expression.FunctionOrValue [ "Basics" ] "False" ->
-            constantTrue
+        Equals (Expression.FunctionOrValue [ "Basics" ] "False") ->
+            constraintTrue
 
-        _ ->
-            expr
+        Equals value ->
+            NotEquals value
+
+        NotEquals value ->
+            Equals value
 
 
-injectConstant : Expression -> Expression -> Inferred -> Inferred
-injectConstant expression value (Inferred inferred) =
+injectConstraint : Expression -> Constraint -> Inferred -> Inferred
+injectConstraint expression constraint (Inferred inferred) =
     inferred
         |> AssocList.foldl
             (\expr v acc ->
@@ -135,7 +138,7 @@ injectConstant expression value (Inferred inferred) =
                         AssocList.insert expr v acc
             )
             AssocList.empty
-        |> AssocList.insert expression (Equals value)
+        |> AssocList.insert expression constraint
         |> Inferred
 
 
