@@ -765,7 +765,11 @@ type alias ModuleContext =
 
 
 type alias InferredConstants =
-    Dict ( ModuleName, String ) Bool
+    Dict ( ModuleName, String ) ConstantValue
+
+
+type alias ConstantValue =
+    Bool
 
 
 type alias Constructor =
