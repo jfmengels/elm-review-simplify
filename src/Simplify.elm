@@ -4844,9 +4844,9 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
 
                         _ ->
                             let
-                                normalizedCondition : Node Expression
+                                normalizedCondition : Expression
                                 normalizedCondition =
-                                    Normalize.normalize context.lookupTable condition
+                                    Node.value (Normalize.normalize context.lookupTable condition)
                             in
                             { errors = []
                             , rangesToIgnore = []
@@ -4858,33 +4858,33 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             }
 
 
-inferConstants : List (Node Expression) -> Bool -> InferredConstants -> InferredConstants
+inferConstants : List Expression -> Bool -> InferredConstants -> InferredConstants
 inferConstants nodes expressionValue dict =
     case nodes of
         [] ->
             dict
 
         first :: rest ->
-            case Node.value first of
+            case first of
                 Expression.FunctionOrValue _ _ ->
-                    inferConstants rest expressionValue (injectConstant (Node.value first) (booleanToConstant expressionValue) dict)
+                    inferConstants rest expressionValue (injectConstant first (booleanToConstant expressionValue) dict)
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     inferConstants
                         rest
                         expressionValue
-                        (inferConstants [ expression ] (not expressionValue) dict)
+                        (inferConstants [ Node.value expression ] (not expressionValue) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
                     if expressionValue then
-                        inferConstants (left :: right :: rest) expressionValue dict
+                        inferConstants (Node.value left :: Node.value right :: rest) expressionValue dict
 
                     else
                         inferConstants rest expressionValue dict
 
                 Expression.OperatorApplication "||" _ left right ->
                     if not expressionValue then
-                        inferConstants (left :: right :: rest) expressionValue dict
+                        inferConstants (Node.value left :: Node.value right :: rest) expressionValue dict
 
                     else
                         inferConstants rest expressionValue dict
