@@ -157,21 +157,22 @@ infer2 nodes shouldBe acc =
 
                 Expression.OperatorApplication "&&" infix_ (Node _ left) (Node _ right) ->
                     if shouldBe then
-                        infer2 (left :: right :: rest)
-                            shouldBe
-                            (injectConstraints2
+                        dict
+                            |> injectConstraints2
                                 (And2
                                     (convertToConstraint left shouldBe)
                                     (convertToConstraint right shouldBe)
                                 )
-                                dict
-                            )
+                            |> infer2 (left :: right :: rest) shouldBe
 
                     else
-                        infer2
-                            (Expression.OperatorApplication "||" infix_ (notE left) (notE right) :: rest)
-                            (not shouldBe)
-                            dict
+                        dict
+                            |> injectConstraints2
+                                (Or2
+                                    (convertToConstraint left shouldBe)
+                                    (convertToConstraint right shouldBe)
+                                )
+                            |> infer2 rest shouldBe
 
                 Expression.OperatorApplication "||" infix_ (Node _ left) (Node _ right) ->
                     if shouldBe then
