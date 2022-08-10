@@ -15,8 +15,9 @@ module Simplify.Infer exposing
 
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.Infix as Infix
 import Elm.Syntax.Node as Node exposing (Node(..))
-import Elm.Syntax.Range exposing (Range)
+import Elm.Syntax.Range as Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.AstHelpers as AstHelpers
 
@@ -198,11 +199,16 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
         newDeduced2 =
             case Debug.log "\nNEW CONSTRAINT" newConstraint of
                 Equals2 a b ->
-                    AssocList.insert a b newDeduced
+                    newDeduced
+                        |> AssocList.insert a b
+                        |> AssocList.insert b a
+                        |> AssocList.insert (equals a b) trueExpr
+                        |> AssocList.insert (notEquals a b) falseExpr
 
                 NotEquals2 a b ->
-                    -- TODO Add "a /= b"?
                     newDeduced
+                        |> AssocList.insert (equals a b) falseExpr
+                        |> AssocList.insert (notEquals a b) trueExpr
 
                 And2 _ ->
                     -- TODO Add "a && b && ..."?
@@ -216,6 +222,16 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
         { constraints = newConstraint :: constraints
         , deduced = newDeduced2
         }
+
+
+equals : Expression -> Expression -> Expression
+equals a b =
+    Expression.OperatorApplication "==" Infix.Non (Node Range.emptyRange a) (Node Range.emptyRange b)
+
+
+notEquals : Expression -> Expression -> Expression
+notEquals a b =
+    Expression.OperatorApplication "/=" Infix.Non (Node Range.emptyRange a) (Node Range.emptyRange b)
 
 
 deduce newConstraint constraints acc =
