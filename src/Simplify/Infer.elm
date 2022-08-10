@@ -1,5 +1,6 @@
 module Simplify.Infer exposing
     ( Constraint(..)
+    , Constraint2(..)
     , Inferred
     , Inferred2(..)
     , Resources
@@ -9,6 +10,7 @@ module Simplify.Infer exposing
     , get2
     , getConstraint
     , getInt
+    , infer2
     , inferForIfCondition
     , inferForIfCondition2
     )
