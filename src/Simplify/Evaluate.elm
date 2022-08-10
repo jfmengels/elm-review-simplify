@@ -52,6 +52,7 @@ getBoolean resources baseNode =
                     Undetermined
 
         Expression.OperatorApplication "==" _ left right ->
+            -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
                 Just (Infer.Equals value) ->
                     case Normalize.compare resources (Node Range.emptyRange value) right of
@@ -79,6 +80,7 @@ getBoolean resources baseNode =
                     Undetermined
 
         Expression.OperatorApplication "/=" _ left right ->
+            -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
                 Just (Infer.Equals value) ->
                     case Normalize.compare resources (Node Range.emptyRange value) right of
