@@ -3580,6 +3580,49 @@ a =
   else 3
 """
                         ]
+        , test "should remove branches where the condition may not match (a || b --> a && b)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if a || b then
+    1
+  else if a && b then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        -- TODO Order of the errors seem to matter here. Should be fixed in `elm-review`
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = alwaysSameDetails
+                            , under = "a && b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if a || b then
+    1
+  else if a then
+    2
+  else
+    3
+"""
+                        , Review.Test.error
+                            { message = "Condition is always False"
+                            , details = alwaysSameDetails
+                            , under = "a && b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if a || b then
+    1
+  else if b then
+    2
+  else
+    3
+"""
+                        ]
 
         -- TODO
         -- Unhappy && and || cases:
