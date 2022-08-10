@@ -369,6 +369,34 @@ detailedTests =
                             , ( OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b")), falseExpr )
                             ]
                         }
+        , test "should infer a || b when True" <|
+            \() ->
+                infer2
+                    [ OperatorApplication "||"
+                        Infix.Right
+                        (n (FunctionOrValue [] "a"))
+                        (n (FunctionOrValue [] "b"))
+                    ]
+                    True
+                    empty2
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2 (FunctionOrValue [] "b") trueExpr
+                            , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]) falseExpr
+                            , Equals2 (FunctionOrValue [] "a") trueExpr
+                            , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]) falseExpr
+                            , Equals2 (OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))) trueExpr
+                            , Equals2 (OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))) falseExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "b", trueExpr )
+                            , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ], falseExpr )
+                            , ( FunctionOrValue [] "a", trueExpr )
+                            , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ], falseExpr )
+                            , ( OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ])), trueExpr )
+                            , ( OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b")), falseExpr )
+                            ]
+                        }
         ]
 
 
