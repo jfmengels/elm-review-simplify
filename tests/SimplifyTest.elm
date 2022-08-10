@@ -3623,10 +3623,9 @@ a =
     3
 """
                         ]
-        , Test.skip <|
-            test "should remove branches where the condition may not match (a && b --> a --> b)" <|
-                \() ->
-                    """module A exposing (..)
+        , test "should remove branches where the condition may not match (a && b --> a --> b)" <|
+            \() ->
+                """module A exposing (..)
 a =
   if a && b then
     1
@@ -3638,14 +3637,14 @@ a =
   else
     4
 """
-                        |> Review.Test.run (rule defaults)
-                        |> Review.Test.expectErrors
-                            [ Review.Test.error
-                                { message = "Condition is always False"
-                                , details = alwaysSameDetails
-                                , under = "b"
-                                }
-                                |> Review.Test.whenFixed """module A exposing (..)
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = alwaysSameDetails
+                            , under = "b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
 a =
   if a && b then
     1
@@ -3654,7 +3653,7 @@ a =
   else
     4
 """
-                            ]
+                        ]
 
         --        ,   test "should not lose information as more conditions add up" <|
         --                \() ->
