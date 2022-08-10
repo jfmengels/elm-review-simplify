@@ -55,6 +55,12 @@ all =
                               )
                             ]
                         }
+        , test "should infer a is true when a is False" <|
+            \() ->
+                empty2
+                    |> infer2 [ FunctionOrValue [] "a" ] False
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal (Just falseExpr)
         , test "should infer a == True when True" <|
             \() ->
                 infer2
@@ -192,6 +198,30 @@ all =
                               )
                             ]
                         }
+        , test "should infer a is 1 when a == 1 is True" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "=="
+                            Infix.Non
+                            (n (FunctionOrValue [] "a"))
+                            (n (Floatable 1))
+                        ]
+                        True
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal (Just (Floatable 1))
+        , test "should not infer a when a == 1 is False" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "=="
+                            Infix.Non
+                            (n (FunctionOrValue [] "a"))
+                            (n (Floatable 1))
+                        ]
+                        False
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal Nothing
         , test "should infer a && b when True" <|
             \() ->
                 infer2
