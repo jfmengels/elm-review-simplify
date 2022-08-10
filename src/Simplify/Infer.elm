@@ -191,7 +191,7 @@ infer2 nodes shouldBe acc =
                                     (convertToConstraint left shouldBe)
                                     (convertToConstraint right shouldBe)
                                 )
-                            |> infer2 (left :: right :: rest) shouldBe
+                            |> infer2 [ left, right ] shouldBe
                             |> infer2 rest shouldBe
 
                 Expression.OperatorApplication "==" _ left right ->
