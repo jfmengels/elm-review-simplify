@@ -322,6 +322,15 @@ detailedTests =
                         { constraints =
                             [ Equals2 (FunctionOrValue [] "b") trueExpr
                             , Equals2 (FunctionOrValue [] "a") trueExpr
+                            , And2
+                                (Equals2
+                                    (FunctionOrValue [] "a")
+                                    trueExpr
+                                )
+                                (Equals2
+                                    (FunctionOrValue [] "b")
+                                    trueExpr
+                                )
                             , Equals2
                                 (OperatorApplication "&&"
                                     Right
@@ -353,13 +362,12 @@ detailedTests =
                     empty2
                     |> expectEqual
                         { constraints =
-                            [ Equals2
-                                (OperatorApplication "||"
-                                    Right
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]))
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))
+                            [ Or2
+                                (Equals2
+                                    (FunctionOrValue [] "a")
+                                    falseExpr
                                 )
-                                trueExpr
+                                (Equals2 (FunctionOrValue [] "b") falseExpr)
                             , Equals2
                                 (OperatorApplication "&&"
                                     Right
@@ -369,13 +377,7 @@ detailedTests =
                                 falseExpr
                             ]
                         , deduced =
-                            [ ( OperatorApplication "||"
-                                    Right
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]))
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))
-                              , trueExpr
-                              )
-                            , ( OperatorApplication "&&"
+                            [ ( OperatorApplication "&&"
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
@@ -428,6 +430,15 @@ detailedTests =
                             , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]) trueExpr
                             , Equals2 (FunctionOrValue [] "a") falseExpr
                             , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]) trueExpr
+                            , And2
+                                (Equals2
+                                    (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])
+                                    trueExpr
+                                )
+                                (Equals2
+                                    (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ])
+                                    trueExpr
+                                )
                             , Equals2
                                 (OperatorApplication "&&"
                                     Right
