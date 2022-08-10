@@ -15,7 +15,7 @@ all =
     describe "Infer"
         [ simpleTests
         , detailedTests
-        , deduceTests
+        , Test.only <| deduceTests
         ]
 
 
@@ -475,50 +475,51 @@ detailedTests =
                             , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), falseExpr )
                             ]
                         }
-        , test "should infer a || b when True and a when False" <|
-            \() ->
-                empty2
-                    |> infer2
-                        [ OperatorApplication "||"
-                            Infix.Right
-                            (n (FunctionOrValue [] "a"))
-                            (n (FunctionOrValue [] "b"))
-                        ]
-                        True
-                    |> infer2 [ FunctionOrValue [] "a" ]
-                        False
-                    |> expectEqual
-                        { constraints =
-                            [ Equals2 (FunctionOrValue [] "a") falseExpr
-                            , Or2
-                                (Equals2
-                                    (FunctionOrValue [] "a")
-                                    trueExpr
-                                )
-                                (Equals2
-                                    (FunctionOrValue [] "b")
-                                    trueExpr
-                                )
-                            , Equals2
-                                (OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                trueExpr
+        , Test.only <|
+            test "should infer a || b when True and a when False" <|
+                \() ->
+                    empty2
+                        |> infer2
+                            [ OperatorApplication "||"
+                                Infix.Right
+                                (n (FunctionOrValue [] "a"))
+                                (n (FunctionOrValue [] "b"))
                             ]
-                        , deduced =
-                            [ ( FunctionOrValue [] "a"
-                              , falseExpr
-                              )
-                            , ( OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                              , trueExpr
-                              )
-                            ]
-                        }
+                            True
+                        |> infer2 [ FunctionOrValue [] "a" ]
+                            False
+                        |> expectEqual
+                            { constraints =
+                                [ Equals2 (FunctionOrValue [] "a") falseExpr
+                                , Or2
+                                    (Equals2
+                                        (FunctionOrValue [] "a")
+                                        trueExpr
+                                    )
+                                    (Equals2
+                                        (FunctionOrValue [] "b")
+                                        trueExpr
+                                    )
+                                , Equals2
+                                    (OperatorApplication "||"
+                                        Right
+                                        (n (FunctionOrValue [] "a"))
+                                        (n (FunctionOrValue [] "b"))
+                                    )
+                                    trueExpr
+                                ]
+                            , deduced =
+                                [ ( FunctionOrValue [] "a"
+                                  , falseExpr
+                                  )
+                                , ( OperatorApplication "||"
+                                        Right
+                                        (n (FunctionOrValue [] "a"))
+                                        (n (FunctionOrValue [] "b"))
+                                  , trueExpr
+                                  )
+                                ]
+                            }
         ]
 
 
