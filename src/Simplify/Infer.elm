@@ -182,6 +182,13 @@ injectConstraint expression constraint (Inferred inferred) =
         |> AssocList.foldl
             (\expr v acc ->
                 case expr of
+                    Expression.OperatorApplication "&&" infix_ (Node _ left) (Node _ right) ->
+                        if expression == left then
+                            AssocList.insert expr v acc
+
+                        else
+                            AssocList.insert expr v acc
+
                     _ ->
                         AssocList.insert expr v acc
             )
