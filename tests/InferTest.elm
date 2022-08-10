@@ -109,7 +109,7 @@ simpleTests =
             \() ->
                 empty2
                     |> infer2
-                        [ OperatorApplication "&&"
+                        [ OperatorApplication "||"
                             Infix.Right
                             (n (FunctionOrValue [] "a"))
                             (n (FunctionOrValue [] "b"))
@@ -117,11 +117,11 @@ simpleTests =
                         False
                     |> get2 (FunctionOrValue [] "a")
                     |> Expect.equal (Just falseExpr)
-        , test "should infer a is false when a || b is False" <|
+        , test "should infer b is false when a || b is False" <|
             \() ->
                 empty2
                     |> infer2
-                        [ OperatorApplication "&&"
+                        [ OperatorApplication "||"
                             Infix.Right
                             (n (FunctionOrValue [] "a"))
                             (n (FunctionOrValue [] "b"))
