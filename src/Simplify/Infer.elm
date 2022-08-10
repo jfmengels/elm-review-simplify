@@ -105,9 +105,19 @@ getConstraint expr (Inferred inferred) =
 
 inferForIfCondition2 : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred2 -> List ( Range, Inferred2 )
 inferForIfCondition2 condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer2 [ condition ] (Is2 True) inferred )
-    , ( falseBranchRange, infer2 [ condition ] (Is2 False) inferred )
+    [ ( trueBranchRange, infer2 [ condition ] (Equals2 condition trueExpr) inferred )
+    , ( falseBranchRange, infer2 [ condition ] (Equals2 condition falseExpr) inferred )
     ]
+
+
+trueExpr : Expression
+trueExpr =
+    Expression.FunctionOrValue [ "Basics" ] "True"
+
+
+falseExpr : Expression
+falseExpr =
+    Expression.FunctionOrValue [ "Basics" ] "False"
 
 
 infer2 : List Expression -> Constraint2 -> Inferred2 -> Inferred2
