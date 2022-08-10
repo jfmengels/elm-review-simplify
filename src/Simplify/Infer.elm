@@ -453,12 +453,26 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
             injectConstraints2
-                (Equals2 other trueExpr)
+                (Equals2 other
+                    (if shouldBe then
+                        trueExpr
+
+                     else
+                        falseExpr
+                    )
+                )
                 dict
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
             injectConstraints2
-                (Equals2 other falseExpr)
+                (Equals2 other
+                    (if shouldBe then
+                        falseExpr
+
+                     else
+                        trueExpr
+                    )
+                )
                 dict
 
         _ ->
