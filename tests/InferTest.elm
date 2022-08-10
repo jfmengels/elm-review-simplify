@@ -425,7 +425,16 @@ detailedTests =
                     empty2
                     |> expectEqual
                         { constraints =
-                            [ Equals2
+                            [ Or2
+                                (Equals2
+                                    (FunctionOrValue [] "a")
+                                    (FunctionOrValue [ "Basics" ] "True")
+                                )
+                                (Equals2
+                                    (FunctionOrValue [] "b")
+                                    (FunctionOrValue [ "Basics" ] "True")
+                                )
+                            , Equals2
                                 (OperatorApplication "||"
                                     Right
                                     (n (FunctionOrValue [] "a"))
@@ -516,6 +525,15 @@ detailedTests =
                     |> expectEqual
                         { constraints =
                             [ Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
+                            , Or2
+                                (Equals2
+                                    (FunctionOrValue [] "a")
+                                    (FunctionOrValue [ "Basics" ] "True")
+                                )
+                                (Equals2
+                                    (FunctionOrValue [] "b")
+                                    (FunctionOrValue [ "Basics" ] "True")
+                                )
                             , Equals2
                                 (OperatorApplication "||"
                                     Right

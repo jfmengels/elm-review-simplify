@@ -176,7 +176,13 @@ infer2 nodes shouldBe acc =
 
                 Expression.OperatorApplication "||" infix_ (Node _ left) (Node _ right) ->
                     if shouldBe then
-                        infer2 rest (not shouldBe) dict
+                        dict
+                            |> injectConstraints2
+                                (Or2
+                                    (convertToConstraint left shouldBe)
+                                    (convertToConstraint right shouldBe)
+                                )
+                            |> infer2 rest shouldBe
 
                     else
                         infer2
