@@ -93,7 +93,7 @@ get expr (Inferred inferred) =
 
 get2 : Expression -> Inferred2 -> Maybe Expression
 get2 expr (Inferred2 inferred) =
-    AssocList.get expr inferred.deduced
+    AssocList.get (Debug.log "\n\nexpr" expr) (inferred.deduced |> Debug.log "\ndeduced")
 
 
 getConstraint : Expression -> Inferred -> Maybe Constraint
@@ -149,6 +149,7 @@ infer2 nodes shouldBe acc =
                         rest
                         shouldBe
                         (infer2 [ Node.value expression ] (not shouldBe) dict)
+                        |> Debug.log "\n\nAFTER NOT"
 
                 Expression.OperatorApplication "&&" _ left right ->
                     if shouldBe then
@@ -191,11 +192,11 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
     let
         newDeduced : AssocList.Dict Expression Expression
         newDeduced =
-            deduce newConstraint constraints deduced
+            deduce newConstraint (Debug.log "\n\nconstraints" constraints) deduced
 
         newDeduced2 : AssocList.Dict Expression Expression
         newDeduced2 =
-            case Debug.log "constraint" newConstraint of
+            case Debug.log "\nNEW CONSTRAINT" newConstraint of
                 Equals2 a b ->
                     AssocList.insert a b newDeduced
 
