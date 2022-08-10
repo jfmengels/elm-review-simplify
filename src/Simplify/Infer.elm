@@ -1,7 +1,7 @@
 module Simplify.Infer exposing
     ( Constraint(..)
     , Inferred
-    , Inferred2
+    , Inferred2(..)
     , Resources
     , empty
     , empty2
