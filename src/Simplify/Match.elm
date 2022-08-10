@@ -2,6 +2,7 @@ module Simplify.Match exposing
     ( Match(..)
     , map
     , maybeAndThen
+    , and
     )
 
 {-|
@@ -26,6 +27,26 @@ map mapper match =
 
         Undetermined ->
             Undetermined
+
+
+and : Match Bool -> (() -> Match Bool) -> Match Bool
+and initial additional =
+    case initial of
+        Determined True ->
+            additional ()
+
+        _ ->
+            Undetermined
+
+
+or : Match Bool -> (() -> Match Bool) -> Match Bool
+or initial additional =
+    case initial of
+        Determined True ->
+            initial
+
+        _ ->
+            additional ()
 
 
 maybeAndThen : (a -> Match b) -> Maybe a -> Match b
