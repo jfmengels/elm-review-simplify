@@ -1,12 +1,16 @@
 module Simplify.Infer exposing
     ( Constraint(..)
     , Inferred
+    , Inferred2
     , Resources
     , empty
+    , empty2
     , get
+    , get2
     , getConstraint
     , getInt
     , inferForIfCondition
+    , inferForIfCondition2
     )
 
 import AssocList
@@ -19,6 +23,21 @@ import Simplify.AstHelpers as AstHelpers
 
 type Inferred
     = Inferred (AssocList.Dict Expression Constraints)
+
+
+type Inferred2
+    = Inferred2
+        { constraints : List Constraint2
+        , deduced : AssocList.Dict Expression Expression
+        }
+
+
+type Constraint2
+    = Equals2 Expression Expression
+    | NotEquals2 Expression Expression
+    | Is2 Bool
+    | And2 (List Constraint2)
+    | Or2 (List Constraint2)
 
 
 type Constraints
@@ -35,12 +54,21 @@ type alias Resources a =
     { a
         | lookupTable : ModuleNameLookupTable
         , inferredConstants : ( Inferred, List Inferred )
+        , inferredConstants2 : ( Inferred2, List Inferred2 )
     }
 
 
 empty : Inferred
 empty =
     Inferred AssocList.empty
+
+
+empty2 : Inferred2
+empty2 =
+    Inferred2
+        { constraints = []
+        , deduced = AssocList.empty
+        }
 
 
 get : Expression -> Inferred -> Maybe Expression
@@ -64,10 +92,168 @@ get expr (Inferred inferred) =
             Nothing
 
 
+get2 : Expression -> Inferred2 -> Maybe Expression
+get2 expr (Inferred2 inferred) =
+    AssocList.get expr inferred.deduced
+
+
 getConstraint : Expression -> Inferred -> Maybe Constraint
 getConstraint expr (Inferred inferred) =
     AssocList.get expr inferred
         |> Maybe.map (\(Single c) -> c)
+
+
+inferForIfCondition2 : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred2 -> List ( Range, Inferred2 )
+inferForIfCondition2 condition { trueBranchRange, falseBranchRange } inferred =
+    [ ( trueBranchRange, infer2 [ condition ] (Is2 True) inferred )
+    , ( falseBranchRange, infer2 [ condition ] (Is2 False) inferred )
+    ]
+
+
+infer2 : List Expression -> Constraint2 -> Inferred2 -> Inferred2
+infer2 nodes constraint acc =
+    case nodes of
+        [] ->
+            acc
+
+        node :: rest ->
+            let
+                dict : Inferred2
+                dict =
+                    injectConstraints2 constraint acc
+            in
+            case node of
+                Expression.FunctionOrValue _ _ ->
+                    infer2 rest constraint dict
+
+                Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
+                    infer2
+                        rest
+                        constraint
+                        (infer2 [ Node.value expression ] (inverseConstraint2 constraint) dict)
+
+                Expression.OperatorApplication "&&" _ left right ->
+                    if constraint == Is2 True then
+                        infer2 (Node.value left :: Node.value right :: rest) constraint dict
+
+                    else
+                        -- TODO Add inverse constraint
+                        infer2 rest constraint dict
+
+                Expression.OperatorApplication "||" _ left right ->
+                    if constraint == Is2 False then
+                        infer2 (Node.value left :: Node.value right :: rest) constraint dict
+
+                    else
+                        -- TODO Add inverse constraint
+                        infer2 rest constraint dict
+
+                Expression.OperatorApplication "==" _ left right ->
+                    infer2 rest
+                        constraint
+                        (dict
+                            |> inferOnEquality2 left right constraint
+                            |> inferOnEquality2 right left constraint
+                        )
+
+                Expression.OperatorApplication "/=" _ left right ->
+                    let
+                        inversedConstraint : Constraint2
+                        inversedConstraint =
+                            inverseConstraint2 constraint
+                    in
+                    infer2 rest
+                        constraint
+                        (dict
+                            |> inferOnEquality2 left right inversedConstraint
+                            |> inferOnEquality2 right left inversedConstraint
+                        )
+
+                _ ->
+                    infer2 rest constraint dict
+
+
+injectConstraints2 : Constraint2 -> Inferred2 -> Inferred2
+injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
+    let
+        newDeduced : AssocList.Dict Expression Expression
+        newDeduced =
+            deduce newConstraint constraints deduced
+
+        newDeduced2 : AssocList.Dict Expression Expression
+        newDeduced2 =
+            case newConstraint of
+                Is2 _ ->
+                    newDeduced
+
+                Equals2 a b ->
+                    AssocList.insert a b newDeduced
+
+                NotEquals2 a b ->
+                    -- TODO Add "a /= b"?
+                    newDeduced
+
+                And2 _ ->
+                    -- TODO Add "a && b && ..."?
+                    newDeduced
+
+                Or2 _ ->
+                    -- TODO Add "a || b || ..."?
+                    newDeduced
+    in
+    Inferred2
+        { constraints = newConstraint :: constraints
+        , deduced = newDeduced2
+        }
+
+
+deduce newConstraint constraints acc =
+    --case constraints of
+    --    constraint :: restOfConstraints ->
+    --        case (constraint, newConstraint) ->
+    --            (And2 list, )
+    acc
+
+
+inferOnEquality2 : Node Expression -> Node Expression -> Constraint2 -> Inferred2 -> Inferred2
+inferOnEquality2 (Node _ expr) (Node _ other) constraints dict =
+    case expr of
+        Expression.Integer int ->
+            case constraints of
+                Is2 True ->
+                    injectConstraints2
+                        (Equals2 other (Expression.Floatable (Basics.toFloat int)))
+                        dict
+
+                Is2 False ->
+                    injectConstraints2
+                        (NotEquals2 other (Expression.Floatable (Basics.toFloat int)))
+                        dict
+
+                _ ->
+                    dict
+
+        _ ->
+            dict
+
+
+inverseConstraint2 : Constraint2 -> Constraint2
+inverseConstraint2 constraint =
+    case constraint of
+        Is2 bool ->
+            Is2 (not bool)
+
+        Equals2 expr value ->
+            NotEquals2 expr value
+
+        NotEquals2 expr value ->
+            Equals2 expr value
+
+        And2 constraints ->
+            Or2 (List.map inverseConstraint2 constraints)
+
+        Or2 constraints ->
+            And2 (List.map inverseConstraint2 constraints)
 
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
