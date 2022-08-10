@@ -65,6 +65,9 @@ all =
                         (Inferred2
                             { constraints =
                                 [ Equals2
+                                    (FunctionOrValue [] "a")
+                                    (FunctionOrValue [ "Basics" ] "True")
+                                , Equals2
                                     (OperatorApplication "=="
                                         Non
                                         (n (FunctionOrValue [] "a"))
@@ -78,6 +81,9 @@ all =
                                             Non
                                             (n (FunctionOrValue [] "a"))
                                             (n (FunctionOrValue [ "Basics" ] "True"))
+                                      , FunctionOrValue [ "Basics" ] "True"
+                                      )
+                                    , ( FunctionOrValue [] "a"
                                       , FunctionOrValue [ "Basics" ] "True"
                                       )
                                     ]

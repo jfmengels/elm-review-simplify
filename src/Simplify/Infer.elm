@@ -451,6 +451,16 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
                     (NotEquals2 other (Expression.Floatable float))
                     dict
 
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            injectConstraints2
+                (Equals2 other trueExpr)
+                dict
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            injectConstraints2
+                (Equals2 other falseExpr)
+                dict
+
         _ ->
             dict
 
