@@ -126,7 +126,7 @@ convertToConstraint expr shouldBe =
         Equals2 expr trueExpr
 
     else
-        NotEquals2 expr falseExpr
+        Equals2 expr falseExpr
 
 
 infer2 : List Expression -> Bool -> Inferred2 -> Inferred2
@@ -199,21 +199,18 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
         newDeduced2 =
             case Debug.log "\nNEW CONSTRAINT" newConstraint of
                 Equals2 a b ->
-                    newDeduced
-                        |> AssocList.insert a b
-                        |> AssocList.insert b a
-                        |> AssocList.insert (equals a b) trueExpr
-                        |> AssocList.insert (equals b a) trueExpr
-                        |> AssocList.insert (notEquals a b) falseExpr
-                        |> AssocList.insert (notEquals b a) falseExpr
+                    injectEqualsInDeduced a b deduced
 
+                --|> AssocList.insert (equals a b) trueExpr
+                --|> AssocList.insert (equals b a) trueExpr
+                --|> AssocList.insert (notEquals a b) falseExpr
+                --|> AssocList.insert (notEquals b a) falseExpr
                 NotEquals2 a b ->
-                    newDeduced
-                        |> AssocList.insert (equals a b) falseExpr
-                        |> AssocList.insert (equals b a) falseExpr
-                        |> AssocList.insert (notEquals a b) trueExpr
-                        |> AssocList.insert (notEquals b a) trueExpr
+                    injectNotEqualsInDeduced a b deduced
 
+                --|> AssocList.insert (equals b a) falseExpr
+                --|> AssocList.insert (notEquals a b) trueExpr
+                --|> AssocList.insert (notEquals b a) trueExpr
                 And2 _ ->
                     -- TODO Add "a && b && ..."?
                     newDeduced
@@ -226,6 +223,53 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
         { constraints = newConstraint :: constraints
         , deduced = newDeduced2
         }
+
+
+injectEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
+injectEqualsInDeduced a b deduced =
+    if a == trueExpr || a == falseExpr then
+        if b == trueExpr || b == falseExpr then
+            deduced
+
+        else
+            injectEqualsInDeduced b a deduced
+
+    else if b == trueExpr || b == falseExpr then
+        AssocList.insert a b deduced
+
+    else
+        deduced
+            |> AssocList.insert a b
+            |> AssocList.insert b a
+            |> AssocList.insert (equals a b) trueExpr
+            |> AssocList.insert (equals b a) trueExpr
+            |> AssocList.insert (notEquals a b) falseExpr
+            |> AssocList.insert (notEquals b a) falseExpr
+
+
+injectNotEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
+injectNotEqualsInDeduced a b deduced =
+    if a == trueExpr || a == falseExpr then
+        if b == trueExpr || b == falseExpr then
+            deduced
+
+        else
+            injectNotEqualsInDeduced b a deduced
+
+    else if b == falseExpr then
+        AssocList.insert a trueExpr deduced
+
+    else if b == trueExpr then
+        deduced
+            |> AssocList.insert (notEquals a b) trueExpr
+            |> AssocList.insert (equals a b) falseExpr
+
+    else
+        deduced
+            |> AssocList.insert (notEquals a b) trueExpr
+            |> AssocList.insert (notEquals b a) trueExpr
+            |> AssocList.insert (equals a b) falseExpr
+            |> AssocList.insert (equals b a) falseExpr
 
 
 equals : Expression -> Expression -> Expression
