@@ -136,19 +136,19 @@ infer nodes constraint acc =
 
 
 inferOnEquality : Node Expression -> Node Expression -> Constraint -> Inferred -> Inferred
-inferOnEquality node other constraint dict =
-    case Node.value node of
+inferOnEquality (Node _ expr) (Node _ other) constraint dict =
+    case expr of
         Expression.Integer int ->
             case constraint of
                 Is True ->
                     injectConstraint
-                        (Node.value other)
+                        other
                         (Equals (Expression.Floatable (Basics.toFloat int)))
                         dict
 
                 Is False ->
                     injectConstraint
-                        (Node.value other)
+                        other
                         (NotEquals (Expression.Floatable (Basics.toFloat int)))
                         dict
 
