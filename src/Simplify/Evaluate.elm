@@ -37,7 +37,7 @@ getBoolean resources baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
+                    |> Maybe.andThen (\moduleName -> Infer.get2 (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants2))
             of
                 Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
                     Determined True
