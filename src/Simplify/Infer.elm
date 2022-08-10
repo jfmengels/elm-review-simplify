@@ -197,6 +197,15 @@ injectConstraint expression constraint (Inferred inferred) =
         |> Inferred
 
 
+insertIf : Bool -> Expression -> Constraint -> AssocList.Dict Expression Constraint -> AssocList.Dict Expression Constraint
+insertIf condition expression constraint inferred =
+    if condition then
+        AssocList.insert expression constraint inferred
+
+    else
+        inferred
+
+
 getInt : Resources a -> Node Expression -> Maybe Int
 getInt resources baseNode =
     let
