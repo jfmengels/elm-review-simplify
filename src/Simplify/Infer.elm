@@ -155,9 +155,17 @@ infer2 nodes shouldBe acc =
                         shouldBe
                         (infer2 [ Node.value expression ] (not shouldBe) dict)
 
-                Expression.OperatorApplication "&&" infix_ left right ->
+                Expression.OperatorApplication "&&" infix_ (Node _ left) (Node _ right) ->
                     if shouldBe then
-                        infer2 (Node.value left :: Node.value right :: rest) shouldBe dict
+                        infer2 (left :: right :: rest)
+                            shouldBe
+                            (injectConstraints2
+                                (And2
+                                    (convertToConstraint left shouldBe)
+                                    (convertToConstraint right shouldBe)
+                                )
+                                dict
+                            )
 
                     else
                         infer2
@@ -165,7 +173,7 @@ infer2 nodes shouldBe acc =
                             (not shouldBe)
                             dict
 
-                Expression.OperatorApplication "||" infix_ left right ->
+                Expression.OperatorApplication "||" infix_ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         infer2 rest (not shouldBe) dict
 
@@ -195,9 +203,9 @@ infer2 nodes shouldBe acc =
                     infer2 rest shouldBe dict
 
 
-notE : Node Expression -> Node Expression
+notE : Expression -> Node Expression
 notE node =
-    case Node.value node of
+    case node of
         Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
             expression
 
@@ -205,7 +213,7 @@ notE node =
             Node Range.emptyRange
                 (Expression.Application
                     [ Node Range.emptyRange (Expression.FunctionOrValue [ "Basics" ] "not")
-                    , node
+                    , Node Range.emptyRange node
                     ]
                 )
 
