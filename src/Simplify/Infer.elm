@@ -18,7 +18,11 @@ import Simplify.AstHelpers as AstHelpers
 
 
 type Inferred
-    = Inferred (AssocList.Dict Expression Constraint)
+    = Inferred (AssocList.Dict Expression Constraints)
+
+
+type Constraints
+    = Single Constraint
 
 
 type Constraint
@@ -42,7 +46,7 @@ empty =
 get : Expression -> Inferred -> Maybe Expression
 get expr (Inferred inferred) =
     case AssocList.get expr inferred of
-        Just (Is bool) ->
+        Just (Single (Is bool)) ->
             Just
                 (Expression.FunctionOrValue [ "Basics" ]
                     (if bool then
@@ -53,7 +57,7 @@ get expr (Inferred inferred) =
                     )
                 )
 
-        Just (Equals value) ->
+        Just (Single (Equals value)) ->
             Just value
 
         _ ->
@@ -63,17 +67,18 @@ get expr (Inferred inferred) =
 getConstraint : Expression -> Inferred -> Maybe Constraint
 getConstraint expr (Inferred inferred) =
     AssocList.get expr inferred
+        |> Maybe.map (\(Single c) -> c)
 
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer [ condition ] (Is True) inferred )
-    , ( falseBranchRange, infer [ condition ] (Is False) inferred )
+    [ ( trueBranchRange, infer [ condition ] (Single (Is True)) inferred )
+    , ( falseBranchRange, infer [ condition ] (Single (Is False)) inferred )
     ]
 
 
-infer : List Expression -> Constraint -> Inferred -> Inferred
-infer nodes constraint acc =
+infer : List Expression -> Constraints -> Inferred -> Inferred
+infer nodes constraints acc =
     case nodes of
         [] ->
             acc
@@ -82,85 +87,90 @@ infer nodes constraint acc =
             let
                 dict : Inferred
                 dict =
-                    injectConstraint node constraint acc
+                    injectConstraints node constraints acc
             in
             case node of
                 Expression.FunctionOrValue _ _ ->
-                    infer rest constraint dict
+                    infer rest constraints dict
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer
                         rest
-                        constraint
-                        (infer [ Node.value expression ] (inverseConstraint constraint) dict)
+                        constraints
+                        (infer [ Node.value expression ] (inverseConstraint constraints) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
-                    if constraint == Is True then
-                        infer (Node.value left :: Node.value right :: rest) constraint dict
+                    if constraints == Single (Is True) then
+                        infer (Node.value left :: Node.value right :: rest) constraints dict
 
                     else
                         -- TODO Add inverse constraint
-                        infer rest constraint dict
+                        infer rest constraints dict
 
                 Expression.OperatorApplication "||" _ left right ->
-                    if constraint == Is False then
-                        infer (Node.value left :: Node.value right :: rest) constraint dict
+                    if constraints == Single (Is False) then
+                        infer (Node.value left :: Node.value right :: rest) constraints dict
 
                     else
                         -- TODO Add inverse constraint
-                        infer rest constraint dict
+                        infer rest constraints dict
 
                 Expression.OperatorApplication "==" _ left right ->
                     infer rest
-                        constraint
+                        constraints
                         (dict
-                            |> inferOnEquality left right constraint
-                            |> inferOnEquality right left constraint
+                            |> inferOnEquality left right constraints
+                            |> inferOnEquality right left constraints
                         )
 
                 Expression.OperatorApplication "/=" _ left right ->
                     let
-                        inversedConstraint : Constraint
-                        inversedConstraint =
-                            inverseConstraint constraint
+                        inversedConstraints : Constraints
+                        inversedConstraints =
+                            inverseConstraint constraints
                     in
                     infer rest
-                        constraint
+                        constraints
                         (dict
-                            |> inferOnEquality left right inversedConstraint
-                            |> inferOnEquality right left inversedConstraint
+                            |> inferOnEquality left right inversedConstraints
+                            |> inferOnEquality right left inversedConstraints
                         )
 
                 _ ->
-                    infer rest constraint dict
+                    infer rest constraints dict
 
 
-inferOnEquality : Node Expression -> Node Expression -> Constraint -> Inferred -> Inferred
-inferOnEquality (Node _ expr) (Node _ other) constraint dict =
+inferOnEquality : Node Expression -> Node Expression -> Constraints -> Inferred -> Inferred
+inferOnEquality (Node _ expr) (Node _ other) constraints dict =
     case expr of
         Expression.Integer int ->
-            case constraint of
-                Is True ->
-                    injectConstraint
+            case constraints of
+                Single (Is True) ->
+                    injectConstraints
                         other
-                        (Equals (Expression.Floatable (Basics.toFloat int)))
+                        (Single (Equals (Expression.Floatable (Basics.toFloat int))))
                         dict
 
-                Is False ->
-                    injectConstraint
+                Single (Is False) ->
+                    injectConstraints
                         other
-                        (NotEquals (Expression.Floatable (Basics.toFloat int)))
+                        (Single (NotEquals (Expression.Floatable (Basics.toFloat int))))
                         dict
 
-                _ ->
+                Single _ ->
                     dict
 
         _ ->
             dict
 
 
-inverseConstraint : Constraint -> Constraint
-inverseConstraint constraint =
+inverseConstraint : Constraints -> Constraints
+inverseConstraint (Single constraint) =
+    Single (inverseSingleConstraint constraint)
+
+
+inverseSingleConstraint : Constraint -> Constraint
+inverseSingleConstraint constraint =
     case constraint of
         Is bool ->
             Is (not bool)
@@ -178,8 +188,8 @@ inverseConstraint constraint =
             Equals value
 
 
-injectConstraint : Expression -> Constraint -> Inferred -> Inferred
-injectConstraint expression constraint (Inferred inferred) =
+injectConstraints : Expression -> Constraints -> Inferred -> Inferred
+injectConstraints expression constraints (Inferred inferred) =
     inferred
         |> AssocList.foldl
             (\expr v acc ->
@@ -195,7 +205,7 @@ injectConstraint expression constraint (Inferred inferred) =
                         AssocList.insert expr v acc
             )
             AssocList.empty
-        |> AssocList.insert expression constraint
+        |> AssocList.insert expression constraints
         |> Inferred
 
 
