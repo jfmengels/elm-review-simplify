@@ -3660,7 +3660,7 @@ a =
                 """module A exposing (..)
 a =
   if a == 1 then
-    if a /= 2 then
+    if a == f b then
       if a == 1 then
         1
       else
