@@ -81,6 +81,18 @@ simpleTests =
                         True
                     |> get2 (FunctionOrValue [] "b")
                     |> Expect.equal (Just trueExpr)
+        , test "should not infer a when a || b is True" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "||"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
+                    |> get2 (FunctionOrValue [] "b")
+                    |> Expect.equal Nothing
         ]
 
 
