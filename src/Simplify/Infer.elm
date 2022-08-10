@@ -275,11 +275,17 @@ notEquals a b =
 
 
 deduce newConstraint constraints acc =
-    --case constraints of
-    --    constraint :: restOfConstraints ->
-    --        case (constraint, newConstraint) ->
-    --            (And2 list, )
-    acc
+    case constraints of
+        [] ->
+            acc
+
+        constraint :: restOfConstraints ->
+            case ( constraint, newConstraint ) of
+                ( And2 list, Equals2 a b ) ->
+                    deduce newConstraint restOfConstraints acc
+
+                _ ->
+                    deduce newConstraint restOfConstraints acc
 
 
 inferOnEquality2 : Node Expression -> Node Expression -> Bool -> Inferred2 -> Inferred2
