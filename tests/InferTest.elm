@@ -428,11 +428,11 @@ detailedTests =
                             [ Or2
                                 (Equals2
                                     (FunctionOrValue [] "a")
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 )
                                 (Equals2
                                     (FunctionOrValue [] "b")
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 )
                             , Equals2
                                 (OperatorApplication "||"
@@ -464,50 +464,14 @@ detailedTests =
                     |> expectEqual
                         { constraints =
                             [ Equals2 (FunctionOrValue [] "b") falseExpr
-                            , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]) trueExpr
                             , Equals2 (FunctionOrValue [] "a") falseExpr
-                            , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]) trueExpr
-                            , And2
-                                (Equals2
-                                    (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])
-                                    trueExpr
-                                )
-                                (Equals2
-                                    (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ])
-                                    trueExpr
-                                )
-                            , Equals2
-                                (OperatorApplication "&&"
-                                    Right
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]))
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))
-                                )
-                                trueExpr
-                            , Equals2
-                                (OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                falseExpr
+                            , And2 (Equals2 (FunctionOrValue [] "a") falseExpr) (Equals2 (FunctionOrValue [] "b") falseExpr)
+                            , Equals2 (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "b", falseExpr )
-                            , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ], trueExpr )
                             , ( FunctionOrValue [] "a", falseExpr )
-                            , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ], trueExpr )
-                            , ( OperatorApplication "&&"
-                                    Right
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]))
-                                    (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))
-                              , trueExpr
-                              )
-                            , ( OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                              , falseExpr
-                              )
+                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), falseExpr )
                             ]
                         }
         , test "should infer a || b when True and a when False" <|
@@ -524,33 +488,33 @@ detailedTests =
                         False
                     |> expectEqual
                         { constraints =
-                            [ Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
+                            [ Equals2 (FunctionOrValue [] "a") falseExpr
                             , Or2
                                 (Equals2
                                     (FunctionOrValue [] "a")
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 )
                                 (Equals2
                                     (FunctionOrValue [] "b")
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 )
                             , Equals2
                                 (OperatorApplication "||"
                                     Right
-                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a"))
-                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
                                 )
-                                (FunctionOrValue [ "Basics" ] "True")
+                                trueExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , FunctionOrValue [ "Basics" ] "False"
+                              , falseExpr
                               )
                             , ( OperatorApplication "||"
                                     Right
-                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a"))
-                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))
-                              , FunctionOrValue [ "Basics" ] "True"
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                              , trueExpr
                               )
                             ]
                         }
