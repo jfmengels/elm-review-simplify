@@ -3623,12 +3623,42 @@ a =
     3
 """
                         ]
+        , test "should remove branches where the condition may not match (a && b --> a --> b)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if a && b then
+    1
+  else if a then
+    if b then
+      2
+    else
+      3
+  else
+    4
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Condition is always False"
+                            , details = alwaysSameDetails
+                            , under = "b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if a && b then
+    1
+  else if a then
+    3
+  else
+    4
+"""
+                        ]
 
         -- TODO
         -- Unhappy && and || cases:
         --   if a && b then ... else <not a || not b>
         --   if a || b then ... else <not a && not b>
-        --   if a || b then ... else (if a then (if b then <can't happen> else x) else y)
         ]
 
 
