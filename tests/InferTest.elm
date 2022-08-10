@@ -357,16 +357,16 @@ detailedTests =
                             , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]) falseExpr
                             , Equals2 (FunctionOrValue [] "a") trueExpr
                             , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]) falseExpr
-                            , Equals2 (OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))) trueExpr
-                            , Equals2 (OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))) falseExpr
+                            , Equals2 (OperatorApplication "||" Right (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))) trueExpr
+                            , Equals2 (OperatorApplication "&&" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "b", trueExpr )
                             , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ], falseExpr )
                             , ( FunctionOrValue [] "a", trueExpr )
                             , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ], falseExpr )
-                            , ( OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ])), trueExpr )
-                            , ( OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b")), falseExpr )
+                            , ( OperatorApplication "||" Right (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (n (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ])), trueExpr )
+                            , ( OperatorApplication "&&" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), falseExpr )
                             ]
                         }
         , test "should infer a || b when True" <|
@@ -381,20 +381,21 @@ detailedTests =
                     empty2
                     |> expectEqual
                         { constraints =
-                            [ Equals2 (FunctionOrValue [] "b") trueExpr
-                            , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]) falseExpr
-                            , Equals2 (FunctionOrValue [] "a") trueExpr
-                            , Equals2 (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ]) falseExpr
-                            , Equals2 (OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ]))) trueExpr
-                            , Equals2 (OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))) falseExpr
+                            [ Equals2
+                                (OperatorApplication "||"
+                                    Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                                )
+                                trueExpr
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", trueExpr )
-                            , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ], falseExpr )
-                            , ( FunctionOrValue [] "a", trueExpr )
-                            , ( Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ], falseExpr )
-                            , ( OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ n (FunctionOrValue [ "Basics" ] "not"), n (FunctionOrValue [] "b") ])), trueExpr )
-                            , ( OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b")), falseExpr )
+                            [ ( OperatorApplication "||"
+                                    Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                              , trueExpr
+                              )
                             ]
                         }
         ]
