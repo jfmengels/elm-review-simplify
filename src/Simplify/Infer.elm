@@ -35,7 +35,6 @@ type Inferred2
 type Constraint2
     = Equals2 Expression Expression
     | NotEquals2 Expression Expression
-    | Is2 Bool
     | And2 (List Constraint2)
     | Or2 (List Constraint2)
 
@@ -105,8 +104,8 @@ getConstraint expr (Inferred inferred) =
 
 inferForIfCondition2 : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred2 -> List ( Range, Inferred2 )
 inferForIfCondition2 condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer2 [ condition ] (Equals2 condition trueExpr) inferred )
-    , ( falseBranchRange, infer2 [ condition ] (Equals2 condition falseExpr) inferred )
+    [ ( trueBranchRange, infer2 [ condition ] True inferred )
+    , ( falseBranchRange, infer2 [ condition ] False inferred )
     ]
 
 
@@ -120,8 +119,17 @@ falseExpr =
     Expression.FunctionOrValue [ "Basics" ] "False"
 
 
-infer2 : List Expression -> Constraint2 -> Inferred2 -> Inferred2
-infer2 nodes constraint acc =
+convertToConstraint : Expression -> Bool -> Constraint2
+convertToConstraint expr shouldBe =
+    if shouldBe then
+        Equals2 expr trueExpr
+
+    else
+        NotEquals2 expr falseExpr
+
+
+infer2 : List Expression -> Bool -> Inferred2 -> Inferred2
+infer2 nodes shouldBe acc =
     case nodes of
         [] ->
             acc
@@ -130,57 +138,52 @@ infer2 nodes constraint acc =
             let
                 dict : Inferred2
                 dict =
-                    injectConstraints2 constraint acc
+                    injectConstraints2 (convertToConstraint node shouldBe) acc
             in
             case node of
                 Expression.FunctionOrValue _ _ ->
-                    infer2 rest constraint dict
+                    infer2 rest shouldBe dict
 
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer2
                         rest
-                        constraint
-                        (infer2 [ Node.value expression ] (inverseConstraint2 constraint) dict)
+                        shouldBe
+                        (infer2 [ Node.value expression ] (not shouldBe) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
-                    if constraint == Is2 True then
-                        infer2 (Node.value left :: Node.value right :: rest) constraint dict
+                    if shouldBe then
+                        infer2 (Node.value left :: Node.value right :: rest) shouldBe dict
 
                     else
-                        -- TODO Add inverse constraint
-                        infer2 rest constraint dict
+                        -- TODO Add inverse shouldBe
+                        infer2 rest shouldBe dict
 
                 Expression.OperatorApplication "||" _ left right ->
-                    if constraint == Is2 False then
-                        infer2 (Node.value left :: Node.value right :: rest) constraint dict
+                    if not shouldBe then
+                        infer2 (Node.value left :: Node.value right :: rest) shouldBe dict
 
                     else
-                        -- TODO Add inverse constraint
-                        infer2 rest constraint dict
+                        -- TODO Add inverse shouldBe
+                        infer2 rest shouldBe dict
 
                 Expression.OperatorApplication "==" _ left right ->
                     infer2 rest
-                        constraint
+                        shouldBe
                         (dict
-                            |> inferOnEquality2 left right constraint
-                            |> inferOnEquality2 right left constraint
+                            |> inferOnEquality2 left right shouldBe
+                            |> inferOnEquality2 right left shouldBe
                         )
 
                 Expression.OperatorApplication "/=" _ left right ->
-                    let
-                        inversedConstraint : Constraint2
-                        inversedConstraint =
-                            inverseConstraint2 constraint
-                    in
                     infer2 rest
-                        constraint
+                        shouldBe
                         (dict
-                            |> inferOnEquality2 left right inversedConstraint
-                            |> inferOnEquality2 right left inversedConstraint
+                            |> inferOnEquality2 left right (not shouldBe)
+                            |> inferOnEquality2 right left (not shouldBe)
                         )
 
                 _ ->
-                    infer2 rest constraint dict
+                    infer2 rest shouldBe dict
 
 
 injectConstraints2 : Constraint2 -> Inferred2 -> Inferred2
@@ -193,9 +196,6 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
         newDeduced2 : AssocList.Dict Expression Expression
         newDeduced2 =
             case Debug.log "constraint" newConstraint of
-                Is2 _ ->
-                    newDeduced
-
                 Equals2 a b ->
                     AssocList.insert a b newDeduced
 
@@ -225,22 +225,18 @@ deduce newConstraint constraints acc =
     acc
 
 
-inferOnEquality2 : Node Expression -> Node Expression -> Constraint2 -> Inferred2 -> Inferred2
-inferOnEquality2 (Node _ expr) (Node _ other) constraints dict =
+inferOnEquality2 : Node Expression -> Node Expression -> Bool -> Inferred2 -> Inferred2
+inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
     case expr of
         Expression.Integer int ->
-            case constraints of
-                Is2 True ->
-                    injectConstraints2
-                        (Equals2 other (Expression.Floatable (Basics.toFloat int)))
-                        dict
+            if shouldBe then
+                injectConstraints2
+                    (Equals2 other (Expression.Floatable (Basics.toFloat int)))
+                    dict
 
-                Is2 False ->
-                    injectConstraints2
-                        (NotEquals2 other (Expression.Floatable (Basics.toFloat int)))
-                        dict
-
-                _ ->
+            else
+                injectConstraints2
+                    (NotEquals2 other (Expression.Floatable (Basics.toFloat int)))
                     dict
 
         _ ->
@@ -250,9 +246,6 @@ inferOnEquality2 (Node _ expr) (Node _ other) constraints dict =
 inverseConstraint2 : Constraint2 -> Constraint2
 inverseConstraint2 constraint =
     case constraint of
-        Is2 bool ->
-            Is2 (not bool)
-
         Equals2 expr value ->
             NotEquals2 expr value
 
