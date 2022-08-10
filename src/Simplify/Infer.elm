@@ -188,11 +188,17 @@ infer2 nodes shouldBe acc =
 
 
 injectConstraints2 : Constraint2 -> Inferred2 -> Inferred2
-injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
+injectConstraints2 newConstraint (Inferred2 inferred) =
     let
-        newDeduced : AssocList.Dict Expression Expression
-        newDeduced =
-            deduce newConstraint constraints [] deduced
+        { deduced, updatedConstraints } =
+            deduce
+                { newConstraint = newConstraint
+                , constraints = inferred.constraints
+                }
+                { alreadySeen = []
+                , deduced = inferred.deduced
+                , updatedConstraints = inferred.constraints
+                }
 
         newDeduced2 : AssocList.Dict Expression Expression
         newDeduced2 =
@@ -205,14 +211,14 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
 
                 And2 _ _ ->
                     -- TODO Add "a && b && ..."?
-                    newDeduced
+                    deduced
 
                 Or2 _ _ ->
                     -- TODO Add "a || b || ..."?
-                    newDeduced
+                    deduced
     in
     Inferred2
-        { constraints = newConstraint :: constraints
+        { constraints = newConstraint :: updatedConstraints
         , deduced = newDeduced2
         }
 
@@ -274,26 +280,90 @@ notEquals a b =
     Expression.OperatorApplication "/=" Infix.Non (Node Range.emptyRange a) (Node Range.emptyRange b)
 
 
-deduce newConstraint constraints alreadySeen acc =
+deduce :
+    { newConstraint : Constraint2
+    , constraints : List Constraint2
+    }
+    ->
+        { alreadySeen : List Constraint2
+        , deduced : AssocList.Dict Expression Expression
+        , updatedConstraints : List Constraint2
+        }
+    ->
+        { alreadySeen : List Constraint2
+        , deduced : AssocList.Dict Expression Expression
+        , updatedConstraints : List Constraint2
+        }
+deduce { newConstraint, constraints } acc =
     case constraints of
         [] ->
             acc
 
         constraint :: restOfConstraints ->
-            if List.member constraint alreadySeen then
-                deduce newConstraint restOfConstraints alreadySeen acc
+            if List.member constraint acc.alreadySeen then
+                deduce
+                    { newConstraint = newConstraint
+                    , constraints = restOfConstraints
+                    }
+                    acc
 
             else
                 let
-                    newSeen =
-                        constraint :: alreadySeen
+                    newParams : { newConstraint : Constraint2, constraints : List Constraint2 }
+                    newParams =
+                        { newConstraint = newConstraint
+                        , constraints = restOfConstraints
+                        }
                 in
-                case ( constraint, newConstraint ) of
-                    ( And2 left right, Equals2 a b ) ->
-                        deduce newConstraint restOfConstraints newSeen acc
+                case constraint of
+                    Or2 left right ->
+                        if left == newConstraint then
+                            let
+                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
+                                res =
+                                    deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+                            in
+                            case addDeducedOrConstraint right of
+                                Just ( a, b ) ->
+                                    { res | deduced = AssocList.insert a b res.deduced }
+
+                                Nothing ->
+                                    deduce { newParams | newConstraint = right } res
+
+                        else if right == newConstraint then
+                            let
+                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
+                                res =
+                                    deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+                            in
+                            case addDeducedOrConstraint left of
+                                Just ( a, b ) ->
+                                    { res | deduced = AssocList.insert a b res.deduced }
+
+                                Nothing ->
+                                    deduce { newParams | newConstraint = left } res
+
+                        else
+                            deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
 
                     _ ->
-                        deduce newConstraint restOfConstraints newSeen acc
+                        deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+
+
+addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, Expression )
+addDeducedOrConstraint constraint =
+    case constraint of
+        Equals2 a b ->
+            Just ( a, b )
+
+        NotEquals2 _ _ ->
+            Nothing
+
+        And2 _ _ ->
+            Nothing
+
+        Or2 _ _ ->
+            Nothing
 
 
 inferOnEquality2 : Node Expression -> Node Expression -> Bool -> Inferred2 -> Inferred2
