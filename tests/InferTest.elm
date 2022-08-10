@@ -501,6 +501,41 @@ detailedTests =
                               )
                             ]
                         }
+        , test "should infer a || b when True and a when False" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "||"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
+                    |> infer2 [ FunctionOrValue [] "a" ]
+                        False
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
+                            , Equals2
+                                (OperatorApplication "||"
+                                    Right
+                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a"))
+                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))
+                                )
+                                (FunctionOrValue [ "Basics" ] "True")
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "a"
+                              , FunctionOrValue [ "Basics" ] "False"
+                              )
+                            , ( OperatorApplication "||"
+                                    Right
+                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a"))
+                                    (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))
+                              , FunctionOrValue [ "Basics" ] "True"
+                              )
+                            ]
+                        }
         ]
 
 
