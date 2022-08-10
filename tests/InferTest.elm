@@ -34,6 +34,27 @@ all =
                                     ]
                             }
                         )
+        , test "should infer a when False" <|
+            \() ->
+                infer2
+                    [ FunctionOrValue [] "a" ]
+                    False
+                    empty2
+                    |> Expect.equal
+                        (Inferred2
+                            { constraints =
+                                [ Equals2
+                                    (FunctionOrValue [] "a")
+                                    (FunctionOrValue [ "Basics" ] "False")
+                                ]
+                            , deduced =
+                                AssocList.fromList
+                                    [ ( FunctionOrValue [] "a"
+                                      , FunctionOrValue [ "Basics" ] "False"
+                                      )
+                                    ]
+                            }
+                        )
         , test "should infer a == True when True" <|
             \() ->
                 infer2
