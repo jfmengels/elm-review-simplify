@@ -6,7 +6,7 @@ import Elm.Syntax.Range as Range
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
-import Simplify.Match exposing (Match(..))
+import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 
 
@@ -54,6 +54,13 @@ getBoolean resources baseNode =
         Expression.OperatorApplication "==" _ left right ->
             -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
+                Just Infer.IsTrue ->
+                    getBoolean resources right
+
+                Just Infer.IsFalse ->
+                    getBoolean resources right
+                        |> Match.map not
+
                 Just (Infer.Equals value) ->
                     case Normalize.compare resources (Node Range.emptyRange value) right of
                         Normalize.ConfirmedEquality ->
@@ -82,6 +89,13 @@ getBoolean resources baseNode =
         Expression.OperatorApplication "/=" _ left right ->
             -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
+                Just Infer.IsTrue ->
+                    getBoolean resources right
+                        |> Match.map not
+
+                Just Infer.IsFalse ->
+                    getBoolean resources right
+
                 Just (Infer.Equals value) ->
                     case Normalize.compare resources (Node Range.emptyRange value) right of
                         Normalize.ConfirmedEquality ->
@@ -123,6 +137,12 @@ getBoolean resources baseNode =
 
                     else
                         Undetermined
+
+                Just Infer.IsTrue ->
+                    Determined True
+
+                Just Infer.IsFalse ->
+                    Determined False
 
                 _ ->
                     Undetermined
