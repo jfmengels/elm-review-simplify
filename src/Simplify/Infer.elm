@@ -160,20 +160,16 @@ infer2 nodes shouldBe acc =
                         infer2 (Node.value left :: Node.value right :: rest) shouldBe dict
 
                     else
-                        infer2
-                            (Expression.OperatorApplication "||" infix_ (notE left) (notE right) :: rest)
-                            (not shouldBe)
-                            dict
+                        -- TODO Add inverse shouldBe
+                        infer2 rest shouldBe dict
 
                 Expression.OperatorApplication "||" infix_ left right ->
                     if shouldBe then
                         infer2 (Node.value left :: Node.value right :: rest) (not shouldBe) dict
 
                     else
-                        infer2
-                            (Expression.OperatorApplication "&&" infix_ (notE left) (notE right) :: rest)
-                            shouldBe
-                            dict
+                        -- TODO Add inverse shouldBe
+                        infer2 rest shouldBe dict
 
                 Expression.OperatorApplication "==" _ left right ->
                     infer2 rest
