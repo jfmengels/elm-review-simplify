@@ -412,6 +412,35 @@ detailedTests =
                               )
                             ]
                         }
+        , test "should infer a || b when False" <|
+            \() ->
+                infer2
+                    [ OperatorApplication "||"
+                        Infix.Right
+                        (n (FunctionOrValue [] "a"))
+                        (n (FunctionOrValue [] "b"))
+                    ]
+                    False
+                    empty2
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2
+                                (OperatorApplication "||"
+                                    Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                                )
+                                falseExpr
+                            ]
+                        , deduced =
+                            [ ( OperatorApplication "||"
+                                    Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                              , falseExpr
+                              )
+                            ]
+                        }
         ]
 
 
