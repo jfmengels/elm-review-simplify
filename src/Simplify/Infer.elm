@@ -440,22 +440,6 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
             dict
 
 
-inverseConstraint2 : Constraint2 -> Constraint2
-inverseConstraint2 constraint =
-    case constraint of
-        Equals2 expr value ->
-            NotEquals2 expr value
-
-        NotEquals2 expr value ->
-            Equals2 expr value
-
-        And2 left right ->
-            Or2 (inverseConstraint2 left) (inverseConstraint2 right)
-
-        Or2 left right ->
-            And2 (inverseConstraint2 left) (inverseConstraint2 right)
-
-
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
     [ ( trueBranchRange, infer [ condition ] (Single (Is True)) inferred )
