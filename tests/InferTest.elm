@@ -169,6 +169,41 @@ all =
                                     ]
                             }
                         )
+        , test "should infer a == 1 when False" <|
+            \() ->
+                infer2
+                    [ OperatorApplication "=="
+                        Infix.Non
+                        (n (FunctionOrValue [] "a"))
+                        (n (Floatable 1))
+                    ]
+                    False
+                    empty2
+                    |> Expect.equal
+                        (Inferred2
+                            { constraints =
+                                [ NotEquals2
+                                    (FunctionOrValue [] "a")
+                                    (Floatable 1)
+                                , Equals2
+                                    (OperatorApplication "=="
+                                        Non
+                                        (n (FunctionOrValue [] "a"))
+                                        (n (Floatable 1))
+                                    )
+                                    falseExpr
+                                ]
+                            , deduced =
+                                AssocList.fromList
+                                    [ ( OperatorApplication "=="
+                                            Non
+                                            (n (FunctionOrValue [] "a"))
+                                            (n (Floatable 1))
+                                      , falseExpr
+                                      )
+                                    ]
+                            }
+                        )
         ]
 
 
