@@ -192,7 +192,7 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
     let
         newDeduced : AssocList.Dict Expression Expression
         newDeduced =
-            deduce newConstraint constraints deduced
+            deduce newConstraint constraints [] deduced
 
         newDeduced2 : AssocList.Dict Expression Expression
         newDeduced2 =
@@ -274,18 +274,26 @@ notEquals a b =
     Expression.OperatorApplication "/=" Infix.Non (Node Range.emptyRange a) (Node Range.emptyRange b)
 
 
-deduce newConstraint constraints acc =
+deduce newConstraint constraints alreadySeen acc =
     case constraints of
         [] ->
             acc
 
         constraint :: restOfConstraints ->
-            case ( constraint, newConstraint ) of
-                ( And2 list, Equals2 a b ) ->
-                    deduce newConstraint restOfConstraints acc
+            if List.member constraint alreadySeen then
+                deduce newConstraint restOfConstraints alreadySeen acc
 
-                _ ->
-                    deduce newConstraint restOfConstraints acc
+            else
+                let
+                    newSeen =
+                        constraint :: alreadySeen
+                in
+                case ( constraint, newConstraint ) of
+                    ( And2 list, Equals2 a b ) ->
+                        deduce newConstraint restOfConstraints newSeen acc
+
+                    _ ->
+                        deduce newConstraint restOfConstraints newSeen acc
 
 
 inferOnEquality2 : Node Expression -> Node Expression -> Bool -> Inferred2 -> Inferred2
