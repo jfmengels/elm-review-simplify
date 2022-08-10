@@ -122,30 +122,32 @@ getBoolean resources baseNode =
                     Undetermined
 
         _ ->
-            let
-                normalized : Expression
-                normalized =
-                    Node.value (Normalize.normalize resources node)
-            in
-            case Infer.getConstraint normalized (Tuple.first resources.inferredConstants) of
-                Just (Infer.Equals value) ->
-                    if value == Expression.FunctionOrValue [ "Basics" ] "True" then
-                        Determined True
+            inferConstraint
+                (Node.value (Normalize.normalize resources node))
+                (Tuple.first resources.inferredConstants)
 
-                    else if value == Expression.FunctionOrValue [ "Basics" ] "False" then
-                        Determined False
 
-                    else
-                        Undetermined
+inferConstraint : Expression -> Infer.Inferred -> Match Bool
+inferConstraint node inferredConstants =
+    case Infer.getConstraint node inferredConstants of
+        Just (Infer.Equals value) ->
+            if value == Expression.FunctionOrValue [ "Basics" ] "True" then
+                Determined True
 
-                Just Infer.IsTrue ->
-                    Determined True
+            else if value == Expression.FunctionOrValue [ "Basics" ] "False" then
+                Determined False
 
-                Just Infer.IsFalse ->
-                    Determined False
+            else
+                Undetermined
 
-                _ ->
-                    Undetermined
+        Just Infer.IsTrue ->
+            Determined True
+
+        Just Infer.IsFalse ->
+            Determined False
+
+        _ ->
+            Undetermined
 
 
 isAlwaysBoolean : Infer.Resources a -> Node Expression -> Match Bool
