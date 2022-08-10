@@ -151,21 +151,25 @@ infer2 nodes shouldBe acc =
                         shouldBe
                         (infer2 [ Node.value expression ] (not shouldBe) dict)
 
-                Expression.OperatorApplication "&&" _ left right ->
+                Expression.OperatorApplication "&&" infix_ left right ->
                     if shouldBe then
                         infer2 (Node.value left :: Node.value right :: rest) shouldBe dict
 
                     else
-                        -- TODO Add inverse shouldBe
-                        infer2 rest shouldBe dict
+                        infer2
+                            (Expression.OperatorApplication "||" infix_ (notE left) (notE right) :: rest)
+                            shouldBe
+                            dict
 
-                Expression.OperatorApplication "||" _ left right ->
+                Expression.OperatorApplication "||" infix_ left right ->
                     if not shouldBe then
                         infer2 (Node.value left :: Node.value right :: rest) shouldBe dict
 
                     else
-                        -- TODO Add inverse shouldBe
-                        infer2 rest shouldBe dict
+                        infer2
+                            (Expression.OperatorApplication "&&" infix_ (notE left) (notE right) :: rest)
+                            shouldBe
+                            dict
 
                 Expression.OperatorApplication "==" _ left right ->
                     infer2 rest
@@ -185,6 +189,21 @@ infer2 nodes shouldBe acc =
 
                 _ ->
                     infer2 rest shouldBe dict
+
+
+notE : Node Expression -> Node Expression
+notE node =
+    case Node.value node of
+        Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
+            expression
+
+        _ ->
+            Node Range.emptyRange
+                (Expression.Application
+                    [ Node Range.emptyRange (Expression.FunctionOrValue [ "Basics" ] "not")
+                    , node
+                    ]
+                )
 
 
 injectConstraints2 : Constraint2 -> Inferred2 -> Inferred2
