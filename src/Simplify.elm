@@ -763,6 +763,7 @@ type alias ModuleContext =
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
     }
 
 
@@ -801,6 +802,7 @@ initialModuleContext =
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = Dict.empty
             , inferredConstants = ( Infer.empty, [] )
+            , inferredConstants2 = ( Infer.empty2, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -820,6 +822,7 @@ fromProjectToModule =
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
+            , inferredConstants2 = ( Infer.empty2, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -1046,6 +1049,7 @@ expressionVisitorHelp node context =
                         (checkFn
                             { lookupTable = context.lookupTable
                             , inferredConstants = context.inferredConstants
+                            , inferredConstants2 = context.inferredConstants2
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1164,6 +1168,7 @@ expressionVisitorHelp node context =
                         (checkFn
                             { lookupTable = context.lookupTable
                             , inferredConstants = context.inferredConstants
+                            , inferredConstants2 = context.inferredConstants2
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1186,6 +1191,7 @@ expressionVisitorHelp node context =
                         (checkFn
                             { lookupTable = context.lookupTable
                             , inferredConstants = context.inferredConstants
+                            , inferredConstants2 = context.inferredConstants2
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1212,6 +1218,7 @@ expressionVisitorHelp node context =
                         (checkFn
                             { lookupTable = context.lookupTable
                             , inferredConstants = context.inferredConstants
+                            , inferredConstants2 = context.inferredConstants2
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1234,6 +1241,7 @@ expressionVisitorHelp node context =
                         (checkFn
                             { lookupTable = context.lookupTable
                             , inferredConstants = context.inferredConstants
+                            , inferredConstants2 = context.inferredConstants2
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1306,6 +1314,7 @@ expressionVisitorHelp node context =
                         checkFn
                             { lookupTable = context.lookupTable
                             , inferredConstants = context.inferredConstants
+                            , inferredConstants2 = context.inferredConstants2
                             , parentRange = Node.range node
                             , operator = operator
                             , left = left
@@ -1356,6 +1365,7 @@ expressionVisitorHelp node context =
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
     , parentRange : Range
     , fnRange : Range
     , firstArg : Node Expression
@@ -1435,6 +1445,7 @@ functionCallChecks =
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
     , parentRange : Range
     , operator : String
     , left : Node Expression
