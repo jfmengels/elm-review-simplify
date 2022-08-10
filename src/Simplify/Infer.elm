@@ -314,6 +314,10 @@ deduce { newConstraint, constraints } acc =
                         { newConstraint = newConstraint
                         , constraints = restOfConstraints
                         }
+
+                    newAcc : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
+                    newAcc =
+                        { acc | alreadySeen = constraint :: acc.alreadySeen }
                 in
                 case constraint of
                     Or2 left right ->
@@ -321,7 +325,7 @@ deduce { newConstraint, constraints } acc =
                             let
                                 res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
                                 res =
-                                    deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+                                    deduce newParams newAcc
                             in
                             case addDeducedOrConstraint right of
                                 Just ( a, b ) ->
@@ -334,7 +338,7 @@ deduce { newConstraint, constraints } acc =
                             let
                                 res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
                                 res =
-                                    deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+                                    deduce newParams newAcc
                             in
                             case addDeducedOrConstraint left of
                                 Just ( a, b ) ->
@@ -344,10 +348,10 @@ deduce { newConstraint, constraints } acc =
                                     deduce { newParams | newConstraint = left } res
 
                         else
-                            deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+                            deduce newParams newAcc
 
                     _ ->
-                        deduce newParams { acc | alreadySeen = constraint :: acc.alreadySeen }
+                        deduce newParams newAcc
 
 
 addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, Expression )
