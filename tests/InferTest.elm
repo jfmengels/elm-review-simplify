@@ -13,7 +13,7 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Infer"
-        [ test "should infer a == 1" <|
+        [ test "should infer a == 1 when True" <|
             \() ->
                 infer2
                     [ OperatorApplication "=="
@@ -51,7 +51,7 @@ all =
                                     ]
                             }
                         )
-        , test "should infer a == True" <|
+        , test "should infer a == True when True" <|
             \() ->
                 infer2
                     [ OperatorApplication "=="
