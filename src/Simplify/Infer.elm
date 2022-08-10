@@ -182,7 +182,7 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
 
         newDeduced2 : AssocList.Dict Expression Expression
         newDeduced2 =
-            case newConstraint of
+            case Debug.log "constraint" newConstraint of
                 Is2 _ ->
                     newDeduced
 
