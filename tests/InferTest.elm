@@ -204,6 +204,42 @@ all =
                                     ]
                             }
                         )
+        , test "should infer a && b when True" <|
+            \() ->
+                infer2
+                    [ OperatorApplication "&&"
+                        Infix.Right
+                        (n (FunctionOrValue [] "a"))
+                        (n (FunctionOrValue [] "b"))
+                    ]
+                    True
+                    empty2
+                    |> Expect.equal
+                        (Inferred2
+                            { constraints =
+                                [ Equals2 (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True")
+                                , Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "True")
+                                , Equals2
+                                    (OperatorApplication "&&"
+                                        Right
+                                        (n (FunctionOrValue [] "a"))
+                                        (n (FunctionOrValue [] "b"))
+                                    )
+                                    (FunctionOrValue [ "Basics" ] "True")
+                                ]
+                            , deduced =
+                                AssocList.fromList
+                                    [ ( OperatorApplication "&&"
+                                            Right
+                                            (n (FunctionOrValue [] "a"))
+                                            (n (FunctionOrValue [] "b"))
+                                      , FunctionOrValue [ "Basics" ] "True"
+                                      )
+                                    , ( FunctionOrValue [] "a", FunctionOrValue [ "Basics" ] "True" )
+                                    , ( FunctionOrValue [] "b", FunctionOrValue [ "Basics" ] "True" )
+                                    ]
+                            }
+                        )
         ]
 
 
