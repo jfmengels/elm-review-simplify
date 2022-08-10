@@ -6,6 +6,7 @@ module Simplify.Infer exposing
     , Resources
     , empty
     , empty2
+    , falseExpr
     , get
     , get2
     , getConstraint
@@ -13,6 +14,7 @@ module Simplify.Infer exposing
     , infer2
     , inferForIfCondition
     , inferForIfCondition2
+    , trueExpr
     )
 
 import AssocList

@@ -18,8 +18,8 @@ all =
                 infer2
                     [ OperatorApplication "=="
                         Infix.Non
-                        (Node Range.emptyRange (FunctionOrValue [] "a"))
-                        (Node Range.emptyRange (Floatable 1))
+                        (Node r (FunctionOrValue [] "a"))
+                        (Node r (Floatable 1))
                     ]
                     True
                     empty2
@@ -35,7 +35,7 @@ all =
                                         (Node r (FunctionOrValue [] "a"))
                                         (Node r (Floatable 1))
                                     )
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 ]
                             , deduced =
                                 AssocList.fromList
@@ -43,10 +43,35 @@ all =
                                             Non
                                             (Node r (FunctionOrValue [] "a"))
                                             (Node r (Floatable 1))
-                                      , FunctionOrValue [ "Basics" ] "True"
+                                      , trueExpr
                                       )
                                     , ( FunctionOrValue [] "a"
                                       , Floatable 1
+                                      )
+                                    ]
+                            }
+                        )
+        , test "should infer a == True" <|
+            \() ->
+                infer2
+                    [ OperatorApplication "=="
+                        Infix.Non
+                        (Node r (FunctionOrValue [] "a"))
+                        (Node r trueExpr)
+                    ]
+                    True
+                    empty2
+                    |> Expect.equal
+                        (Inferred2
+                            { constraints =
+                                [ Equals2
+                                    (FunctionOrValue [] "a")
+                                    trueExpr
+                                ]
+                            , deduced =
+                                AssocList.fromList
+                                    [ ( FunctionOrValue [] "a"
+                                      , trueExpr
                                       )
                                     ]
                             }
