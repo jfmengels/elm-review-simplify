@@ -200,26 +200,26 @@ injectConstraints2 newConstraint (Inferred2 inferred) =
                 , updatedConstraints = inferred.constraints
                 }
 
-        newDeduced2 : AssocList.Dict Expression Expression
+        newDeduced2 : List ( Expression, Expression )
         newDeduced2 =
             case newConstraint of
                 Equals2 a b ->
-                    injectEqualsInDeduced a b deduced
+                    equalsConstraints a b
 
                 NotEquals2 a b ->
-                    injectNotEqualsInDeduced a b deduced
+                    notEqualsConstraints a b
 
                 And2 _ _ ->
                     -- TODO Add "a && b && ..."?
-                    deduced
+                    []
 
                 Or2 _ _ ->
                     -- TODO Add "a || b || ..."?
-                    deduced
+                    []
     in
     Inferred2
         { constraints = newConstraint :: updatedConstraints
-        , deduced = newDeduced2
+        , deduced = List.foldl (\( a, b ) acc -> AssocList.insert a b acc) deduced newDeduced2
         }
 
 
@@ -245,6 +245,28 @@ injectEqualsInDeduced a b deduced =
             |> AssocList.insert (notEquals b a) falseExpr
 
 
+equalsConstraints : Expression -> Expression -> List ( Expression, Expression )
+equalsConstraints a b =
+    if a == trueExpr || a == falseExpr then
+        if b == trueExpr || b == falseExpr then
+            []
+
+        else
+            equalsConstraints b a
+
+    else if b == trueExpr || b == falseExpr then
+        [ ( a, b ) ]
+
+    else
+        [ ( a, b )
+        , ( b, a )
+        , ( equals a b, trueExpr )
+        , ( equals b a, trueExpr )
+        , ( notEquals a b, falseExpr )
+        , ( notEquals b a, falseExpr )
+        ]
+
+
 injectNotEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
 injectNotEqualsInDeduced a b deduced =
     if a == trueExpr || a == falseExpr then
@@ -268,6 +290,31 @@ injectNotEqualsInDeduced a b deduced =
             |> AssocList.insert (notEquals b a) trueExpr
             |> AssocList.insert (equals a b) falseExpr
             |> AssocList.insert (equals b a) falseExpr
+
+
+notEqualsConstraints : Expression -> Expression -> List ( Expression, Expression )
+notEqualsConstraints a b =
+    if a == trueExpr || a == falseExpr then
+        if b == trueExpr || b == falseExpr then
+            []
+
+        else
+            notEqualsConstraints b a
+
+    else if b == falseExpr then
+        [ ( a, trueExpr ) ]
+
+    else if b == trueExpr then
+        [ ( notEquals a b, trueExpr )
+        , ( equals a b, falseExpr )
+        ]
+
+    else
+        [ ( notEquals a b, trueExpr )
+        , ( notEquals b a, trueExpr )
+        , ( equals a b, falseExpr )
+        , ( equals b a, falseExpr )
+        ]
 
 
 equals : Expression -> Expression -> Expression
