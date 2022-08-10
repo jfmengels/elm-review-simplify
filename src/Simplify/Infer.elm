@@ -200,26 +200,32 @@ injectConstraints2 newConstraint (Inferred2 inferred) =
                 , updatedConstraints = inferred.constraints
                 }
 
-        newDeduced2 : List ( Expression, Expression )
-        newDeduced2 =
+        deducedFromNewConstraint : Maybe ( Expression, Expression )
+        deducedFromNewConstraint =
             case newConstraint of
                 Equals2 a b ->
-                    equalsConstraints a b
+                    Just (equalsConstraint a b)
 
                 NotEquals2 a b ->
-                    notEqualsConstraints a b
+                    notEqualsConstraint a b
 
                 And2 _ _ ->
                     -- TODO Add "a && b && ..."?
-                    []
+                    Nothing
 
                 Or2 _ _ ->
                     -- TODO Add "a || b || ..."?
-                    []
+                    Nothing
     in
     Inferred2
         { constraints = newConstraint :: updatedConstraints
-        , deduced = List.foldl (\( a, b ) acc -> AssocList.insert a b acc) deduced newDeduced2
+        , deduced =
+            case deducedFromNewConstraint of
+                Just ( a, b ) ->
+                    AssocList.insert a b deduced
+
+                Nothing ->
+                    deduced
         }
 
 
@@ -245,26 +251,13 @@ injectEqualsInDeduced a b deduced =
             |> AssocList.insert (notEquals b a) falseExpr
 
 
-equalsConstraints : Expression -> Expression -> List ( Expression, Expression )
-equalsConstraints a b =
+equalsConstraint : Expression -> Expression -> ( Expression, Expression )
+equalsConstraint a b =
     if a == trueExpr || a == falseExpr then
-        if b == trueExpr || b == falseExpr then
-            []
-
-        else
-            equalsConstraints b a
-
-    else if b == trueExpr || b == falseExpr then
-        [ ( a, b ) ]
+        ( b, a )
 
     else
-        [ ( a, b )
-        , ( b, a )
-        , ( equals a b, trueExpr )
-        , ( equals b a, trueExpr )
-        , ( notEquals a b, falseExpr )
-        , ( notEquals b a, falseExpr )
-        ]
+        ( a, b )
 
 
 injectNotEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
@@ -292,29 +285,22 @@ injectNotEqualsInDeduced a b deduced =
             |> AssocList.insert (equals b a) falseExpr
 
 
-notEqualsConstraints : Expression -> Expression -> List ( Expression, Expression )
-notEqualsConstraints a b =
-    if a == trueExpr || a == falseExpr then
-        if b == trueExpr || b == falseExpr then
-            []
-
-        else
-            notEqualsConstraints b a
-
-    else if b == falseExpr then
-        [ ( a, trueExpr ) ]
+notEqualsConstraint : Expression -> Expression -> Maybe ( Expression, Expression )
+notEqualsConstraint a b =
+    if b == falseExpr then
+        Just ( a, trueExpr )
 
     else if b == trueExpr then
-        [ ( notEquals a b, trueExpr )
-        , ( equals a b, falseExpr )
-        ]
+        Just ( a, falseExpr )
+
+    else if a == falseExpr then
+        Just ( b, trueExpr )
+
+    else if a == trueExpr then
+        Just ( b, falseExpr )
 
     else
-        [ ( notEquals a b, trueExpr )
-        , ( notEquals b a, trueExpr )
-        , ( equals a b, falseExpr )
-        , ( equals b a, falseExpr )
-        ]
+        Nothing
 
 
 equals : Expression -> Expression -> Expression
