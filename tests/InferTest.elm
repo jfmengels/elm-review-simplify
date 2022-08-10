@@ -24,12 +24,12 @@ all =
                             { constraints =
                                 [ Equals2
                                     (FunctionOrValue [] "a")
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 ]
                             , deduced =
                                 AssocList.fromList
                                     [ ( FunctionOrValue [] "a"
-                                      , FunctionOrValue [ "Basics" ] "True"
+                                      , trueExpr
                                       )
                                     ]
                             }
@@ -70,14 +70,14 @@ all =
                             { constraints =
                                 [ Equals2
                                     (FunctionOrValue [] "a")
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 , Equals2
                                     (OperatorApplication "=="
                                         Non
                                         (n (FunctionOrValue [] "a"))
                                         (n trueExpr)
                                     )
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 ]
                             , deduced =
                                 AssocList.fromList
@@ -85,10 +85,10 @@ all =
                                             Non
                                             (n (FunctionOrValue [] "a"))
                                             (n trueExpr)
-                                      , FunctionOrValue [ "Basics" ] "True"
+                                      , trueExpr
                                       )
                                     , ( FunctionOrValue [] "a"
-                                      , FunctionOrValue [ "Basics" ] "True"
+                                      , trueExpr
                                       )
                                     ]
                             }
@@ -217,15 +217,15 @@ all =
                     |> Expect.equal
                         (Inferred2
                             { constraints =
-                                [ Equals2 (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True")
-                                , Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "True")
+                                [ Equals2 (FunctionOrValue [] "b") trueExpr
+                                , Equals2 (FunctionOrValue [] "a") trueExpr
                                 , Equals2
                                     (OperatorApplication "&&"
                                         Right
                                         (n (FunctionOrValue [] "a"))
                                         (n (FunctionOrValue [] "b"))
                                     )
-                                    (FunctionOrValue [ "Basics" ] "True")
+                                    trueExpr
                                 ]
                             , deduced =
                                 AssocList.fromList
@@ -233,7 +233,7 @@ all =
                                             Right
                                             (n (FunctionOrValue [] "a"))
                                             (n (FunctionOrValue [] "b"))
-                                      , FunctionOrValue [ "Basics" ] "True"
+                                      , trueExpr
                                       )
                                     , ( FunctionOrValue [] "a", FunctionOrValue [ "Basics" ] "True" )
                                     , ( FunctionOrValue [] "b", FunctionOrValue [ "Basics" ] "True" )
