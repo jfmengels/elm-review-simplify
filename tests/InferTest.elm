@@ -91,8 +91,44 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         True
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal Nothing
+        , test "should not infer b when a || b is True" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "||"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
                     |> get2 (FunctionOrValue [] "b")
                     |> Expect.equal Nothing
+        , test "should infer a is false when a || b is False" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "&&"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        False
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal (Just falseExpr)
+        , test "should infer a is false when a || b is False" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "&&"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        False
+                    |> get2 (FunctionOrValue [] "b")
+                    |> Expect.equal (Just falseExpr)
         ]
 
 
