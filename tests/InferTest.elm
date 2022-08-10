@@ -13,7 +13,7 @@ import Test exposing (Test, describe, test)
 all : Test
 all =
     describe "Infer"
-        [ test "should ..." <|
+        [ test "should infer a == 1" <|
             \() ->
                 infer2
                     [ OperatorApplication "=="
@@ -27,6 +27,9 @@ all =
                         (Inferred2
                             { constraints =
                                 [ Equals2
+                                    (FunctionOrValue [] "a")
+                                    (Floatable 1)
+                                , Equals2
                                     (OperatorApplication "=="
                                         Non
                                         (Node r (FunctionOrValue [] "a"))
@@ -41,6 +44,9 @@ all =
                                             (Node r (FunctionOrValue [] "a"))
                                             (Node r (Floatable 1))
                                       , FunctionOrValue [ "Basics" ] "True"
+                                      )
+                                    , ( FunctionOrValue [] "a"
+                                      , Floatable 1
                                       )
                                     ]
                             }
