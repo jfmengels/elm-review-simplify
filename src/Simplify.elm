@@ -762,6 +762,7 @@ type alias ModuleContext =
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
+    , inferredConstantsDict2 : RangeDict Infer.Inferred2
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
     }
@@ -800,7 +801,8 @@ initialModuleContext =
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
-            , inferredConstantsDict = Dict.empty
+            , inferredConstantsDict = RangeDict.empty
+            , inferredConstantsDict2 = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             , inferredConstants2 = ( Infer.empty2, [] )
             }
@@ -821,6 +823,7 @@ fromProjectToModule =
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
+            , inferredConstantsDict2 = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             , inferredConstants2 = ( Infer.empty2, [] )
             }
@@ -959,6 +962,7 @@ declarationVisitor _ context =
         | rangesToIgnore = []
         , rightSidesOfPlusPlus = []
         , inferredConstantsDict = RangeDict.empty
+        , inferredConstantsDict2 = RangeDict.empty
       }
     )
 
@@ -982,32 +986,50 @@ expressionVisitor node context =
 
                 Nothing ->
                     context
+
+        newContext2 : ModuleContext
+        newContext2 =
+            case RangeDict.get (Node.range node) newContext.inferredConstantsDict2 of
+                Just inferredConstants ->
+                    let
+                        ( previous, previousStack ) =
+                            newContext.inferredConstants2
+                    in
+                    { newContext | inferredConstants2 = ( inferredConstants, previous :: previousStack ) }
+
+                Nothing ->
+                    newContext
     in
-    if List.member (Node.range node) newContext.rangesToIgnore then
-        ( [], newContext )
+    if List.member (Node.range node) newContext2.rangesToIgnore then
+        ( [], newContext2 )
 
     else
         let
-            { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
-                expressionVisitorHelp node newContext
+            { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants, inferredConstants2 } =
+                expressionVisitorHelp node newContext2
         in
         ( errors
-        , { newContext
-            | rangesToIgnore = rangesToIgnore ++ newContext.rangesToIgnore
-            , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext.rightSidesOfPlusPlus
-            , inferredConstantsDict = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext.inferredConstantsDict inferredConstants
+        , { newContext2
+            | rangesToIgnore = rangesToIgnore ++ newContext2.rangesToIgnore
+            , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext2.rightSidesOfPlusPlus
+            , inferredConstantsDict = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext2.inferredConstantsDict inferredConstants
+            , inferredConstantsDict2 = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext2.inferredConstantsDict2 inferredConstants2
           }
         )
 
 
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
 expressionExitVisitor node context =
-    if RangeDict.member (Node.range node) context.inferredConstantsDict then
-        case Tuple.second context.inferredConstants of
-            topOfStack :: restOfStack ->
-                { context | inferredConstants = ( topOfStack, restOfStack ) }
+    if RangeDict.member (Node.range node) context.inferredConstantsDict || RangeDict.member (Node.range node) context.inferredConstantsDict2 then
+        case ( Tuple.second context.inferredConstants, Tuple.second context.inferredConstants2 ) of
+            ( topOfStack :: restOfStack, topOfStack2 :: restOfStack2 ) ->
+                { context | inferredConstants = ( topOfStack, restOfStack ), inferredConstants2 = ( topOfStack2, restOfStack2 ) }
 
-            [] ->
+            ( [], _ ) ->
+                -- should never be empty
+                context
+
+            ( _, [] ) ->
                 -- should never be empty
                 context
 
@@ -1015,25 +1037,27 @@ expressionExitVisitor node context =
         context
 
 
-errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ), inferredConstants2 : List ( Range, Infer.Inferred2 ) }
 errorsAndRangesToIgnore errors rangesToIgnore =
     { errors = errors
     , rangesToIgnore = rangesToIgnore
     , rightSidesOfPlusPlus = []
     , inferredConstants = []
+    , inferredConstants2 = []
     }
 
 
-onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ), inferredConstants2 : List ( Range, Infer.Inferred2 ) }
 onlyErrors errors =
     { errors = errors
     , rangesToIgnore = []
     , rightSidesOfPlusPlus = []
     , inferredConstants = []
+    , inferredConstants2 = []
     }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ), inferredConstants2 : List ( Range, Infer.Inferred2 ) }
 expressionVisitorHelp node context =
     case Node.value node of
         --------------------
@@ -1331,6 +1355,7 @@ expressionVisitorHelp node context =
                         else
                             []
                     , inferredConstants = []
+                    , inferredConstants2 = []
                     }
 
                 Nothing ->
@@ -4741,7 +4766,7 @@ ifChecks :
         , trueBranch : Node Expression
         , falseBranch : Node Expression
         }
-    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ), inferredConstants2 : List ( Range, Infer.Inferred2 ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
     case Evaluate.getBoolean context condition of
         Determined True ->
@@ -4849,6 +4874,13 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                     , falseBranchRange = Node.range falseBranch
                                     }
                                     (Tuple.first context.inferredConstants)
+                            , inferredConstants2 =
+                                Infer.inferForIfCondition2
+                                    (Node.value (Normalize.normalize context condition))
+                                    { trueBranchRange = Node.range trueBranch
+                                    , falseBranchRange = Node.range falseBranch
+                                    }
+                                    (Tuple.first context.inferredConstants2)
                             }
 
 
