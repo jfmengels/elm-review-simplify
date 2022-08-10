@@ -160,8 +160,8 @@ infer2 nodes shouldBe acc =
                         dict
                             |> injectConstraints2
                                 (And2
-                                    (convertToConstraint left shouldBe)
-                                    (convertToConstraint right shouldBe)
+                                    (convertToConstraint left True)
+                                    (convertToConstraint right True)
                                 )
                             |> infer2 (left :: right :: rest) shouldBe
 
@@ -169,8 +169,8 @@ infer2 nodes shouldBe acc =
                         dict
                             |> injectConstraints2
                                 (Or2
-                                    (convertToConstraint left shouldBe)
-                                    (convertToConstraint right shouldBe)
+                                    (convertToConstraint left False)
+                                    (convertToConstraint right False)
                                 )
                             |> infer2 rest shouldBe
 
@@ -179,8 +179,8 @@ infer2 nodes shouldBe acc =
                         dict
                             |> injectConstraints2
                                 (Or2
-                                    (convertToConstraint left shouldBe)
-                                    (convertToConstraint right shouldBe)
+                                    (convertToConstraint left True)
+                                    (convertToConstraint right True)
                                 )
                             |> infer2 rest shouldBe
 
@@ -188,8 +188,8 @@ infer2 nodes shouldBe acc =
                         dict
                             |> injectConstraints2
                                 (And2
-                                    (convertToConstraint left shouldBe)
-                                    (convertToConstraint right shouldBe)
+                                    (convertToConstraint left False)
+                                    (convertToConstraint right False)
                                 )
                             |> infer2 [ left, right ] shouldBe
                             |> infer2 rest shouldBe
