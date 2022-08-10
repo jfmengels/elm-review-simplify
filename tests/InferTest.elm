@@ -424,21 +424,20 @@ detailedTests =
                     empty2
                     |> expectEqual
                         { constraints =
-                            [ Equals2
-                                (OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                falseExpr
+                            [ Equals2 (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "False")
+                            , Equals2 (Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b") ]) (FunctionOrValue [ "Basics" ] "True")
+                            , Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
+                            , Equals2 (Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a") ]) (FunctionOrValue [ "Basics" ] "True")
+                            , Equals2 (OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b") ]))) (FunctionOrValue [ "Basics" ] "True")
+                            , Equals2 (OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b"))) (FunctionOrValue [ "Basics" ] "False")
                             ]
                         , deduced =
-                            [ ( OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                              , falseExpr
-                              )
+                            [ ( FunctionOrValue [] "b", FunctionOrValue [ "Basics" ] "False" )
+                            , ( Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b") ], FunctionOrValue [ "Basics" ] "True" )
+                            , ( FunctionOrValue [] "a", FunctionOrValue [ "Basics" ] "False" )
+                            , ( Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a") ], FunctionOrValue [ "Basics" ] "True" )
+                            , ( OperatorApplication "&&" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a") ])) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (Application [ Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [ "Basics" ] "not"), Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b") ])), FunctionOrValue [ "Basics" ] "True" )
+                            , ( OperatorApplication "||" Right (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "a")) (Node { end = { column = 0, row = 0 }, start = { column = 0, row = 0 } } (FunctionOrValue [] "b")), FunctionOrValue [ "Basics" ] "False" )
                             ]
                         }
         ]
