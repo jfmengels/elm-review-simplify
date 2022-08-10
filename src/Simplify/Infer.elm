@@ -203,12 +203,16 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
                         |> AssocList.insert a b
                         |> AssocList.insert b a
                         |> AssocList.insert (equals a b) trueExpr
+                        |> AssocList.insert (equals b a) trueExpr
                         |> AssocList.insert (notEquals a b) falseExpr
+                        |> AssocList.insert (notEquals b a) falseExpr
 
                 NotEquals2 a b ->
                     newDeduced
                         |> AssocList.insert (equals a b) falseExpr
+                        |> AssocList.insert (equals b a) falseExpr
                         |> AssocList.insert (notEquals a b) trueExpr
+                        |> AssocList.insert (notEquals b a) trueExpr
 
                 And2 _ ->
                     -- TODO Add "a && b && ..."?
