@@ -54,10 +54,10 @@ getBoolean resources baseNode =
         Expression.OperatorApplication "==" _ left right ->
             -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
-                Just Infer.IsTrue ->
+                Just (Infer.Is True) ->
                     getBoolean resources right
 
-                Just Infer.IsFalse ->
+                Just (Infer.Is False) ->
                     getBoolean resources right
                         |> Match.map not
 
@@ -89,11 +89,11 @@ getBoolean resources baseNode =
         Expression.OperatorApplication "/=" _ left right ->
             -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
-                Just Infer.IsTrue ->
+                Just (Infer.Is True) ->
                     getBoolean resources right
                         |> Match.map not
 
-                Just Infer.IsFalse ->
+                Just (Infer.Is False) ->
                     getBoolean resources right
 
                 Just (Infer.Equals value) ->
@@ -140,11 +140,8 @@ inferConstraint node inferredConstants =
             else
                 Undetermined
 
-        Just Infer.IsTrue ->
-            Determined True
-
-        Just Infer.IsFalse ->
-            Determined False
+        Just (Infer.Is bool) ->
+            Determined bool
 
         _ ->
             Undetermined

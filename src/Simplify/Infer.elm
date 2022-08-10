@@ -24,8 +24,7 @@ type Inferred
 type Constraint
     = Equals Expression
     | NotEquals Expression
-    | IsTrue
-    | IsFalse
+    | Is Bool
 
 
 type alias Resources a =
@@ -43,11 +42,16 @@ empty =
 get : Expression -> Inferred -> Maybe Expression
 get expr (Inferred inferred) =
     case AssocList.get expr inferred of
-        Just IsTrue ->
-            Just (Expression.FunctionOrValue [ "Basics" ] "True")
+        Just (Is bool) ->
+            Just
+                (Expression.FunctionOrValue [ "Basics" ]
+                    (if bool then
+                        "True"
 
-        Just IsFalse ->
-            Just (Expression.FunctionOrValue [ "Basics" ] "False")
+                     else
+                        "False"
+                    )
+                )
 
         Just (Equals value) ->
             Just value
@@ -63,8 +67,8 @@ getConstraint expr (Inferred inferred) =
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer [ condition ] IsTrue inferred )
-    , ( falseBranchRange, infer [ condition ] IsFalse inferred )
+    [ ( trueBranchRange, infer [ condition ] (Is True) inferred )
+    , ( falseBranchRange, infer [ condition ] (Is False) inferred )
     ]
 
 
@@ -91,7 +95,7 @@ infer nodes constraint acc =
                         (infer [ Node.value expression ] (inverseConstraint constraint) dict)
 
                 Expression.OperatorApplication "&&" _ left right ->
-                    if constraint == IsTrue then
+                    if constraint == Is True then
                         infer (Node.value left :: Node.value right :: rest) constraint dict
 
                     else
@@ -99,7 +103,7 @@ infer nodes constraint acc =
                         infer rest constraint dict
 
                 Expression.OperatorApplication "||" _ left right ->
-                    if constraint == IsFalse then
+                    if constraint == Is False then
                         infer (Node.value left :: Node.value right :: rest) constraint dict
 
                     else
@@ -135,20 +139,21 @@ inferOnEquality : Node Expression -> Node Expression -> Constraint -> Inferred -
 inferOnEquality node other constraint dict =
     case Node.value node of
         Expression.Integer int ->
-            if constraint == IsTrue then
-                injectConstraint
-                    (Node.value other)
-                    (Equals (Expression.Floatable (Basics.toFloat int)))
-                    dict
+            case constraint of
+                Is True ->
+                    injectConstraint
+                        (Node.value other)
+                        (Equals (Expression.Floatable (Basics.toFloat int)))
+                        dict
 
-            else if constraint == IsFalse then
-                injectConstraint
-                    (Node.value other)
-                    (NotEquals (Expression.Floatable (Basics.toFloat int)))
-                    dict
+                Is False ->
+                    injectConstraint
+                        (Node.value other)
+                        (NotEquals (Expression.Floatable (Basics.toFloat int)))
+                        dict
 
-            else
-                dict
+                _ ->
+                    dict
 
         _ ->
             dict
@@ -157,17 +162,14 @@ inferOnEquality node other constraint dict =
 inverseConstraint : Constraint -> Constraint
 inverseConstraint constraint =
     case constraint of
+        Is bool ->
+            Is (not bool)
+
         Equals (Expression.FunctionOrValue [ "Basics" ] "True") ->
-            IsFalse
+            Is False
 
         Equals (Expression.FunctionOrValue [ "Basics" ] "False") ->
-            IsTrue
-
-        IsTrue ->
-            IsFalse
-
-        IsFalse ->
-            IsTrue
+            Is True
 
         Equals value ->
             NotEquals value
