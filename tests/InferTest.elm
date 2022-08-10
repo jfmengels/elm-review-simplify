@@ -19,42 +19,36 @@ all =
                     [ FunctionOrValue [] "a" ]
                     True
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ Equals2
-                                    (FunctionOrValue [] "a")
-                                    trueExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( FunctionOrValue [] "a"
-                                      , trueExpr
-                                      )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2
+                                (FunctionOrValue [] "a")
+                                trueExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "a"
+                              , trueExpr
+                              )
+                            ]
+                        }
         , test "should infer a when False" <|
             \() ->
                 infer2
                     [ FunctionOrValue [] "a" ]
                     False
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ Equals2
-                                    (FunctionOrValue [] "a")
-                                    falseExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( FunctionOrValue [] "a"
-                                      , falseExpr
-                                      )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2
+                                (FunctionOrValue [] "a")
+                                falseExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "a"
+                              , falseExpr
+                              )
+                            ]
+                        }
         , test "should infer a == True when True" <|
             \() ->
                 infer2
@@ -65,34 +59,31 @@ all =
                     ]
                     True
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ Equals2
-                                    (FunctionOrValue [] "a")
-                                    trueExpr
-                                , Equals2
-                                    (OperatorApplication "=="
-                                        Non
-                                        (n (FunctionOrValue [] "a"))
-                                        (n trueExpr)
-                                    )
-                                    trueExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( OperatorApplication "=="
-                                            Non
-                                            (n (FunctionOrValue [] "a"))
-                                            (n trueExpr)
-                                      , trueExpr
-                                      )
-                                    , ( FunctionOrValue [] "a"
-                                      , trueExpr
-                                      )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2
+                                (FunctionOrValue [] "a")
+                                trueExpr
+                            , Equals2
+                                (OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n trueExpr)
+                                )
+                                trueExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "a"
+                              , trueExpr
+                              )
+                            , ( OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n trueExpr)
+                              , trueExpr
+                              )
+                            ]
+                        }
         , test "should infer a == True when False" <|
             \() ->
                 infer2
@@ -103,34 +94,31 @@ all =
                     ]
                     False
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ Equals2
-                                    (FunctionOrValue [] "a")
-                                    falseExpr
-                                , Equals2
-                                    (OperatorApplication "=="
-                                        Non
-                                        (n (FunctionOrValue [] "a"))
-                                        (n trueExpr)
-                                    )
-                                    falseExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( OperatorApplication "=="
-                                            Non
-                                            (n (FunctionOrValue [] "a"))
-                                            (n trueExpr)
-                                      , falseExpr
-                                      )
-                                    , ( FunctionOrValue [] "a"
-                                      , falseExpr
-                                      )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2
+                                (FunctionOrValue [] "a")
+                                falseExpr
+                            , Equals2
+                                (OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n trueExpr)
+                                )
+                                falseExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "a"
+                              , falseExpr
+                              )
+                            , ( OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n trueExpr)
+                              , falseExpr
+                              )
+                            ]
+                        }
         , test "should infer a == 1 when True" <|
             \() ->
                 infer2
@@ -141,34 +129,31 @@ all =
                     ]
                     True
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ Equals2
-                                    (FunctionOrValue [] "a")
-                                    (Floatable 1)
-                                , Equals2
-                                    (OperatorApplication "=="
-                                        Non
-                                        (n (FunctionOrValue [] "a"))
-                                        (n (Floatable 1))
-                                    )
-                                    trueExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( OperatorApplication "=="
-                                            Non
-                                            (n (FunctionOrValue [] "a"))
-                                            (n (Floatable 1))
-                                      , trueExpr
-                                      )
-                                    , ( FunctionOrValue [] "a"
-                                      , Floatable 1
-                                      )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2
+                                (FunctionOrValue [] "a")
+                                (Floatable 1)
+                            , Equals2
+                                (OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (Floatable 1))
+                                )
+                                trueExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "a"
+                              , Floatable 1
+                              )
+                            , ( OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (Floatable 1))
+                              , trueExpr
+                              )
+                            ]
+                        }
         , test "should infer a == 1 when False" <|
             \() ->
                 infer2
@@ -179,31 +164,28 @@ all =
                     ]
                     False
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ NotEquals2
-                                    (FunctionOrValue [] "a")
-                                    (Floatable 1)
-                                , Equals2
-                                    (OperatorApplication "=="
-                                        Non
-                                        (n (FunctionOrValue [] "a"))
-                                        (n (Floatable 1))
-                                    )
-                                    falseExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( OperatorApplication "=="
-                                            Non
-                                            (n (FunctionOrValue [] "a"))
-                                            (n (Floatable 1))
-                                      , falseExpr
-                                      )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ NotEquals2
+                                (FunctionOrValue [] "a")
+                                (Floatable 1)
+                            , Equals2
+                                (OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (Floatable 1))
+                                )
+                                falseExpr
+                            ]
+                        , deduced =
+                            [ ( OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (Floatable 1))
+                              , falseExpr
+                              )
+                            ]
+                        }
         , test "should infer a && b when True" <|
             \() ->
                 infer2
@@ -214,32 +196,29 @@ all =
                     ]
                     True
                     empty2
-                    |> Expect.equal
-                        (Inferred2
-                            { constraints =
-                                [ Equals2 (FunctionOrValue [] "b") trueExpr
-                                , Equals2 (FunctionOrValue [] "a") trueExpr
-                                , Equals2
-                                    (OperatorApplication "&&"
-                                        Right
-                                        (n (FunctionOrValue [] "a"))
-                                        (n (FunctionOrValue [] "b"))
-                                    )
-                                    trueExpr
-                                ]
-                            , deduced =
-                                AssocList.fromList
-                                    [ ( OperatorApplication "&&"
-                                            Right
-                                            (n (FunctionOrValue [] "a"))
-                                            (n (FunctionOrValue [] "b"))
-                                      , trueExpr
-                                      )
-                                    , ( FunctionOrValue [] "a", FunctionOrValue [ "Basics" ] "True" )
-                                    , ( FunctionOrValue [] "b", FunctionOrValue [ "Basics" ] "True" )
-                                    ]
-                            }
-                        )
+                    |> expectEqual
+                        { constraints =
+                            [ Equals2 (FunctionOrValue [] "b") trueExpr
+                            , Equals2 (FunctionOrValue [] "a") trueExpr
+                            , Equals2
+                                (OperatorApplication "&&"
+                                    Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                                )
+                                trueExpr
+                            ]
+                        , deduced =
+                            [ ( FunctionOrValue [] "b", FunctionOrValue [ "Basics" ] "True" )
+                            , ( FunctionOrValue [] "a", FunctionOrValue [ "Basics" ] "True" )
+                            , ( OperatorApplication "&&"
+                                    Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                              , trueExpr
+                              )
+                            ]
+                        }
         ]
 
 
