@@ -31,6 +31,12 @@ all =
                               )
                             ]
                         }
+        , test "should infer a is true when a is True" <|
+            \() ->
+                empty2
+                    |> infer2 [ FunctionOrValue [] "a" ] True
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal (Just trueExpr)
         , test "should infer a when False" <|
             \() ->
                 infer2
