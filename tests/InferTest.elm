@@ -5,7 +5,7 @@ import Elm.Syntax.Expression exposing (Expression(..))
 import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.Node exposing (Node(..))
 import Elm.Syntax.Range as Range exposing (Range)
-import Expect
+import Expect exposing (Expectation)
 import Simplify.Infer exposing (..)
 import Test exposing (Test, describe, test)
 
@@ -241,6 +241,19 @@ all =
                             }
                         )
         ]
+
+
+expectEqual :
+    { constraints : List Constraint2
+    , deduced : List ( Expression, Expression )
+    }
+    -> Inferred2
+    -> Expectation
+expectEqual record (Inferred2 inferred) =
+    { constraints = inferred.constraints
+    , deduced = AssocList.toList inferred.deduced
+    }
+        |> Expect.equal record
 
 
 n : Expression -> Node Expression
