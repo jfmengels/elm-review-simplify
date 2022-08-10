@@ -36,8 +36,8 @@ type Inferred2
 type Constraint2
     = Equals2 Expression Expression
     | NotEquals2 Expression Expression
-    | And2 (List Constraint2)
-    | Or2 (List Constraint2)
+    | And2 Constraint2 Constraint2
+    | Or2 Constraint2 Constraint2
 
 
 type Constraints
@@ -203,11 +203,11 @@ injectConstraints2 newConstraint (Inferred2 { deduced, constraints }) =
                 NotEquals2 a b ->
                     injectNotEqualsInDeduced a b deduced
 
-                And2 _ ->
+                And2 _ _ ->
                     -- TODO Add "a && b && ..."?
                     newDeduced
 
-                Or2 _ ->
+                Or2 _ _ ->
                     -- TODO Add "a || b || ..."?
                     newDeduced
     in
@@ -289,7 +289,7 @@ deduce newConstraint constraints alreadySeen acc =
                         constraint :: alreadySeen
                 in
                 case ( constraint, newConstraint ) of
-                    ( And2 list, Equals2 a b ) ->
+                    ( And2 left right, Equals2 a b ) ->
                         deduce newConstraint restOfConstraints newSeen acc
 
                     _ ->
@@ -323,11 +323,11 @@ inverseConstraint2 constraint =
         NotEquals2 expr value ->
             Equals2 expr value
 
-        And2 constraints ->
-            Or2 (List.map inverseConstraint2 constraints)
+        And2 left right ->
+            Or2 (inverseConstraint2 left) (inverseConstraint2 right)
 
-        Or2 constraints ->
-            And2 (List.map inverseConstraint2 constraints)
+        Or2 left right ->
+            And2 (inverseConstraint2 left) (inverseConstraint2 right)
 
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
