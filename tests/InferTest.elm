@@ -219,6 +219,30 @@ all =
                               )
                             ]
                         }
+        , test "should infer a is true when a && b is True" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "&&"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
+                    |> get2 (FunctionOrValue [] "a")
+                    |> Expect.equal (Just trueExpr)
+        , test "should infer b is true when a && b is True" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "&&"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
+                    |> get2 (FunctionOrValue [] "b")
+                    |> Expect.equal (Just trueExpr)
         , test "should infer a && b when False" <|
             \() ->
                 infer2
