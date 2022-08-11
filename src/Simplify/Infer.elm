@@ -163,7 +163,7 @@ infer2 nodes shouldBe acc =
             let
                 dict : Inferred2
                 dict =
-                    injectConstraints2 [ convertToConstraint node shouldBe ] [] acc
+                    injectConstraints2 [ convertToConstraint node shouldBe ] acc
             in
             case node of
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
@@ -180,7 +180,6 @@ infer2 nodes shouldBe acc =
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
                                 ]
-                                []
                             |> infer2 (left :: right :: rest) shouldBe
 
                     else
@@ -190,7 +189,6 @@ infer2 nodes shouldBe acc =
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
                                 ]
-                                []
                             |> infer2 rest shouldBe
 
                 Expression.OperatorApplication "||" infix_ (Node _ left) (Node _ right) ->
@@ -201,7 +199,6 @@ infer2 nodes shouldBe acc =
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
                                 ]
-                                []
                             |> infer2 rest shouldBe
 
                     else
@@ -211,7 +208,6 @@ infer2 nodes shouldBe acc =
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
                                 ]
-                                []
                             |> infer2 [ left, right ] shouldBe
                             |> infer2 rest shouldBe
 
@@ -250,8 +246,8 @@ notE node =
                 )
 
 
-injectConstraints2 : List Constraint2 -> List Constraint2 -> Inferred2 -> Inferred2
-injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
+injectConstraints2 : List Constraint2 -> Inferred2 -> Inferred2
+injectConstraints2 newConstraints (Inferred2 inferred) =
     case newConstraints of
         [] ->
             Inferred2 inferred
@@ -260,7 +256,6 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
             if List.member newConstraint inferred.constraints then
                 injectConstraints2
                     restOfConstraints
-                    alreadySeen
                     (Inferred2 inferred)
 
             else
@@ -292,7 +287,6 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
                 in
                 injectConstraints2
                     (constraints ++ restOfConstraints)
-                    (newConstraint :: alreadySeen)
                     (Inferred2
                         { constraints = newConstraint :: constraints
                         , deduced =
@@ -460,26 +454,22 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
             if shouldBe then
                 injectConstraints2
                     [ Equals2 other (Expression.Floatable (Basics.toFloat int)) ]
-                    []
                     dict
 
             else
                 injectConstraints2
                     [ NotEquals2 other (Expression.Floatable (Basics.toFloat int)) ]
-                    []
                     dict
 
         Expression.Floatable float ->
             if shouldBe then
                 injectConstraints2
                     [ Equals2 other (Expression.Floatable float) ]
-                    []
                     dict
 
             else
                 injectConstraints2
                     [ NotEquals2 other (Expression.Floatable float) ]
-                    []
                     dict
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
@@ -492,7 +482,6 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
                         falseExpr
                     )
                 ]
-                []
                 dict
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
@@ -505,7 +494,6 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
                         trueExpr
                     )
                 ]
-                []
                 dict
 
         _ ->
