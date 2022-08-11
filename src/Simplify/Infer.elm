@@ -9,7 +9,6 @@ module Simplify.Infer exposing
     , empty
     , empty2
     , falseExpr
-    , get
     , get2
     , getConstraint
     , getInt
@@ -81,27 +80,6 @@ empty2 =
         { constraints = []
         , deduced = AssocList.empty
         }
-
-
-get : Expression -> Inferred -> Maybe Expression
-get expr (Inferred inferred) =
-    case AssocList.get expr inferred of
-        Just (Single (Is bool)) ->
-            Just
-                (Expression.FunctionOrValue [ "Basics" ]
-                    (if bool then
-                        "True"
-
-                     else
-                        "False"
-                    )
-                )
-
-        Just (Single (Equals value)) ->
-            Just value
-
-        _ ->
-            Nothing
 
 
 get2 : Expression -> Inferred2 -> Maybe Expression
