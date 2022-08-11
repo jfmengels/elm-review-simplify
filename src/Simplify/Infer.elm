@@ -628,7 +628,7 @@ getInt resources baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
+                    |> Maybe.andThen (\moduleName -> get2 (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants2))
             of
                 Just (Expression.Integer int) ->
                     Just int
