@@ -435,8 +435,12 @@ mergeConstraints : ( Expression, Expression ) -> Constraint2 -> { deduced : List
 mergeConstraints ( target, value ) constraint =
     case constraint of
         Or2 left right ->
-            { deduced = [ ( Expression.FunctionOrValue [] "b", trueExpr ) ]
-            , constraints = []
+            { deduced = []
+            , constraints =
+                [ Equals2
+                    (Expression.FunctionOrValue [] "b")
+                    trueExpr
+                ]
             }
 
         _ ->

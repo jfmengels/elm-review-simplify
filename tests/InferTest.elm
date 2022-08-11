@@ -596,8 +596,12 @@ mergeConstraintsTests =
                         )
                     )
                     |> Expect.equal
-                        { deduced = [ ( FunctionOrValue [] "b", trueExpr ) ]
-                        , constraints = []
+                        { deduced = []
+                        , constraints =
+                            [ Equals2
+                                (FunctionOrValue [] "b")
+                                trueExpr
+                            ]
                         }
         ]
 
