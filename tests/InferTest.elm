@@ -181,7 +181,7 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , trueExpr
+                              , DTrue
                               )
                             ]
                         }
@@ -199,7 +199,7 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , falseExpr
+                              , DFalse
                               )
                             ]
                         }
@@ -228,13 +228,13 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , trueExpr
+                              , DTrue
                               )
                             , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n trueExpr)
-                              , trueExpr
+                              , DTrue
                               )
                             ]
                         }
@@ -263,13 +263,13 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , falseExpr
+                              , DFalse
                               )
                             , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n trueExpr)
-                              , falseExpr
+                              , DFalse
                               )
                             ]
                         }
@@ -298,13 +298,13 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , Floatable 1
+                              , DFloat 1
                               )
                             , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n (Floatable 1))
-                              , trueExpr
+                              , DTrue
                               )
                             ]
                         }
@@ -336,7 +336,7 @@ detailedTests =
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n (Floatable 1))
-                              , falseExpr
+                              , DFalse
                               )
                             ]
                         }
@@ -372,13 +372,13 @@ detailedTests =
                                 trueExpr
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", trueExpr )
-                            , ( FunctionOrValue [] "a", trueExpr )
+                            [ ( FunctionOrValue [] "b", DTrue )
+                            , ( FunctionOrValue [] "a", DTrue )
                             , ( OperatorApplication "&&"
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , trueExpr
+                              , DTrue
                               )
                             ]
                         }
@@ -413,7 +413,7 @@ detailedTests =
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , falseExpr
+                              , DFalse
                               )
                             ]
                         }
@@ -451,7 +451,7 @@ detailedTests =
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , trueExpr
+                              , DTrue
                               )
                             ]
                         }
@@ -473,9 +473,9 @@ detailedTests =
                             , Equals2 (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", falseExpr )
-                            , ( FunctionOrValue [] "a", falseExpr )
-                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), falseExpr )
+                            [ ( FunctionOrValue [] "b", DFalse )
+                            , ( FunctionOrValue [] "a", DFalse )
+                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DFalse )
                             ]
                         }
         , test "should infer a || b when True and a when False" <|
@@ -512,13 +512,13 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , falseExpr
+                              , DFalse
                               )
                             , ( OperatorApplication "||"
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , trueExpr
+                              , DTrue
                               )
                             ]
                         }
@@ -558,13 +558,13 @@ deduceTests =
                     |> AssocList.toList
                     |> Expect.equal
                         [ ( FunctionOrValue [] "a"
-                          , falseExpr
+                          , DFalse
                           )
                         , ( OperatorApplication "||"
                                 Right
                                 (n (FunctionOrValue [] "a"))
                                 (n (FunctionOrValue [] "b"))
-                          , trueExpr
+                          , DTrue
                           )
                         ]
         ]
@@ -576,7 +576,7 @@ mergeConstraintsTests =
         [ test "should not deduce anything when constraints don't share anything (a == True, b == True)" <|
             \() ->
                 mergeConstraints
-                    ( FunctionOrValue [] "b", trueExpr )
+                    ( FunctionOrValue [] "b", DTrue )
                     (Equals2 (FunctionOrValue [] "a") trueExpr)
                     |> Expect.equal
                         { deduced = []
@@ -585,7 +585,7 @@ mergeConstraintsTests =
         , test "should deduce b is True when (a || b) and (a == False)" <|
             \() ->
                 mergeConstraints
-                    ( FunctionOrValue [] "a", falseExpr )
+                    ( FunctionOrValue [] "a", DFalse )
                     (Or2
                         (Equals2
                             (FunctionOrValue [] "a")
@@ -609,7 +609,7 @@ mergeConstraintsTests =
 
 expectEqual :
     { constraints : List Constraint2
-    , deduced : List ( Expression, Expression )
+    , deduced : List ( Expression, DeducedValue )
     }
     -> Inferred2
     -> Expectation

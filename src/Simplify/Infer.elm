@@ -22,7 +22,6 @@ module Simplify.Infer exposing
 
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
-import Elm.Syntax.Infix as Infix
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Range as Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
@@ -36,7 +35,7 @@ type Inferred
 type Inferred2
     = Inferred2
         { constraints : List Constraint2
-        , deduced : AssocList.Dict Expression Expression
+        , deduced : AssocList.Dict Expression DeducedValue
         }
 
 
@@ -108,6 +107,18 @@ get expr (Inferred inferred) =
 get2 : Expression -> Inferred2 -> Maybe Expression
 get2 expr (Inferred2 inferred) =
     AssocList.get expr inferred.deduced
+        |> Maybe.map
+            (\value ->
+                case value of
+                    DTrue ->
+                        trueExpr
+
+                    DFalse ->
+                        falseExpr
+
+                    DFloat float ->
+                        Expression.Floatable float
+            )
 
 
 getConstraint : Expression -> Inferred -> Maybe Constraint
@@ -251,14 +262,15 @@ injectConstraints2 newConstraint (Inferred2 inferred) =
                 , updatedConstraints = inferred.constraints
                 }
 
-        deducedFromNewConstraint : Maybe ( Expression, Expression )
+        deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
         deducedFromNewConstraint =
             case newConstraint of
                 Equals2 a b ->
-                    Just (equalsConstraint a b)
+                    equalsConstraint a b
 
                 NotEquals2 a b ->
-                    notEqualsConstraint a b
+                    equalsConstraint a b
+                        |> Maybe.andThen notDeduced
 
                 And2 _ _ ->
                     -- TODO Add "a && b && ..."?
@@ -324,71 +336,18 @@ notDeduced ( a, deducedValue ) =
             Nothing
 
 
-injectNotEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
-injectNotEqualsInDeduced a b deduced =
-    if a == trueExpr || a == falseExpr then
-        if b == trueExpr || b == falseExpr then
-            deduced
-
-        else
-            injectNotEqualsInDeduced b a deduced
-
-    else if b == falseExpr then
-        AssocList.insert a trueExpr deduced
-
-    else if b == trueExpr then
-        deduced
-            |> AssocList.insert (notEquals a b) trueExpr
-            |> AssocList.insert (equals a b) falseExpr
-
-    else
-        deduced
-            |> AssocList.insert (notEquals a b) trueExpr
-            |> AssocList.insert (notEquals b a) trueExpr
-            |> AssocList.insert (equals a b) falseExpr
-            |> AssocList.insert (equals b a) falseExpr
-
-
-notEqualsConstraint : Expression -> Expression -> Maybe ( Expression, Expression )
-notEqualsConstraint a b =
-    if b == falseExpr then
-        Just ( a, trueExpr )
-
-    else if b == trueExpr then
-        Just ( a, falseExpr )
-
-    else if a == falseExpr then
-        Just ( b, trueExpr )
-
-    else if a == trueExpr then
-        Just ( b, falseExpr )
-
-    else
-        Nothing
-
-
-equals : Expression -> Expression -> Expression
-equals a b =
-    Expression.OperatorApplication "==" Infix.Non (Node Range.emptyRange a) (Node Range.emptyRange b)
-
-
-notEquals : Expression -> Expression -> Expression
-notEquals a b =
-    Expression.OperatorApplication "/=" Infix.Non (Node Range.emptyRange a) (Node Range.emptyRange b)
-
-
 deduce :
     { newConstraint : Constraint2
     , constraints : List Constraint2
     }
     ->
         { alreadySeen : List Constraint2
-        , deduced : AssocList.Dict Expression Expression
+        , deduced : AssocList.Dict Expression DeducedValue
         , updatedConstraints : List Constraint2
         }
     ->
         { alreadySeen : List Constraint2
-        , deduced : AssocList.Dict Expression Expression
+        , deduced : AssocList.Dict Expression DeducedValue
         , updatedConstraints : List Constraint2
         }
 deduce { newConstraint, constraints } acc =
@@ -412,7 +371,7 @@ deduce { newConstraint, constraints } acc =
                         , constraints = restOfConstraints
                         }
 
-                    newAcc : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
+                    newAcc : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression DeducedValue, updatedConstraints : List Constraint2 }
                     newAcc =
                         { acc | alreadySeen = constraint :: acc.alreadySeen }
                 in
@@ -420,7 +379,7 @@ deduce { newConstraint, constraints } acc =
                     Or2 left right ->
                         if left == newConstraint then
                             let
-                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
+                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression DeducedValue, updatedConstraints : List Constraint2 }
                                 res =
                                     deduce newParams newAcc
                             in
@@ -433,7 +392,7 @@ deduce { newConstraint, constraints } acc =
 
                         else if right == newConstraint then
                             let
-                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression Expression, updatedConstraints : List Constraint2 }
+                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression DeducedValue, updatedConstraints : List Constraint2 }
                                 res =
                                     deduce newParams newAcc
                             in
@@ -451,7 +410,7 @@ deduce { newConstraint, constraints } acc =
                         deduce newParams newAcc
 
 
-mergeConstraints : ( Expression, Expression ) -> Constraint2 -> { deduced : List ( Expression, Expression ), constraints : List Constraint2 }
+mergeConstraints : ( Expression, DeducedValue ) -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
 mergeConstraints ( target, value ) constraint =
     case constraint of
         Or2 left right ->
@@ -472,11 +431,12 @@ mergeConstraints ( target, value ) constraint =
             { deduced = [], constraints = [] }
 
 
-addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, Expression )
+addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, DeducedValue )
 addDeducedOrConstraint constraint =
     case constraint of
         Equals2 a b ->
-            Just ( a, b )
+            --Just ( a, b )
+            Nothing
 
         NotEquals2 _ _ ->
             Nothing
