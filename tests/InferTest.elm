@@ -555,10 +555,12 @@ deduceTests =
                             }
                 in
                 deduced
-                    |> AssocList.diff inferred.deduced
                     |> AssocList.toList
                     |> Expect.equal
-                        [ ( FunctionOrValue [] "a"
+                        [ ( FunctionOrValue [] "b"
+                          , DTrue
+                          )
+                        , ( FunctionOrValue [] "a"
                           , DFalse
                           )
                         , ( OperatorApplication "||"
