@@ -416,23 +416,8 @@ mergeConstraints ( target, value ) constraint =
         Or2 left right ->
             case left of
                 Equals2 constraintTarget constraintValue ->
-                    if constraintTarget == target then
-                        case ( value, constraintValue ) of
-                            ( DTrue, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
-                                { deduced = [], constraints = [ right ] }
-
-                            ( DFalse, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
-                                { deduced = [], constraints = [ right ] }
-
-                            ( DFloat valueFloat, Expression.Floatable constraintFloat ) ->
-                                if valueFloat == constraintFloat then
-                                    { deduced = [], constraints = [ right ] }
-
-                                else
-                                    { deduced = [], constraints = [ right ] }
-
-                            _ ->
-                                { deduced = [], constraints = [] }
+                    if constraintTarget == target && areIncompatible value constraintValue then
+                        { deduced = [], constraints = [ right ] }
 
                     else
                         { deduced = [], constraints = [] }
@@ -442,6 +427,26 @@ mergeConstraints ( target, value ) constraint =
 
         _ ->
             { deduced = [], constraints = [] }
+
+
+areIncompatible : DeducedValue -> Expression -> Bool
+areIncompatible value constraintValue =
+    case ( value, constraintValue ) of
+        ( DTrue, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
+            True
+
+        ( DFalse, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
+            True
+
+        ( DFloat valueFloat, Expression.Floatable constraintFloat ) ->
+            if valueFloat == constraintFloat then
+                True
+
+            else
+                False
+
+        _ ->
+            False
 
 
 addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, DeducedValue )
