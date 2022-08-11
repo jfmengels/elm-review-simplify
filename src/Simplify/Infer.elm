@@ -267,7 +267,7 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
                 let
                     { deduced, constraints } =
                         deduce
-                            { newConstraint = Debug.log "new cons" newConstraint
+                            { newConstraint = newConstraint
                             , constraints = inferred.constraints
                             }
                             inferred
