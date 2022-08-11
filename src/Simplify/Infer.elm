@@ -365,49 +365,22 @@ deduce { newConstraint, constraints } acc =
 
             else
                 let
+                    deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+                    deducedFromThisConstraint =
+                        mergeConstraints newConstraint constraint
+
                     newParams : { newConstraint : Constraint2, constraints : List Constraint2 }
                     newParams =
                         { newConstraint = newConstraint
-                        , constraints = restOfConstraints
+                        , constraints = deducedFromThisConstraint.constraints ++ restOfConstraints
                         }
-
-                    newAcc : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression DeducedValue, updatedConstraints : List Constraint2 }
-                    newAcc =
-                        { acc | alreadySeen = constraint :: acc.alreadySeen }
                 in
-                case constraint of
-                    Or2 left right ->
-                        if left == newConstraint then
-                            let
-                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression DeducedValue, updatedConstraints : List Constraint2 }
-                                res =
-                                    deduce newParams newAcc
-                            in
-                            case addDeducedOrConstraint right of
-                                Just ( a, b ) ->
-                                    { res | deduced = AssocList.insert a b res.deduced }
-
-                                Nothing ->
-                                    deduce { newParams | newConstraint = right } res
-
-                        else if right == newConstraint then
-                            let
-                                res : { alreadySeen : List Constraint2, deduced : AssocList.Dict Expression DeducedValue, updatedConstraints : List Constraint2 }
-                                res =
-                                    deduce newParams newAcc
-                            in
-                            case addDeducedOrConstraint left of
-                                Just ( a, b ) ->
-                                    { res | deduced = AssocList.insert a b res.deduced }
-
-                                Nothing ->
-                                    deduce { newParams | newConstraint = left } res
-
-                        else
-                            deduce newParams newAcc
-
-                    _ ->
-                        deduce newParams newAcc
+                deduce
+                    newParams
+                    { alreadySeen = constraint :: acc.alreadySeen
+                    , deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
+                    , updatedConstraints = deducedFromThisConstraint.constraints ++ acc.updatedConstraints
+                    }
 
 
 mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
