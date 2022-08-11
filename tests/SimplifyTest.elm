@@ -3640,10 +3640,11 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
-                            , details = alwaysSameDetails
-                            , under = "b"
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
                             }
+                            |> Review.Test.atExactly { start = { row = 6, column = 5 }, end = { row = 6, column = 7 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if a && b then
