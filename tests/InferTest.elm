@@ -15,7 +15,7 @@ all =
     describe "Infer"
         [ simpleTests
         , detailedTests
-        , deduceTests
+        , Test.only deduceTests
         , mergeConstraintsTests
         ]
 
