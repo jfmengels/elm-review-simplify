@@ -435,11 +435,14 @@ mergeConstraints : ( Expression, Expression ) -> Constraint2 -> { deduced : List
 mergeConstraints ( target, value ) constraint =
     case constraint of
         Or2 left right ->
-            { deduced = []
-            , constraints =
-                [ right
-                ]
-            }
+            case left of
+                Equals2 constraintTarget constraintValue ->
+                    { deduced = []
+                    , constraints = [ right ]
+                    }
+
+                _ ->
+                    { deduced = [], constraints = [] }
 
         _ ->
             { deduced = [], constraints = [] }
