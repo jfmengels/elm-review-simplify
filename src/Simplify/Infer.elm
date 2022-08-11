@@ -257,7 +257,7 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
             Inferred2 inferred
 
         newConstraint :: restOfConstraints ->
-            if List.member newConstraint alreadySeen || List.member newConstraint inferred.constraints then
+            if List.member newConstraint inferred.constraints then
                 injectConstraints2
                     restOfConstraints
                     alreadySeen
