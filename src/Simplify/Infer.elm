@@ -280,35 +280,48 @@ injectConstraints2 newConstraint (Inferred2 inferred) =
         }
 
 
-injectEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
-injectEqualsInDeduced a b deduced =
-    if a == trueExpr || a == falseExpr then
-        if b == trueExpr || b == falseExpr then
-            deduced
-
-        else
-            injectEqualsInDeduced b a deduced
-
-    else if b == trueExpr || b == falseExpr then
-        AssocList.insert a b deduced
-
-    else
-        deduced
-            |> AssocList.insert a b
-            |> AssocList.insert b a
-            |> AssocList.insert (equals a b) trueExpr
-            |> AssocList.insert (equals b a) trueExpr
-            |> AssocList.insert (notEquals a b) falseExpr
-            |> AssocList.insert (notEquals b a) falseExpr
-
-
-equalsConstraint : Expression -> Expression -> ( Expression, Expression )
+equalsConstraint : Expression -> Expression -> Maybe ( Expression, DeducedValue )
 equalsConstraint a b =
-    if a == trueExpr || a == falseExpr then
-        ( b, a )
+    case expressionToDeduced a of
+        Just deducedValue ->
+            Just ( b, deducedValue )
 
-    else
-        ( a, b )
+        Nothing ->
+            case expressionToDeduced b of
+                Just deducedValue ->
+                    Just ( a, deducedValue )
+
+                Nothing ->
+                    Nothing
+
+
+expressionToDeduced : Expression -> Maybe DeducedValue
+expressionToDeduced expression =
+    case expression of
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            Just DTrue
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            Just DFalse
+
+        Expression.Floatable float ->
+            Just (DFloat float)
+
+        _ ->
+            Nothing
+
+
+notDeduced : ( a, DeducedValue ) -> Maybe ( a, DeducedValue )
+notDeduced ( a, deducedValue ) =
+    case deducedValue of
+        DTrue ->
+            Just ( a, DFalse )
+
+        DFalse ->
+            Just ( a, DTrue )
+
+        _ ->
+            Nothing
 
 
 injectNotEqualsInDeduced : Expression -> Expression -> AssocList.Dict Expression Expression -> AssocList.Dict Expression Expression
