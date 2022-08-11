@@ -433,7 +433,12 @@ deduce { newConstraint, constraints } acc =
 
 mergeConstraints : ( Expression, Expression ) -> Constraint2 -> { deduced : List ( Expression, Expression ), constraints : List Constraint2 }
 mergeConstraints ( target, value ) constraint =
-    { deduced = [], constraints = [] }
+    case constraint of
+        Or2 left right ->
+            { deduced = [], constraints = [] }
+
+        _ ->
+            { deduced = [], constraints = [] }
 
 
 addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, Expression )
