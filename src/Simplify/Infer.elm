@@ -288,7 +288,7 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
                 injectConstraints2
                     (constraints ++ restOfConstraints)
                     (Inferred2
-                        { constraints = newConstraint :: constraints
+                        { constraints = newConstraint :: inferred.constraints
                         , deduced =
                             case deducedFromNewConstraint of
                                 Just ( a, b ) ->
