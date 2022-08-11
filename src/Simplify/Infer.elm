@@ -15,6 +15,7 @@ module Simplify.Infer exposing
     , infer2
     , inferForIfCondition
     , inferForIfCondition2
+    , mergeConstraints
     , trueExpr
     )
 
@@ -428,6 +429,11 @@ deduce { newConstraint, constraints } acc =
 
                     _ ->
                         deduce newParams newAcc
+
+
+mergeConstraints : Constraint -> Constraint -> { deduced : List ( Expression, Expression ), constraints : List Constraint2 }
+mergeConstraints new previous =
+    { deduced = [], constraints = [] }
 
 
 addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, Expression )
