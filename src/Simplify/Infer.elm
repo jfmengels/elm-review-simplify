@@ -4,6 +4,7 @@ module Simplify.Infer exposing
     , Inferred
     , Inferred2(..)
     , Resources
+    , deduce
     , empty
     , empty2
     , falseExpr

@@ -15,6 +15,7 @@ all =
     describe "Infer"
         [ simpleTests
         , detailedTests
+        , deduceTests
         ]
 
 
@@ -518,6 +519,51 @@ detailedTests =
                               )
                             ]
                         }
+        ]
+
+
+deduceTests : Test
+deduceTests =
+    describe "Deduce"
+        [ test "should infer a || b when True and a when False" <|
+            \() ->
+                let
+                    (Inferred2 inferred) =
+                        empty2
+                            |> infer2
+                                [ OperatorApplication "||"
+                                    Infix.Right
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (FunctionOrValue [] "b"))
+                                ]
+                                True
+                            |> infer2 [ FunctionOrValue [] "a" ]
+                                False
+
+                    { deduced, updatedConstraints } =
+                        deduce
+                            { newConstraint = Equals2 (FunctionOrValue [] "a") falseExpr
+                            , constraints = inferred.constraints
+                            }
+                            { alreadySeen = []
+                            , deduced = inferred.deduced
+                            , updatedConstraints = inferred.constraints
+                            }
+                in
+                deduced
+                    |> AssocList.diff inferred.deduced
+                    |> AssocList.toList
+                    |> Expect.equal
+                        [ ( FunctionOrValue [] "a"
+                          , falseExpr
+                          )
+                        , ( OperatorApplication "||"
+                                Right
+                                (n (FunctionOrValue [] "a"))
+                                (n (FunctionOrValue [] "b"))
+                          , trueExpr
+                          )
+                        ]
         ]
 
 
