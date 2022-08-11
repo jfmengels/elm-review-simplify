@@ -34,41 +34,9 @@ getBoolean resources baseNode =
                 _ ->
                     Undetermined
 
-        Expression.OperatorApplication "==" _ left right ->
-            -- TODO Handle constraints on the right side
-            case Nothing of
-                Just (Infer.Is True) ->
-                    getBoolean resources right
-
-                Just (Infer.Is False) ->
-                    getBoolean resources right
-                        |> Match.map not
-
-                Just (Infer.Equals value) ->
-                    case Normalize.compare resources (Node Range.emptyRange value) right of
-                        Normalize.ConfirmedEquality ->
-                            Determined True
-
-                        Normalize.ConfirmedInequality ->
-                            Determined False
-
-                        Normalize.Unconfirmed ->
-                            Undetermined
-
-                Just (Infer.NotEquals value) ->
-                    case Normalize.compare resources (Node Range.emptyRange value) right of
-                        Normalize.ConfirmedEquality ->
-                            Determined False
-
-                        Normalize.ConfirmedInequality ->
-                            Undetermined
-
-                        Normalize.Unconfirmed ->
-                            Undetermined
-
-                Nothing ->
-                    Undetermined
-
+        --Expression.OperatorApplication "==" _ left right ->
+        --    Infer.get2 (Node.value left) (Tuple.first resources.inferredConstants2)
+        --    getBooleanFromEquality (Tuple.first resources.inferredConstants) left right
         Expression.OperatorApplication "/=" _ left right ->
             -- TODO Handle constraints on the right side
             case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
@@ -123,21 +91,53 @@ getBoolean resources baseNode =
 
         _ ->
             case
-                Infer.get2
+                Infer.isBoolean
                     (Node.value (Normalize.normalize resources node))
                     (Tuple.first resources.inferredConstants2)
             of
-                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
-                    Determined True
-
-                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
-                    Determined False
-
-                Just _ ->
-                    Undetermined
+                Just bool ->
+                    Determined bool
 
                 Nothing ->
                     Undetermined
+
+
+
+--getBooleanFromEquality : Infer.Resources a -> Node Expression -> Node Expression -> Match Bool
+--getBooleanFromEquality resources left right =
+--    -- TODO Handle constraints on the right side
+--    case Infer.get2 (Node.value left) (Tuple.first resources.inferredConstants2) of
+--        Just (Infer.Is True) ->
+--            getBoolean resources right
+--
+--        Just (Infer.Is False) ->
+--            getBoolean resources right
+--                |> Match.map not
+--
+--        Just (Infer.Equals value) ->
+--            case Normalize.compare resources (Node Range.emptyRange value) right of
+--                Normalize.ConfirmedEquality ->
+--                    Determined True
+--
+--                Normalize.ConfirmedInequality ->
+--                    Determined False
+--
+--                Normalize.Unconfirmed ->
+--                    Undetermined
+--
+--        Just (Infer.NotEquals value) ->
+--            case Normalize.compare resources (Node Range.emptyRange value) right of
+--                Normalize.ConfirmedEquality ->
+--                    Determined False
+--
+--                Normalize.ConfirmedInequality ->
+--                    Undetermined
+--
+--                Normalize.Unconfirmed ->
+--                    Undetermined
+--
+--        Nothing ->
+--            Undetermined
 
 
 inferConstraint : Expression -> Infer.Inferred -> Match Bool

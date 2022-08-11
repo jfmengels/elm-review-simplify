@@ -14,6 +14,7 @@ module Simplify.Infer exposing
     , infer2
     , inferForIfCondition
     , inferForIfCondition2
+    , isBoolean
     , mergeConstraints
     , trueExpr
     )
@@ -95,6 +96,23 @@ get2 expr (Inferred2 inferred) =
 
                     DFloat float ->
                         Expression.Floatable float
+            )
+
+
+isBoolean : Expression -> Inferred2 -> Maybe Bool
+isBoolean expr (Inferred2 inferred) =
+    AssocList.get expr inferred.deduced
+        |> Maybe.andThen
+            (\value ->
+                case value of
+                    DTrue ->
+                        Just True
+
+                    DFalse ->
+                        Just False
+
+                    DFloat _ ->
+                        Nothing
             )
 
 
