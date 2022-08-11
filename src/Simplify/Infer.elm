@@ -14,7 +14,6 @@ module Simplify.Infer exposing
     , infer2
     , inferForIfCondition
     , inferForIfCondition2
-    , inferNewConstraints
     , mergeConstraints
     , trueExpr
     )
@@ -224,7 +223,7 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
             else
                 let
                     { deduced, constraints } =
-                        inferNewConstraints
+                        deduce
                             { newConstraint = newConstraint
                             , constraints = inferred.constraints
                             }
@@ -263,7 +262,7 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
                     )
 
 
-inferNewConstraints :
+deduce :
     { newConstraint : Constraint2
     , constraints : List Constraint2
     }
@@ -275,7 +274,7 @@ inferNewConstraints :
         { deduced : AssocList.Dict Expression DeducedValue
         , constraints : List Constraint2
         }
-inferNewConstraints { newConstraint, constraints } acc =
+deduce { newConstraint, constraints } acc =
     -- TODO Remove the constraints which we were able to deduce
     case constraints of
         [] ->
@@ -287,27 +286,13 @@ inferNewConstraints { newConstraint, constraints } acc =
                 deducedFromThisConstraint =
                     mergeConstraints newConstraint constraint
             in
-            inferNewConstraints
+            deduce
                 { newConstraint = newConstraint
                 , constraints = restOfConstraints
                 }
                 { deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
-                , constraints = appendUnique deducedFromThisConstraint.constraints acc.constraints
+                , constraints = deducedFromThisConstraint.constraints ++ acc.constraints
                 }
-
-
-appendUnique : List a -> List a -> List a
-appendUnique listA listB =
-    case listA of
-        [] ->
-            listB
-
-        elem :: rest ->
-            if List.member elem listB then
-                appendUnique rest listB
-
-            else
-                appendUnique rest (elem :: listB)
 
 
 mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
