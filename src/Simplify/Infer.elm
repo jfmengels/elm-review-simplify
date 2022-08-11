@@ -5,7 +5,6 @@ module Simplify.Infer exposing
     , Inferred
     , Inferred2(..)
     , Resources
-    , deduce
     , empty
     , empty2
     , falseExpr
@@ -15,6 +14,7 @@ module Simplify.Infer exposing
     , infer2
     , inferForIfCondition
     , inferForIfCondition2
+    , inferNewConstraints
     , mergeConstraints
     , trueExpr
     )
@@ -224,7 +224,7 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
             else
                 let
                     { deduced, constraints } =
-                        deduce
+                        inferNewConstraints
                             { newConstraint = newConstraint
                             , constraints = inferred.constraints
                             }
@@ -263,7 +263,7 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
                     )
 
 
-deduce :
+inferNewConstraints :
     { newConstraint : Constraint2
     , constraints : List Constraint2
     }
@@ -275,7 +275,7 @@ deduce :
         { deduced : AssocList.Dict Expression DeducedValue
         , constraints : List Constraint2
         }
-deduce { newConstraint, constraints } acc =
+inferNewConstraints { newConstraint, constraints } acc =
     -- TODO Remove the constraints which we were able to deduce
     case constraints of
         [] ->
@@ -287,7 +287,7 @@ deduce { newConstraint, constraints } acc =
                 deducedFromThisConstraint =
                     mergeConstraints newConstraint constraint
             in
-            deduce
+            inferNewConstraints
                 { newConstraint = newConstraint
                 , constraints = restOfConstraints
                 }

@@ -521,7 +521,7 @@ deduceTests =
                                 True
 
                     { deduced } =
-                        deduce
+                        inferNewConstraints
                             { newConstraint = Equals2 (FunctionOrValue [] "a") falseExpr
                             , constraints = inferred.constraints
                             }
