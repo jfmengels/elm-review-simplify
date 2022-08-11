@@ -437,9 +437,7 @@ mergeConstraints ( target, value ) constraint =
         Or2 left right ->
             { deduced = []
             , constraints =
-                [ Equals2
-                    (Expression.FunctionOrValue [] "b")
-                    trueExpr
+                [ right
                 ]
             }
 
