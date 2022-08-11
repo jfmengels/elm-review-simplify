@@ -3,7 +3,7 @@ module Simplify.Evaluate exposing (..)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Range as Range
-import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Review.ModuleNameLookupTable as ModuleNameLookupTable
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))

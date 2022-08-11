@@ -23,7 +23,7 @@ module Simplify.Infer exposing
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
-import Elm.Syntax.Range as Range exposing (Range)
+import Elm.Syntax.Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.AstHelpers as AstHelpers
 
@@ -229,21 +229,6 @@ infer2 nodes shouldBe acc =
 
                 _ ->
                     infer2 rest shouldBe dict
-
-
-notE : Expression -> Node Expression
-notE node =
-    case node of
-        Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
-            expression
-
-        _ ->
-            Node Range.emptyRange
-                (Expression.Application
-                    [ Node Range.emptyRange (Expression.FunctionOrValue [ "Basics" ] "not")
-                    , Node Range.emptyRange node
-                    ]
-                )
 
 
 injectConstraints2 : List Constraint2 -> Inferred2 -> Inferred2
@@ -621,15 +606,6 @@ injectConstraints expression constraints (Inferred inferred) =
             AssocList.empty
         |> AssocList.insert expression constraints
         |> Inferred
-
-
-insertIf : Bool -> Expression -> Constraint -> AssocList.Dict Expression Constraint -> AssocList.Dict Expression Constraint
-insertIf condition expression constraint inferred =
-    if condition then
-        AssocList.insert expression constraint inferred
-
-    else
-        inferred
 
 
 getInt : Resources a -> Node Expression -> Maybe Int

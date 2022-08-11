@@ -4,7 +4,7 @@ import AssocList
 import Elm.Syntax.Expression exposing (Expression(..))
 import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.Node exposing (Node(..))
-import Elm.Syntax.Range as Range exposing (Range)
+import Elm.Syntax.Range as Range
 import Expect exposing (Expectation)
 import Simplify.Infer exposing (..)
 import Test exposing (Test, describe, test)

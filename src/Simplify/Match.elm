@@ -39,16 +39,6 @@ and initial additional =
             Undetermined
 
 
-or : Match Bool -> (() -> Match Bool) -> Match Bool
-or initial additional =
-    case initial of
-        Determined True ->
-            initial
-
-        _ ->
-            additional ()
-
-
 maybeAndThen : (a -> Match b) -> Maybe a -> Match b
 maybeAndThen fn maybe =
     case maybe of
