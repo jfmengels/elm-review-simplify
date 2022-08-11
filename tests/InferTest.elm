@@ -551,7 +551,7 @@ deduceTests =
                             , constraints = inferred.constraints
                             }
                             { deduced = inferred.deduced
-                            , newConstraints = inferred.constraints
+                            , constraints = inferred.constraints
                             }
                 in
                 deduced

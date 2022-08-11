@@ -270,9 +270,7 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
                             { newConstraint = Debug.log "new cons" newConstraint
                             , constraints = inferred.constraints
                             }
-                            { deduced = inferred.deduced
-                            , newConstraints = inferred.constraints
-                            }
+                            inferred
 
                     deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
                     deducedFromNewConstraint =
@@ -314,7 +312,7 @@ deduce :
     }
     ->
         { deduced : AssocList.Dict Expression DeducedValue
-        , newConstraints : List Constraint2
+        , constraints : List Constraint2
         }
     ->
         { deduced : AssocList.Dict Expression DeducedValue
@@ -323,9 +321,7 @@ deduce :
 deduce { newConstraint, constraints } acc =
     case constraints of
         [] ->
-            { deduced = acc.deduced
-            , constraints = acc.newConstraints
-            }
+            acc
 
         constraint :: restOfConstraints ->
             let
@@ -338,7 +334,7 @@ deduce { newConstraint, constraints } acc =
                 , constraints = restOfConstraints
                 }
                 { deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
-                , newConstraints = deducedFromThisConstraint.constraints ++ acc.newConstraints
+                , constraints = deducedFromThisConstraint.constraints ++ acc.constraints
                 }
 
 
