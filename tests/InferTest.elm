@@ -16,7 +16,7 @@ all =
         [ simpleTests
         , detailedTests
         , deduceTests
-        , Test.only <| mergeConstraintsTests
+        , mergeConstraintsTests
         ]
 
 
@@ -131,36 +131,34 @@ simpleTests =
                         False
                     |> get2 (FunctionOrValue [] "b")
                     |> Expect.equal (Just falseExpr)
-        , Test.only <|
-            test "should infer b is true when a || b is True and a is False" <|
-                \() ->
-                    empty2
-                        |> infer2
-                            [ OperatorApplication "||"
-                                Infix.Right
-                                (n (FunctionOrValue [] "a"))
-                                (n (FunctionOrValue [] "b"))
-                            ]
-                            True
-                        |> infer2 [ FunctionOrValue [] "a" ]
-                            False
-                        |> get2 (FunctionOrValue [] "b")
-                        |> Expect.equal (Just trueExpr)
-        , Test.only <|
-            test "should not infer b when a || b is True and a is True" <|
-                \() ->
-                    empty2
-                        |> infer2
-                            [ OperatorApplication "||"
-                                Infix.Right
-                                (n (FunctionOrValue [] "a"))
-                                (n (FunctionOrValue [] "b"))
-                            ]
-                            True
-                        |> infer2 [ FunctionOrValue [] "a" ]
-                            True
-                        |> get2 (FunctionOrValue [] "b")
-                        |> Expect.equal Nothing
+        , test "should infer b is true when a || b is True and a is False" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "||"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
+                    |> infer2 [ FunctionOrValue [] "a" ]
+                        False
+                    |> get2 (FunctionOrValue [] "b")
+                    |> Expect.equal (Just trueExpr)
+        , test "should not infer b when a || b is True and a is True" <|
+            \() ->
+                empty2
+                    |> infer2
+                        [ OperatorApplication "||"
+                            Infix.Right
+                            (n (FunctionOrValue [] "a"))
+                            (n (FunctionOrValue [] "b"))
+                        ]
+                        True
+                    |> infer2 [ FunctionOrValue [] "a" ]
+                        True
+                    |> get2 (FunctionOrValue [] "b")
+                    |> Expect.equal Nothing
         ]
 
 
