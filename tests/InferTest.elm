@@ -15,7 +15,7 @@ all =
     describe "Infer"
         [ simpleTests
         , detailedTests
-        , Test.only deduceTests
+        , Test.skip <| deduceTests
         , mergeConstraintsTests
         ]
 
@@ -490,38 +490,15 @@ detailedTests =
                         False
                     |> expectEqual
                         { constraints =
-                            [ Equals2 (FunctionOrValue [] "a") falseExpr
-                            , Equals2 (FunctionOrValue [] "b") trueExpr
-                            , Or2
-                                (Equals2
-                                    (FunctionOrValue [] "a")
-                                    trueExpr
-                                )
-                                (Equals2
-                                    (FunctionOrValue [] "b")
-                                    trueExpr
-                                )
-                            , Equals2
-                                (OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                trueExpr
+                            [ Equals2 (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True")
+                            , Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
+                            , Or2 (Equals2 (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "True")) (Equals2 (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True"))
+                            , Equals2 (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) (FunctionOrValue [ "Basics" ] "True")
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "a"
-                              , DFalse
-                              )
-                            , ( FunctionOrValue [] "b"
-                              , DTrue
-                              )
-                            , ( OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                              , DTrue
-                              )
+                            [ ( FunctionOrValue [] "b", DTrue )
+                            , ( FunctionOrValue [] "a", DFalse )
+                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DTrue )
                             ]
                         }
         ]
@@ -542,8 +519,6 @@ deduceTests =
                                     (n (FunctionOrValue [] "b"))
                                 ]
                                 True
-                            |> infer2 [ FunctionOrValue [] "a" ]
-                                False
 
                     { deduced } =
                         deduce
@@ -555,6 +530,7 @@ deduceTests =
                             }
                 in
                 deduced
+                    |> AssocList.diff inferred.deduced
                     |> AssocList.toList
                     |> Expect.equal
                         [ ( FunctionOrValue [] "b"
