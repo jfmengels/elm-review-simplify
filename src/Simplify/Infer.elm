@@ -257,49 +257,56 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
             Inferred2 inferred
 
         newConstraint :: restOfConstraints ->
-            let
-                { deduced, constraints } =
-                    deduce
-                        { newConstraint = Debug.log "new cons" newConstraint
-                        , constraints = inferred.constraints
+            if List.member newConstraint alreadySeen || List.member newConstraint inferred.constraints then
+                injectConstraints2
+                    restOfConstraints
+                    alreadySeen
+                    (Inferred2 inferred)
+
+            else
+                let
+                    { deduced, constraints } =
+                        deduce
+                            { newConstraint = Debug.log "new cons" newConstraint
+                            , constraints = inferred.constraints
+                            }
+                            { alreadySeen = []
+                            , deduced = inferred.deduced
+                            , newConstraints = inferred.constraints
+                            }
+
+                    deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
+                    deducedFromNewConstraint =
+                        case newConstraint of
+                            Equals2 a b ->
+                                equalsConstraint a b
+
+                            NotEquals2 a b ->
+                                equalsConstraint a b
+                                    |> Maybe.andThen notDeduced
+
+                            And2 _ _ ->
+                                -- TODO Add "a && b && ..."?
+                                Nothing
+
+                            Or2 _ _ ->
+                                -- TODO Add "a || b || ..."?
+                                Nothing
+                in
+                injectConstraints2
+                    (constraints ++ restOfConstraints)
+                    (newConstraint :: alreadySeen)
+                    (Inferred2
+                        { constraints = newConstraint :: constraints
+                        , deduced =
+                            case deducedFromNewConstraint of
+                                Just ( a, b ) ->
+                                    AssocList.insert a b deduced
+
+                                Nothing ->
+                                    deduced
                         }
-                        { alreadySeen = []
-                        , deduced = inferred.deduced
-                        , newConstraints = inferred.constraints
-                        }
-
-                deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
-                deducedFromNewConstraint =
-                    case newConstraint of
-                        Equals2 a b ->
-                            equalsConstraint a b
-
-                        NotEquals2 a b ->
-                            equalsConstraint a b
-                                |> Maybe.andThen notDeduced
-
-                        And2 _ _ ->
-                            -- TODO Add "a && b && ..."?
-                            Nothing
-
-                        Or2 _ _ ->
-                            -- TODO Add "a || b || ..."?
-                            Nothing
-            in
-            injectConstraints2
-                (constraints ++ restOfConstraints)
-                (newConstraint :: alreadySeen)
-                (Inferred2
-                    { constraints = newConstraint :: constraints
-                    , deduced =
-                        case deducedFromNewConstraint of
-                            Just ( a, b ) ->
-                                AssocList.insert a b deduced
-
-                            Nothing ->
-                                deduced
-                    }
-                )
+                    )
 
 
 deduce :
