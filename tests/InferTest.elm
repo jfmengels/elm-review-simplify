@@ -576,7 +576,7 @@ mergeConstraintsTests =
         [ test "should not deduce anything when constraints don't share anything (a == True, b == True)" <|
             \() ->
                 mergeConstraints
-                    ( FunctionOrValue [] "b", DTrue )
+                    (Equals2 (FunctionOrValue [] "b") trueExpr)
                     (Equals2 (FunctionOrValue [] "a") trueExpr)
                     |> Expect.equal
                         { deduced = []
@@ -585,7 +585,7 @@ mergeConstraintsTests =
         , test "should deduce b is True when (a || b) and (a == False)" <|
             \() ->
                 mergeConstraints
-                    ( FunctionOrValue [] "a", DFalse )
+                    (Equals2 (FunctionOrValue [] "a") falseExpr)
                     (Or2
                         (Equals2
                             (FunctionOrValue [] "a")

@@ -410,8 +410,23 @@ deduce { newConstraint, constraints } acc =
                         deduce newParams newAcc
 
 
-mergeConstraints : ( Expression, DeducedValue ) -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
-mergeConstraints ( target, value ) constraint =
+mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+mergeConstraints newConstraint constraint =
+    case newConstraint of
+        Equals2 constraintTarget constraintValue ->
+            case expressionToDeduced constraintValue of
+                Just value ->
+                    mergeEqualConstraints ( constraintTarget, value ) constraint
+
+                Nothing ->
+                    { deduced = [], constraints = [] }
+
+        _ ->
+            { deduced = [], constraints = [] }
+
+
+mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+mergeEqualConstraints ( target, value ) constraint =
     case constraint of
         Or2 left right ->
             case left of
