@@ -15,7 +15,8 @@ all =
     describe "Infer"
         [ simpleTests
         , detailedTests
-        , Test.skip <| deduceTests
+
+        --, Test.skip <| deduceTests
         , mergeConstraintsTests
         ]
 
@@ -504,49 +505,50 @@ detailedTests =
         ]
 
 
-deduceTests : Test
-deduceTests =
-    describe "deduce"
-        [ test "should deduce b is True when a || b is True and a is False" <|
-            \() ->
-                let
-                    (Inferred2 inferred) =
-                        empty2
-                            |> infer2
-                                [ OperatorApplication "||"
-                                    Infix.Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                ]
-                                True
 
-                    { deduced } =
-                        inferNewConstraints
-                            { newConstraint = Equals2 (FunctionOrValue [] "a") falseExpr
-                            , constraints = inferred.constraints
-                            }
-                            { deduced = inferred.deduced
-                            , constraints = inferred.constraints
-                            }
-                in
-                deduced
-                    |> AssocList.diff inferred.deduced
-                    |> AssocList.toList
-                    |> Expect.equal
-                        [ ( FunctionOrValue [] "b"
-                          , DTrue
-                          )
-                        , ( FunctionOrValue [] "a"
-                          , DFalse
-                          )
-                        , ( OperatorApplication "||"
-                                Right
-                                (n (FunctionOrValue [] "a"))
-                                (n (FunctionOrValue [] "b"))
-                          , DTrue
-                          )
-                        ]
-        ]
+--deduceTests : Test
+--deduceTests =
+--    describe "deduce"
+--        [ test "should deduce b is True when a || b is True and a is False" <|
+--            \() ->
+--                let
+--                    (Inferred2 inferred) =
+--                        empty2
+--                            |> infer2
+--                                [ OperatorApplication "||"
+--                                    Infix.Right
+--                                    (n (FunctionOrValue [] "a"))
+--                                    (n (FunctionOrValue [] "b"))
+--                                ]
+--                                True
+--
+--                    { deduced } =
+--                        inferNewConstraints
+--                            { newConstraint = Equals2 (FunctionOrValue [] "a") falseExpr
+--                            , constraints = inferred.constraints
+--                            }
+--                            { deduced = inferred.deduced
+--                            , constraints = inferred.constraints
+--                            }
+--                in
+--                deduced
+--                    |> AssocList.diff inferred.deduced
+--                    |> AssocList.toList
+--                    |> Expect.equal
+--                        [ ( FunctionOrValue [] "b"
+--                          , DTrue
+--                          )
+--                        , ( FunctionOrValue [] "a"
+--                          , DFalse
+--                          )
+--                        , ( OperatorApplication "||"
+--                                Right
+--                                (n (FunctionOrValue [] "a"))
+--                                (n (FunctionOrValue [] "b"))
+--                          , DTrue
+--                          )
+--                        ]
+--        ]
 
 
 mergeConstraintsTests : Test
