@@ -305,7 +305,7 @@ mergeConstraints newConstraint constraint =
                     mergeEqualConstraints ( constraintTarget, value ) constraint
 
                 Nothing ->
-                    { deduced = [], constraints = [] }
+                    { deduced = [], constraints = [ Equals2 constraintValue constraintTarget ] }
 
         _ ->
             { deduced = [], constraints = [] }
