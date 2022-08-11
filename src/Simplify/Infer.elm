@@ -430,23 +430,6 @@ areIncompatible value constraintValue =
             False
 
 
-addDeducedOrConstraint : Constraint2 -> Maybe ( Expression, DeducedValue )
-addDeducedOrConstraint constraint =
-    case constraint of
-        Equals2 a b ->
-            --Just ( a, b )
-            Nothing
-
-        NotEquals2 _ _ ->
-            Nothing
-
-        And2 _ _ ->
-            Nothing
-
-        Or2 _ _ ->
-            Nothing
-
-
 inferOnEquality2 : Node Expression -> Node Expression -> Bool -> Inferred2 -> Inferred2
 inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
     case expr of
