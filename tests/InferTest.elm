@@ -525,8 +525,8 @@ detailedTests =
 
 deduceTests : Test
 deduceTests =
-    describe "Deduce"
-        [ test "should infer a || b when True and a when False" <|
+    describe "deduce"
+        [ test "should deduce b is True when a || b is True and a is False" <|
             \() ->
                 let
                     (Inferred2 inferred) =
