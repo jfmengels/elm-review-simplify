@@ -34,23 +34,6 @@ getBoolean resources baseNode =
                 _ ->
                     Undetermined
 
-        Expression.FunctionOrValue _ name ->
-            case
-                ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Infer.get2 (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants2))
-            of
-                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
-                    Determined True
-
-                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
-                    Determined False
-
-                Just _ ->
-                    Undetermined
-
-                Nothing ->
-                    Undetermined
-
         Expression.OperatorApplication "==" _ left right ->
             -- TODO Handle constraints on the right side
             case Nothing of
@@ -121,10 +104,40 @@ getBoolean resources baseNode =
                 Nothing ->
                     Undetermined
 
+        Expression.FunctionOrValue _ name ->
+            case
+                ModuleNameLookupTable.moduleNameFor resources.lookupTable node
+                    |> Maybe.andThen (\moduleName -> Infer.get2 (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants2))
+            of
+                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
+                    Determined True
+
+                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
+                    Determined False
+
+                Just _ ->
+                    Undetermined
+
+                Nothing ->
+                    Undetermined
+
         _ ->
-            inferConstraint
-                (Node.value (Normalize.normalize resources node))
-                (Tuple.first resources.inferredConstants)
+            case
+                Infer.get2
+                    (Node.value (Normalize.normalize resources node))
+                    (Tuple.first resources.inferredConstants2)
+            of
+                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
+                    Determined True
+
+                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
+                    Determined False
+
+                Just _ ->
+                    Undetermined
+
+                Nothing ->
+                    Undetermined
 
 
 inferConstraint : Expression -> Infer.Inferred -> Match Bool
