@@ -252,7 +252,7 @@ notE node =
 injectConstraints2 : Constraint2 -> Inferred2 -> Inferred2
 injectConstraints2 newConstraint (Inferred2 inferred) =
     let
-        { deduced, updatedConstraints } =
+        { deduced, constraints } =
             deduce
                 { newConstraint = newConstraint
                 , constraints = inferred.constraints
@@ -281,7 +281,7 @@ injectConstraints2 newConstraint (Inferred2 inferred) =
                     Nothing
     in
     Inferred2
-        { constraints = newConstraint :: updatedConstraints
+        { constraints = newConstraint :: constraints
         , deduced =
             case deducedFromNewConstraint of
                 Just ( a, b ) ->
@@ -346,14 +346,15 @@ deduce :
         , updatedConstraints : List Constraint2
         }
     ->
-        { alreadySeen : List Constraint2
-        , deduced : AssocList.Dict Expression DeducedValue
-        , updatedConstraints : List Constraint2
+        { deduced : AssocList.Dict Expression DeducedValue
+        , constraints : List Constraint2
         }
 deduce { newConstraint, constraints } acc =
     case constraints of
         [] ->
-            acc
+            { deduced = acc.deduced
+            , constraints = acc.updatedConstraints
+            }
 
         constraint :: restOfConstraints ->
             if List.member constraint acc.alreadySeen then
