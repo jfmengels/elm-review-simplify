@@ -313,6 +313,7 @@ deduce :
         , constraints : List Constraint2
         }
 deduce { newConstraint, constraints } acc =
+    -- TODO Remove the constraints which we were able to deduce
     case constraints of
         [] ->
             acc
