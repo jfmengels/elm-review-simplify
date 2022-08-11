@@ -292,8 +292,22 @@ deduce { newConstraint, constraints } acc =
                 , constraints = restOfConstraints
                 }
                 { deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
-                , constraints = deducedFromThisConstraint.constraints ++ acc.constraints
+                , constraints = appendUnique deducedFromThisConstraint.constraints acc.constraints
                 }
+
+
+appendUnique : List a -> List a -> List a
+appendUnique listA listB =
+    case listA of
+        [] ->
+            listB
+
+        elem :: rest ->
+            if List.member elem listB then
+                appendUnique rest listB
+
+            else
+                appendUnique rest (elem :: listB)
 
 
 mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
