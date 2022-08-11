@@ -553,7 +553,7 @@ deduceTests =
                             }
                             { alreadySeen = []
                             , deduced = inferred.deduced
-                            , updatedConstraints = inferred.constraints
+                            , newConstraints = inferred.constraints
                             }
                 in
                 deduced

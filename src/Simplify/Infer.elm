@@ -163,7 +163,7 @@ infer2 nodes shouldBe acc =
             let
                 dict : Inferred2
                 dict =
-                    injectConstraints2 (convertToConstraint node shouldBe) acc
+                    injectConstraints2 [ convertToConstraint node shouldBe ] [] acc
             in
             case node of
                 Expression.FunctionOrValue _ _ ->
@@ -179,38 +179,42 @@ infer2 nodes shouldBe acc =
                     if shouldBe then
                         dict
                             |> injectConstraints2
-                                (And2
+                                [ And2
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
-                                )
+                                ]
+                                []
                             |> infer2 (left :: right :: rest) shouldBe
 
                     else
                         dict
                             |> injectConstraints2
-                                (Or2
+                                [ Or2
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
-                                )
+                                ]
+                                []
                             |> infer2 rest shouldBe
 
                 Expression.OperatorApplication "||" infix_ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         dict
                             |> injectConstraints2
-                                (Or2
+                                [ Or2
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
-                                )
+                                ]
+                                []
                             |> infer2 rest shouldBe
 
                     else
                         dict
                             |> injectConstraints2
-                                (And2
+                                [ And2
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
-                                )
+                                ]
+                                []
                             |> infer2 [ left, right ] shouldBe
                             |> infer2 rest shouldBe
 
@@ -249,47 +253,56 @@ notE node =
                 )
 
 
-injectConstraints2 : Constraint2 -> Inferred2 -> Inferred2
-injectConstraints2 newConstraint (Inferred2 inferred) =
-    let
-        { deduced, constraints } =
-            deduce
-                { newConstraint = newConstraint
-                , constraints = inferred.constraints
-                }
-                { alreadySeen = []
-                , deduced = inferred.deduced
-                , updatedConstraints = inferred.constraints
-                }
+injectConstraints2 : List Constraint2 -> List Constraint2 -> Inferred2 -> Inferred2
+injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
+    case newConstraints of
+        [] ->
+            Inferred2 inferred
 
-        deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
-        deducedFromNewConstraint =
-            case newConstraint of
-                Equals2 a b ->
-                    equalsConstraint a b
+        newConstraint :: restOfConstraints ->
+            let
+                { deduced, constraints } =
+                    deduce
+                        { newConstraint = newConstraint
+                        , constraints = inferred.constraints
+                        }
+                        { alreadySeen = []
+                        , deduced = inferred.deduced
+                        , newConstraints = inferred.constraints
+                        }
 
-                NotEquals2 a b ->
-                    equalsConstraint a b
-                        |> Maybe.andThen notDeduced
+                deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
+                deducedFromNewConstraint =
+                    case newConstraint of
+                        Equals2 a b ->
+                            equalsConstraint a b
 
-                And2 _ _ ->
-                    -- TODO Add "a && b && ..."?
-                    Nothing
+                        NotEquals2 a b ->
+                            equalsConstraint a b
+                                |> Maybe.andThen notDeduced
 
-                Or2 _ _ ->
-                    -- TODO Add "a || b || ..."?
-                    Nothing
-    in
-    Inferred2
-        { constraints = newConstraint :: constraints
-        , deduced =
-            case deducedFromNewConstraint of
-                Just ( a, b ) ->
-                    AssocList.insert a b deduced
+                        And2 _ _ ->
+                            -- TODO Add "a && b && ..."?
+                            Nothing
 
-                Nothing ->
-                    deduced
-        }
+                        Or2 _ _ ->
+                            -- TODO Add "a || b || ..."?
+                            Nothing
+            in
+            injectConstraints2
+                (constraints ++ restOfConstraints)
+                (newConstraint :: alreadySeen)
+                (Inferred2
+                    { constraints = newConstraint :: constraints
+                    , deduced =
+                        case deducedFromNewConstraint of
+                            Just ( a, b ) ->
+                                AssocList.insert a b deduced
+
+                            Nothing ->
+                                deduced
+                    }
+                )
 
 
 deduce :
@@ -299,7 +312,7 @@ deduce :
     ->
         { alreadySeen : List Constraint2
         , deduced : AssocList.Dict Expression DeducedValue
-        , updatedConstraints : List Constraint2
+        , newConstraints : List Constraint2
         }
     ->
         { deduced : AssocList.Dict Expression DeducedValue
@@ -309,7 +322,7 @@ deduce { newConstraint, constraints } acc =
     case constraints of
         [] ->
             { deduced = acc.deduced
-            , constraints = acc.updatedConstraints
+            , constraints = acc.newConstraints
             }
 
         constraint :: restOfConstraints ->
@@ -329,14 +342,14 @@ deduce { newConstraint, constraints } acc =
                     newParams : { newConstraint : Constraint2, constraints : List Constraint2 }
                     newParams =
                         { newConstraint = newConstraint
-                        , constraints = deducedFromThisConstraint.constraints ++ restOfConstraints
+                        , constraints = restOfConstraints
                         }
                 in
                 deduce
                     newParams
                     { alreadySeen = constraint :: acc.alreadySeen
                     , deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
-                    , updatedConstraints = deducedFromThisConstraint.constraints ++ acc.updatedConstraints
+                    , newConstraints = deducedFromThisConstraint.constraints ++ acc.newConstraints
                     }
 
 
@@ -461,47 +474,53 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
         Expression.Integer int ->
             if shouldBe then
                 injectConstraints2
-                    (Equals2 other (Expression.Floatable (Basics.toFloat int)))
+                    [ Equals2 other (Expression.Floatable (Basics.toFloat int)) ]
+                    []
                     dict
 
             else
                 injectConstraints2
-                    (NotEquals2 other (Expression.Floatable (Basics.toFloat int)))
+                    [ NotEquals2 other (Expression.Floatable (Basics.toFloat int)) ]
+                    []
                     dict
 
         Expression.Floatable float ->
             if shouldBe then
                 injectConstraints2
-                    (Equals2 other (Expression.Floatable float))
+                    [ Equals2 other (Expression.Floatable float) ]
+                    []
                     dict
 
             else
                 injectConstraints2
-                    (NotEquals2 other (Expression.Floatable float))
+                    [ NotEquals2 other (Expression.Floatable float) ]
+                    []
                     dict
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
             injectConstraints2
-                (Equals2 other
+                [ Equals2 other
                     (if shouldBe then
                         trueExpr
 
                      else
                         falseExpr
                     )
-                )
+                ]
+                []
                 dict
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
             injectConstraints2
-                (Equals2 other
+                [ Equals2 other
                     (if shouldBe then
                         falseExpr
 
                      else
                         trueExpr
                     )
-                )
+                ]
+                []
                 dict
 
         _ ->
