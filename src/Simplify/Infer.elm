@@ -1,6 +1,7 @@
 module Simplify.Infer exposing
     ( Constraint(..)
     , Constraint2(..)
+    , DeducedValue(..)
     , Inferred
     , Inferred2(..)
     , Resources
@@ -37,6 +38,12 @@ type Inferred2
         { constraints : List Constraint2
         , deduced : AssocList.Dict Expression Expression
         }
+
+
+type DeducedValue
+    = DTrue
+    | DFalse
+    | DFloat Float
 
 
 type Constraint2
