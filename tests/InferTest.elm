@@ -581,7 +581,7 @@ mergeConstraintsTests =
                         { deduced = []
                         , constraints = []
                         }
-        , test "should not deduce anything when constraints don't share anything (a || b, a == True)" <|
+        , test "should deduce b is True when (a || b) and (a == False)" <|
             \() ->
                 mergeConstraints
                     ( FunctionOrValue [] "a", falseExpr )
