@@ -431,7 +431,7 @@ deduce { newConstraint, constraints } acc =
                         deduce newParams newAcc
 
 
-mergeConstraints : Constraint -> Constraint -> { deduced : List ( Expression, Expression ), constraints : List Constraint2 }
+mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, Expression ), constraints : List Constraint2 }
 mergeConstraints new previous =
     { deduced = [], constraints = [] }
 

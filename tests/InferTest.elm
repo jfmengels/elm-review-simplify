@@ -16,6 +16,7 @@ all =
         [ simpleTests
         , detailedTests
         , Test.only <| deduceTests
+        , mergeConstraintsTests
         ]
 
 
@@ -565,6 +566,21 @@ deduceTests =
                           , trueExpr
                           )
                         ]
+        ]
+
+
+mergeConstraintsTests : Test
+mergeConstraintsTests =
+    describe "mergeConstraints"
+        [ test "should not deduce anything when constraints don't share anything (a == True, b == True)" <|
+            \() ->
+                mergeConstraints
+                    (Equals2 (FunctionOrValue [] "a") trueExpr)
+                    (Equals2 (FunctionOrValue [] "b") trueExpr)
+                    |> Expect.equal
+                        { deduced = []
+                        , constraints = []
+                        }
         ]
 
 
