@@ -166,9 +166,6 @@ infer2 nodes shouldBe acc =
                     injectConstraints2 [ convertToConstraint node shouldBe ] [] acc
             in
             case node of
-                Expression.FunctionOrValue _ _ ->
-                    infer2 rest shouldBe dict
-
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
                     infer2
                         rest
