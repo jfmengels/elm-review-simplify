@@ -270,8 +270,7 @@ injectConstraints2 newConstraints alreadySeen (Inferred2 inferred) =
                             { newConstraint = Debug.log "new cons" newConstraint
                             , constraints = inferred.constraints
                             }
-                            { alreadySeen = []
-                            , deduced = inferred.deduced
+                            { deduced = inferred.deduced
                             , newConstraints = inferred.constraints
                             }
 
@@ -314,8 +313,7 @@ deduce :
     , constraints : List Constraint2
     }
     ->
-        { alreadySeen : List Constraint2
-        , deduced : AssocList.Dict Expression DeducedValue
+        { deduced : AssocList.Dict Expression DeducedValue
         , newConstraints : List Constraint2
         }
     ->
@@ -330,27 +328,18 @@ deduce { newConstraint, constraints } acc =
             }
 
         constraint :: restOfConstraints ->
-            if List.member constraint acc.alreadySeen then
-                deduce
-                    { newConstraint = newConstraint
-                    , constraints = restOfConstraints
-                    }
-                    acc
-
-            else
-                let
-                    deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
-                    deducedFromThisConstraint =
-                        mergeConstraints newConstraint constraint
-                in
-                deduce
-                    { newConstraint = newConstraint
-                    , constraints = restOfConstraints
-                    }
-                    { alreadySeen = constraint :: acc.alreadySeen
-                    , deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
-                    , newConstraints = deducedFromThisConstraint.constraints ++ acc.newConstraints
-                    }
+            let
+                deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+                deducedFromThisConstraint =
+                    mergeConstraints newConstraint constraint
+            in
+            deduce
+                { newConstraint = newConstraint
+                , constraints = restOfConstraints
+                }
+                { deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
+                , newConstraints = deducedFromThisConstraint.constraints ++ acc.newConstraints
+                }
 
 
 mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }

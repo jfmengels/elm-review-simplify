@@ -550,8 +550,7 @@ deduceTests =
                             { newConstraint = Equals2 (FunctionOrValue [] "a") falseExpr
                             , constraints = inferred.constraints
                             }
-                            { alreadySeen = []
-                            , deduced = inferred.deduced
+                            { deduced = inferred.deduced
                             , newConstraints = inferred.constraints
                             }
                 in
