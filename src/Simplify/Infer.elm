@@ -417,9 +417,22 @@ mergeConstraints ( target, value ) constraint =
             case left of
                 Equals2 constraintTarget constraintValue ->
                     if constraintTarget == target then
-                        { deduced = []
-                        , constraints = [ right ]
-                        }
+                        case ( value, constraintValue ) of
+                            ( DTrue, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
+                                { deduced = [], constraints = [ right ] }
+
+                            ( DFalse, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
+                                { deduced = [], constraints = [ right ] }
+
+                            ( DFloat valueFloat, Expression.Floatable constraintFloat ) ->
+                                if valueFloat == constraintFloat then
+                                    { deduced = [], constraints = [ right ] }
+
+                                else
+                                    { deduced = [], constraints = [ right ] }
+
+                            _ ->
+                                { deduced = [], constraints = [] }
 
                     else
                         { deduced = [], constraints = [] }
