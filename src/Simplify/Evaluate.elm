@@ -53,7 +53,7 @@ getBoolean resources baseNode =
 
         Expression.OperatorApplication "==" _ left right ->
             -- TODO Handle constraints on the right side
-            case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
+            case Nothing of
                 Just (Infer.Is True) ->
                     getBoolean resources right
 
