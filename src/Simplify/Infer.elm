@@ -342,15 +342,11 @@ deduce { newConstraint, constraints } acc =
                     deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
                     deducedFromThisConstraint =
                         mergeConstraints newConstraint constraint
-
-                    newParams : { newConstraint : Constraint2, constraints : List Constraint2 }
-                    newParams =
-                        { newConstraint = newConstraint
-                        , constraints = restOfConstraints
-                        }
                 in
                 deduce
-                    newParams
+                    { newConstraint = newConstraint
+                    , constraints = restOfConstraints
+                    }
                     { alreadySeen = constraint :: acc.alreadySeen
                     , deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
                     , newConstraints = deducedFromThisConstraint.constraints ++ acc.newConstraints
