@@ -491,6 +491,7 @@ detailedTests =
                     |> expectEqual
                         { constraints =
                             [ Equals2 (FunctionOrValue [] "a") falseExpr
+                            , Equals2 (FunctionOrValue [] "b") trueExpr
                             , Or2
                                 (Equals2
                                     (FunctionOrValue [] "a")
