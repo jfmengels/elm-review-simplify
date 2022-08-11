@@ -292,50 +292,6 @@ injectConstraints2 newConstraint (Inferred2 inferred) =
         }
 
 
-equalsConstraint : Expression -> Expression -> Maybe ( Expression, DeducedValue )
-equalsConstraint a b =
-    case expressionToDeduced a of
-        Just deducedValue ->
-            Just ( b, deducedValue )
-
-        Nothing ->
-            case expressionToDeduced b of
-                Just deducedValue ->
-                    Just ( a, deducedValue )
-
-                Nothing ->
-                    Nothing
-
-
-expressionToDeduced : Expression -> Maybe DeducedValue
-expressionToDeduced expression =
-    case expression of
-        Expression.FunctionOrValue [ "Basics" ] "True" ->
-            Just DTrue
-
-        Expression.FunctionOrValue [ "Basics" ] "False" ->
-            Just DFalse
-
-        Expression.Floatable float ->
-            Just (DFloat float)
-
-        _ ->
-            Nothing
-
-
-notDeduced : ( a, DeducedValue ) -> Maybe ( a, DeducedValue )
-notDeduced ( a, deducedValue ) =
-    case deducedValue of
-        DTrue ->
-            Just ( a, DFalse )
-
-        DFalse ->
-            Just ( a, DTrue )
-
-        _ ->
-            Nothing
-
-
 deduce :
     { newConstraint : Constraint2
     , constraints : List Constraint2
@@ -397,6 +353,50 @@ mergeConstraints newConstraint constraint =
 
         _ ->
             { deduced = [], constraints = [] }
+
+
+equalsConstraint : Expression -> Expression -> Maybe ( Expression, DeducedValue )
+equalsConstraint a b =
+    case expressionToDeduced a of
+        Just deducedValue ->
+            Just ( b, deducedValue )
+
+        Nothing ->
+            case expressionToDeduced b of
+                Just deducedValue ->
+                    Just ( a, deducedValue )
+
+                Nothing ->
+                    Nothing
+
+
+expressionToDeduced : Expression -> Maybe DeducedValue
+expressionToDeduced expression =
+    case expression of
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            Just DTrue
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            Just DFalse
+
+        Expression.Floatable float ->
+            Just (DFloat float)
+
+        _ ->
+            Nothing
+
+
+notDeduced : ( a, DeducedValue ) -> Maybe ( a, DeducedValue )
+notDeduced ( a, deducedValue ) =
+    case deducedValue of
+        DTrue ->
+            Just ( a, DFalse )
+
+        DFalse ->
+            Just ( a, DTrue )
+
+        _ ->
+            Nothing
 
 
 mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
