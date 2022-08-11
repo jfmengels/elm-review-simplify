@@ -437,9 +437,13 @@ mergeConstraints ( target, value ) constraint =
         Or2 left right ->
             case left of
                 Equals2 constraintTarget constraintValue ->
-                    { deduced = []
-                    , constraints = [ right ]
-                    }
+                    if constraintTarget == target then
+                        { deduced = []
+                        , constraints = [ right ]
+                        }
+
+                    else
+                        { deduced = [], constraints = [] }
 
                 _ ->
                     { deduced = [], constraints = [] }
