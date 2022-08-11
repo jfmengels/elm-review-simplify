@@ -514,6 +514,9 @@ detailedTests =
                                 [ ( FunctionOrValue [] "a"
                                   , DFalse
                                   )
+                                , ( FunctionOrValue [] "b"
+                                  , DTrue
+                                  )
                                 , ( OperatorApplication "||"
                                         Right
                                         (n (FunctionOrValue [] "a"))
