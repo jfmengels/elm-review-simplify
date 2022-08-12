@@ -121,7 +121,24 @@ normalize resources node =
                     toNode (Expression.FunctionOrValue rawModuleName string)
 
         Expression.IfBlock cond then_ else_ ->
-            toNode (Expression.IfBlock (normalize resources cond) (normalize resources then_) (normalize resources else_))
+            let
+                condition : Node Expression
+                condition =
+                    normalize resources cond
+
+                reverseIfConditionIsNegated : Node Expression -> Node Expression -> Node Expression -> Node Expression
+                reverseIfConditionIsNegated condArg thenArg elseArg =
+                    case Node.value condArg of
+                        Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), negatedCondition ] ->
+                            reverseIfConditionIsNegated negatedCondition elseArg thenArg
+
+                        _ ->
+                            toNode (Expression.IfBlock condition thenArg elseArg)
+            in
+            reverseIfConditionIsNegated
+                (normalize resources cond)
+                (normalize resources then_)
+                (normalize resources else_)
 
         Expression.Negation expr ->
             let
