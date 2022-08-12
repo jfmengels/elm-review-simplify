@@ -5,6 +5,7 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Range)
+import Elm.Writer
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.Infer as Infer
 
@@ -84,8 +85,27 @@ normalize resources node =
                 _ ->
                     toNode (Expression.OperatorApplication "::" infixDirection normalizedElement normalizedList)
 
-        Expression.OperatorApplication operator infixDirection left right ->
-            toNode (Expression.OperatorApplication operator infixDirection (normalize resources left) (normalize resources right))
+        Expression.OperatorApplication ">" infixDirection left right ->
+            toNode (Expression.OperatorApplication "<" infixDirection (normalize resources right) (normalize resources left))
+
+        Expression.OperatorApplication ">=" infixDirection left right ->
+            toNode (Expression.OperatorApplication "<=" infixDirection (normalize resources right) (normalize resources left))
+
+        Expression.OperatorApplication operator infixDirection l r ->
+            let
+                left : Node Expression
+                left =
+                    normalize resources l
+
+                right : Node Expression
+                right =
+                    normalize resources r
+            in
+            if List.member operator [ "+", "*", "||", "&&", "==", "/=" ] && toComparable left > toComparable right then
+                toNode (Expression.OperatorApplication operator infixDirection right left)
+
+            else
+                toNode (Expression.OperatorApplication operator infixDirection left right)
 
         Expression.FunctionOrValue rawModuleName string ->
             case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
@@ -198,6 +218,11 @@ normalize resources node =
 
         expr ->
             toNode expr
+
+
+toComparable : Node Expression -> String
+toComparable a =
+    Elm.Writer.write (Elm.Writer.writeExpression a)
 
 
 addToFunctionCall : Node Expression -> Node Expression -> Node Expression
