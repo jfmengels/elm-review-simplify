@@ -2,7 +2,6 @@ module Simplify.Infer exposing
     ( Constraint(..)
     , Constraint2(..)
     , DeducedValue(..)
-    , Inferred
     , Inferred2(..)
     , Resources
     , empty
@@ -63,7 +62,6 @@ type Constraint
 type alias Resources a =
     { a
         | lookupTable : ModuleNameLookupTable
-        , inferredConstants : ( Inferred, List Inferred )
         , inferredConstants2 : ( Inferred2, List Inferred2 )
     }
 
