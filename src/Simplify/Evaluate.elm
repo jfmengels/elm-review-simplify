@@ -1,4 +1,4 @@
-module Simplify.Evaluate exposing (..)
+module Simplify.Evaluate exposing (getBoolean, isAlwaysBoolean)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -99,26 +99,6 @@ getBoolean resources baseNode =
 --
 --        Nothing ->
 --            Undetermined
-
-
-inferConstraint : Expression -> Infer.Inferred -> Match Bool
-inferConstraint node inferredConstants =
-    case Infer.getConstraint node inferredConstants of
-        Just (Infer.Equals value) ->
-            if value == Expression.FunctionOrValue [ "Basics" ] "True" then
-                Determined True
-
-            else if value == Expression.FunctionOrValue [ "Basics" ] "False" then
-                Determined False
-
-            else
-                Undetermined
-
-        Just (Infer.Is bool) ->
-            Determined bool
-
-        _ ->
-            Undetermined
 
 
 isAlwaysBoolean : Infer.Resources a -> Node Expression -> Match Bool

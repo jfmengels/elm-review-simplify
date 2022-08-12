@@ -9,7 +9,6 @@ module Simplify.Infer exposing
     , empty2
     , falseExpr
     , get2
-    , getConstraint
     , getInt
     , infer2
     , inferForIfCondition
@@ -116,12 +115,6 @@ isBoolean expr (Inferred2 inferred) =
             )
 
 
-getConstraint : Expression -> Inferred -> Maybe Constraint
-getConstraint expr (Inferred inferred) =
-    AssocList.get expr inferred
-        |> Maybe.map (\(Single c) -> c)
-
-
 inferForIfCondition2 : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred2 -> List ( Range, Inferred2 )
 inferForIfCondition2 condition { trueBranchRange, falseBranchRange } inferred =
     [ ( trueBranchRange, infer2 [ condition ] True inferred )
@@ -167,7 +160,7 @@ infer2 nodes shouldBe acc =
                         shouldBe
                         (infer2 [ Node.value expression ] (not shouldBe) dict)
 
-                Expression.OperatorApplication "&&" infix_ (Node _ left) (Node _ right) ->
+                Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         dict
                             |> injectConstraints2
@@ -186,7 +179,7 @@ infer2 nodes shouldBe acc =
                                 ]
                             |> infer2 rest shouldBe
 
-                Expression.OperatorApplication "||" infix_ (Node _ left) (Node _ right) ->
+                Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         dict
                             |> injectConstraints2
@@ -588,7 +581,7 @@ injectConstraints expression constraints (Inferred inferred) =
         |> AssocList.foldl
             (\expr v acc ->
                 case expr of
-                    Expression.OperatorApplication "&&" infix_ (Node _ left) (Node _ right) ->
+                    Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
                         if expression == left then
                             AssocList.insert expr v acc
 
