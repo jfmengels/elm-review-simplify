@@ -761,8 +761,8 @@ type alias ModuleContext =
     , ignoredCustomTypes : List Constructor
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
-    , inferredConstantsDict2 : RangeDict Infer.Inferred2
-    , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
+    , inferredConstantsDict : RangeDict Infer.Inferred
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     }
 
 
@@ -799,8 +799,8 @@ initialModuleContext =
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
-            , inferredConstantsDict2 = RangeDict.empty
-            , inferredConstants2 = ( Infer.empty2, [] )
+            , inferredConstantsDict = RangeDict.empty
+            , inferredConstants = ( Infer.empty, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -818,8 +818,8 @@ fromProjectToModule =
             , localIgnoredCustomTypes = []
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
-            , inferredConstantsDict2 = RangeDict.empty
-            , inferredConstants2 = ( Infer.empty2, [] )
+            , inferredConstantsDict = RangeDict.empty
+            , inferredConstants = ( Infer.empty, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -955,7 +955,7 @@ declarationVisitor _ context =
     , { context
         | rangesToIgnore = []
         , rightSidesOfPlusPlus = []
-        , inferredConstantsDict2 = RangeDict.empty
+        , inferredConstantsDict = RangeDict.empty
       }
     )
 
@@ -969,13 +969,13 @@ expressionVisitor node context =
     let
         newContext : ModuleContext
         newContext =
-            case RangeDict.get (Node.range node) context.inferredConstantsDict2 of
+            case RangeDict.get (Node.range node) context.inferredConstantsDict of
                 Just inferredConstants ->
                     let
                         ( previous, previousStack ) =
-                            context.inferredConstants2
+                            context.inferredConstants
                     in
-                    { context | inferredConstants2 = ( inferredConstants, previous :: previousStack ) }
+                    { context | inferredConstants = ( inferredConstants, previous :: previousStack ) }
 
                 Nothing ->
                     context
@@ -985,24 +985,24 @@ expressionVisitor node context =
 
     else
         let
-            { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants2 } =
+            { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
                 expressionVisitorHelp node newContext
         in
         ( errors
         , { newContext
             | rangesToIgnore = rangesToIgnore ++ newContext.rangesToIgnore
             , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext.rightSidesOfPlusPlus
-            , inferredConstantsDict2 = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext.inferredConstantsDict2 inferredConstants2
+            , inferredConstantsDict = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext.inferredConstantsDict inferredConstants
           }
         )
 
 
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
 expressionExitVisitor node context =
-    if RangeDict.member (Node.range node) context.inferredConstantsDict2 then
-        case Tuple.second context.inferredConstants2 of
+    if RangeDict.member (Node.range node) context.inferredConstantsDict then
+        case Tuple.second context.inferredConstants of
             topOfStack :: restOfStack ->
-                { context | inferredConstants2 = ( topOfStack, restOfStack ) }
+                { context | inferredConstants = ( topOfStack, restOfStack ) }
 
             [] ->
                 -- should never be empty
@@ -1012,25 +1012,25 @@ expressionExitVisitor node context =
         context
 
 
-errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants2 : List ( Range, Infer.Inferred2 ) }
+errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 errorsAndRangesToIgnore errors rangesToIgnore =
     { errors = errors
     , rangesToIgnore = rangesToIgnore
     , rightSidesOfPlusPlus = []
-    , inferredConstants2 = []
+    , inferredConstants = []
     }
 
 
-onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants2 : List ( Range, Infer.Inferred2 ) }
+onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 onlyErrors errors =
     { errors = errors
     , rangesToIgnore = []
     , rightSidesOfPlusPlus = []
-    , inferredConstants2 = []
+    , inferredConstants = []
     }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants2 : List ( Range, Infer.Inferred2 ) }
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp node context =
     case Node.value node of
         --------------------
@@ -1045,7 +1045,7 @@ expressionVisitorHelp node context =
                     onlyErrors
                         (checkFn
                             { lookupTable = context.lookupTable
-                            , inferredConstants2 = context.inferredConstants2
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1163,7 +1163,7 @@ expressionVisitorHelp node context =
                     onlyErrors
                         (checkFn
                             { lookupTable = context.lookupTable
-                            , inferredConstants2 = context.inferredConstants2
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1185,7 +1185,7 @@ expressionVisitorHelp node context =
                     errorsAndRangesToIgnore
                         (checkFn
                             { lookupTable = context.lookupTable
-                            , inferredConstants2 = context.inferredConstants2
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1211,7 +1211,7 @@ expressionVisitorHelp node context =
                     onlyErrors
                         (checkFn
                             { lookupTable = context.lookupTable
-                            , inferredConstants2 = context.inferredConstants2
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1233,7 +1233,7 @@ expressionVisitorHelp node context =
                     errorsAndRangesToIgnore
                         (checkFn
                             { lookupTable = context.lookupTable
-                            , inferredConstants2 = context.inferredConstants2
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , fnRange = fnRange
                             , firstArg = firstArg
@@ -1305,7 +1305,7 @@ expressionVisitorHelp node context =
                     { errors =
                         checkFn
                             { lookupTable = context.lookupTable
-                            , inferredConstants2 = context.inferredConstants2
+                            , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , operator = operator
                             , left = left
@@ -1321,7 +1321,7 @@ expressionVisitorHelp node context =
 
                         else
                             []
-                    , inferredConstants2 = []
+                    , inferredConstants = []
                     }
 
                 Nothing ->
@@ -1355,7 +1355,7 @@ expressionVisitorHelp node context =
 
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
-    , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
     , firstArg : Node Expression
@@ -1434,7 +1434,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
-    , inferredConstants2 : ( Infer.Inferred2, List Infer.Inferred2 )
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , operator : String
     , left : Node Expression
@@ -4730,7 +4730,7 @@ ifChecks :
         , trueBranch : Node Expression
         , falseBranch : Node Expression
         }
-    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants2 : List ( Range, Infer.Inferred2 ) }
+    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
     case Evaluate.getBoolean context condition of
         Determined True ->
@@ -4831,13 +4831,13 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             { errors = []
                             , rangesToIgnore = []
                             , rightSidesOfPlusPlus = []
-                            , inferredConstants2 =
-                                Infer.inferForIfCondition2
+                            , inferredConstants =
+                                Infer.inferForIfCondition
                                     (Node.value (Normalize.normalize context condition))
                                     { trueBranchRange = Node.range trueBranch
                                     , falseBranchRange = Node.range falseBranch
                                     }
-                                    (Tuple.first context.inferredConstants2)
+                                    (Tuple.first context.inferredConstants)
                             }
 
 

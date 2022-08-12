@@ -1,14 +1,14 @@
 module Simplify.Infer exposing
-    ( Constraint2(..)
+    ( Constraint(..)
     , DeducedValue(..)
-    , Inferred2(..)
+    , Inferred(..)
     , Resources
-    , empty2
+    , empty
     , falseExpr
-    , get2
+    , get
     , getInt
-    , infer2
-    , inferForIfCondition2
+    , infer
+    , inferForIfCondition
     , isBoolean
     , mergeConstraints
     , trueExpr
@@ -22,9 +22,9 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Simplify.AstHelpers as AstHelpers
 
 
-type Inferred2
-    = Inferred2
-        { constraints : List Constraint2
+type Inferred
+    = Inferred
+        { constraints : List Constraint
         , deduced : AssocList.Dict Expression DeducedValue
         }
 
@@ -35,30 +35,30 @@ type DeducedValue
     | DFloat Float
 
 
-type Constraint2
-    = Equals2 Expression Expression
-    | NotEquals2 Expression Expression
-    | And2 Constraint2 Constraint2
-    | Or2 Constraint2 Constraint2
+type Constraint
+    = Equals Expression Expression
+    | NotEquals Expression Expression
+    | And Constraint Constraint
+    | Or Constraint Constraint
 
 
 type alias Resources a =
     { a
         | lookupTable : ModuleNameLookupTable
-        , inferredConstants2 : ( Inferred2, List Inferred2 )
+        , inferredConstants : ( Inferred, List Inferred )
     }
 
 
-empty2 : Inferred2
-empty2 =
-    Inferred2
+empty : Inferred
+empty =
+    Inferred
         { constraints = []
         , deduced = AssocList.empty
         }
 
 
-get2 : Expression -> Inferred2 -> Maybe Expression
-get2 expr (Inferred2 inferred) =
+get : Expression -> Inferred -> Maybe Expression
+get expr (Inferred inferred) =
     AssocList.get expr inferred.deduced
         |> Maybe.map
             (\value ->
@@ -74,8 +74,8 @@ get2 expr (Inferred2 inferred) =
             )
 
 
-isBoolean : Expression -> Inferred2 -> Maybe Bool
-isBoolean expr (Inferred2 inferred) =
+isBoolean : Expression -> Inferred -> Maybe Bool
+isBoolean expr (Inferred inferred) =
     AssocList.get expr inferred.deduced
         |> Maybe.andThen
             (\value ->
@@ -91,10 +91,10 @@ isBoolean expr (Inferred2 inferred) =
             )
 
 
-inferForIfCondition2 : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred2 -> List ( Range, Inferred2 )
-inferForIfCondition2 condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer2 [ condition ] True inferred )
-    , ( falseBranchRange, infer2 [ condition ] False inferred )
+inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
+inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
+    [ ( trueBranchRange, infer [ condition ] True inferred )
+    , ( falseBranchRange, infer [ condition ] False inferred )
     ]
 
 
@@ -108,104 +108,104 @@ falseExpr =
     Expression.FunctionOrValue [ "Basics" ] "False"
 
 
-convertToConstraint : Expression -> Bool -> Constraint2
+convertToConstraint : Expression -> Bool -> Constraint
 convertToConstraint expr shouldBe =
     if shouldBe then
-        Equals2 expr trueExpr
+        Equals expr trueExpr
 
     else
-        Equals2 expr falseExpr
+        Equals expr falseExpr
 
 
-infer2 : List Expression -> Bool -> Inferred2 -> Inferred2
-infer2 nodes shouldBe acc =
+infer : List Expression -> Bool -> Inferred -> Inferred
+infer nodes shouldBe acc =
     case nodes of
         [] ->
             acc
 
         node :: rest ->
             let
-                dict : Inferred2
+                dict : Inferred
                 dict =
-                    injectConstraints2 [ convertToConstraint node shouldBe ] acc
+                    injectConstraints [ convertToConstraint node shouldBe ] acc
             in
             case node of
                 Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
-                    infer2
+                    infer
                         rest
                         shouldBe
-                        (infer2 [ Node.value expression ] (not shouldBe) dict)
+                        (infer [ Node.value expression ] (not shouldBe) dict)
 
                 Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         dict
-                            |> injectConstraints2
-                                [ And2
+                            |> injectConstraints
+                                [ And
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
                                 ]
-                            |> infer2 (left :: right :: rest) shouldBe
+                            |> infer (left :: right :: rest) shouldBe
 
                     else
                         dict
-                            |> injectConstraints2
-                                [ Or2
+                            |> injectConstraints
+                                [ Or
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
                                 ]
-                            |> infer2 rest shouldBe
+                            |> infer rest shouldBe
 
                 Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         dict
-                            |> injectConstraints2
-                                [ Or2
+                            |> injectConstraints
+                                [ Or
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
                                 ]
-                            |> infer2 rest shouldBe
+                            |> infer rest shouldBe
 
                     else
                         dict
-                            |> injectConstraints2
-                                [ And2
+                            |> injectConstraints
+                                [ And
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
                                 ]
-                            |> infer2 [ left, right ] shouldBe
-                            |> infer2 rest shouldBe
+                            |> infer [ left, right ] shouldBe
+                            |> infer rest shouldBe
 
                 Expression.OperatorApplication "==" _ left right ->
-                    infer2 rest
+                    infer rest
                         shouldBe
                         (dict
-                            |> inferOnEquality2 left right shouldBe
-                            |> inferOnEquality2 right left shouldBe
+                            |> inferOnEquality left right shouldBe
+                            |> inferOnEquality right left shouldBe
                         )
 
                 Expression.OperatorApplication "/=" _ left right ->
-                    infer2 rest
+                    infer rest
                         shouldBe
                         (dict
-                            |> inferOnEquality2 left right (not shouldBe)
-                            |> inferOnEquality2 right left (not shouldBe)
+                            |> inferOnEquality left right (not shouldBe)
+                            |> inferOnEquality right left (not shouldBe)
                         )
 
                 _ ->
-                    infer2 rest shouldBe dict
+                    infer rest shouldBe dict
 
 
-injectConstraints2 : List Constraint2 -> Inferred2 -> Inferred2
-injectConstraints2 newConstraints (Inferred2 inferred) =
+injectConstraints : List Constraint -> Inferred -> Inferred
+injectConstraints newConstraints (Inferred inferred) =
     case newConstraints of
         [] ->
-            Inferred2 inferred
+            Inferred inferred
 
         newConstraint :: restOfConstraints ->
             if List.member newConstraint inferred.constraints then
-                injectConstraints2
+                injectConstraints
                     restOfConstraints
-                    (Inferred2 inferred)
+                    (Inferred inferred)
 
             else
                 let
@@ -219,24 +219,24 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
                     deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
                     deducedFromNewConstraint =
                         case newConstraint of
-                            Equals2 a b ->
+                            Equals a b ->
                                 equalsConstraint a b
 
-                            NotEquals2 a b ->
+                            NotEquals a b ->
                                 equalsConstraint a b
                                     |> Maybe.andThen notDeduced
 
-                            And2 _ _ ->
+                            And _ _ ->
                                 -- TODO Add "a && b && ..."?
                                 Nothing
 
-                            Or2 _ _ ->
+                            Or _ _ ->
                                 -- TODO Add "a || b || ..."?
                                 Nothing
                 in
-                injectConstraints2
+                injectConstraints
                     (constraints ++ restOfConstraints)
-                    (Inferred2
+                    (Inferred
                         { constraints = newConstraint :: inferred.constraints
                         , deduced =
                             case deducedFromNewConstraint of
@@ -250,16 +250,16 @@ injectConstraints2 newConstraints (Inferred2 inferred) =
 
 
 deduce :
-    { newConstraint : Constraint2
-    , constraints : List Constraint2
+    { newConstraint : Constraint
+    , constraints : List Constraint
     }
     ->
         { deduced : AssocList.Dict Expression DeducedValue
-        , constraints : List Constraint2
+        , constraints : List Constraint
         }
     ->
         { deduced : AssocList.Dict Expression DeducedValue
-        , constraints : List Constraint2
+        , constraints : List Constraint
         }
 deduce { newConstraint, constraints } acc =
     -- TODO Remove the constraints which we were able to deduce
@@ -269,7 +269,7 @@ deduce { newConstraint, constraints } acc =
 
         constraint :: restOfConstraints ->
             let
-                deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+                deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint }
                 deducedFromThisConstraint =
                     mergeConstraints newConstraint constraint
             in
@@ -282,16 +282,16 @@ deduce { newConstraint, constraints } acc =
                 }
 
 
-mergeConstraints : Constraint2 -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+mergeConstraints : Constraint -> Constraint -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint }
 mergeConstraints newConstraint constraint =
     case newConstraint of
-        Equals2 constraintTarget constraintValue ->
+        Equals constraintTarget constraintValue ->
             case expressionToDeduced constraintValue of
                 Just value ->
                     mergeEqualConstraints ( constraintTarget, value ) constraint
 
                 Nothing ->
-                    { deduced = [], constraints = [ Equals2 constraintValue constraintTarget ] }
+                    { deduced = [], constraints = [ Equals constraintValue constraintTarget ] }
 
         _ ->
             { deduced = [], constraints = [] }
@@ -341,12 +341,12 @@ notDeduced ( a, deducedValue ) =
             Nothing
 
 
-mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint2 -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint2 }
+mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint }
 mergeEqualConstraints ( target, value ) constraint =
     case constraint of
-        Or2 left right ->
+        Or left right ->
             case left of
-                Equals2 constraintTarget constraintValue ->
+                Equals constraintTarget constraintValue ->
                     if constraintTarget == target && areIncompatible value constraintValue then
                         { deduced = [], constraints = [ right ] }
 
@@ -380,34 +380,34 @@ areIncompatible value constraintValue =
             False
 
 
-inferOnEquality2 : Node Expression -> Node Expression -> Bool -> Inferred2 -> Inferred2
-inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
+inferOnEquality : Node Expression -> Node Expression -> Bool -> Inferred -> Inferred
+inferOnEquality (Node _ expr) (Node _ other) shouldBe dict =
     case expr of
         Expression.Integer int ->
             if shouldBe then
-                injectConstraints2
-                    [ Equals2 other (Expression.Floatable (Basics.toFloat int)) ]
+                injectConstraints
+                    [ Equals other (Expression.Floatable (Basics.toFloat int)) ]
                     dict
 
             else
-                injectConstraints2
-                    [ NotEquals2 other (Expression.Floatable (Basics.toFloat int)) ]
+                injectConstraints
+                    [ NotEquals other (Expression.Floatable (Basics.toFloat int)) ]
                     dict
 
         Expression.Floatable float ->
             if shouldBe then
-                injectConstraints2
-                    [ Equals2 other (Expression.Floatable float) ]
+                injectConstraints
+                    [ Equals other (Expression.Floatable float) ]
                     dict
 
             else
-                injectConstraints2
-                    [ NotEquals2 other (Expression.Floatable float) ]
+                injectConstraints
+                    [ NotEquals other (Expression.Floatable float) ]
                     dict
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
-            injectConstraints2
-                [ Equals2 other
+            injectConstraints
+                [ Equals other
                     (if shouldBe then
                         trueExpr
 
@@ -418,8 +418,8 @@ inferOnEquality2 (Node _ expr) (Node _ other) shouldBe dict =
                 dict
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
-            injectConstraints2
-                [ Equals2 other
+            injectConstraints
+                [ Equals other
                     (if shouldBe then
                         falseExpr
 
@@ -453,7 +453,7 @@ getInt resources baseNode =
         Expression.FunctionOrValue _ name ->
             case
                 ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                    |> Maybe.andThen (\moduleName -> get2 (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants2))
+                    |> Maybe.andThen (\moduleName -> get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
             of
                 Just (Expression.Integer int) ->
                     Just int
