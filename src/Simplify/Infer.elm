@@ -387,7 +387,7 @@ mergeEqualConstraints ( target, value ) constraint =
                 _ ->
                     { deduced = [], constraints = [] }
 
-        _ ->
+        todoSimplify ->
             { deduced = [], constraints = [] }
 
 
