@@ -370,11 +370,7 @@ areIncompatible value constraintValue =
             True
 
         ( DFloat valueFloat, Expression.Floatable constraintFloat ) ->
-            if valueFloat == constraintFloat then
-                True
-
-            else
-                False
+            valueFloat == constraintFloat
 
         _ ->
             False
