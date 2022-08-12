@@ -2,11 +2,10 @@ module Simplify.Evaluate exposing (..)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
-import Elm.Syntax.Range as Range
 import Review.ModuleNameLookupTable as ModuleNameLookupTable
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
-import Simplify.Match as Match exposing (Match(..))
+import Simplify.Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 
 
@@ -32,44 +31,6 @@ getBoolean resources baseNode =
                     Determined False
 
                 _ ->
-                    Undetermined
-
-        --Expression.OperatorApplication "==" _ left right ->
-        --    Infer.get2 (Node.value left) (Tuple.first resources.inferredConstants2)
-        --    getBooleanFromEquality (Tuple.first resources.inferredConstants) left right
-        Expression.OperatorApplication "/=" _ left right ->
-            -- TODO Handle constraints on the right side
-            case Infer.getConstraint (Node.value left) (Tuple.first resources.inferredConstants) of
-                Just (Infer.Is True) ->
-                    getBoolean resources right
-                        |> Match.map not
-
-                Just (Infer.Is False) ->
-                    getBoolean resources right
-
-                Just (Infer.Equals value) ->
-                    case Normalize.compare resources (Node Range.emptyRange value) right of
-                        Normalize.ConfirmedEquality ->
-                            Determined False
-
-                        Normalize.ConfirmedInequality ->
-                            Determined True
-
-                        Normalize.Unconfirmed ->
-                            Undetermined
-
-                Just (Infer.NotEquals value) ->
-                    case Normalize.compare resources (Node Range.emptyRange value) right of
-                        Normalize.ConfirmedEquality ->
-                            Determined True
-
-                        Normalize.ConfirmedInequality ->
-                            Determined False
-
-                        Normalize.Unconfirmed ->
-                            Undetermined
-
-                Nothing ->
                     Undetermined
 
         Expression.FunctionOrValue _ name ->
