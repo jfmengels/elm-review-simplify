@@ -402,12 +402,6 @@ comparisonIsAlwaysMessage value =
     "Comparison is always " ++ value
 
 
-comparisonIsAlwaysDetails : String -> List String
-comparisonIsAlwaysDetails value =
-    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ value ++ "."
-    ]
-
-
 orTests : Test
 orTests =
     describe "||"
@@ -1871,7 +1865,7 @@ a = 1 < 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = comparisonIsAlwaysMessage "True"
-                            , details = comparisonIsAlwaysDetails "True"
+                            , details = sameThingOnBothSidesDetails "True"
                             , under = "1 < 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1887,7 +1881,7 @@ a = 1 < 2 + 3
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = comparisonIsAlwaysMessage "True"
-                            , details = comparisonIsAlwaysDetails "True"
+                            , details = sameThingOnBothSidesDetails "True"
                             , under = "1 < 2 + 3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1903,7 +1897,7 @@ a = 2 < 1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = comparisonIsAlwaysMessage "False"
-                            , details = comparisonIsAlwaysDetails "False"
+                            , details = sameThingOnBothSidesDetails "False"
                             , under = "2 < 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1919,7 +1913,7 @@ a = 1 > 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = comparisonIsAlwaysMessage "False"
-                            , details = comparisonIsAlwaysDetails "False"
+                            , details = sameThingOnBothSidesDetails "False"
                             , under = "1 > 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1935,7 +1929,7 @@ a = 1 >= 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = comparisonIsAlwaysMessage "False"
-                            , details = comparisonIsAlwaysDetails "False"
+                            , details = sameThingOnBothSidesDetails "False"
                             , under = "1 >= 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1951,7 +1945,7 @@ a = 1 <= 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = comparisonIsAlwaysMessage "True"
-                            , details = comparisonIsAlwaysDetails "True"
+                            , details = sameThingOnBothSidesDetails "True"
                             , under = "1 <= 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
