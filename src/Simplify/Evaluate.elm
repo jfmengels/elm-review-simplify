@@ -63,44 +63,6 @@ getBoolean resources baseNode =
                     Undetermined
 
 
-
---getBooleanFromEquality : Infer.Resources a -> Node Expression -> Node Expression -> Match Bool
---getBooleanFromEquality resources left right =
---    -- TODO Handle constraints on the right side
---    case Infer.get2 (Node.value left) (Tuple.first resources.inferredConstants2) of
---        Just (Infer.Is True) ->
---            getBoolean resources right
---
---        Just (Infer.Is False) ->
---            getBoolean resources right
---                |> Match.map not
---
---        Just (Infer.Equals value) ->
---            case Normalize.compare resources (Node Range.emptyRange value) right of
---                Normalize.ConfirmedEquality ->
---                    Determined True
---
---                Normalize.ConfirmedInequality ->
---                    Determined False
---
---                Normalize.Unconfirmed ->
---                    Undetermined
---
---        Just (Infer.NotEquals value) ->
---            case Normalize.compare resources (Node Range.emptyRange value) right of
---                Normalize.ConfirmedEquality ->
---                    Determined False
---
---                Normalize.ConfirmedInequality ->
---                    Undetermined
---
---                Normalize.Unconfirmed ->
---                    Undetermined
---
---        Nothing ->
---            Undetermined
-
-
 isAlwaysBoolean : Infer.Resources a -> Node Expression -> Match Bool
 isAlwaysBoolean resources node =
     case Node.value (AstHelpers.removeParens node) of
