@@ -137,32 +137,33 @@ infer nodes shouldBe acc =
 
                 Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
-                        dict
-                            |> infer (left :: right :: rest) shouldBe
+                        infer (left :: right :: rest) shouldBe dict
 
                     else
-                        dict
-                            |> injectConstraints
+                        infer rest
+                            shouldBe
+                            (injectConstraints
                                 [ Or
                                     (convertToConstraint left False)
                                     (convertToConstraint right False)
                                 ]
-                            |> infer rest shouldBe
+                                dict
+                            )
 
                 Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
-                        dict
-                            |> injectConstraints
+                        infer rest
+                            shouldBe
+                            (injectConstraints
                                 [ Or
                                     (convertToConstraint left True)
                                     (convertToConstraint right True)
                                 ]
-                            |> infer rest shouldBe
+                                dict
+                            )
 
                     else
-                        dict
-                            |> infer [ left, right ] shouldBe
-                            |> infer rest shouldBe
+                        infer rest shouldBe (infer [ left, right ] shouldBe dict)
 
                 Expression.OperatorApplication "==" _ left right ->
                     infer rest
