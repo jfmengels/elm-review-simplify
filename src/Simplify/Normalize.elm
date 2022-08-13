@@ -122,10 +122,6 @@ normalize resources node =
 
         Expression.IfBlock cond then_ else_ ->
             let
-                condition : Node Expression
-                condition =
-                    normalize resources cond
-
                 reverseIfConditionIsNegated : Node Expression -> Node Expression -> Node Expression -> Node Expression
                 reverseIfConditionIsNegated condArg thenArg elseArg =
                     case Node.value condArg of
@@ -133,7 +129,7 @@ normalize resources node =
                             reverseIfConditionIsNegated negatedCondition elseArg thenArg
 
                         _ ->
-                            toNode (Expression.IfBlock condition thenArg elseArg)
+                            toNode (Expression.IfBlock condArg thenArg elseArg)
             in
             reverseIfConditionIsNegated
                 (normalize resources cond)
