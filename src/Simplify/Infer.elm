@@ -38,7 +38,6 @@ type DeducedValue
 type Constraint
     = Equals Expression Expression
     | NotEquals Expression Expression
-    | And Constraint Constraint
     | Or Constraint Constraint
 
 
@@ -139,11 +138,6 @@ infer nodes shouldBe acc =
                 Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
                     if shouldBe then
                         dict
-                            |> injectConstraints
-                                [ And
-                                    (convertToConstraint left True)
-                                    (convertToConstraint right True)
-                                ]
                             |> infer (left :: right :: rest) shouldBe
 
                     else
@@ -167,11 +161,6 @@ infer nodes shouldBe acc =
 
                     else
                         dict
-                            |> injectConstraints
-                                [ And
-                                    (convertToConstraint left False)
-                                    (convertToConstraint right False)
-                                ]
                             |> infer [ left, right ] shouldBe
                             |> infer rest shouldBe
 
@@ -225,10 +214,6 @@ injectConstraints newConstraints (Inferred inferred) =
                             NotEquals a b ->
                                 equalsConstraint a b
                                     |> Maybe.andThen notDeduced
-
-                            And _ _ ->
-                                -- TODO Add "a && b && ..."?
-                                Nothing
 
                             Or _ _ ->
                                 -- TODO Add "a || b || ..."?

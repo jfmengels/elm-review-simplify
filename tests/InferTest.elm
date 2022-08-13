@@ -353,15 +353,6 @@ detailedTests =
                         { constraints =
                             [ Equals (FunctionOrValue [] "b") trueExpr
                             , Equals (FunctionOrValue [] "a") trueExpr
-                            , And
-                                (Equals
-                                    (FunctionOrValue [] "a")
-                                    trueExpr
-                                )
-                                (Equals
-                                    (FunctionOrValue [] "b")
-                                    trueExpr
-                                )
                             , Equals
                                 (OperatorApplication "&&"
                                     Right
@@ -468,7 +459,6 @@ detailedTests =
                         { constraints =
                             [ Equals (FunctionOrValue [] "b") falseExpr
                             , Equals (FunctionOrValue [] "a") falseExpr
-                            , And (Equals (FunctionOrValue [] "a") falseExpr) (Equals (FunctionOrValue [] "b") falseExpr)
                             , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
