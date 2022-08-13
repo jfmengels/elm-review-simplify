@@ -253,21 +253,16 @@ deduce { newConstraint, constraints } acc =
             acc
 
         constraint :: restOfConstraints ->
-            let
-                deducedFromThisConstraint : { deduced : List ( Expression, DeducedValue ), constraints : List Constraint }
-                deducedFromThisConstraint =
-                    mergeConstraints newConstraint constraint
-            in
             deduce
                 { newConstraint = newConstraint
                 , constraints = restOfConstraints
                 }
-                { deduced = List.foldl (\( expr, value ) dict -> AssocList.insert expr value dict) acc.deduced deducedFromThisConstraint.deduced
-                , constraints = deducedFromThisConstraint.constraints ++ acc.constraints
+                { deduced = acc.deduced
+                , constraints = mergeConstraints newConstraint constraint ++ acc.constraints
                 }
 
 
-mergeConstraints : Constraint -> Constraint -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint }
+mergeConstraints : Constraint -> Constraint -> List Constraint
 mergeConstraints newConstraint constraint =
     case newConstraint of
         Equals constraintTarget constraintValue ->
@@ -276,10 +271,10 @@ mergeConstraints newConstraint constraint =
                     mergeEqualConstraints ( constraintTarget, value ) constraint
 
                 Nothing ->
-                    { deduced = [], constraints = [ Equals constraintValue constraintTarget ] }
+                    [ Equals constraintValue constraintTarget ]
 
         _ ->
-            { deduced = [], constraints = [] }
+            []
 
 
 equalsConstraint : Expression -> Expression -> Maybe ( Expression, DeducedValue )
@@ -326,23 +321,23 @@ notDeduced ( a, deducedValue ) =
             Nothing
 
 
-mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint -> { deduced : List ( Expression, DeducedValue ), constraints : List Constraint }
+mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint -> List Constraint
 mergeEqualConstraints ( target, value ) constraint =
     case constraint of
         Or left right ->
             case left of
                 Equals constraintTarget constraintValue ->
                     if constraintTarget == target && areIncompatible value constraintValue then
-                        { deduced = [], constraints = [ right ] }
+                        [ right ]
 
                     else
-                        { deduced = [], constraints = [] }
+                        []
 
                 _ ->
-                    { deduced = [], constraints = [] }
+                    []
 
-        todoSimplify ->
-            { deduced = [], constraints = [] }
+        _ ->
+            []
 
 
 areIncompatible : DeducedValue -> Expression -> Bool

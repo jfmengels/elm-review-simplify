@@ -563,10 +563,7 @@ mergeConstraintsTests =
                 mergeConstraints
                     (Equals (FunctionOrValue [] "b") trueExpr)
                     (Equals (FunctionOrValue [] "a") trueExpr)
-                    |> Expect.equal
-                        { deduced = []
-                        , constraints = []
-                        }
+                    |> Expect.equal []
         , test "should deduce b is True when (a || b) and (a == False)" <|
             \() ->
                 mergeConstraints
@@ -582,13 +579,7 @@ mergeConstraintsTests =
                         )
                     )
                     |> Expect.equal
-                        { deduced = []
-                        , constraints =
-                            [ Equals
-                                (FunctionOrValue [] "b")
-                                trueExpr
-                            ]
-                        }
+                        [ Equals (FunctionOrValue [] "b") trueExpr ]
         ]
 
 
