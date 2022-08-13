@@ -198,12 +198,13 @@ injectConstraints newConstraints (Inferred inferred) =
 
             else
                 let
-                    { deduced, constraints } =
+                    newConstraintsToVisit : List Constraint
+                    newConstraintsToVisit =
                         deduce
                             { newConstraint = newConstraint
                             , constraints = inferred.constraints
                             }
-                            inferred
+                            inferred.constraints
 
                     deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
                     deducedFromNewConstraint =
@@ -220,16 +221,16 @@ injectConstraints newConstraints (Inferred inferred) =
                                 Nothing
                 in
                 injectConstraints
-                    (constraints ++ restOfConstraints)
+                    (newConstraintsToVisit ++ restOfConstraints)
                     (Inferred
                         { constraints = newConstraint :: inferred.constraints
                         , deduced =
                             case deducedFromNewConstraint of
                                 Just ( a, b ) ->
-                                    AssocList.insert a b deduced
+                                    AssocList.insert a b inferred.deduced
 
                                 Nothing ->
-                                    deduced
+                                    inferred.deduced
                         }
                     )
 
@@ -238,14 +239,8 @@ deduce :
     { newConstraint : Constraint
     , constraints : List Constraint
     }
-    ->
-        { deduced : AssocList.Dict Expression DeducedValue
-        , constraints : List Constraint
-        }
-    ->
-        { deduced : AssocList.Dict Expression DeducedValue
-        , constraints : List Constraint
-        }
+    -> List Constraint
+    -> List Constraint
 deduce { newConstraint, constraints } acc =
     -- TODO Remove the constraints which we were able to deduce
     case constraints of
@@ -257,9 +252,7 @@ deduce { newConstraint, constraints } acc =
                 { newConstraint = newConstraint
                 , constraints = restOfConstraints
                 }
-                { deduced = acc.deduced
-                , constraints = mergeConstraints newConstraint constraint ++ acc.constraints
-                }
+                (mergeConstraints newConstraint constraint ++ acc)
 
 
 mergeConstraints : Constraint -> Constraint -> List Constraint
