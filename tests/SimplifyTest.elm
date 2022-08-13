@@ -3687,6 +3687,40 @@ a =
     4
 """
                         ]
+        , test "should remove branches where the condition may not match (a || b --> <then> a --> b)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if a || b then
+    if not a then
+      if b then
+        1
+      else
+        2
+    else
+      3
+  else
+    4
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 7 }, end = { row = 5, column = 9 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if a || b then
+    if not a then
+      1
+    else
+      3
+  else
+    4
+"""
+                        ]
         , test "should remove branches where the condition may not match (a || b --> not a --> not b)" <|
             \() ->
                 """module A exposing (..)
