@@ -3514,7 +3514,7 @@ a =
 """
                         ]
         , Test.only <|
-            test "should remove branches where the condition always matches (== in else)" <|
+            test "should remove branches where the condition always matches (/= <then> == in else)" <|
                 \() ->
                     """module A exposing (..)
 a =
