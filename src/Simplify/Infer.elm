@@ -200,11 +200,7 @@ injectConstraints newConstraints (Inferred inferred) =
                 let
                     newConstraintsToVisit : List Constraint
                     newConstraintsToVisit =
-                        deduce
-                            { newConstraint = newConstraint
-                            , constraints = inferred.constraints
-                            }
-                            inferred.constraints
+                        List.concatMap (mergeConstraints newConstraint) inferred.constraints
 
                     deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
                     deducedFromNewConstraint =
@@ -233,26 +229,6 @@ injectConstraints newConstraints (Inferred inferred) =
                                     inferred.deduced
                         }
                     )
-
-
-deduce :
-    { newConstraint : Constraint
-    , constraints : List Constraint
-    }
-    -> List Constraint
-    -> List Constraint
-deduce { newConstraint, constraints } acc =
-    -- TODO Remove the constraints which we were able to deduce
-    case constraints of
-        [] ->
-            acc
-
-        constraint :: restOfConstraints ->
-            deduce
-                { newConstraint = newConstraint
-                , constraints = restOfConstraints
-                }
-                (mergeConstraints newConstraint constraint ++ acc)
 
 
 mergeConstraints : Constraint -> Constraint -> List Constraint
