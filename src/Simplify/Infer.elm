@@ -294,22 +294,30 @@ notDeduced ( a, deducedValue ) =
 
 
 mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint -> List Constraint
-mergeEqualConstraints ( target, value ) constraint =
+mergeEqualConstraints equalConstraint constraint =
     case constraint of
         Or left right ->
-            case left of
-                Equals constraintTarget constraintValue ->
-                    if constraintTarget == target && areIncompatible value constraintValue then
-                        [ right ]
-
-                    else
-                        []
-
-                _ ->
-                    []
+            List.filterMap (ifSatisfy equalConstraint)
+                [ ( left, right )
+                , ( right, left )
+                ]
 
         _ ->
             []
+
+
+ifSatisfy : ( Expression, DeducedValue ) -> ( Constraint, a ) -> Maybe a
+ifSatisfy ( target, value ) ( targetConstraint, otherConstraint ) =
+    case targetConstraint of
+        Equals constraintTarget constraintValue ->
+            if constraintTarget == target && areIncompatible value constraintValue then
+                Just otherConstraint
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 areIncompatible : DeducedValue -> Expression -> Bool
