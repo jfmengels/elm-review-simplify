@@ -17,7 +17,7 @@ all =
         , detailedTests
 
         --, Test.skip <| deduceTests
-        , mergeConstraintsTests
+        , deduceNewConstraintsTests
         ]
 
 
@@ -555,20 +555,20 @@ detailedTests =
 --        ]
 
 
-mergeConstraintsTests : Test
-mergeConstraintsTests =
-    describe "mergeConstraints"
+deduceNewConstraintsTests : Test
+deduceNewConstraintsTests =
+    describe "deduceNewConstraints"
         [ test "should not deduce anything when constraints don't share anything (a == True, b == True)" <|
             \() ->
-                mergeConstraints
+                deduceNewConstraints
                     (Equals (FunctionOrValue [] "b") trueExpr)
-                    (Equals (FunctionOrValue [] "a") trueExpr)
+                    [ Equals (FunctionOrValue [] "a") trueExpr ]
                     |> Expect.equal []
         , test "should deduce b is True when (a || b) and (a == False)" <|
             \() ->
-                mergeConstraints
+                deduceNewConstraints
                     (Equals (FunctionOrValue [] "a") falseExpr)
-                    (Or
+                    [ Or
                         (Equals
                             (FunctionOrValue [] "a")
                             trueExpr
@@ -577,7 +577,7 @@ mergeConstraintsTests =
                             (FunctionOrValue [] "b")
                             trueExpr
                         )
-                    )
+                    ]
                     |> Expect.equal
                         [ Equals (FunctionOrValue [] "b") trueExpr ]
         ]

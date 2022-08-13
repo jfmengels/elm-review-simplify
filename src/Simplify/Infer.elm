@@ -3,6 +3,7 @@ module Simplify.Infer exposing
     , DeducedValue(..)
     , Inferred(..)
     , Resources
+    , deduceNewConstraints
     , empty
     , falseExpr
     , get
@@ -10,7 +11,6 @@ module Simplify.Infer exposing
     , infer
     , inferForIfCondition
     , isBoolean
-    , mergeConstraints
     , trueExpr
     )
 
@@ -200,7 +200,7 @@ injectConstraints newConstraints (Inferred inferred) =
                 let
                     newConstraintsToVisit : List Constraint
                     newConstraintsToVisit =
-                        List.concatMap (mergeConstraints newConstraint) inferred.constraints
+                        deduceNewConstraints newConstraint inferred.constraints
 
                     deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
                     deducedFromNewConstraint =
@@ -231,18 +231,21 @@ injectConstraints newConstraints (Inferred inferred) =
                     )
 
 
-mergeConstraints : Constraint -> Constraint -> List Constraint
-mergeConstraints newConstraint constraint =
+deduceNewConstraints : Constraint -> List Constraint -> List Constraint
+deduceNewConstraints newConstraint constraints =
     case newConstraint of
         Equals constraintTarget constraintValue ->
             case expressionToDeduced constraintValue of
                 Just value ->
-                    mergeEqualConstraints ( constraintTarget, value ) constraint
+                    List.concatMap (mergeEqualConstraints ( constraintTarget, value )) constraints
 
                 Nothing ->
                     [ Equals constraintValue constraintTarget ]
 
-        _ ->
+        NotEquals _ _ ->
+            []
+
+        Or _ _ ->
             []
 
 
