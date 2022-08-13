@@ -361,6 +361,7 @@ compareHelp resources leftNode right canFlip =
     case Node.value leftNode of
         Expression.Integer left ->
             compareNumbers (Basics.toFloat left) right
+                |> Debug.log "compareNumbers"
 
         Expression.Floatable left ->
             compareNumbers left right
