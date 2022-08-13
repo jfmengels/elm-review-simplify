@@ -3321,9 +3321,10 @@ a =
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should remove branches where the condition always matches (numbers)" <|
-            \() ->
-                """module A exposing (..)
+        , Test.only <|
+            test "should remove branches where the condition always matches (numbers)" <|
+                \() ->
+                    """module A exposing (..)
 a =
   if x == 1 then
     if x == 1 then
@@ -3333,15 +3334,15 @@ a =
   else
     3
 """
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Condition is always True"
-                            , details = sameThingOnBothSidesDetails "True"
-                            , under = "x == 1"
-                            }
-                            |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
+                        |> Review.Test.run (rule defaults)
+                        |> Review.Test.expectErrors
+                            [ Review.Test.error
+                                { message = "Condition is always True"
+                                , details = sameThingOnBothSidesDetails "True"
+                                , under = "x == 1"
+                                }
+                                |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
+                                |> Review.Test.whenFixed """module A exposing (..)
 a =
   if x == 1 then
     if True then
@@ -3351,7 +3352,7 @@ a =
   else
     3
 """
-                        ]
+                            ]
         , Test.only <|
             test "should remove branches where the condition never matches (strings)" <|
                 \() ->
