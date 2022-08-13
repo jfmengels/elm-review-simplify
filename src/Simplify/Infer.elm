@@ -120,6 +120,7 @@ type DeducedValue
     = DTrue
     | DFalse
     | DNumber Float
+    | DString String
 
 
 type Fact
@@ -157,6 +158,9 @@ get expr (Inferred inferred) =
 
                     DNumber float ->
                         Expression.Floatable float
+
+                    DString str ->
+                        Expression.Literal str
             )
 
 
@@ -173,6 +177,9 @@ isBoolean expr (Inferred inferred) =
                         Just False
 
                     DNumber _ ->
+                        Nothing
+
+                    DString _ ->
                         Nothing
             )
 
@@ -349,6 +356,9 @@ expressionToDeduced expression =
         Expression.Floatable float ->
             Just (DNumber float)
 
+        Expression.Literal string ->
+            Just (DString string)
+
         _ ->
             Nothing
 
@@ -405,6 +415,9 @@ areIncompatible value factValue =
         ( DNumber valueFloat, Expression.Floatable factFloat ) ->
             valueFloat /= factFloat
 
+        ( DString valueString, Expression.Literal constraintString ) ->
+            valueString /= constraintString
+
         _ ->
             False
 
@@ -432,6 +445,17 @@ inferOnEquality (Node _ expr) (Node _ other) shouldBe dict =
             else
                 injectFacts
                     [ NotEquals other (Expression.Floatable float) ]
+                    dict
+
+        Expression.Literal str ->
+            if shouldBe then
+                injectFacts
+                    [ Equals other (Expression.Literal str) ]
+                    dict
+
+            else
+                injectFacts
+                    [ NotEquals other (Expression.Literal str) ]
                     dict
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
