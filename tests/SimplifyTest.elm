@@ -3721,36 +3721,32 @@ a =
     4
 """
                         ]
-        , test "should remove branches where the condition may not match (a || b --> not a --> not b)" <|
+        , test "should remove branches where the condition may not match (a || b --> not a)" <|
             \() ->
                 """module A exposing (..)
 a =
   if a || b then
     1
   else if not a then
-    if not b then
-      2
-    else
-      3
+    2
   else
-    4
+    3
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The condition will always evaluate to False"
-                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
-                            , under = "if"
+                            { message = "Expression is equal to True"
+                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
+                            , under = "not a"
                             }
-                            |> Review.Test.atExactly { start = { row = 6, column = 5 }, end = { row = 6, column = 7 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
   if a || b then
     1
-  else if not a then
-    3
+  else if True then
+    2
   else
-    4
+    3
 """
                         ]
         , test "should remove branches where the condition may not match (not (a || b) --> not a --> not b)" <|
