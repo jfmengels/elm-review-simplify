@@ -118,71 +118,56 @@ convertToConstraint expr shouldBe =
 
 infer : List Expression -> Bool -> Inferred -> Inferred
 infer nodes shouldBe acc =
-    case nodes of
-        [] ->
-            acc
+    List.foldl (inferHelp shouldBe) acc nodes
 
-        node :: rest ->
-            let
-                dict : Inferred
-                dict =
-                    injectConstraints [ convertToConstraint node shouldBe ] acc
-            in
-            case node of
-                Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
-                    infer
-                        rest
-                        shouldBe
-                        (infer [ Node.value expression ] (not shouldBe) dict)
 
-                Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
-                    if shouldBe then
-                        infer (left :: right :: rest) shouldBe dict
+inferHelp : Bool -> Expression -> Inferred -> Inferred
+inferHelp shouldBe node acc =
+    let
+        dict : Inferred
+        dict =
+            injectConstraints [ convertToConstraint node shouldBe ] acc
+    in
+    case node of
+        Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
+            inferHelp (not shouldBe) (Node.value expression) dict
 
-                    else
-                        infer rest
-                            shouldBe
-                            (injectConstraints
-                                [ Or
-                                    (convertToConstraint left False)
-                                    (convertToConstraint right False)
-                                ]
-                                dict
-                            )
+        Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
+            if shouldBe then
+                infer [ left, right ] shouldBe dict
 
-                Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
-                    if shouldBe then
-                        infer rest
-                            shouldBe
-                            (injectConstraints
-                                [ Or
-                                    (convertToConstraint left True)
-                                    (convertToConstraint right True)
-                                ]
-                                dict
-                            )
+            else
+                injectConstraints
+                    [ Or
+                        (convertToConstraint left False)
+                        (convertToConstraint right False)
+                    ]
+                    dict
 
-                    else
-                        infer rest shouldBe (infer [ left, right ] shouldBe dict)
+        Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
+            if shouldBe then
+                injectConstraints
+                    [ Or
+                        (convertToConstraint left True)
+                        (convertToConstraint right True)
+                    ]
+                    dict
 
-                Expression.OperatorApplication "==" _ left right ->
-                    infer rest
-                        shouldBe
-                        (dict
-                            |> inferOnEquality left right shouldBe
-                            |> inferOnEquality right left shouldBe
-                        )
+            else
+                infer [ left, right ] shouldBe dict
 
-                Expression.OperatorApplication "/=" _ left right ->
-                    infer rest
-                        shouldBe
-                        (dict
-                            |> inferOnEquality left right (not shouldBe)
-                            |> inferOnEquality right left (not shouldBe)
-                        )
+        Expression.OperatorApplication "==" _ left right ->
+            dict
+                |> inferOnEquality left right shouldBe
+                |> inferOnEquality right left shouldBe
 
-                _ ->
-                    infer rest shouldBe dict
+        Expression.OperatorApplication "/=" _ left right ->
+            dict
+                |> inferOnEquality left right (not shouldBe)
+                |> inferOnEquality right left (not shouldBe)
+
+        _ ->
+            dict
 
 
 injectConstraints : List Constraint -> Inferred -> Inferred
