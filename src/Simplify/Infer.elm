@@ -120,6 +120,7 @@ type DeducedValue
     = DTrue
     | DFalse
     | DNumber Float
+    | DString String
 
 
 type Fact
@@ -157,6 +158,9 @@ get expr (Inferred inferred) =
 
                     DNumber float ->
                         Expression.Floatable float
+
+                    DString str ->
+                        Expression.Literal str
             )
 
 
@@ -173,6 +177,9 @@ isBoolean expr (Inferred inferred) =
                         Just False
 
                     DNumber _ ->
+                        Nothing
+
+                    DString _ ->
                         Nothing
             )
 
