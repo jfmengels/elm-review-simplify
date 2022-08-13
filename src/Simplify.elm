@@ -2350,7 +2350,7 @@ equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, righ
                 ]
 
             _ ->
-                case Debug.log "comp" <| Normalize.compare checkInfo left right of
+                case Debug.log "comp" <| Normalize.compare checkInfo (Debug.log "\n\nleft" left) right of
                     Normalize.ConfirmedEquality ->
                         [ Rule.errorWithFix
                             { message = "Condition is always " ++ boolToString isEqual

@@ -339,7 +339,9 @@ compare : Infer.Resources a -> Node Expression -> Node Expression -> Comparison
 compare resources leftNode right =
     compareHelp
         resources
-        (normalize resources leftNode)
+        (normalize resources leftNode
+            |> Debug.log "left normalized"
+        )
         (normalize resources right)
         True
 
@@ -361,7 +363,6 @@ compareHelp resources leftNode right canFlip =
     case Node.value leftNode of
         Expression.Integer left ->
             compareNumbers (Basics.toFloat left) right
-                |> Debug.log "compareNumbers"
 
         Expression.Floatable left ->
             compareNumbers left right
