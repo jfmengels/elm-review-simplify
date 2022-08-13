@@ -2882,7 +2882,7 @@ stringRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) 
             ]
 
         _ ->
-            case Infer.getInt checkInfo firstArg of
+            case Evaluate.getInt checkInfo firstArg of
                 Just intValue ->
                     if intValue == 1 then
                         [ Rule.errorWithFix
@@ -3590,9 +3590,9 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 listRangeChecks : CheckInfo -> List (Error {})
 listRangeChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Maybe.andThen (Infer.getInt checkInfo) secondArg of
+    case Maybe.andThen (Evaluate.getInt checkInfo) secondArg of
         Just second ->
-            case Infer.getInt checkInfo firstArg of
+            case Evaluate.getInt checkInfo firstArg of
                 Just first ->
                     if first > second then
                         [ Rule.errorWithFix
@@ -3615,7 +3615,7 @@ listRangeChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
 
 listRepeatChecks : CheckInfo -> List (Error {})
 listRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
-    case Infer.getInt checkInfo firstArg of
+    case Evaluate.getInt checkInfo firstArg of
         Just intValue ->
             if intValue < 1 then
                 [ Rule.errorWithFix
