@@ -3353,6 +3353,67 @@ a =
     3
 """
                         ]
+        , test "should remove branches where the condition never matches (strings == with different values)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x == "a" then
+    if x == "b" then
+      1
+    else
+      2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "x == \"b\""
+                            }
+                            |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x == "a" then
+    if False then
+      1
+    else
+      2
+  else
+    3
+"""
+                        ]
+        , test "should remove branches where the condition never matches (not function or value)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if item.name == "Aged Brie" then
+    if item.name == "Sulfuras, Hand of Ragnaros" then
+      1
+    else
+      2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "item.name == \"Sulfuras, Hand of Ragnaros\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if item.name == "Aged Brie" then
+    if False then
+      1
+    else
+      2
+  else
+    3
+"""
+                        ]
         , test "should remove branches where the condition never matches" <|
             \() ->
                 """module A exposing (..)
