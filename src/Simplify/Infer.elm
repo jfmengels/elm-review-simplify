@@ -356,6 +356,9 @@ expressionToDeduced expression =
         Expression.Floatable float ->
             Just (DNumber float)
 
+        Expression.Literal string ->
+            Just (DString string)
+
         _ ->
             Nothing
 
@@ -411,6 +414,9 @@ areIncompatible value factValue =
 
         ( DNumber valueFloat, Expression.Floatable factFloat ) ->
             valueFloat /= factFloat
+
+        ( DString valueString, Expression.Literal constraintString ) ->
+            valueString /= constraintString
 
         _ ->
             False
