@@ -3352,11 +3352,11 @@ a =
     3
 """
                         ]
-        , test "should remove branches where the condition always matches (strings)" <|
+        , test "should remove branches where the condition never matches (strings)" <|
             \() ->
                 """module A exposing (..)
 a =
-  if x == "a" then
+  if x /= "a" then
     if x == "a" then
       1
     else
@@ -3374,8 +3374,8 @@ a =
                             |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
-  if x == "a" then
-    if True then
+  if x /= "a" then
+    if False then
       1
     else
       2
