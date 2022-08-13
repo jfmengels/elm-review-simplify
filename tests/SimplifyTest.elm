@@ -3760,7 +3760,7 @@ a =
 a =
   if not (a || b) then
     1
-  else if a then
+  else if not a then
     if b then
       2
     else
@@ -3771,17 +3771,17 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The condition will always evaluate to False"
-                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
                             , under = "if"
                             }
                             |> Review.Test.atExactly { start = { row = 6, column = 5 }, end = { row = 6, column = 7 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
-  if a || b then
+  if not (a || b) then
     1
   else if not a then
-    3
+    2
   else
     4
 """
