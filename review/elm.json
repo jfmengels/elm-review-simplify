@@ -15,6 +15,7 @@
             "jfmengels/elm-review-debug": "1.0.6",
             "jfmengels/elm-review-documentation": "1.0.3",
             "jfmengels/elm-review-unused": "1.1.15",
+            "pzp1997/assoc-list": "1.0.0",
             "sparksp/elm-review-forbidden-words": "1.0.1",
             "stil4m/elm-syntax": "7.2.7",
             "truqu/elm-review-noleftpizza": "2.0.0"

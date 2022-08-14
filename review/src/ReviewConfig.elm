@@ -41,6 +41,7 @@ config =
     , NoExposingEverything.rule
     , NoForbiddenWords.rule [ "REPLACEME" ]
     , NoImportingEverything.rule []
+        |> Rule.ignoreErrorsForFiles [ "tests/InferTest.elm" ]
     , Simplify.rule Simplify.defaults
     , NoMissingTypeAnnotation.rule
     , NoMissingTypeAnnotationInLetIn.rule
