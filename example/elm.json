@@ -12,7 +12,7 @@
             "jfmengels/elm-review": "2.4.1",
             "pzp1997/assoc-list": "1.0.0",
             "stil4m/elm-syntax": "7.2.7",
-            "jfmengels/elm-review-simplify": "2.0.17"
+            "jfmengels/elm-review-simplify": "2.0.18"
         },
         "indirect": {
             "elm/html": "1.0.0",
