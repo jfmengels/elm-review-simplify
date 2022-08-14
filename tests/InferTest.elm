@@ -15,7 +15,7 @@ all =
     describe "Infer"
         [ simpleTests
         , detailedTests
-        , deduceNewConstraintsTests
+        , deduceNewFactsTests
         ]
 
 
@@ -185,7 +185,7 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals
                                 (FunctionOrValue [] "a")
                                 trueExpr
@@ -203,7 +203,7 @@ detailedTests =
                     False
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals
                                 (FunctionOrValue [] "a")
                                 falseExpr
@@ -225,7 +225,7 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals
                                 (FunctionOrValue [] "a")
                                 trueExpr
@@ -260,7 +260,7 @@ detailedTests =
                     False
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals
                                 (FunctionOrValue [] "a")
                                 falseExpr
@@ -295,7 +295,7 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals
                                 (FunctionOrValue [] "a")
                                 (Floatable 1)
@@ -330,7 +330,7 @@ detailedTests =
                     False
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ NotEquals
                                 (FunctionOrValue [] "a")
                                 (Floatable 1)
@@ -362,7 +362,7 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals (FunctionOrValue [] "b") trueExpr
                             , Equals (FunctionOrValue [] "a") trueExpr
                             , Equals
@@ -395,7 +395,7 @@ detailedTests =
                     False
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Or
                                 (Equals
                                     (FunctionOrValue [] "a")
@@ -430,7 +430,7 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Or
                                 (Equals
                                     (FunctionOrValue [] "a")
@@ -468,7 +468,7 @@ detailedTests =
                     False
                     empty
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals (FunctionOrValue [] "b") falseExpr
                             , Equals (FunctionOrValue [] "a") falseExpr
                             , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
@@ -492,7 +492,7 @@ detailedTests =
                     |> infer [ FunctionOrValue [] "a" ]
                         False
                     |> expectEqual
-                        { constraints =
+                        { facts =
                             [ Equals (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True")
                             , Equals (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
                             , Or (Equals (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "True")) (Equals (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True"))
@@ -507,18 +507,18 @@ detailedTests =
         ]
 
 
-deduceNewConstraintsTests : Test
-deduceNewConstraintsTests =
-    describe "deduceNewConstraints"
-        [ test "should not deduce anything when constraints don't share anything (a == True, b == True)" <|
+deduceNewFactsTests : Test
+deduceNewFactsTests =
+    describe "deduceNewFacts"
+        [ test "should not deduce anything when facts don't share anything (a == True, b == True)" <|
             \() ->
-                deduceNewConstraints
+                deduceNewFacts
                     (Equals (FunctionOrValue [] "b") trueExpr)
                     [ Equals (FunctionOrValue [] "a") trueExpr ]
                     |> Expect.equal []
         , test "should deduce b is True when (a || b) and (a == False)" <|
             \() ->
-                deduceNewConstraints
+                deduceNewFacts
                     (Equals (FunctionOrValue [] "a") falseExpr)
                     [ Or
                         (Equals
@@ -536,13 +536,13 @@ deduceNewConstraintsTests =
 
 
 expectEqual :
-    { constraints : List Constraint
+    { facts : List Fact
     , deduced : List ( Expression, DeducedValue )
     }
     -> Inferred
     -> Expectation
 expectEqual record (Inferred inferred) =
-    { constraints = inferred.constraints
+    { facts = inferred.facts
     , deduced = AssocList.toList inferred.deduced
     }
         |> Expect.equal record

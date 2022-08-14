@@ -1,9 +1,9 @@
 module Simplify.Infer exposing
-    ( Constraint(..)
-    , DeducedValue(..)
+    ( DeducedValue(..)
+    , Fact(..)
     , Inferred(..)
     , Resources
-    , deduceNewConstraints
+    , deduceNewFacts
     , empty
     , falseExpr
     , get
@@ -24,7 +24,7 @@ import Simplify.AstHelpers as AstHelpers
 
 type Inferred
     = Inferred
-        { constraints : List Constraint
+        { facts : List Fact
         , deduced : AssocList.Dict Expression DeducedValue
         }
 
@@ -35,10 +35,10 @@ type DeducedValue
     | DFloat Float
 
 
-type Constraint
+type Fact
     = Equals Expression Expression
     | NotEquals Expression Expression
-    | Or Constraint Constraint
+    | Or Fact Fact
 
 
 type alias Resources a =
@@ -51,7 +51,7 @@ type alias Resources a =
 empty : Inferred
 empty =
     Inferred
-        { constraints = []
+        { facts = []
         , deduced = AssocList.empty
         }
 
@@ -107,8 +107,8 @@ falseExpr =
     Expression.FunctionOrValue [ "Basics" ] "False"
 
 
-convertToConstraint : Expression -> Bool -> Constraint
-convertToConstraint expr shouldBe =
+convertToFact : Expression -> Bool -> Fact
+convertToFact expr shouldBe =
     if shouldBe then
         Equals expr trueExpr
 
@@ -126,7 +126,7 @@ inferHelp shouldBe node acc =
     let
         dict : Inferred
         dict =
-            injectConstraints [ convertToConstraint node shouldBe ] acc
+            injectFacts [ convertToFact node shouldBe ] acc
     in
     case node of
         Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
@@ -137,19 +137,19 @@ inferHelp shouldBe node acc =
                 infer [ left, right ] shouldBe dict
 
             else
-                injectConstraints
+                injectFacts
                     [ Or
-                        (convertToConstraint left False)
-                        (convertToConstraint right False)
+                        (convertToFact left False)
+                        (convertToFact right False)
                     ]
                     dict
 
         Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
             if shouldBe then
-                injectConstraints
+                injectFacts
                     [ Or
-                        (convertToConstraint left True)
-                        (convertToConstraint right True)
+                        (convertToFact left True)
+                        (convertToFact right True)
                     ]
                     dict
 
@@ -170,44 +170,44 @@ inferHelp shouldBe node acc =
             dict
 
 
-injectConstraints : List Constraint -> Inferred -> Inferred
-injectConstraints newConstraints (Inferred inferred) =
-    case newConstraints of
+injectFacts : List Fact -> Inferred -> Inferred
+injectFacts newFacts (Inferred inferred) =
+    case newFacts of
         [] ->
             Inferred inferred
 
-        newConstraint :: restOfConstraints ->
-            if List.member newConstraint inferred.constraints then
-                injectConstraints
-                    restOfConstraints
+        newFact :: restOfFacts ->
+            if List.member newFact inferred.facts then
+                injectFacts
+                    restOfFacts
                     (Inferred inferred)
 
             else
                 let
-                    newConstraintsToVisit : List Constraint
-                    newConstraintsToVisit =
-                        deduceNewConstraints newConstraint inferred.constraints
+                    newFactsToVisit : List Fact
+                    newFactsToVisit =
+                        deduceNewFacts newFact inferred.facts
 
-                    deducedFromNewConstraint : Maybe ( Expression, DeducedValue )
-                    deducedFromNewConstraint =
-                        case newConstraint of
+                    deducedFromNewFact : Maybe ( Expression, DeducedValue )
+                    deducedFromNewFact =
+                        case newFact of
                             Equals a b ->
-                                equalsConstraint a b
+                                equalsFact a b
 
                             NotEquals a b ->
-                                equalsConstraint a b
+                                equalsFact a b
                                     |> Maybe.andThen notDeduced
 
                             Or _ _ ->
                                 -- TODO Add "a || b || ..."?
                                 Nothing
                 in
-                injectConstraints
-                    (newConstraintsToVisit ++ restOfConstraints)
+                injectFacts
+                    (newFactsToVisit ++ restOfFacts)
                     (Inferred
-                        { constraints = newConstraint :: inferred.constraints
+                        { facts = newFact :: inferred.facts
                         , deduced =
-                            case deducedFromNewConstraint of
+                            case deducedFromNewFact of
                                 Just ( a, b ) ->
                                     AssocList.insert a b inferred.deduced
 
@@ -217,16 +217,16 @@ injectConstraints newConstraints (Inferred inferred) =
                     )
 
 
-deduceNewConstraints : Constraint -> List Constraint -> List Constraint
-deduceNewConstraints newConstraint constraints =
-    case newConstraint of
-        Equals constraintTarget constraintValue ->
-            case expressionToDeduced constraintValue of
+deduceNewFacts : Fact -> List Fact -> List Fact
+deduceNewFacts newFact facts =
+    case newFact of
+        Equals factTarget factValue ->
+            case expressionToDeduced factValue of
                 Just value ->
-                    List.concatMap (mergeEqualConstraints ( constraintTarget, value )) constraints
+                    List.concatMap (mergeEqualFacts ( factTarget, value )) facts
 
                 Nothing ->
-                    [ Equals constraintValue constraintTarget ]
+                    [ Equals factValue factTarget ]
 
         NotEquals _ _ ->
             []
@@ -235,8 +235,8 @@ deduceNewConstraints newConstraint constraints =
             []
 
 
-equalsConstraint : Expression -> Expression -> Maybe ( Expression, DeducedValue )
-equalsConstraint a b =
+equalsFact : Expression -> Expression -> Maybe ( Expression, DeducedValue )
+equalsFact a b =
     case expressionToDeduced a of
         Just deducedValue ->
             Just ( b, deducedValue )
@@ -279,11 +279,11 @@ notDeduced ( a, deducedValue ) =
             Nothing
 
 
-mergeEqualConstraints : ( Expression, DeducedValue ) -> Constraint -> List Constraint
-mergeEqualConstraints equalConstraint constraint =
-    case constraint of
+mergeEqualFacts : ( Expression, DeducedValue ) -> Fact -> List Fact
+mergeEqualFacts equalFact fact =
+    case fact of
         Or left right ->
-            List.filterMap (ifSatisfy equalConstraint)
+            List.filterMap (ifSatisfy equalFact)
                 [ ( left, right )
                 , ( right, left )
                 ]
@@ -292,12 +292,12 @@ mergeEqualConstraints equalConstraint constraint =
             []
 
 
-ifSatisfy : ( Expression, DeducedValue ) -> ( Constraint, a ) -> Maybe a
-ifSatisfy ( target, value ) ( targetConstraint, otherConstraint ) =
-    case targetConstraint of
-        Equals constraintTarget constraintValue ->
-            if constraintTarget == target && areIncompatible value constraintValue then
-                Just otherConstraint
+ifSatisfy : ( Expression, DeducedValue ) -> ( Fact, a ) -> Maybe a
+ifSatisfy ( target, value ) ( targetFact, otherFact ) =
+    case targetFact of
+        Equals factTarget factValue ->
+            if factTarget == target && areIncompatible value factValue then
+                Just otherFact
 
             else
                 Nothing
@@ -307,16 +307,16 @@ ifSatisfy ( target, value ) ( targetConstraint, otherConstraint ) =
 
 
 areIncompatible : DeducedValue -> Expression -> Bool
-areIncompatible value constraintValue =
-    case ( value, constraintValue ) of
+areIncompatible value factValue =
+    case ( value, factValue ) of
         ( DTrue, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
             True
 
         ( DFalse, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
             True
 
-        ( DFloat valueFloat, Expression.Floatable constraintFloat ) ->
-            valueFloat /= constraintFloat
+        ( DFloat valueFloat, Expression.Floatable factFloat ) ->
+            valueFloat /= factFloat
 
         _ ->
             False
@@ -327,28 +327,28 @@ inferOnEquality (Node _ expr) (Node _ other) shouldBe dict =
     case expr of
         Expression.Integer int ->
             if shouldBe then
-                injectConstraints
+                injectFacts
                     [ Equals other (Expression.Floatable (Basics.toFloat int)) ]
                     dict
 
             else
-                injectConstraints
+                injectFacts
                     [ NotEquals other (Expression.Floatable (Basics.toFloat int)) ]
                     dict
 
         Expression.Floatable float ->
             if shouldBe then
-                injectConstraints
+                injectFacts
                     [ Equals other (Expression.Floatable float) ]
                     dict
 
             else
-                injectConstraints
+                injectFacts
                     [ NotEquals other (Expression.Floatable float) ]
                     dict
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
-            injectConstraints
+            injectFacts
                 [ Equals other
                     (if shouldBe then
                         trueExpr
@@ -360,7 +360,7 @@ inferOnEquality (Node _ expr) (Node _ other) shouldBe dict =
                 dict
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
-            injectConstraints
+            injectFacts
                 [ Equals other
                     (if shouldBe then
                         falseExpr
