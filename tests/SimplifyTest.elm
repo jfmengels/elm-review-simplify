@@ -9508,6 +9508,7 @@ dictSimplificationTests =
         , dictFromListTests
         , dictToListTests
         , dictSizeTests
+        , dictMemberTests
         ]
 
 
@@ -9749,6 +9750,35 @@ a = Dict.singleton x y |> Dict.size
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 1
+"""
+                        ]
+        ]
+
+
+dictMemberTests : Test
+dictMemberTests =
+    describe "Dict.member"
+        [ test "should not report Dict.member used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.member x y
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.member x Dict.empty by False" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.member x Dict.empty
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.member on Dict.empty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Dict.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
 """
                         ]
         ]
