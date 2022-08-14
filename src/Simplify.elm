@@ -2178,7 +2178,7 @@ or_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as chec
     case Evaluate.getBoolean checkInfo left of
         Determined True ->
             [ Rule.errorWithFix
-                { message = "Condition is always True"
+                { message = "Comparison is always True"
                 , details = alwaysSameDetails
                 }
                 parentRange
@@ -2270,7 +2270,7 @@ and_isLeftSimplifiableError ({ parentRange, left, leftRange, rightRange } as che
 
         Determined False ->
             [ Rule.errorWithFix
-                { message = "Condition is always False"
+                { message = "Comparison is always False"
                 , details = alwaysSameDetails
                 }
                 parentRange
@@ -2303,7 +2303,7 @@ and_isRightSimplifiableError ({ parentRange, leftRange, right, rightRange } as c
 
         Determined False ->
             [ Rule.errorWithFix
-                { message = "Condition is always False"
+                { message = "Comparison is always False"
                 , details = alwaysSameDetails
                 }
                 parentRange
@@ -2356,24 +2356,10 @@ equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, righ
             _ ->
                 case Normalize.compare checkInfo left right of
                     Normalize.ConfirmedEquality ->
-                        [ Rule.errorWithFix
-                            { message = "Condition is always " ++ boolToString isEqual
-                            , details = sameThingOnBothSidesDetails isEqual
-                            }
-                            parentRange
-                            [ Fix.replaceRangeBy parentRange (boolToString isEqual)
-                            ]
-                        ]
+                        [ comparisonError isEqual parentRange ]
 
                     Normalize.ConfirmedInequality ->
-                        [ Rule.errorWithFix
-                            { message = "Condition is always " ++ boolToString (not isEqual)
-                            , details = sameThingOnBothSidesDetails (not isEqual)
-                            }
-                            parentRange
-                            [ Fix.replaceRangeBy parentRange (boolToString (not isEqual))
-                            ]
-                        ]
+                        [ comparisonError (not isEqual) parentRange ]
 
                     Normalize.Unconfirmed ->
                         []
@@ -2476,21 +2462,6 @@ unnecessaryDetails =
     ]
 
 
-sameThingOnBothSidesDetails : Bool -> List String
-sameThingOnBothSidesDetails computedResult =
-    let
-        computedResultString : String
-        computedResultString =
-            if computedResult then
-                "True"
-
-            else
-                "False"
-    in
-    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ computedResultString ++ "."
-    ]
-
-
 
 -- COMPARISONS
 
@@ -2501,22 +2472,29 @@ comparisonChecks operatorFunction operatorCheckInfo =
         Maybe.map2 operatorFunction
             (Normalize.getNumberValue operatorCheckInfo.left)
             (Normalize.getNumberValue operatorCheckInfo.right)
-            |> Maybe.map boolToString
     of
-        Just value ->
-            [ Rule.errorWithFix
-                { message = "Comparison is always " ++ value
-                , details =
-                    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ value ++ "."
-                    ]
-                }
-                operatorCheckInfo.parentRange
-                [ Fix.replaceRangeBy operatorCheckInfo.parentRange value
-                ]
-            ]
+        Just bool ->
+            [ comparisonError bool operatorCheckInfo.parentRange ]
 
         Nothing ->
             []
+
+
+comparisonError : Bool -> Range -> Error {}
+comparisonError bool range =
+    let
+        boolAsString : String
+        boolAsString =
+            boolToString bool
+    in
+    Rule.errorWithFix
+        { message = "Comparison is always " ++ boolAsString
+        , details =
+            [ "Based on the values and/or the context, we can determine that the value of this operation will always be " ++ boolAsString ++ "."
+            ]
+        }
+        range
+        [ Fix.replaceRangeBy range boolAsString ]
 
 
 

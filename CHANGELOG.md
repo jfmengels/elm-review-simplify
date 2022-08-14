@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.18] - 2022-08-14
+
+Improves the error message for some simplifications.
+
 ## [2.0.17] - 2022-08-14
 
 #### Removal of unreachable `if` branches [#31]
@@ -90,6 +94,7 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.18]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.18
 [2.0.17]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.17
 [2.0.16]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.16
 [2.0.15]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.15

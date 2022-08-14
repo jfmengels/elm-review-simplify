@@ -393,7 +393,7 @@ unnecessaryDetails =
 
 sameThingOnBothSidesDetails : String -> List String
 sameThingOnBothSidesDetails value =
-    [ "The value on the left and on the right are the same. Therefore we can determine that the expression will always be " ++ value ++ "."
+    [ "Based on the values and/or the context, we can determine that the value of this operation will always be " ++ value ++ "."
     ]
 
 
@@ -413,7 +413,7 @@ a = True || x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = alwaysSameDetails
                             , under = "True || x"
                             }
@@ -493,7 +493,7 @@ a = (True) || x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = alwaysSameDetails
                             , under = "(True) || x"
                             }
@@ -695,7 +695,7 @@ a = False && x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = alwaysSameDetails
                             , under = "False && x"
                             }
@@ -711,7 +711,7 @@ a = x && False
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = alwaysSameDetails
                             , under = "x && False"
                             }
@@ -2097,7 +2097,7 @@ a = x == x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == x"
                             }
@@ -2113,7 +2113,7 @@ a = x == (x)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == (x)"
                             }
@@ -2129,7 +2129,7 @@ a = x /= x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "x /= x"
                             }
@@ -2145,7 +2145,7 @@ a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "List.map (\\a -> a.value) things == List.map (\\a -> a.value) things"
                             }
@@ -2161,7 +2161,7 @@ a = (f b) == (f <| b)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(f b) == (f <| b)"
                             }
@@ -2177,7 +2177,7 @@ a = (f b c) == (f b <| c)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(f b c) == (f b <| c)"
                             }
@@ -2193,7 +2193,7 @@ a = (f b) == (b |> f)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(f b) == (b |> f)"
                             }
@@ -2209,7 +2209,7 @@ a = (f b c) == (c |> f b)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(f b c) == (c |> f b)"
                             }
@@ -2225,7 +2225,7 @@ a = (f b c) == (c |> (b |> f))
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(f b c) == (c |> (b |> f))"
                             }
@@ -2241,7 +2241,7 @@ a = (let x = 1 in f b c) == (c |> (let x = 1 in f b))
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(let x = 1 in f b c) == (c |> (let x = 1 in f b))"
                             }
@@ -2257,7 +2257,7 @@ a = (if cond then f b c else g d c) == (c |> (if cond then f b else g d))
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(if cond then f b c else g d c) == (c |> (if cond then f b else g d))"
                             }
@@ -2281,7 +2281,7 @@ a = (case x of
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = """(case x of
         X -> f b c
@@ -2305,7 +2305,7 @@ a = (b.c) == (.c b)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(b.c) == (.c b)"
                             }
@@ -2321,7 +2321,7 @@ a = (b.c) == (.c <| b)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(b.c) == (.c <| b)"
                             }
@@ -2337,7 +2337,7 @@ a = "a" == "b"
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "\"a\" == \"b\""
                             }
@@ -2353,7 +2353,7 @@ a = 'a' == 'b'
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "'a' == 'b'"
                             }
@@ -2369,7 +2369,7 @@ a = "a" /= "b"
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "\"a\" /= \"b\""
                             }
@@ -2385,7 +2385,7 @@ a = 1 == 2
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 == 2"
                             }
@@ -2401,7 +2401,7 @@ a = 1 == 2.0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 == 2.0"
                             }
@@ -2417,7 +2417,7 @@ a = 1.0 == 2
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1.0 == 2"
                             }
@@ -2433,7 +2433,7 @@ a = 0x10 == 2
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "0x10 == 2"
                             }
@@ -2449,7 +2449,7 @@ a = 1 + 3 == 2 + 5
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 + 3 == 2 + 5"
                             }
@@ -2465,7 +2465,7 @@ a = 1 - 3 == 2 - 5
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 - 3 == 2 - 5"
                             }
@@ -2481,7 +2481,7 @@ a = 2 * 3 == 2 * 5
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "2 * 3 == 2 * 5"
                             }
@@ -2497,7 +2497,7 @@ a = 1 / 3 == 2 / 5
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "1 / 3 == 2 / 5"
                             }
@@ -2513,7 +2513,7 @@ a = () == x
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "() == x"
                             }
@@ -2529,7 +2529,7 @@ a = x == ()
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == ()"
                             }
@@ -2545,7 +2545,7 @@ a = [ 1 ] == [ 1, 1 ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "[ 1 ] == [ 1, 1 ]"
                             }
@@ -2561,7 +2561,7 @@ a = [ 1, 2 ] == [ 1, 1 ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "[ 1, 2 ] == [ 1, 1 ]"
                             }
@@ -2577,7 +2577,7 @@ a = [ 1, 2 - 1 ] == [ 1, 1 ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "[ 1, 2 - 1 ] == [ 1, 1 ]"
                             }
@@ -2593,7 +2593,7 @@ a = (1) == (2)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "(1) == (2)"
                             }
@@ -2609,7 +2609,7 @@ a = ( 1, 2 ) == ( 1, 1 )
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "( 1, 2 ) == ( 1, 1 )"
                             }
@@ -2625,7 +2625,7 @@ a = { a = 1, b = 2 } == { b = 1, a = 1 }
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "{ a = 1, b = 2 } == { b = 1, a = 1 }"
                             }
@@ -2641,7 +2641,7 @@ a = { x | a = 1 } == { x | a = 2 }
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "{ x | a = 1 } == { x | a = 2 }"
                             }
@@ -2657,7 +2657,7 @@ a = { x | a = 1 } == { x | a = 1 }
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "{ x | a = 1 } == { x | a = 1 }"
                             }
@@ -2680,7 +2680,7 @@ a = { x | a = 1 } == { y | a = 2 }
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "{ x | a = 1 } == { y | a = 2 }"
                             }
@@ -2721,7 +2721,7 @@ b = 1
                     |> Review.Test.expectErrorsForModules
                         [ ( "A"
                           , [ Review.Test.error
-                                { message = "Condition is always True"
+                                { message = "Comparison is always True"
                                 , details = sameThingOnBothSidesDetails "True"
                                 , under = "B.b == b"
                                 }
@@ -2741,7 +2741,7 @@ a = List.map fn 1 == map fn (2 - 1)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "List.map fn 1 == map fn (2 - 1)"
                             }
@@ -2766,7 +2766,7 @@ a = (if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)"
                             }
@@ -2789,7 +2789,7 @@ a = -1 == -(2 - 1)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "-1 == -(2 - 1)"
                             }
@@ -2805,7 +2805,7 @@ a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "({ a = 1 }).a == ({ a = 2 - 1 }).a"
                             }
@@ -2821,7 +2821,7 @@ a = (1 |> fn) == (2 - 1 |> fn)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "(1 |> fn) == (2 - 1 |> fn)"
                             }
@@ -3336,7 +3336,7 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == 1"
                             }
@@ -3367,7 +3367,7 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "x == 2"
                             }
@@ -3437,7 +3437,7 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = sameThingOnBothSidesDetails "False"
                             , under = "x /= 1"
                             }
@@ -3466,7 +3466,7 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == 1"
                             }
@@ -3546,7 +3546,7 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Condition is always True"
+                            { message = "Comparison is always True"
                             , details = sameThingOnBothSidesDetails "True"
                             , under = "x == 1"
                             }
@@ -3627,7 +3627,7 @@ a =
                     |> Review.Test.expectErrors
                         -- TODO Order of the errors seem to matter here. Should be fixed in `elm-review`
                         [ Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = alwaysSameDetails
                             , under = "a && b"
                             }
@@ -3641,7 +3641,7 @@ a =
     3
 """
                         , Review.Test.error
-                            { message = "Condition is always False"
+                            { message = "Comparison is always False"
                             , details = alwaysSameDetails
                             , under = "a && b"
                             }
