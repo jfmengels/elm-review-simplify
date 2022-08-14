@@ -1,4 +1,4 @@
-module InferTest exposing (all)
+module Simplify.InferTest exposing (all)
 
 import AssocList
 import Elm.Syntax.Expression exposing (Expression(..))
