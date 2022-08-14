@@ -14,6 +14,93 @@ module Simplify.Infer exposing
     , trueExpr
     )
 
+{-| Infers values from `if` conditions.
+
+This is meant to simplify expressions like the following:
+
+```diff
+if a then
+   -- we know that `a` is True
+-  if a && b then
++  if b then
+```
+
+
+### Mechanism
+
+The way that this is done is by collecting "facts" about the conditions we've found. Given the following expression:
+
+    if a && b == 1 then
+        1
+
+    else
+        2
+
+we can infer that in the `then` branch, the following facts are true:
+
+  - `a && b == 1` is True
+  - `a` is True
+  - `b == 1` is True
+  - `b` equals `1`
+
+and for the `else` branch, that:
+
+  - `a && b == 1` is False
+  - `a` is False OR `b == 1` is False (or that `b` does not equal `1`, not sure how we represent this at the moment)
+
+For a condition like `a || b`, we know that in the `then` branch:
+
+  - `a` is True OR `b` is True
+
+and that in the `else` branch:
+
+  - `a || b` is `False`
+  - `a` is `False`
+  - `b` is `False`
+
+Whenever we get a new fact from a new `if` condition, we then go through all the previously known facts and see if the
+new one can simplify some of the old ones to generate new facts.
+
+For instance, if we knew that `a` is True OR `b` is True, and we encounter `if a then`, then we can infer that for the `else` branch `a` is False.
+When comparing that to `a` is True OR `b` is True, we can infer that `b` is True.
+
+Every new fact that we uncover from this comparison will also repeat the process of going through the previous list of facts.
+
+Another thing that we do whenever we encounter a new fact os to try and "deduce" a value from it, which we add to a list
+of "deduced" values. A few examples:
+
+  - `a` -> `a` is True
+  - `a == 1` -> `a` is equal to `1`
+  - `a /= 1` -> Can't infer individual values when this is True
+  - `a` OR `b` -> Can't infer individual values when this is True
+
+(with the exception that we can infer that the whole expression is `True` or `False`)
+
+Before we do all of this analysis, we normalize the AST, so we have a more predictable AST and don't have to do as many checks.
+
+
+### Application
+
+This data is then used in `Normalize` to change the AST, so that a reference to `a` whose value we have "deduced" is
+replaced by that value. Finally, that data is also used in functions like `Evaluate.getBoolean`.
+(Note: This might be a bit redundant but that's a simplification for later on)
+
+Whenever we see a boolean expression, we will look at whether we can simplify it, and report an error when that happens.
+
+
+### Limits
+
+The current system has a few holes meaning some things we could infer aren't properly handled, and I'd love help with that.
+From the top of my mind, I think that `if x /= 1 then (if x == 1 then ...)` (or some variation) does not get simplified when it could.
+
+We are making special exception for numbers for equality, but we could do more: handling `String`, `Char` and probably more.
+
+The system does not currently handle `case` expressions. While handling pattern matching against literals should not be
+too hard with the current system, storing "shapes" of the value (the value is a `Just` of something) probably requires
+some work.
+
+-}
+
 import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))

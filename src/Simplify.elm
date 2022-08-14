@@ -94,13 +94,13 @@ Below is the list of all kinds of simplifications this rule applies.
 
     a =
         if condition then
-            if condition then
+            if not condition then
                 1
             else
                 2
         else
             3
-    --> if condition then 1 else 3
+    --> if condition then 2 else 3
 
 
 ### Case expressions
