@@ -309,7 +309,7 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , DFloat 1
+                              , DNumber 1
                               )
                             , ( OperatorApplication "=="
                                     Non

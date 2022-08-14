@@ -32,7 +32,7 @@ type Inferred
 type DeducedValue
     = DTrue
     | DFalse
-    | DFloat Float
+    | DNumber Float
 
 
 type Fact
@@ -68,7 +68,7 @@ get expr (Inferred inferred) =
                     DFalse ->
                         falseExpr
 
-                    DFloat float ->
+                    DNumber float ->
                         Expression.Floatable float
             )
 
@@ -85,7 +85,7 @@ isBoolean expr (Inferred inferred) =
                     DFalse ->
                         Just False
 
-                    DFloat _ ->
+                    DNumber _ ->
                         Nothing
             )
 
@@ -260,7 +260,7 @@ expressionToDeduced expression =
             Just DFalse
 
         Expression.Floatable float ->
-            Just (DFloat float)
+            Just (DNumber float)
 
         _ ->
             Nothing
@@ -315,7 +315,7 @@ areIncompatible value factValue =
         ( DFalse, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
             True
 
-        ( DFloat valueFloat, Expression.Floatable factFloat ) ->
+        ( DNumber valueFloat, Expression.Floatable factFloat ) ->
             valueFloat /= factFloat
 
         _ ->
