@@ -2,6 +2,7 @@ module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, getN
 
 import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Range)
@@ -108,17 +109,12 @@ normalize resources node =
                 toNode (Expression.OperatorApplication operator infixDirection left right)
 
         Expression.FunctionOrValue rawModuleName string ->
-            case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
-                Just moduleName ->
-                    case Infer.get (Expression.FunctionOrValue moduleName string) (Tuple.first resources.inferredConstants) of
-                        Just value ->
-                            toNode value
-
-                        Nothing ->
-                            toNode (Expression.FunctionOrValue moduleName string)
-
-                Nothing ->
-                    toNode (Expression.FunctionOrValue rawModuleName string)
+            Expression.FunctionOrValue
+                (ModuleNameLookupTable.moduleNameFor resources.lookupTable node
+                    |> Maybe.withDefault rawModuleName
+                )
+                string
+                |> toNodeAndInfer resources
 
         Expression.IfBlock cond then_ else_ ->
             let
@@ -209,7 +205,7 @@ normalize resources node =
             toNode (Expression.ListExpr (List.map (normalize resources) nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
-            toNode (Expression.RecordAccess (normalize resources expr) (toNode field))
+            toNodeAndInfer resources (Expression.RecordAccess (normalize resources expr) (toNode field))
 
         Expression.RecordExpr nodes ->
             nodes
@@ -231,6 +227,16 @@ normalize resources node =
 
         expr ->
             toNode expr
+
+
+toNodeAndInfer : Infer.Resources a -> Expression -> Node Expression
+toNodeAndInfer resources element =
+    case Infer.get element (Tuple.first resources.inferredConstants) of
+        Just value ->
+            toNode value
+
+        Nothing ->
+            toNode element
 
 
 toComparable : Node Expression -> String
