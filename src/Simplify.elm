@@ -556,13 +556,14 @@ All of these also apply for `Sub`.
 
 import Dict exposing (Dict)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
-import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
 import Elm.Type
 import Json.Decode as Decode
+import List.Extra
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency exposing (Dependency)
@@ -1352,8 +1353,62 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
+        Expression.RecordAccess record field ->
+            let
+                fieldName =
+                    Node.value field
+            in
+            case Node.value record of
+                Expression.RecordExpr setters ->
+                    onlyErrors (recordAccessChecks node fieldName setters)
+
+                Expression.RecordUpdateExpression _ setters ->
+                    onlyErrors (recordAccessChecks node fieldName setters)
+
+                _ ->
+                    onlyErrors []
+
         _ ->
             onlyErrors []
+
+
+recordAccessChecks : Node Expression -> String -> List (Node RecordSetter) -> List (Error {})
+recordAccessChecks node fieldName setters =
+    let
+        setterValues =
+            List.map
+                (\setter ->
+                    let
+                        ( nfield, nvalue ) =
+                            Node.value setter
+                    in
+                    ( Node.value nfield, nvalue )
+                )
+                setters
+
+        nodeRange =
+            Node.range node
+    in
+    case
+        List.Extra.find (\( setterField, _ ) -> setterField == fieldName) setterValues
+    of
+        Just ( _, setterValue ) ->
+            let
+                setterRange =
+                    Node.range setterValue
+            in
+            [ Rule.errorWithFix
+                { message = "Field access can be simplified"
+                , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                }
+                nodeRange
+                [ Fix.replaceRangeBy { start = nodeRange.start, end = setterRange.start } "("
+                , Fix.replaceRangeBy { start = setterRange.end, end = nodeRange.end } ")"
+                ]
+            ]
+
+        Nothing ->
+            []
 
 
 type alias CheckInfo =
