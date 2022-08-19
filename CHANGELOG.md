@@ -1,5 +1,13 @@
 # Changelog
 
+## UNRELEASED
+
+The rule now simplifies:
+- `{ a = 1, b = 2 }.a` to `1`. Thanks [@miniBill]! [#35]
+- `{ foo | b = 1 }.a` to `foo.a`. Thanks [@miniBill]! [#37]
+- `if a == "a" then if a == "b" then 1 else 2 else 3` to `if a == "a" then 2 else 3`
+
+
 ## [2.0.18] - 2022-08-14
 
 Improves the error message for some simplifications.
@@ -103,3 +111,7 @@ Help would be appreciated to fill the blanks!
 [2.0.12]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.12
 
 [#31]: https://github.com/jfmengels/elm-review-simplify/pull/31
+[#35]: https://github.com/jfmengels/elm-review-simplify/pull/35
+[#37]: https://github.com/jfmengels/elm-review-simplify/pull/37
+
+[@miniBill]: https://github.com/miniBill
