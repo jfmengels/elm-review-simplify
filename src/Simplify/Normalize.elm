@@ -343,19 +343,18 @@ type Comparison
 compare : Infer.Resources a -> Node Expression -> Node Expression -> Comparison
 compare resources leftNode right =
     compareHelp
-        resources
         (normalize resources leftNode)
         (normalize resources right)
         True
 
 
-compareHelp : Infer.Resources a -> Node Expression -> Node Expression -> Bool -> Comparison
-compareHelp resources leftNode right canFlip =
+compareHelp : Node Expression -> Node Expression -> Bool -> Comparison
+compareHelp leftNode right canFlip =
     let
         fallback : () -> Comparison
         fallback () =
             if canFlip then
-                compareHelp resources right leftNode False
+                compareHelp right leftNode False
 
             else if leftNode == right then
                 ConfirmedEquality
@@ -389,7 +388,6 @@ compareHelp resources leftNode right canFlip =
                     Expression.OperatorApplication rightOp _ rightLeft rightRight ->
                         if leftOp == rightOp then
                             compareEqualityOfAll
-                                resources
                                 [ leftLeft, leftRight ]
                                 [ rightLeft, rightRight ]
 
@@ -434,7 +432,7 @@ compareHelp resources leftNode right canFlip =
                         ConfirmedInequality
 
                     else
-                        compareLists resources leftList rightList ConfirmedEquality
+                        compareLists leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback ()
@@ -442,7 +440,7 @@ compareHelp resources leftNode right canFlip =
         Expression.TupledExpression leftList ->
             case Node.value (removeParens right) of
                 Expression.TupledExpression rightList ->
-                    compareLists resources leftList rightList ConfirmedEquality
+                    compareLists leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback ()
@@ -450,7 +448,7 @@ compareHelp resources leftNode right canFlip =
         Expression.RecordExpr leftList ->
             case Node.value (removeParens right) of
                 Expression.RecordExpr rightList ->
-                    compareRecords resources leftList rightList ConfirmedEquality
+                    compareRecords leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback ()
@@ -459,10 +457,10 @@ compareHelp resources leftNode right canFlip =
             case Node.value (removeParens right) of
                 Expression.RecordUpdateExpression rightBaseValue rightList ->
                     if Node.value leftBaseValue == Node.value rightBaseValue then
-                        compareRecords resources leftList rightList ConfirmedEquality
+                        compareRecords leftList rightList ConfirmedEquality
 
                     else
-                        compareRecords resources leftList rightList Unconfirmed
+                        compareRecords leftList rightList Unconfirmed
 
                 _ ->
                     fallback ()
@@ -470,7 +468,7 @@ compareHelp resources leftNode right canFlip =
         Expression.Application leftArgs ->
             case Node.value (removeParens right) of
                 Expression.Application rightArgs ->
-                    compareEqualityOfAll resources leftArgs rightArgs
+                    compareEqualityOfAll leftArgs rightArgs
 
                 _ ->
                     fallback ()
@@ -479,7 +477,7 @@ compareHelp resources leftNode right canFlip =
             case Node.value (removeParens right) of
                 Expression.RecordAccess rightExpr rightName ->
                     if Node.value leftName == Node.value rightName then
-                        compareHelp resources leftExpr rightExpr canFlip
+                        compareHelp leftExpr rightExpr canFlip
 
                     else
                         Unconfirmed
@@ -494,7 +492,6 @@ compareHelp resources leftNode right canFlip =
             case Node.value (removeParens right) of
                 Expression.IfBlock rightCond rightThen rightElse ->
                     compareEqualityOfAll
-                        resources
                         [ leftCond, leftThen, leftElse ]
                         [ rightCond, rightThen, rightElse ]
 
@@ -561,31 +558,31 @@ getNumberValue node =
             Nothing
 
 
-compareLists : Infer.Resources a -> List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
-compareLists resources leftList rightList acc =
+compareLists : List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
+compareLists leftList rightList acc =
     case ( leftList, rightList ) of
         ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareHelp resources left right True of
+            case compareHelp left right True of
                 ConfirmedEquality ->
-                    compareLists resources restOfLeft restOfRight acc
+                    compareLists restOfLeft restOfRight acc
 
                 ConfirmedInequality ->
                     ConfirmedInequality
 
                 Unconfirmed ->
-                    compareLists resources restOfLeft restOfRight Unconfirmed
+                    compareLists restOfLeft restOfRight Unconfirmed
 
         _ ->
             acc
 
 
-compareEqualityOfAll : Infer.Resources a -> List (Node Expression) -> List (Node Expression) -> Comparison
-compareEqualityOfAll resources leftList rightList =
+compareEqualityOfAll : List (Node Expression) -> List (Node Expression) -> Comparison
+compareEqualityOfAll leftList rightList =
     case ( leftList, rightList ) of
         ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareHelp resources left right True of
+            case compareHelp left right True of
                 ConfirmedEquality ->
-                    compareEqualityOfAll resources restOfLeft restOfRight
+                    compareEqualityOfAll restOfLeft restOfRight
 
                 ConfirmedInequality ->
                     Unconfirmed
@@ -602,8 +599,8 @@ type RecordFieldComparison
     | HasBothValues (Node Expression) (Node Expression)
 
 
-compareRecords : Infer.Resources a -> List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
-compareRecords resources leftList rightList acc =
+compareRecords : List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
+compareRecords leftList rightList acc =
     let
         leftFields : List ( String, Node Expression )
         leftFields =
@@ -624,28 +621,28 @@ compareRecords resources leftList rightList acc =
                 Dict.empty
                 |> Dict.values
     in
-    compareRecordFields resources recordFieldComparisons acc
+    compareRecordFields recordFieldComparisons acc
 
 
-compareRecordFields : Infer.Resources a -> List RecordFieldComparison -> Comparison -> Comparison
-compareRecordFields resources recordFieldComparisons acc =
+compareRecordFields : List RecordFieldComparison -> Comparison -> Comparison
+compareRecordFields recordFieldComparisons acc =
     case recordFieldComparisons of
         [] ->
             acc
 
         MissingOtherValue :: rest ->
-            compareRecordFields resources rest Unconfirmed
+            compareRecordFields rest Unconfirmed
 
         (HasBothValues a b) :: rest ->
-            case compare resources a b of
+            case compareHelp a b True of
                 ConfirmedInequality ->
                     ConfirmedInequality
 
                 ConfirmedEquality ->
-                    compareRecordFields resources rest acc
+                    compareRecordFields rest acc
 
                 Unconfirmed ->
-                    compareRecordFields resources rest Unconfirmed
+                    compareRecordFields rest Unconfirmed
 
 
 fromEquality : Bool -> Comparison
