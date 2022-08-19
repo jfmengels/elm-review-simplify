@@ -1376,11 +1376,7 @@ recordAccessChecks nodeRange fieldName setters =
     let
         setterValues =
             List.map
-                (\setter ->
-                    let
-                        ( nfield, nvalue ) =
-                            Node.value setter
-                    in
+                (\(Node _ ( nfield, nvalue )) ->
                     ( Node.value nfield, nvalue )
                 )
                 setters
