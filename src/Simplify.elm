@@ -1369,26 +1369,25 @@ expressionVisitorHelp node context =
 
 recordAccessChecks : Range -> String -> List (Node RecordSetter) -> List (Error {})
 recordAccessChecks nodeRange fieldName setters =
-    let
-        setterValues : List ( String, Node Expression )
-        setterValues =
-            List.map
-                (\(Node _ ( nfield, nvalue )) ->
-                    ( Node.value nfield, nvalue )
-                )
-                setters
-    in
     case
-        find (\( setterField, _ ) -> setterField == fieldName) setterValues
+        findMap
+            (\(Node _ ( setterField, setterValue )) ->
+                if Node.value setterField == fieldName then
+                    Just setterValue
+
+                else
+                    Nothing
+            )
+            setters
     of
-        Just ( _, Node setterRange _ ) ->
+        Just (Node setterValueRange _) ->
             [ Rule.errorWithFix
                 { message = "Field access can be simplified"
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                 }
                 nodeRange
-                [ Fix.replaceRangeBy { start = nodeRange.start, end = setterRange.start } "("
-                , Fix.replaceRangeBy { start = setterRange.end, end = nodeRange.end } ")"
+                [ Fix.replaceRangeBy { start = nodeRange.start, end = setterValueRange.start } "("
+                , Fix.replaceRangeBy { start = setterValueRange.end, end = nodeRange.end } ")"
                 ]
             ]
 
