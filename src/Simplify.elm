@@ -1374,6 +1374,7 @@ expressionVisitorHelp node context =
 recordAccessChecks : Range -> String -> List (Node RecordSetter) -> List (Error {})
 recordAccessChecks nodeRange fieldName setters =
     let
+        setterValues : List ( String, Node Expression )
         setterValues =
             List.map
                 (\(Node _ ( nfield, nvalue )) ->
