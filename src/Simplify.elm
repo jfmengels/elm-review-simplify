@@ -130,6 +130,18 @@ Below is the list of all kinds of simplifications this rule applies.
     --> { a | c = 1 }
 
 
+### Field access
+
+    { a = b }.a
+    --> b
+
+    { a | b = c }.b
+    --> c
+
+    { a | b = c }.d
+    --> a.d
+
+
 ### Basics functions
 
     identity x
@@ -1355,10 +1367,10 @@ expressionVisitorHelp node context =
         Expression.RecordAccess record (Node _ fieldName) ->
             case Node.value record of
                 Expression.RecordExpr setters ->
-                    onlyErrors (recordAccessChecks (Node.range node) fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) Nothing fieldName setters)
 
-                Expression.RecordUpdateExpression _ setters ->
-                    onlyErrors (recordAccessChecks (Node.range node) fieldName setters)
+                Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
+                    onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) fieldName setters)
 
                 _ ->
                     onlyErrors []
@@ -1367,8 +1379,8 @@ expressionVisitorHelp node context =
             onlyErrors []
 
 
-recordAccessChecks : Range -> String -> List (Node RecordSetter) -> List (Error {})
-recordAccessChecks nodeRange fieldName setters =
+recordAccessChecks : Range -> Maybe Range -> String -> List (Node RecordSetter) -> List (Error {})
+recordAccessChecks nodeRange recordNameRange fieldName setters =
     case
         findMap
             (\(Node _ ( setterField, setterValue )) ->
@@ -1392,7 +1404,20 @@ recordAccessChecks nodeRange fieldName setters =
             ]
 
         Nothing ->
-            []
+            case recordNameRange of
+                Just rnr ->
+                    [ Rule.errorWithFix
+                        { message = "Field access can be simplified"
+                        , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
+                        }
+                        nodeRange
+                        [ Fix.replaceRangeBy { start = nodeRange.start, end = rnr.start } ""
+                        , Fix.replaceRangeBy { start = rnr.end, end = nodeRange.end } ("." ++ fieldName)
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
 
 type alias CheckInfo =

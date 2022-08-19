@@ -10226,11 +10226,20 @@ a = foo { d | b = f x y }.b
 a = foo (f x y)
 """
                         ]
-        , test "shouldn't simplify record accesses for record updates if it can't find the field" <|
+        , test "should simplify record accesses for record updates if it can't find the field" <|
             \() ->
                 """module A exposing (..)
 a = { d | b = 3 }.c
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
+                            , under = "{ d | b = 3 }.c"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = d.c
+"""
+                        ]
         ]
