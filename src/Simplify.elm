@@ -1385,11 +1385,7 @@ recordAccessChecks nodeRange fieldName setters =
     case
         find (\( setterField, _ ) -> setterField == fieldName) setterValues
     of
-        Just ( _, setterValue ) ->
-            let
-                setterRange =
-                    Node.range setterValue
-            in
+        Just ( _, Node setterRange _ ) ->
             [ Rule.errorWithFix
                 { message = "Field access can be simplified"
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
