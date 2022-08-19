@@ -1,4 +1,4 @@
-module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, getNumberValue, normalize)
+module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, normalize)
 
 import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -204,7 +204,7 @@ normalize resources node =
             toNode (Expression.ListExpr (List.map (normalize resources) nodes))
 
         Expression.RecordAccess expr (Node _ field) ->
-            toNodeAndInfer resources (Expression.RecordAccess (normalize resources expr) (toNode field))
+            toNode (Expression.RecordAccess (normalize resources expr) (toNode field))
 
         Expression.RecordExpr nodes ->
             nodes
@@ -346,6 +346,11 @@ compare resources leftNode right =
         (normalize resources leftNode)
         (normalize resources right)
         True
+
+
+compareWithoutNormalization : Node Expression -> Node Expression -> Comparison
+compareWithoutNormalization leftNode right =
+    compareHelp leftNode right True
 
 
 compareHelp : Node Expression -> Node Expression -> Bool -> Comparison
@@ -562,7 +567,7 @@ compareLists : List (Node Expression) -> List (Node Expression) -> Comparison ->
 compareLists leftList rightList acc =
     case ( leftList, rightList ) of
         ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareHelp left right True of
+            case compareWithoutNormalization left right of
                 ConfirmedEquality ->
                     compareLists restOfLeft restOfRight acc
 

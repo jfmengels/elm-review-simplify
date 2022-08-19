@@ -2437,7 +2437,34 @@ equalityChecks isEqual ({ lookupTable, parentRange, left, right, leftRange, righ
                 ]
 
             _ ->
-                case Normalize.compare checkInfo left right of
+                let
+                    inferred : Infer.Inferred
+                    inferred =
+                        Tuple.first checkInfo.inferredConstants
+
+                    normalizeAndInfer : Node Expression -> Node Expression
+                    normalizeAndInfer node =
+                        let
+                            newNode : Node Expression
+                            newNode =
+                                Normalize.normalize checkInfo node
+                        in
+                        case Infer.get (Node.value newNode) inferred of
+                            Just expr ->
+                                Node Range.emptyRange expr
+
+                            Nothing ->
+                                newNode
+
+                    normalizedLeft : Node Expression
+                    normalizedLeft =
+                        normalizeAndInfer left
+
+                    normalizedRight : Node Expression
+                    normalizedRight =
+                        normalizeAndInfer right
+                in
+                case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
                     Normalize.ConfirmedEquality ->
                         [ comparisonError isEqual parentRange ]
 
