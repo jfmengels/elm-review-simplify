@@ -563,7 +563,6 @@ import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
 import Elm.Type
 import Json.Decode as Decode
-import List.Extra
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency exposing (Dependency)
@@ -1390,7 +1389,7 @@ recordAccessChecks node fieldName setters =
             Node.range node
     in
     case
-        List.Extra.find (\( setterField, _ ) -> setterField == fieldName) setterValues
+        find (\( setterField, _ ) -> setterField == fieldName) setterValues
     of
         Just ( _, setterValue ) ->
             let
