@@ -1359,10 +1359,10 @@ expressionVisitorHelp node context =
             in
             case Node.value record of
                 Expression.RecordExpr setters ->
-                    onlyErrors (recordAccessChecks node fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) fieldName setters)
 
                 Expression.RecordUpdateExpression _ setters ->
-                    onlyErrors (recordAccessChecks node fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) fieldName setters)
 
                 _ ->
                     onlyErrors []
@@ -1371,8 +1371,8 @@ expressionVisitorHelp node context =
             onlyErrors []
 
 
-recordAccessChecks : Node Expression -> String -> List (Node RecordSetter) -> List (Error {})
-recordAccessChecks node fieldName setters =
+recordAccessChecks : Range -> String -> List (Node RecordSetter) -> List (Error {})
+recordAccessChecks nodeRange fieldName setters =
     let
         setterValues =
             List.map
@@ -1384,9 +1384,6 @@ recordAccessChecks node fieldName setters =
                     ( Node.value nfield, nvalue )
                 )
                 setters
-
-        nodeRange =
-            Node.range node
     in
     case
         find (\( setterField, _ ) -> setterField == fieldName) setterValues
