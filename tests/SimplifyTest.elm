@@ -10303,4 +10303,20 @@ a = { d | b = 3 }.c
 a = d.c
 """
                         ]
+        , test "should simplify record accesses for let/in expressions" <|
+            \() ->
+                """module A exposing (..)
+a = (let b = c in f x).e
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
+                            , under = "(let b = c in f x).e"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (let b = c in (f x).e)
+"""
+                        ]
         ]
