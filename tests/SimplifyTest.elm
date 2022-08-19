@@ -10181,6 +10181,7 @@ a = (x)
 recordAccessTests : Test
 recordAccessTests =
     let
+        details : List String
         details =
             [ "Accessing the field of a record or record update can be simplified to just that field's value"
             ]

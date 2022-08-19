@@ -1352,11 +1352,7 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.RecordAccess record field ->
-            let
-                fieldName =
-                    Node.value field
-            in
+        Expression.RecordAccess record (Node _ fieldName) ->
             case Node.value record of
                 Expression.RecordExpr setters ->
                     onlyErrors (recordAccessChecks (Node.range node) fieldName setters)
