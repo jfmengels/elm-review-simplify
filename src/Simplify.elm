@@ -1368,14 +1368,14 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.RecordAccess record (Node _ fieldName) ->
-            case Node.value record of
+            case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
                     onlyErrors (recordAccessChecks (Node.range node) Nothing fieldName setters)
 
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
                     onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) fieldName setters)
 
-                Expression.ParenthesizedExpression (Node _ (Expression.LetExpression { expression })) ->
+                Expression.LetExpression { expression } ->
                     onlyErrors (recordAccessLetInChecks (Node.range node) (Node.range expression))
 
                 _ ->

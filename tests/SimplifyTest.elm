@@ -2813,6 +2813,22 @@ a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
                             |> Review.Test.whenFixed """module A exposing (..)
 a = True
 """
+                        , Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            , under = "({ a = 2 - 1 }).a"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ({ a = 1 }).a == (2 - 1)
+"""
+                        , Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            , under = "({ a = 1 }).a"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (1) == ({ a = 2 - 1 }).a
+"""
                         ]
         , test "should simplify operator expressions" <|
             \() ->
@@ -2836,7 +2852,16 @@ a = True
 a = ({ a = 1 }).a == ({ a = 1 }).b
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            , under = "({ a = 1 }).a"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (1) == ({ a = 1 }).b
+"""
+                        ]
         ]
 
 
@@ -10317,6 +10342,38 @@ a = (let b = c in f x).e
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (let b = c in (f x).e)
+"""
+                        ]
+        , test "should simplify nested record accesses for let/in expressions (inner)" <|
+            \() ->
+                """module A exposing (..)
+a = (let b = c in f x).e.f
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
+                            , under = "(let b = c in f x).e"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (let b = c in (f x).e).f
+"""
+                        ]
+        , test "should simplify nested record accesses for let/in expressions (outer)" <|
+            \() ->
+                """module A exposing (..)
+a = (let b = c in (f x).e).f
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
+                            , under = "(let b = c in (f x).e).f"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (let b = c in ((f x).e).f)
 """
                         ]
         ]
