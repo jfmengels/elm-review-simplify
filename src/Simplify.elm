@@ -141,6 +141,9 @@ Below is the list of all kinds of simplifications this rule applies.
     { a | b = c }.d
     --> a.d
 
+    (let a = b in c).d
+    --> let a = b in c.d
+
 
 ### Basics functions
 
@@ -1365,12 +1368,15 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.RecordAccess record (Node _ fieldName) ->
-            case Node.value record of
+            case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
                     onlyErrors (recordAccessChecks (Node.range node) Nothing fieldName setters)
 
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
                     onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) fieldName setters)
+
+                Expression.LetExpression { expression } ->
+                    onlyErrors (recordAccessLetInChecks (Node.range node) (Node.range expression))
 
                 _ ->
                     onlyErrors []
@@ -1418,6 +1424,19 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
 
                 Nothing ->
                     []
+
+
+recordAccessLetInChecks : Range -> Range -> List (Error {})
+recordAccessLetInChecks nodeRange expressionRange =
+    [ Rule.errorWithFix
+        { message = "Field access can be simplified"
+        , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
+        }
+        nodeRange
+        [ Fix.insertAt expressionRange.start "("
+        , Fix.insertAt nodeRange.end ")"
+        ]
+    ]
 
 
 type alias CheckInfo =
