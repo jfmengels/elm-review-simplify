@@ -1367,7 +1367,7 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.RecordAccess record ((Node _ fieldName) as field) ->
+        Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
                     onlyErrors (recordAccessChecks (Node.range node) Nothing (Node.value field) setters)
