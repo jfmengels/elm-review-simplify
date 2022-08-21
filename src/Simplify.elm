@@ -1398,15 +1398,13 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
             )
             setters
     of
-        Just (Node setterValueRange _) ->
+        Just (Node setterValueRange setterValue) ->
             [ Rule.errorWithFix
                 { message = "Field access can be simplified"
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                 }
                 nodeRange
-                [ Fix.replaceRangeBy { start = nodeRange.start, end = setterValueRange.start } "("
-                , Fix.replaceRangeBy { start = setterValueRange.end, end = nodeRange.end } ")"
-                ]
+                (wrapInParensFix nodeRange setterValueRange setterValue)
             ]
 
         Nothing ->
@@ -1426,9 +1424,22 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
-needsParens : Node Expression -> Bool
-needsParens node =
-    case Node.value node of
+wrapInParensFix : Range -> Range -> Expression -> List Fix
+wrapInParensFix outerRange exprRange expr =
+    if needsParens expr then
+        [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
+        , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
+        ]
+
+    else
+        [ Fix.removeRange { start = outerRange.start, end = exprRange.start }
+        , Fix.removeRange { start = exprRange.end, end = outerRange.end }
+        ]
+
+
+needsParens : Expression -> Bool
+needsParens expr =
+    case expr of
         Expression.Application _ ->
             True
 

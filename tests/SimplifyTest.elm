@@ -2827,7 +2827,7 @@ a = ({ a = 1 }).a == (2 - 1)
                             , under = "({ a = 1 }).a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (1) == ({ a = 2 - 1 }).a
+a = 1 == ({ a = 2 - 1 }).a
 """
                         ]
         , test "should simplify operator expressions" <|
@@ -2859,7 +2859,7 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
                             , under = "({ a = 1 }).a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (1) == ({ a = 1 }).b
+a = 1 == ({ a = 1 }).b
 """
                         ]
         ]
@@ -10318,7 +10318,7 @@ a = (({ b = 3 })).b
                             , under = "(({ b = 3 })).b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (3)
+a = 3
 """
                         ]
         , test "shouldn't simplify record accesses for explicit records if it can't find the field" <|
