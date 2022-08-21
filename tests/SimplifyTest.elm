@@ -10095,7 +10095,7 @@ a = Sub.batch [ Sub.none ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Sub.none)
+a = Sub.none
 """
                         ]
         , test "should replace Sub.batch [ b ] by b" <|
@@ -10111,7 +10111,23 @@ a = Sub.batch [ b ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (b)
+a = b
+"""
+                        ]
+        , test "should replace Sub.batch [ f n ] by (f n)" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ f n ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.batch"
+                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n)
 """
                         ]
         , test "should replace Sub.batch [ b, Sub.none ] by Sub.batch []" <|
