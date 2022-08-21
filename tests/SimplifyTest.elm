@@ -1700,7 +1700,23 @@ a = -(-n)
                             , under = "-(-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (n)
+a = n
+"""
+                        ]
+        , test "should simplify -(-(f n)) to (f n)" <|
+            \() ->
+                """module A exposing (..)
+a = -(-(f n))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double number negation"
+                            , details = [ "Negating a number twice is the same as the number itself." ]
+                            , under = "-(-"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n)
 """
                         ]
         ]

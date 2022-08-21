@@ -1347,7 +1347,7 @@ expressionVisitorHelp node context =
 
         Expression.Negation baseExpr ->
             case AstHelpers.removeParens baseExpr of
-                Node range (Expression.Negation _) ->
+                Node range (Expression.Negation negatedValue) ->
                     let
                         doubleNegationRange : Range
                         doubleNegationRange =
@@ -1361,7 +1361,11 @@ expressionVisitorHelp node context =
                             , details = [ "Negating a number twice is the same as the number itself." ]
                             }
                             doubleNegationRange
-                            [ Fix.replaceRangeBy doubleNegationRange "(" ]
+                            (replaceBySubExpressionFix
+                                (Node.range node)
+                                (Node.range negatedValue)
+                                (Node.value negatedValue)
+                            )
                         ]
 
                 _ ->
@@ -1404,7 +1408,7 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                 }
                 nodeRange
-                (replaceBySubExpression nodeRange setterValueRange setterValue)
+                (replaceBySubExpressionFix nodeRange setterValueRange setterValue)
             ]
 
         Nothing ->
@@ -1424,8 +1428,8 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
-replaceBySubExpression : Range -> Range -> Expression -> List Fix
-replaceBySubExpression outerRange exprRange expr =
+replaceBySubExpressionFix : Range -> Range -> Expression -> List Fix
+replaceBySubExpressionFix outerRange exprRange expr =
     if needsParens expr then
         [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
         , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
@@ -1899,7 +1903,7 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                         , end = rightRange.start
                         }
                         " :: "
-                        :: replaceBySubExpression leftRange exprRange exprValue
+                        :: replaceBySubExpressionFix leftRange exprRange exprValue
                     )
                 ]
 
@@ -3364,7 +3368,7 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
                             }
                             fnRange
                             (Fix.removeRange fnRange
-                                :: replaceBySubExpression listRange singleElementRange singleElementValue
+                                :: replaceBySubExpressionFix listRange singleElementRange singleElementValue
                             )
                         ]
 
@@ -3840,7 +3844,7 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                 , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
                 }
                 fnRange
-                (replaceBySubExpression parentRange argRange argValue)
+                (replaceBySubExpressionFix parentRange argRange argValue)
             ]
 
         Expression.ListExpr args ->
@@ -3897,7 +3901,7 @@ oneOfChecks { parentRange, fnRange, firstArg } =
                 , details = [ "There is only a single element in the list of elements to try out." ]
                 }
                 fnRange
-                (replaceBySubExpression parentRange singleElementRange singleElementValue)
+                (replaceBySubExpressionFix parentRange singleElementRange singleElementValue)
             ]
 
         _ ->
@@ -4595,7 +4599,7 @@ replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression
 replaceSingleElementListBySingleValue lookupTable node =
     case Node.value (AstHelpers.removeParens node) of
         Expression.ListExpr [ Node elemRange elemValue ] ->
-            Just (replaceBySubExpression (Node.range node) elemRange elemValue)
+            Just (replaceBySubExpressionFix (Node.range node) elemRange elemValue)
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
             if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
