@@ -1426,6 +1426,34 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
+needsParens : Node Expression -> Bool
+needsParens node =
+    case Node.value node of
+        Expression.Application _ ->
+            True
+
+        Expression.OperatorApplication _ _ _ _ ->
+            True
+
+        Expression.IfBlock _ _ _ ->
+            True
+
+        Expression.Negation _ ->
+            True
+
+        Expression.LetExpression _ ->
+            True
+
+        Expression.CaseExpression _ ->
+            True
+
+        Expression.LambdaExpression _ ->
+            True
+
+        _ ->
+            False
+
+
 recordAccessLetInChecks : Range -> Range -> List (Error {})
 recordAccessLetInChecks nodeRange expressionRange =
     [ Rule.errorWithFix
