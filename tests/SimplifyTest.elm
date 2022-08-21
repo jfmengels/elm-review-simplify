@@ -10216,7 +10216,7 @@ d = Parser.Advanced.oneOf [ y, z ]
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace Parser.oneOf [ x ] by ( x )" <|
+        , test "should replace Parser.oneOf [ x ] by x" <|
             \() ->
                 """module A exposing (..)
 import Parser
@@ -10231,10 +10231,10 @@ a = Parser.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Parser
-a = (x)
+a = x
 """
                         ]
-        , test "should replace Parser.Advanced.oneOf [ x ] by ( x )" <|
+        , test "should replace Parser.Advanced.oneOf [ x ] by x" <|
             \() ->
                 """module A exposing (..)
 import Parser.Advanced
@@ -10249,7 +10249,7 @@ a = Parser.Advanced.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Parser.Advanced
-a = (x)
+a = x
 """
                         ]
         ]
@@ -10271,7 +10271,7 @@ b = Json.Decode.oneOf [ y, z ]
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace Json.Decode.oneOf [ x ] by ( x )" <|
+        , test "should replace Json.Decode.oneOf [ x ] by x" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -10286,7 +10286,7 @@ a = Json.Decode.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (x)
+a = x
 """
                         ]
         ]

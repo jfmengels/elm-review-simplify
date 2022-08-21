@@ -3893,17 +3893,15 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 
 
 oneOfChecks : CheckInfo -> List (Error {})
-oneOfChecks { fnRange, firstArg } =
+oneOfChecks { parentRange, fnRange, firstArg } =
     case AstHelpers.removeParens firstArg of
-        Node listRange (Expression.ListExpr [ Node singleElementRange _ ]) ->
+        Node _ (Expression.ListExpr [ Node singleElementRange singleElementValue ]) ->
             [ Rule.errorWithFix
                 { message = "Unnecessary oneOf"
                 , details = [ "There is only a single element in the list of elements to try out." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy { start = fnRange.start, end = singleElementRange.start } "("
-                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                ]
+                (wrapInParensFix parentRange singleElementRange singleElementValue)
             ]
 
         _ ->
