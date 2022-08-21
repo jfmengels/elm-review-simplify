@@ -1347,7 +1347,7 @@ expressionVisitorHelp node context =
 
         Expression.Negation baseExpr ->
             case AstHelpers.removeParens baseExpr of
-                Node range (Expression.Negation _) ->
+                Node range (Expression.Negation negatedValue) ->
                     let
                         doubleNegationRange : Range
                         doubleNegationRange =
@@ -1361,22 +1361,22 @@ expressionVisitorHelp node context =
                             , details = [ "Negating a number twice is the same as the number itself." ]
                             }
                             doubleNegationRange
-                            [ Fix.replaceRangeBy doubleNegationRange "(" ]
+                            (replaceBySubExpressionFix (Node.range node) negatedValue)
                         ]
 
                 _ ->
                     onlyErrors []
 
-        Expression.RecordAccess record (Node _ fieldName) ->
+        Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
-                    onlyErrors (recordAccessChecks (Node.range node) Nothing fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) Nothing (Node.value field) setters)
 
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                    onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) (Node.value field) setters)
 
                 Expression.LetExpression { expression } ->
-                    onlyErrors (recordAccessLetInChecks (Node.range node) (Node.range expression))
+                    onlyErrors (recordAccessLetInChecks (Node.range node) field expression)
 
                 _ ->
                     onlyErrors []
@@ -1398,15 +1398,13 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
             )
             setters
     of
-        Just (Node setterValueRange _) ->
+        Just setter ->
             [ Rule.errorWithFix
                 { message = "Field access can be simplified"
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                 }
                 nodeRange
-                [ Fix.replaceRangeBy { start = nodeRange.start, end = setterValueRange.start } "("
-                , Fix.replaceRangeBy { start = setterValueRange.end, end = nodeRange.end } ")"
-                ]
+                (replaceBySubExpressionFix nodeRange setter)
             ]
 
         Nothing ->
@@ -1426,16 +1424,77 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
-recordAccessLetInChecks : Range -> Range -> List (Error {})
-recordAccessLetInChecks nodeRange expressionRange =
+replaceBySubExpressionFix : Range -> Node Expression -> List Fix
+replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
+    if needsParens exprValue then
+        [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
+        , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
+        ]
+
+    else
+        [ Fix.removeRange { start = outerRange.start, end = exprRange.start }
+        , Fix.removeRange { start = exprRange.end, end = outerRange.end }
+        ]
+
+
+needsParens : Expression -> Bool
+needsParens expr =
+    case expr of
+        Expression.Application _ ->
+            True
+
+        Expression.OperatorApplication _ _ _ _ ->
+            True
+
+        Expression.IfBlock _ _ _ ->
+            True
+
+        Expression.Negation _ ->
+            True
+
+        Expression.LetExpression _ ->
+            True
+
+        Expression.CaseExpression _ ->
+            True
+
+        Expression.LambdaExpression _ ->
+            True
+
+        _ ->
+            False
+
+
+recordAccessLetInChecks : Range -> Node String -> Node Expression -> List (Error {})
+recordAccessLetInChecks nodeRange (Node fieldRange fieldName) expr =
+    let
+        fieldRangeStart : Location
+        fieldRangeStart =
+            fieldRange.start
+
+        fieldRemovalFix : Fix
+        fieldRemovalFix =
+            Fix.removeRange
+                { start = { row = fieldRangeStart.row, column = fieldRangeStart.column - 1 }
+                , end = fieldRange.end
+                }
+    in
     [ Rule.errorWithFix
         { message = "Field access can be simplified"
         , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
         }
         nodeRange
-        [ Fix.insertAt expressionRange.start "("
-        , Fix.insertAt nodeRange.end ")"
-        ]
+        (if needsParens (Node.value expr) then
+            [ Fix.insertAt (Node.range expr).start "("
+            , Fix.insertAt (Node.range expr).end (")." ++ fieldName)
+            , fieldRemovalFix
+            ]
+
+         else
+            [ Fix.insertAt (Node.range expr).end ("." ++ fieldName)
+            , fieldRemovalFix
+            ]
+        )
     ]
 
 
@@ -1845,7 +1904,7 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                 ]
             ]
 
-        ( Expression.ListExpr [ _ ], _ ) ->
+        ( Expression.ListExpr [ listElement ], _ ) ->
             if isOnTheRightSideOfPlusPlus then
                 []
 
@@ -1855,17 +1914,13 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                     , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
                     }
                     parentRange
-                    [ Fix.replaceRangeBy
-                        { start = leftRange.start
-                        , end = { row = leftRange.start.row, column = leftRange.start.column + 1 }
-                        }
-                        "("
-                    , Fix.replaceRangeBy
-                        { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
+                    (Fix.replaceRangeBy
+                        { start = leftRange.end
                         , end = rightRange.start
                         }
-                        ") :: "
-                    ]
+                        " :: "
+                        :: replaceBySubExpressionFix leftRange listElement
+                    )
                 ]
 
         _ ->
@@ -3296,7 +3351,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 
 listConcatMapChecks : CheckInfo -> List (Error {})
-listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
+listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
@@ -3322,23 +3377,14 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
 
             Nothing ->
                 case secondArg of
-                    Just (Node listRange (Expression.ListExpr [ Node singleElementRange _ ])) ->
+                    Just (Node listRange (Expression.ListExpr [ listElement ])) ->
                         [ Rule.errorWithFix
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
                             , details = [ "You can replace this call by a call to the function directly." ]
                             }
                             fnRange
-                            (if usingRightPizza then
-                                [ Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                                , Fix.removeRange fnRange
-                                ]
-
-                             else
-                                [ Fix.removeRange fnRange
-                                , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                                ]
+                            (Fix.removeRange fnRange
+                                :: replaceBySubExpressionFix listRange listElement
                             )
                         ]
 
@@ -3808,15 +3854,13 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                 [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
             ]
 
-        Expression.ListExpr [ arg ] ->
+        Expression.ListExpr [ listElement ] ->
             [ Rule.errorWithFix
                 { message = "Unnecessary " ++ moduleName ++ ".batch"
                 , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range arg).start } "("
-                , Fix.replaceRangeBy { start = (Node.range arg).end, end = parentRange.end } ")"
-                ]
+                (replaceBySubExpressionFix parentRange listElement)
             ]
 
         Expression.ListExpr args ->
@@ -3865,17 +3909,15 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 
 
 oneOfChecks : CheckInfo -> List (Error {})
-oneOfChecks { fnRange, firstArg } =
+oneOfChecks { parentRange, fnRange, firstArg } =
     case AstHelpers.removeParens firstArg of
-        Node listRange (Expression.ListExpr [ Node singleElementRange _ ]) ->
+        Node _ (Expression.ListExpr [ listElement ]) ->
             [ Rule.errorWithFix
                 { message = "Unnecessary oneOf"
                 , details = [ "There is only a single element in the list of elements to try out." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy { start = fnRange.start, end = singleElementRange.start } "("
-                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                ]
+                (replaceBySubExpressionFix parentRange listElement)
             ]
 
         _ ->
@@ -4570,17 +4612,10 @@ replaceSingleElementListBySingleValue_RENAME lookupTable fnRange node =
 
 
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
-replaceSingleElementListBySingleValue lookupTable rawNode =
-    let
-        (Node { start, end } nodeValue) =
-            AstHelpers.removeParens rawNode
-    in
-    case nodeValue of
-        Expression.ListExpr [ _ ] ->
-            Just
-                [ Fix.replaceRangeBy { start = start, end = { start | column = start.column + 1 } } "("
-                , Fix.replaceRangeBy { start = { end | column = end.column - 1 }, end = end } ")"
-                ]
+replaceSingleElementListBySingleValue lookupTable node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.ListExpr [ listElement ] ->
+            Just (replaceBySubExpressionFix (Node.range node) listElement)
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
             if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then

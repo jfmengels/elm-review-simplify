@@ -1700,7 +1700,23 @@ a = -(-n)
                             , under = "-(-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (n)
+a = n
+"""
+                        ]
+        , test "should simplify -(-(f n)) to (f n)" <|
+            \() ->
+                """module A exposing (..)
+a = -(-(f n))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double number negation"
+                            , details = [ "Negating a number twice is the same as the number itself." ]
+                            , under = "-(-"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n)
 """
                         ]
         ]
@@ -2827,7 +2843,7 @@ a = ({ a = 1 }).a == (2 - 1)
                             , under = "({ a = 1 }).a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (1) == ({ a = 2 - 1 }).a
+a = 1 == ({ a = 2 - 1 }).a
 """
                         ]
         , test "should simplify operator expressions" <|
@@ -2859,7 +2875,7 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
                             , under = "({ a = 1 }).a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (1) == ({ a = 1 }).b
+a = 1 == ({ a = 1 }).b
 """
                         ]
         ]
@@ -4431,7 +4447,23 @@ a = [ b ] ++ c
                             , under = "[ b ] ++ c"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( b ) :: c
+a = b :: c
+"""
+                        ]
+        , test "should replace [ f n ] ++ c by (f n) :: c" <|
+            \() ->
+                """module A exposing (..)
+a = [ f n ] ++ c
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Should use (::) instead of (++)"
+                            , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                            , under = "[ f n ] ++ c"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n) :: c
 """
                         ]
         , test "should not replace [b] ++ c when on the right of a ++ operator" <|
@@ -5256,7 +5288,7 @@ a = (always [])
         , test "should replace List.concatMap (\\_ -> [a]) x by List.map (\\_ -> a) x" <|
             \() ->
                 """module A exposing (..)
-a = List.concatMap (\\_ -> [a]) x
+a = List.concatMap (\\_ -> ([a])) x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -5266,7 +5298,7 @@ a = List.concatMap (\\_ -> [a]) x
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\_ -> (a)) x
+a = List.map (\\_ -> a) x
 """
                         ]
         , test "should replace List.concatMap (\\_ -> List.singleton a) x by List.map (\\_ -> a) x" <|
@@ -5298,7 +5330,7 @@ a = List.concatMap (\\_ -> if cond then [a] else [b]) x
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\_ -> if cond then (a) else (b)) x
+a = List.map (\\_ -> if cond then a else b) x
 """
                         ]
         , test "should replace List.concatMap (\\_ -> case y of A -> [a] ; B -> [b]) x by List.map (\\_ -> case y of A -> a ; B -> b) x" <|
@@ -5322,8 +5354,8 @@ a = List.concatMap
 a = List.map
     (\\_ ->
         case y of
-            A -> (a)
-            B -> (b)
+            A -> a
+            B -> b
     ) x
 """
                         ]
@@ -5340,7 +5372,7 @@ a = List.concatMap f [ a ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  f (a)
+a =  f a
 """
                         ]
         , test "should replace List.concatMap f <| [ b c ] by f <| (b c)" <|
@@ -5357,6 +5389,22 @@ a = List.concatMap f <| [ b c ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =  f <| (b c)
+"""
+                        ]
+        , test "should replace List.concatMap f <| [ c ] by c |> f" <|
+            \() ->
+                """module A exposing (..)
+a = [ c ] |> List.concatMap f
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = c |>  f
 """
                         ]
         , test "should replace List.concatMap f <| [ b c ] by (b c) |> f" <|
@@ -9932,7 +9980,7 @@ a = Cmd.batch [ Cmd.none ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Cmd.none)
+a = Cmd.none
 """
                         ]
         , test "should replace Cmd.batch [ b ] by b" <|
@@ -9948,7 +9996,7 @@ a = Cmd.batch [ b ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (b)
+a = b
 """
                         ]
         , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch []" <|
@@ -10079,7 +10127,7 @@ a = Sub.batch [ Sub.none ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Sub.none)
+a = Sub.none
 """
                         ]
         , test "should replace Sub.batch [ b ] by b" <|
@@ -10095,7 +10143,23 @@ a = Sub.batch [ b ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (b)
+a = b
+"""
+                        ]
+        , test "should replace Sub.batch [ f n ] by (f n)" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ f n ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Sub.batch"
+                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n)
 """
                         ]
         , test "should replace Sub.batch [ b, Sub.none ] by Sub.batch []" <|
@@ -10184,7 +10248,7 @@ d = Parser.Advanced.oneOf [ y, z ]
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace Parser.oneOf [ x ] by ( x )" <|
+        , test "should replace Parser.oneOf [ x ] by x" <|
             \() ->
                 """module A exposing (..)
 import Parser
@@ -10199,10 +10263,10 @@ a = Parser.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Parser
-a = (x)
+a = x
 """
                         ]
-        , test "should replace Parser.Advanced.oneOf [ x ] by ( x )" <|
+        , test "should replace Parser.Advanced.oneOf [ x ] by x" <|
             \() ->
                 """module A exposing (..)
 import Parser.Advanced
@@ -10217,7 +10281,7 @@ a = Parser.Advanced.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Parser.Advanced
-a = (x)
+a = x
 """
                         ]
         ]
@@ -10239,7 +10303,7 @@ b = Json.Decode.oneOf [ y, z ]
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace Json.Decode.oneOf [ x ] by ( x )" <|
+        , test "should replace Json.Decode.oneOf [ x ] by x" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -10254,7 +10318,7 @@ a = Json.Decode.oneOf [ x ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (x)
+a = x
 """
                         ]
         ]
@@ -10286,7 +10350,23 @@ a = { b = 3 }.b
                             , under = "{ b = 3 }.b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (3)
+a = 3
+"""
+                        ]
+        , test "should simplify record accesses for explicit records and add parens when necessary" <|
+            \() ->
+                """module A exposing (..)
+a = { b = f n }.b
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = details
+                            , under = "{ b = f n }.b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n)
 """
                         ]
         , test "should simplify record accesses for explicit records in parentheses" <|
@@ -10302,7 +10382,7 @@ a = (({ b = 3 })).b
                             , under = "(({ b = 3 })).b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (3)
+a = 3
 """
                         ]
         , test "shouldn't simplify record accesses for explicit records if it can't find the field" <|
@@ -10389,7 +10469,7 @@ a = (((let b = c in f x))).e
                             , under = "(((let b = c in f x))).e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (((let b = c in (f x))).e)
+a = (((let b = c in (f x).e)))
 """
                         ]
         , test "should simplify nested record accesses for let/in expressions (inner)" <|
@@ -10421,7 +10501,7 @@ a = (let b = c in (f x).e).f
                             , under = "(let b = c in (f x).e).f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (let b = c in ((f x).e).f)
+a = (let b = c in (f x).e.f)
 """
                         ]
         ]
