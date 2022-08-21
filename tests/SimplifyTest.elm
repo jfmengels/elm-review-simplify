@@ -4431,7 +4431,23 @@ a = [ b ] ++ c
                             , under = "[ b ] ++ c"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( b ) :: c
+a = b :: c
+"""
+                        ]
+        , test "should replace [ f n ] ++ c by (f n) :: c" <|
+            \() ->
+                """module A exposing (..)
+a = [ f n ] ++ c
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Should use (::) instead of (++)"
+                            , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                            , under = "[ f n ] ++ c"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n) :: c
 """
                         ]
         , test "should not replace [b] ++ c when on the right of a ++ operator" <|

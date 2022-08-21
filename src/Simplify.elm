@@ -1884,7 +1884,7 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                 ]
             ]
 
-        ( Expression.ListExpr [ _ ], _ ) ->
+        ( Expression.ListExpr [ Node exprRange exprValue ], _ ) ->
             if isOnTheRightSideOfPlusPlus then
                 []
 
@@ -1894,17 +1894,13 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                     , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
                     }
                     parentRange
-                    [ Fix.replaceRangeBy
-                        { start = leftRange.start
-                        , end = { row = leftRange.start.row, column = leftRange.start.column + 1 }
-                        }
-                        "("
-                    , Fix.replaceRangeBy
-                        { start = { row = leftRange.end.row, column = leftRange.end.column - 1 }
+                    (Fix.replaceRangeBy
+                        { start = leftRange.end
                         , end = rightRange.start
                         }
-                        ") :: "
-                    ]
+                        " :: "
+                        :: replaceBySubExpression leftRange exprRange exprValue
+                    )
                 ]
 
         _ ->
