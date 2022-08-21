@@ -5359,6 +5359,22 @@ a = List.concatMap f <| [ b c ]
 a =  f <| (b c)
 """
                         ]
+        , test "should replace List.concatMap f <| [ c ] by c |> f" <|
+            \() ->
+                """module A exposing (..)
+a = [ c ] |> List.concatMap f
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = c |>  f
+"""
+                        ]
         , test "should replace List.concatMap f <| [ b c ] by (b c) |> f" <|
             \() ->
                 """module A exposing (..)
