@@ -1371,16 +1371,16 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.RecordAccess record (Node _ fieldName) ->
+        Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
-                    onlyErrors (recordAccessChecks (Node.range node) Nothing fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) Nothing (Node.value field) setters)
 
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                    onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) fieldName setters)
+                    onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) (Node.value field) setters)
 
                 Expression.LetExpression { expression } ->
-                    onlyErrors (recordAccessLetInChecks (Node.range node) (Node.range expression))
+                    onlyErrors (recordAccessLetInChecks (Node.range node) field expression)
 
                 _ ->
                     onlyErrors []
@@ -1469,16 +1469,36 @@ needsParens expr =
             False
 
 
-recordAccessLetInChecks : Range -> Range -> List (Error {})
-recordAccessLetInChecks nodeRange expressionRange =
+recordAccessLetInChecks : Range -> Node String -> Node Expression -> List (Error {})
+recordAccessLetInChecks nodeRange (Node fieldRange fieldName) expr =
+    let
+        fieldRangeStart : Location
+        fieldRangeStart =
+            fieldRange.start
+
+        fieldRemovalFix : Fix
+        fieldRemovalFix =
+            Fix.removeRange
+                { start = { row = fieldRangeStart.row, column = fieldRangeStart.column - 1 }
+                , end = fieldRange.end
+                }
+    in
     [ Rule.errorWithFix
         { message = "Field access can be simplified"
         , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
         }
         nodeRange
-        [ Fix.insertAt expressionRange.start "("
-        , Fix.insertAt nodeRange.end ")"
-        ]
+        (if needsParens (Node.value expr) then
+            [ Fix.insertAt (Node.range expr).start "("
+            , Fix.insertAt (Node.range expr).end (")." ++ fieldName)
+            , fieldRemovalFix
+            ]
+
+         else
+            [ Fix.insertAt (Node.range expr).end ("." ++ fieldName)
+            , fieldRemovalFix
+            ]
+        )
     ]
 
 

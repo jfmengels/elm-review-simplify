@@ -10469,7 +10469,7 @@ a = (((let b = c in f x))).e
                             , under = "(((let b = c in f x))).e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (((let b = c in (f x))).e)
+a = (((let b = c in (f x).e)))
 """
                         ]
         , test "should simplify nested record accesses for let/in expressions (inner)" <|
@@ -10501,7 +10501,7 @@ a = (let b = c in (f x).e).f
                             , under = "(let b = c in (f x).e).f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (let b = c in ((f x).e).f)
+a = (let b = c in (f x).e.f)
 """
                         ]
         ]
