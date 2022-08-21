@@ -1361,11 +1361,7 @@ expressionVisitorHelp node context =
                             , details = [ "Negating a number twice is the same as the number itself." ]
                             }
                             doubleNegationRange
-                            (replaceBySubExpressionFix
-                                (Node.range node)
-                                (Node.range negatedValue)
-                                (Node.value negatedValue)
-                            )
+                            (replaceBySubExpressionFix (Node.range node) negatedValue)
                         ]
 
                 _ ->
@@ -1402,13 +1398,13 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
             )
             setters
     of
-        Just (Node setterValueRange setterValue) ->
+        Just setter ->
             [ Rule.errorWithFix
                 { message = "Field access can be simplified"
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                 }
                 nodeRange
-                (replaceBySubExpressionFix nodeRange setterValueRange setterValue)
+                (replaceBySubExpressionFix nodeRange setter)
             ]
 
         Nothing ->
@@ -1428,9 +1424,9 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
-replaceBySubExpressionFix : Range -> Range -> Expression -> List Fix
-replaceBySubExpressionFix outerRange exprRange expr =
-    if needsParens expr then
+replaceBySubExpressionFix : Range -> Node Expression -> List Fix
+replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
+    if needsParens exprValue then
         [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
         , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
         ]
@@ -1908,7 +1904,7 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                 ]
             ]
 
-        ( Expression.ListExpr [ Node exprRange exprValue ], _ ) ->
+        ( Expression.ListExpr [ listElement ], _ ) ->
             if isOnTheRightSideOfPlusPlus then
                 []
 
@@ -1923,7 +1919,7 @@ plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSi
                         , end = rightRange.start
                         }
                         " :: "
-                        :: replaceBySubExpressionFix leftRange exprRange exprValue
+                        :: replaceBySubExpressionFix leftRange listElement
                     )
                 ]
 
@@ -3381,14 +3377,14 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
 
             Nothing ->
                 case secondArg of
-                    Just (Node listRange (Expression.ListExpr [ Node singleElementRange singleElementValue ])) ->
+                    Just (Node listRange (Expression.ListExpr [ listElement ])) ->
                         [ Rule.errorWithFix
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
                             , details = [ "You can replace this call by a call to the function directly." ]
                             }
                             fnRange
                             (Fix.removeRange fnRange
-                                :: replaceBySubExpressionFix listRange singleElementRange singleElementValue
+                                :: replaceBySubExpressionFix listRange listElement
                             )
                         ]
 
@@ -3858,13 +3854,13 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                 [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
             ]
 
-        Expression.ListExpr [ Node argRange argValue ] ->
+        Expression.ListExpr [ listElement ] ->
             [ Rule.errorWithFix
                 { message = "Unnecessary " ++ moduleName ++ ".batch"
                 , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
                 }
                 fnRange
-                (replaceBySubExpressionFix parentRange argRange argValue)
+                (replaceBySubExpressionFix parentRange listElement)
             ]
 
         Expression.ListExpr args ->
@@ -3915,13 +3911,13 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 oneOfChecks : CheckInfo -> List (Error {})
 oneOfChecks { parentRange, fnRange, firstArg } =
     case AstHelpers.removeParens firstArg of
-        Node _ (Expression.ListExpr [ Node singleElementRange singleElementValue ]) ->
+        Node _ (Expression.ListExpr [ listElement ]) ->
             [ Rule.errorWithFix
                 { message = "Unnecessary oneOf"
                 , details = [ "There is only a single element in the list of elements to try out." ]
                 }
                 fnRange
-                (replaceBySubExpressionFix parentRange singleElementRange singleElementValue)
+                (replaceBySubExpressionFix parentRange listElement)
             ]
 
         _ ->
@@ -4618,8 +4614,8 @@ replaceSingleElementListBySingleValue_RENAME lookupTable fnRange node =
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
 replaceSingleElementListBySingleValue lookupTable node =
     case Node.value (AstHelpers.removeParens node) of
-        Expression.ListExpr [ Node elemRange elemValue ] ->
-            Just (replaceBySubExpressionFix (Node.range node) elemRange elemValue)
+        Expression.ListExpr [ listElement ] ->
+            Just (replaceBySubExpressionFix (Node.range node) listElement)
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
             if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
