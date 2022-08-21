@@ -3367,10 +3367,9 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
                             , details = [ "You can replace this call by a call to the function directly." ]
                             }
                             fnRange
-                            [ Fix.removeRange fnRange
-                            , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                            , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                            ]
+                            (Fix.removeRange fnRange
+                                :: wrapInParensFix listRange singleElementRange singleElementValue
+                            )
                         ]
 
                     _ ->

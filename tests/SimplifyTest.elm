@@ -5340,7 +5340,7 @@ a = List.concatMap f [ a ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  f (a)
+a =  f a
 """
                         ]
         , test "should replace List.concatMap f <| [ b c ] by f <| (b c)" <|
