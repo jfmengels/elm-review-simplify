@@ -3355,7 +3355,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 
 listConcatMapChecks : CheckInfo -> List (Error {})
-listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRightPizza } =
+listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     if isIdentity lookupTable firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
