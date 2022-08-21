@@ -1404,7 +1404,7 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                 , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                 }
                 nodeRange
-                (wrapInParensFix nodeRange setterValueRange setterValue)
+                (replaceBySubExpression nodeRange setterValueRange setterValue)
             ]
 
         Nothing ->
@@ -1424,8 +1424,8 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
-wrapInParensFix : Range -> Range -> Expression -> List Fix
-wrapInParensFix outerRange exprRange expr =
+replaceBySubExpression : Range -> Range -> Expression -> List Fix
+replaceBySubExpression outerRange exprRange expr =
     if needsParens expr then
         [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
         , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
@@ -3368,7 +3368,7 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
                             }
                             fnRange
                             (Fix.removeRange fnRange
-                                :: wrapInParensFix listRange singleElementRange singleElementValue
+                                :: replaceBySubExpression listRange singleElementRange singleElementValue
                             )
                         ]
 
@@ -3844,7 +3844,7 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                 , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
                 }
                 fnRange
-                (wrapInParensFix parentRange argRange argValue)
+                (replaceBySubExpression parentRange argRange argValue)
             ]
 
         Expression.ListExpr args ->
@@ -3901,7 +3901,7 @@ oneOfChecks { parentRange, fnRange, firstArg } =
                 , details = [ "There is only a single element in the list of elements to try out." ]
                 }
                 fnRange
-                (wrapInParensFix parentRange singleElementRange singleElementValue)
+                (replaceBySubExpression parentRange singleElementRange singleElementValue)
             ]
 
         _ ->
