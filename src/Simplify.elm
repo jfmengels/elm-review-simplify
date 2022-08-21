@@ -3361,24 +3361,16 @@ listConcatMapChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, us
 
             Nothing ->
                 case secondArg of
-                    Just (Node listRange (Expression.ListExpr [ Node singleElementRange _ ])) ->
+                    Just (Node listRange (Expression.ListExpr [ Node singleElementRange singleElementValue ])) ->
                         [ Rule.errorWithFix
                             { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
                             , details = [ "You can replace this call by a call to the function directly." ]
                             }
                             fnRange
-                            (if usingRightPizza then
-                                [ Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                                , Fix.removeRange fnRange
-                                ]
-
-                             else
-                                [ Fix.removeRange fnRange
-                                , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
-                                , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
-                                ]
-                            )
+                            [ Fix.removeRange fnRange
+                            , Fix.replaceRangeBy { start = listRange.start, end = singleElementRange.start } "("
+                            , Fix.replaceRangeBy { start = singleElementRange.end, end = listRange.end } ")"
+                            ]
                         ]
 
                     _ ->
