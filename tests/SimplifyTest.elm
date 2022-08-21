@@ -5272,7 +5272,7 @@ a = (always [])
         , test "should replace List.concatMap (\\_ -> [a]) x by List.map (\\_ -> a) x" <|
             \() ->
                 """module A exposing (..)
-a = List.concatMap (\\_ -> [a]) x
+a = List.concatMap (\\_ -> ([a])) x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -5282,7 +5282,7 @@ a = List.concatMap (\\_ -> [a]) x
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\_ -> (a)) x
+a = List.map (\\_ -> a) x
 """
                         ]
         , test "should replace List.concatMap (\\_ -> List.singleton a) x by List.map (\\_ -> a) x" <|
@@ -5314,7 +5314,7 @@ a = List.concatMap (\\_ -> if cond then [a] else [b]) x
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\_ -> if cond then (a) else (b)) x
+a = List.map (\\_ -> if cond then a else b) x
 """
                         ]
         , test "should replace List.concatMap (\\_ -> case y of A -> [a] ; B -> [b]) x by List.map (\\_ -> case y of A -> a ; B -> b) x" <|
@@ -5338,8 +5338,8 @@ a = List.concatMap
 a = List.map
     (\\_ ->
         case y of
-            A -> (a)
-            B -> (b)
+            A -> a
+            B -> b
     ) x
 """
                         ]

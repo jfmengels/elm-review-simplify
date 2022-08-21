@@ -4592,17 +4592,10 @@ replaceSingleElementListBySingleValue_RENAME lookupTable fnRange node =
 
 
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
-replaceSingleElementListBySingleValue lookupTable rawNode =
-    let
-        (Node { start, end } nodeValue) =
-            AstHelpers.removeParens rawNode
-    in
-    case nodeValue of
-        Expression.ListExpr [ _ ] ->
-            Just
-                [ Fix.replaceRangeBy { start = start, end = { start | column = start.column + 1 } } "("
-                , Fix.replaceRangeBy { start = { end | column = end.column - 1 }, end = end } ")"
-                ]
+replaceSingleElementListBySingleValue lookupTable node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.ListExpr [ Node elemRange elemValue ] ->
+            Just (replaceBySubExpression (Node.range node) elemRange elemValue)
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
             if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
