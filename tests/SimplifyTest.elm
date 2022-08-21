@@ -10286,7 +10286,23 @@ a = { b = 3 }.b
                             , under = "{ b = 3 }.b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (3)
+a = 3
+"""
+                        ]
+        , test "should simplify record accesses for explicit records and add parens when necessary" <|
+            \() ->
+                """module A exposing (..)
+a = { b = f n }.b
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Field access can be simplified"
+                            , details = details
+                            , under = "{ b = f n }.b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f n)
 """
                         ]
         , test "should simplify record accesses for explicit records in parentheses" <|
