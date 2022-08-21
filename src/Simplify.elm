@@ -3838,15 +3838,13 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                 [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
             ]
 
-        Expression.ListExpr [ arg ] ->
+        Expression.ListExpr [ Node argRange argValue ] ->
             [ Rule.errorWithFix
                 { message = "Unnecessary " ++ moduleName ++ ".batch"
                 , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range arg).start } "("
-                , Fix.replaceRangeBy { start = (Node.range arg).end, end = parentRange.end } ")"
-                ]
+                (wrapInParensFix parentRange argRange argValue)
             ]
 
         Expression.ListExpr args ->

@@ -9948,7 +9948,7 @@ a = Cmd.batch [ Cmd.none ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Cmd.none)
+a = Cmd.none
 """
                         ]
         , test "should replace Cmd.batch [ b ] by b" <|
@@ -9964,7 +9964,7 @@ a = Cmd.batch [ b ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (b)
+a = b
 """
                         ]
         , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch []" <|
