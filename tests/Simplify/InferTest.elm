@@ -6,6 +6,7 @@ import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.Node exposing (Node(..))
 import Elm.Syntax.Range as Range
 import Expect exposing (Expectation)
+import Fuzz exposing (Fuzzer)
 import Simplify.Infer exposing (..)
 import Test exposing (Test, describe, test)
 
@@ -16,6 +17,7 @@ all =
         [ simpleTests
         , detailedTests
         , deduceNewFactsTests
+        , rangeTests
         ]
 
 
@@ -192,7 +194,7 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , DTrue
+                              , DBool True []
                               )
                             ]
                         }
@@ -210,7 +212,7 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , DFalse
+                              , DBool False []
                               )
                             ]
                         }
@@ -239,13 +241,13 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , DTrue
+                              , DBool True []
                               )
                             , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n trueExpr)
-                              , DTrue
+                              , DBool True []
                               )
                             ]
                         }
@@ -274,13 +276,13 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , DFalse
+                              , DBool False []
                               )
                             , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n trueExpr)
-                              , DFalse
+                              , DBool False []
                               )
                             ]
                         }
@@ -309,13 +311,19 @@ detailedTests =
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
-                              , DNumber 1
+                              , DNumber
+                                    { from = 1
+                                    , to = 1
+                                    , fromIncluded = True
+                                    , toIncluded = True
+                                    }
+                                    []
                               )
                             , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n (Floatable 1))
-                              , DTrue
+                              , DBool True []
                               )
                             ]
                         }
@@ -343,11 +351,25 @@ detailedTests =
                                 falseExpr
                             ]
                         , deduced =
-                            [ ( OperatorApplication "=="
+                            [ ( FunctionOrValue [] "a"
+                              , DNumber
+                                    { from = -1 / 0
+                                    , fromIncluded = False
+                                    , to = 1
+                                    , toIncluded = False
+                                    }
+                                    [ { from = 1
+                                      , fromIncluded = False
+                                      , to = 1 / 0
+                                      , toIncluded = False
+                                      }
+                                    ]
+                              )
+                            , ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n (Floatable 1))
-                              , DFalse
+                              , DBool False []
                               )
                             ]
                         }
@@ -374,13 +396,13 @@ detailedTests =
                                 trueExpr
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", DTrue )
-                            , ( FunctionOrValue [] "a", DTrue )
+                            [ ( FunctionOrValue [] "b", DBool True [] )
+                            , ( FunctionOrValue [] "a", DBool True [] )
                             , ( OperatorApplication "&&"
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , DTrue
+                              , DBool True []
                               )
                             ]
                         }
@@ -415,7 +437,7 @@ detailedTests =
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , DFalse
+                              , DBool False []
                               )
                             ]
                         }
@@ -453,7 +475,7 @@ detailedTests =
                                     Right
                                     (n (FunctionOrValue [] "a"))
                                     (n (FunctionOrValue [] "b"))
-                              , DTrue
+                              , DBool True []
                               )
                             ]
                         }
@@ -474,9 +496,9 @@ detailedTests =
                             , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", DFalse )
-                            , ( FunctionOrValue [] "a", DFalse )
-                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DFalse )
+                            [ ( FunctionOrValue [] "b", DBool False [] )
+                            , ( FunctionOrValue [] "a", DBool False [] )
+                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DBool False [] )
                             ]
                         }
         , test "should infer a || b when True and a when False" <|
@@ -499,9 +521,9 @@ detailedTests =
                             , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) (FunctionOrValue [ "Basics" ] "True")
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", DTrue )
-                            , ( FunctionOrValue [] "a", DFalse )
-                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DTrue )
+                            [ ( FunctionOrValue [] "b", DBool True [] )
+                            , ( FunctionOrValue [] "a", DBool False [] )
+                            , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DBool True [] )
                             ]
                         }
         ]
@@ -533,6 +555,86 @@ deduceNewFactsTests =
                     |> Expect.equal
                         [ Equals (FunctionOrValue [] "b") trueExpr ]
         ]
+
+
+rangeTests : Test
+rangeTests =
+    describe "combining two ranges should produce a range"
+        [ Test.fuzz3
+            rangeFuzzer
+            rangeFuzzer
+            Fuzz.float
+            "such that a number belongs to the intersection range iff it belong to both input ranges"
+            (\lrange rrange testPoint ->
+                case Simplify.Infer.intersect lrange rrange of
+                    Nothing ->
+                        Expect.false "The intersection is empty so the point should belong to at most one interval"
+                            (Simplify.Infer.belongsTo lrange testPoint && Simplify.Infer.belongsTo rrange testPoint)
+
+                    Just irange ->
+                        Expect.true "The intersection is nonempty and the point should belong to it iff it belongs to both intervals"
+                            (Simplify.Infer.belongsTo irange testPoint == (Simplify.Infer.belongsTo lrange testPoint && Simplify.Infer.belongsTo rrange testPoint))
+            )
+        , Test.fuzz3
+            rangeFuzzer
+            rangeFuzzer
+            Fuzz.float
+            "such that a number belongs to the union range iff it belong to either of input ranges"
+            (\lrange rrange testPoint ->
+                case Simplify.Infer.unite lrange rrange of
+                    Nothing ->
+                        -- If the union is empty there is not really much to do
+                        Expect.pass
+
+                    Just irange ->
+                        let
+                            belongsToUnion =
+                                Simplify.Infer.belongsTo irange testPoint
+                        in
+                        if Simplify.Infer.belongsTo lrange testPoint then
+                            Expect.true
+                                ("The point belong to the left range, so it must belong to the union, but it doesn't - the union is " ++ Debug.toString irange)
+                                belongsToUnion
+
+                        else if Simplify.Infer.belongsTo rrange testPoint then
+                            Expect.true
+                                ("The point belong to the right range, so it must belong to the union, but it doesn't - the union is " ++ Debug.toString irange)
+                                belongsToUnion
+
+                        else
+                            Expect.false
+                                ("The point belongs to neither range, so it must not belong to the union, but it does - the union is " ++ Debug.toString irange)
+                                belongsToUnion
+            )
+        ]
+
+
+rangeFuzzer : Fuzzer NumberRange
+rangeFuzzer =
+    let
+        edgeFuzzer : Fuzzer ( Float, Bool )
+        edgeFuzzer =
+            Fuzz.map2 Tuple.pair Fuzz.float Fuzz.bool
+
+        niceEdgeFuzzer : Fuzzer ( Float, Bool )
+        niceEdgeFuzzer =
+            Fuzz.map2 Tuple.pair
+                (List.range -2 2
+                    |> List.map (toFloat >> Fuzz.constant)
+                    |> Fuzz.oneOf
+                )
+                Fuzz.bool
+    in
+    Fuzz.map2
+        (\( from, fromIncluded ) ( to, toIncluded ) ->
+            { from = from
+            , fromIncluded = fromIncluded
+            , to = to
+            , toIncluded = toIncluded
+            }
+        )
+        (Fuzz.oneOf [ Fuzz.constant ( -1 / 0, False ), edgeFuzzer, niceEdgeFuzzer ])
+        (Fuzz.oneOf [ Fuzz.constant ( 1 / 0, False ), edgeFuzzer, niceEdgeFuzzer ])
 
 
 expectEqual :

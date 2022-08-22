@@ -3394,6 +3394,37 @@ a =
     3
 """
                         ]
+        , test "should remove branches where the condition always matches (ranges)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x == 1 then
+    if x < 0 then
+      1
+    else
+      2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison is always False"
+                            , details = sameThingOnBothSidesDetails "False"
+                            , under = "x < 0"
+                            }
+                            |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x == 1 then
+    if False then
+      1
+    else
+      2
+  else
+    3
+"""
+                        ]
         , test "should remove branches where the condition never matches (strings == with different values)" <|
             \() ->
                 """module A exposing (..)
