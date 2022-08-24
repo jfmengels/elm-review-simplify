@@ -6,6 +6,7 @@ module Simplify.Infer exposing
     , deduceNewFacts
     , empty
     , falseExpr
+    , fromList
     , get
     , infer
     , inferForIfCondition
@@ -139,6 +140,14 @@ empty =
     Inferred
         { facts = []
         , deduced = AssocList.empty
+        }
+
+
+fromList : List ( Expression, DeducedValue ) -> Inferred
+fromList list =
+    Inferred
+        { facts = []
+        , deduced = AssocList.fromList list
         }
 
 
