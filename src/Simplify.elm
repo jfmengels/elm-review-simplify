@@ -750,7 +750,7 @@ isValidType typeAsString =
 
 
 type alias ProjectContext =
-    { customTypesToReportInCases : Set ConstructorName
+    { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     }
 
 
@@ -759,7 +759,7 @@ type alias ModuleContext =
     , moduleName : ModuleName
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
-    , customTypesToReportInCases : Set ConstructorName
+    , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
@@ -831,7 +831,7 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
             Set.diff typeNamesAsStrings unions
                 |> Set.toList
 
-        customTypesToReportInCases : Set String
+        customTypesToReportInCases : Set ( ModuleName, String )
         customTypesToReportInCases =
             modules
                 |> List.concatMap
@@ -844,7 +844,7 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
                         mod.unions
                             |> List.filter (\{ name } -> not (Set.member ( moduleName, name ) typeNames))
                             |> List.concatMap (\union -> union.tags)
-                            |> List.map (\( tagName, _ ) -> mod.name ++ "." ++ tagName)
+                            |> List.map (\( tagName, _ ) -> ( moduleName, tagName ))
                     )
                 |> Set.fromList
     in
