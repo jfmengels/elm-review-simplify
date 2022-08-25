@@ -767,7 +767,6 @@ isValidType typeAsString =
 
 type alias ProjectContext =
     { ignoredCustomTypes : List Constructor
-    , dependenciesModules : Set ModuleName
     }
 
 
@@ -777,7 +776,6 @@ type alias ModuleContext =
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
     , ignoredCustomTypes : List Constructor
-    , dependenciesModules : Set ModuleName
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
@@ -795,7 +793,6 @@ type alias Constructor =
 initialContext : ProjectContext
 initialContext =
     { ignoredCustomTypes = []
-    , dependenciesModules = Set.empty
     }
 
 
@@ -804,7 +801,6 @@ fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
             { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
-            , dependenciesModules = Set.empty
             }
         )
 
@@ -818,7 +814,6 @@ initialModuleContext =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
-            , dependenciesModules = Set.empty
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
@@ -838,7 +833,6 @@ fromProjectToModule =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
-            , dependenciesModules = projectContext.dependenciesModules
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
@@ -859,7 +853,6 @@ buildConstructorsToIgnore constructors =
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
-    , dependenciesModules = previousContext.dependenciesModules
     }
 
 
@@ -913,9 +906,6 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
     , { ignoredCustomTypes = ignoredCustomTypes
-      , dependenciesModules =
-            List.map (\module_ -> String.split "." module_.name) modules
-                |> Set.fromList
       }
     )
 
