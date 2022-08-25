@@ -842,7 +842,7 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
                                 String.split "." mod.name
                         in
                         mod.unions
-                            |> List.filter (\{ name } -> not (Set.member ( moduleName, name ) typeNames))
+                            |> List.filter (\union -> not (Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings))
                             |> List.concatMap (\union -> union.tags)
                             |> List.map (\( tagName, _ ) -> ( moduleName, tagName ))
                     )
