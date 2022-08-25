@@ -907,6 +907,33 @@ dependenciesVisitor typeNames dict _ =
     )
 
 
+errorForUnknownIgnoredConstructors : List String -> List { a | moduleName : List String, name : String } -> List (Error scope)
+errorForUnknownIgnoredConstructors ignoreConstructors ignoredCustomTypes =
+    let
+        list : List String
+        list =
+            ignoredCustomTypes
+                |> List.map (\type_ -> String.join "." type_.moduleName ++ "." ++ type_.name)
+                |> Set.fromList
+                |> Set.diff (Set.fromList ignoreConstructors)
+                |> Set.toList
+    in
+    if List.isEmpty list then
+        []
+
+    else
+        [ Rule.globalError
+            { message = "Could not find type names: " ++ (String.join ", " <| List.map wrapInBackticks list)
+            , details =
+                [ "I expected to find these custom types in the code or dependencies, but I could not find them."
+                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                , "If you find that these types have been moved or renamed, please update your configuration."
+                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                ]
+            }
+        ]
+
+
 
 -- FINAL EVALUATION
 
