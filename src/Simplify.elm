@@ -766,7 +766,7 @@ isValidType typeAsString =
 
 
 type alias ProjectContext =
-    { ignoredCustomTypes : List Constructor
+    { customTypesToReportInCases : List Constructor
     }
 
 
@@ -775,7 +775,7 @@ type alias ModuleContext =
     , moduleName : ModuleName
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
-    , ignoredCustomTypes : List Constructor
+    , customTypesToReportInCases : List Constructor
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
@@ -792,7 +792,7 @@ type alias Constructor =
 
 initialContext : ProjectContext
 initialContext =
-    { ignoredCustomTypes = []
+    { customTypesToReportInCases = []
     }
 
 
@@ -800,7 +800,7 @@ fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
-            { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
+            { customTypesToReportInCases = moduleContext.localIgnoredCustomTypes
             }
         )
 
@@ -814,7 +814,7 @@ initialModuleContext =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
-            , ignoredCustomTypes = []
+            , customTypesToReportInCases = []
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
@@ -833,8 +833,8 @@ fromProjectToModule =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
-            , ignoredCustomTypes = projectContext.ignoredCustomTypes
-            , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
+            , customTypesToReportInCases = projectContext.customTypesToReportInCases
+            , constructorsToIgnore = buildConstructorsToIgnore projectContext.customTypesToReportInCases
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             }
@@ -852,7 +852,7 @@ buildConstructorsToIgnore constructors =
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
-    { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
+    { customTypesToReportInCases = newContext.customTypesToReportInCases ++ previousContext.customTypesToReportInCases
     }
 
 
@@ -879,8 +879,8 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
             Set.diff (Set.fromList typeNamesAsStrings) unions
                 |> Set.toList
 
-        ignoredCustomTypes : List { moduleName : ModuleName, name : String, constructors : List String }
-        ignoredCustomTypes =
+        customTypesToReportInCases : List { moduleName : ModuleName, name : String, constructors : List String }
+        customTypesToReportInCases =
             List.concatMap
                 (\mod ->
                     let
@@ -905,8 +905,7 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
 
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
-    , { ignoredCustomTypes = ignoredCustomTypes
-      }
+    , { customTypesToReportInCases = customTypesToReportInCases }
     )
 
 
@@ -942,7 +941,7 @@ declarationListVisitor constructorsToIgnore declarations context =
     ( []
     , { context
         | localIgnoredCustomTypes = localIgnoredCustomTypes
-        , ignoredCustomTypes = localIgnoredCustomTypes ++ context.ignoredCustomTypes
+        , customTypesToReportInCases = localIgnoredCustomTypes ++ context.customTypesToReportInCases
         , constructorsToIgnore = Set.union (buildConstructorsToIgnore localIgnoredCustomTypes) context.constructorsToIgnore
       }
     )
@@ -5009,7 +5008,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                         findUsedConstructors context (firstPattern :: restPatterns) Set.empty
                             |> Set.toList
                 in
-                if not (List.isEmpty context.ignoredCustomTypes) && allConstructorsWereUsedOfAType context.ignoredCustomTypes (constructorsUsed ()) then
+                if not (List.isEmpty context.customTypesToReportInCases) && allConstructorsWereUsedOfAType context.customTypesToReportInCases (constructorsUsed ()) then
                     []
 
                 else
@@ -5030,21 +5029,21 @@ sameBodyForCaseOfChecks context parentRange cases =
 
 
 allConstructorsWereUsedOfAType : List Constructor -> List ( ModuleName, String ) -> Bool
-allConstructorsWereUsedOfAType ignoredCustomTypes constructorsUsed =
+allConstructorsWereUsedOfAType customTypesToReportInCases constructorsUsed =
     case constructorsUsed of
         [] ->
             False
 
         ( moduleName, constructorName ) :: rest ->
-            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) ignoredCustomTypes of
+            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) customTypesToReportInCases of
                 Just customType ->
                     List.all
                         (\constructor -> List.member ( moduleName, constructor ) (( moduleName, constructorName ) :: rest))
                         customType.constructors
-                        || allConstructorsWereUsedOfAType ignoredCustomTypes rest
+                        || allConstructorsWereUsedOfAType customTypesToReportInCases rest
 
                 Nothing ->
-                    allConstructorsWereUsedOfAType ignoredCustomTypes rest
+                    allConstructorsWereUsedOfAType customTypesToReportInCases rest
 
 
 caseKeyWordRange : Range -> Range
