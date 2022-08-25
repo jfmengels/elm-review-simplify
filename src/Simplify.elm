@@ -786,11 +786,7 @@ initialContext =
 
 fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
-    Rule.initContextCreator
-        (\moduleContext ->
-            { customTypesToReportInCases = Set.empty
-            }
-        )
+    Rule.initContextCreator (\_ -> initialContext)
 
 
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
