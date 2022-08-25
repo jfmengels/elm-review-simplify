@@ -887,16 +887,25 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
                         moduleName : ModuleName
                         moduleName =
                             String.split "." mod.name
+
+                        filteredUnions : List Elm.Docs.Union
+                        filteredUnions =
+                            if Set.isEmpty typeNames then
+                                mod.unions
+
+                            else
+                                List.filter
+                                    (\{ name } -> Set.member ( moduleName, name ) typeNames)
+                                    mod.unions
                     in
-                    mod.unions
-                        |> List.filter (\{ name } -> Set.member ( moduleName, name ) typeNames)
-                        |> List.map
-                            (\union ->
-                                { moduleName = moduleName
-                                , name = union.name
-                                , constructors = List.map Tuple.first union.tags
-                                }
-                            )
+                    List.map
+                        (\union ->
+                            { moduleName = moduleName
+                            , name = union.name
+                            , constructors = List.map Tuple.first union.tags
+                            }
+                        )
+                        filteredUnions
                 )
                 modules
     in
