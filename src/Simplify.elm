@@ -4911,34 +4911,19 @@ sameBodyForCaseOfChecks context parentRange cases =
 
             else
                 let
-                    constructorsUsed : () -> List ( ModuleName, String )
-                    constructorsUsed () =
-                        findUsedConstructors context (firstPattern :: restPatterns) Set.empty
-                            |> Set.toList
+                    firstBodyRange : Range
+                    firstBodyRange =
+                        Node.range firstBody
                 in
-                if
-                    not (Set.isEmpty context.customTypesToReportInCases)
-                        && allConstructorsWereUsedOfAType
-                            []
-                            (constructorsUsed ())
-                then
-                    []
-
-                else
-                    let
-                        firstBodyRange : Range
-                        firstBodyRange =
-                            Node.range firstBody
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary case expression"
-                        , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                        }
-                        (caseKeyWordRange parentRange)
-                        [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
-                        , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
-                        ]
+                [ Rule.errorWithFix
+                    { message = "Unnecessary case expression"
+                    , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                    }
+                    (caseKeyWordRange parentRange)
+                    [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
+                    , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
                     ]
+                ]
 
 
 allConstructorsWereUsedOfAType : List Constructor -> List ( ModuleName, String ) -> Bool
