@@ -876,9 +876,9 @@ dependenciesVisitor typeNames dict _ =
             dict
                 |> Dict.values
                 |> List.concatMap Dependency.modules
-    in
-    ( []
-    , { ignoredCustomTypes =
+
+        ignoredCustomTypes : List { moduleName : ModuleName, name : String, constructors : List String }
+        ignoredCustomTypes =
             List.concatMap
                 (\mod ->
                     let
@@ -897,6 +897,9 @@ dependenciesVisitor typeNames dict _ =
                             )
                 )
                 modules
+    in
+    ( []
+    , { ignoredCustomTypes = ignoredCustomTypes
       , dependenciesModules =
             List.map (\module_ -> String.split "." module_.name) modules
                 |> Set.fromList
