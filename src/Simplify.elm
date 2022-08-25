@@ -877,12 +877,10 @@ dependenciesVisitor typeNames dict _ =
                 |> Dict.values
                 |> List.concatMap Dependency.modules
 
-        unions : Dict ModuleName Elm.Docs.Union
+        unions : Set String
         unions =
-            modules
-                |> List.concatMap .unions
-                |> List.map (\union -> ( String.split "." union.name, union ))
-                |> Dict.fromList
+            List.concatMap (\module_ -> List.map (\union -> module_.name ++ "." ++ union.name) module_.unions) modules
+                |> Set.fromList
 
         ignoredCustomTypes : List { moduleName : ModuleName, name : String, constructors : List String }
         ignoredCustomTypes =
