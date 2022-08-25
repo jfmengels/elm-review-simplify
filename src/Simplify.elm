@@ -4943,7 +4943,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                     List.map Tuple.first rest
             in
             if
-                introducesVariable (firstPattern :: restPatterns)
+                introducesVariableOrUsesTypeConstructor (firstPattern :: restPatterns)
                     || not (Normalize.areAllTheSame context firstBody (List.map Tuple.second rest))
             then
                 []
@@ -5005,8 +5005,8 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : List (Node Pattern) -> Bool
-introducesVariable nodesToLookAt =
+introducesVariableOrUsesTypeConstructor : List (Node Pattern) -> Bool
+introducesVariableOrUsesTypeConstructor nodesToLookAt =
     case nodesToLookAt of
         [] ->
             False
@@ -5023,22 +5023,22 @@ introducesVariable nodesToLookAt =
                     True
 
                 Pattern.ParenthesizedPattern pattern ->
-                    introducesVariable (pattern :: remaining)
+                    introducesVariableOrUsesTypeConstructor (pattern :: remaining)
 
                 Pattern.TuplePattern nodes ->
-                    introducesVariable (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor (nodes ++ remaining)
 
                 Pattern.UnConsPattern first rest ->
-                    introducesVariable (first :: rest :: remaining)
+                    introducesVariableOrUsesTypeConstructor (first :: rest :: remaining)
 
                 Pattern.ListPattern nodes ->
-                    introducesVariable (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor (nodes ++ remaining)
 
                 Pattern.NamedPattern _ nodes ->
-                    introducesVariable (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor (nodes ++ remaining)
 
                 _ ->
-                    introducesVariable remaining
+                    introducesVariableOrUsesTypeConstructor remaining
 
 
 findUsedConstructors : ModuleContext -> List (Node Pattern) -> Set ( ModuleName, String ) -> Set ( ModuleName, String )
