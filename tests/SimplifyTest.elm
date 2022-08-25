@@ -1088,6 +1088,24 @@ type B = C
                 ]
                     |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
                     |> Review.Test.expectNoErrors
+        , test "should replace case of with multiple cases that have the same body" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      Just _ -> x
+      Nothing -> x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary case expression"
+                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         , test "should not replace case of with a single case when the constructor from a dependency is ignored" <|
             \() ->
                 """module A exposing (..)
@@ -1125,37 +1143,15 @@ type B = C | D | E
 """
                 ]
                     |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
-                    |> Review.Test.expectErrorsForModules
-                        [ ( "A"
-                          , [ Review.Test.error
-                                { message = "Unnecessary case expression"
-                                , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                                , under = "case"
-                                }
-                                |> Review.Test.whenFixed """module A exposing (..)
-import Other exposing (B(..))
-a = x
-"""
-                            ]
-                          )
-                        ]
-        , test "should replace case of with a single case with ignored arguments by the body of the case" <|
+                    |> Review.Test.expectNoErrors
+        , test "should not replace case of with a single case with ignored arguments by the body of the case" <|
             \() ->
                 """module A exposing (..)
 a = case value of
       A (_) (B C) -> x
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary case expression"
-                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                            , under = "case"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = x
-"""
-                        ]
+                    |> Review.Test.expectNoErrors
         , test "should not replace case of where a pattern introduces a variable" <|
             \() ->
                 """module A exposing (..)
@@ -1164,23 +1160,6 @@ a = case value of
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace case of with multiple cases that have the same body" <|
-            \() ->
-                """module A exposing (..)
-a = case value of
-      A (_) (B C) -> x
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary case expression"
-                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                            , under = "case"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = x
-"""
-                        ]
         , test "should replace boolean case of with the same body by that body" <|
             \() ->
                 """module A exposing (..)
