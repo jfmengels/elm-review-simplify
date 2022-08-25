@@ -4987,10 +4987,15 @@ sameBodyForCaseOfChecks context parentRange cases =
         [] ->
             []
 
-        first :: rest ->
+        ( firstPattern, firstBody ) :: rest ->
+            let
+                restPatterns : List (Node Pattern)
+                restPatterns =
+                    List.map Tuple.first rest
+            in
             if
-                introducesVariable (Tuple.first first :: List.map Tuple.first rest)
-                    || not (Normalize.areAllTheSame context (Tuple.second first) (List.map Tuple.second rest))
+                introducesVariable (firstPattern :: restPatterns)
+                    || not (Normalize.areAllTheSame context firstBody (List.map Tuple.second rest))
             then
                 []
 
@@ -4998,7 +5003,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                 let
                     constructorsUsed : () -> List ( ModuleName, String )
                     constructorsUsed () =
-                        findUsedConstructors context (List.map Tuple.first (first :: rest)) Set.empty
+                        findUsedConstructors context (firstPattern :: restPatterns) Set.empty
                             |> Set.toList
                 in
                 if not (List.isEmpty context.ignoredCustomTypes) && allConstructorsWereUsedOfAType context.ignoredCustomTypes (constructorsUsed ()) then
@@ -5008,7 +5013,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                     let
                         firstBodyRange : Range
                         firstBodyRange =
-                            Node.range (Tuple.second first)
+                            Node.range firstBody
                     in
                     [ Rule.errorWithFix
                         { message = "Unnecessary case expression"
