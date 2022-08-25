@@ -609,7 +609,7 @@ rule (Configuration config) =
                     Set.fromList typeNamesList
             in
             Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor config.ignoreConstructors typeNames)
+                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors) typeNames)
                 |> Rule.withModuleVisitor (moduleVisitor typeNames)
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
@@ -860,7 +860,7 @@ foldProjectContexts newContext previousContext =
 -- DEPENDENCIES VISITOR
 
 
-dependenciesVisitor : List String -> Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
+dependenciesVisitor : Set String -> Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
 dependenciesVisitor typeNamesAsStrings typeNames dict _ =
     let
         modules : List Elm.Docs.Module
@@ -876,7 +876,7 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
 
         unknownTypesToIgnore : List String
         unknownTypesToIgnore =
-            Set.diff (Set.fromList typeNamesAsStrings) unions
+            Set.diff typeNamesAsStrings unions
                 |> Set.toList
 
         customTypesToReportInCases : List { moduleName : ModuleName, name : String, constructors : List String }
