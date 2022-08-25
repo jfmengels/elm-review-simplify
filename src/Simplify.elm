@@ -616,7 +616,6 @@ rule (Configuration config) =
                     , fromModuleToProject = fromModuleToProject
                     , foldProjectContexts = foldProjectContexts
                     }
-                |> Rule.withContextFromImportedModules
                 |> Rule.withFinalProjectEvaluation (finalEvaluation config.ignoreConstructors)
                 |> Rule.fromProjectRuleSchema
 
