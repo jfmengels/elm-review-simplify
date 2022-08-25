@@ -4995,8 +4995,20 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
                 Pattern.ListPattern nodes ->
                     introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
 
-                Pattern.NamedPattern _ nodes ->
-                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+                Pattern.NamedPattern { name } nodes ->
+                    case ModuleNameLookupTable.moduleNameFor context.lookupTable node of
+                        Just [] ->
+                            True
+
+                        Just moduleName ->
+                            if Set.member ( moduleName, name ) context.customTypesToReportInCases then
+                                introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+
+                            else
+                                False
+
+                        Nothing ->
+                            True
 
                 _ ->
                     introducesVariableOrUsesTypeConstructor context remaining
