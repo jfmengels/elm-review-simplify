@@ -624,7 +624,7 @@ rule (Configuration config) =
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor schema =
     schema
-        |> Rule.withDeclarationEnterVisitor declarationVisitor
+        |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
 
@@ -883,15 +883,13 @@ wrapInBackticks s =
 -- DECLARATION VISITOR
 
 
-declarationVisitor : Node a -> ModuleContext -> ( List nothing, ModuleContext )
+declarationVisitor : Node a -> ModuleContext -> ModuleContext
 declarationVisitor _ context =
-    ( []
-    , { context
+    { context
         | rangesToIgnore = []
         , rightSidesOfPlusPlus = []
         , inferredConstantsDict = RangeDict.empty
-      }
-    )
+    }
 
 
 
