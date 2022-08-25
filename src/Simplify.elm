@@ -570,6 +570,7 @@ All of these also apply for `Sub`.
 -}
 
 import Dict exposing (Dict)
+import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.ModuleName exposing (ModuleName)
@@ -768,6 +769,7 @@ isValidType typeAsString =
 
 type alias ProjectContext =
     { ignoredCustomTypes : List Constructor
+    , dependenciesModules : Set ModuleName
     }
 
 
@@ -777,6 +779,7 @@ type alias ModuleContext =
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
     , ignoredCustomTypes : List Constructor
+    , dependenciesModules : Set ModuleName
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
@@ -794,6 +797,7 @@ type alias Constructor =
 initialContext : ProjectContext
 initialContext =
     { ignoredCustomTypes = []
+    , dependenciesModules = Set.empty
     }
 
 
@@ -802,6 +806,7 @@ fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
             { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
+            , dependenciesModules = Set.empty
             }
         )
 
@@ -815,6 +820,7 @@ initialModuleContext =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
+            , dependenciesModules = Set.empty
             , ignoredCustomTypes = []
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
@@ -834,6 +840,7 @@ fromProjectToModule =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
+            , dependenciesModules = projectContext.dependenciesModules
             , ignoredCustomTypes = projectContext.ignoredCustomTypes
             , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
             , inferredConstantsDict = RangeDict.empty
@@ -854,6 +861,7 @@ buildConstructorsToIgnore constructors =
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
+    , dependenciesModules = previousContext.dependenciesModules
     }
 
 
@@ -863,28 +871,36 @@ foldProjectContexts newContext previousContext =
 
 dependenciesVisitor : Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
 dependenciesVisitor typeNames dict _ =
-    ( []
-    , { ignoredCustomTypes =
+    let
+        modules : List Elm.Docs.Module
+        modules =
             dict
                 |> Dict.values
                 |> List.concatMap Dependency.modules
-                |> List.concatMap
-                    (\mod ->
-                        let
-                            moduleName : ModuleName
-                            moduleName =
-                                String.split "." mod.name
-                        in
-                        mod.unions
-                            |> List.filter (\{ name } -> Set.member ( moduleName, name ) typeNames)
-                            |> List.map
-                                (\union ->
-                                    { moduleName = moduleName
-                                    , name = union.name
-                                    , constructors = List.map Tuple.first union.tags
-                                    }
-                                )
-                    )
+    in
+    ( []
+    , { ignoredCustomTypes =
+            List.concatMap
+                (\mod ->
+                    let
+                        moduleName : ModuleName
+                        moduleName =
+                            String.split "." mod.name
+                    in
+                    mod.unions
+                        |> List.filter (\{ name } -> Set.member ( moduleName, name ) typeNames)
+                        |> List.map
+                            (\union ->
+                                { moduleName = moduleName
+                                , name = union.name
+                                , constructors = List.map Tuple.first union.tags
+                                }
+                            )
+                )
+                modules
+      , dependenciesModules =
+            List.map (\module_ -> String.split "." module_.name) modules
+                |> Set.fromList
       }
     )
 
