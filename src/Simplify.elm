@@ -4989,7 +4989,7 @@ sameBodyForCaseOfChecks context parentRange cases =
 
         first :: rest ->
             if
-                List.any (Tuple.first >> introducesVariable) (first :: rest)
+                List.any (\( pattern, _ ) -> introducesVariable pattern) (first :: rest)
                     || not (Normalize.areAllTheSame context (Tuple.second first) (List.map Tuple.second rest))
             then
                 []
