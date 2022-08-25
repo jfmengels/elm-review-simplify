@@ -599,7 +599,7 @@ rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
         Ok [] ->
             Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialModuleContext
-                |> moduleVisitor Set.empty
+                |> moduleVisitor
                 |> Rule.fromModuleRuleSchema
 
         Ok typeNamesList ->
@@ -610,7 +610,7 @@ rule (Configuration config) =
             in
             Rule.newProjectRuleSchema "Simplify" initialContext
                 |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors) typeNames)
-                |> Rule.withModuleVisitor (moduleVisitor typeNames)
+                |> Rule.withModuleVisitor moduleVisitor
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
                     , fromModuleToProject = fromModuleToProject
@@ -627,22 +627,12 @@ rule (Configuration config) =
                 }
 
 
-moduleVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
-moduleVisitor typeNames schema =
+moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+moduleVisitor schema =
     schema
         |> Rule.withDeclarationEnterVisitor declarationVisitor
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
-        |> addDeclarationListVisitor typeNames
-
-
-addDeclarationListVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
-addDeclarationListVisitor typeNames schema =
-    if Set.isEmpty typeNames then
-        schema
-
-    else
-        Rule.withDeclarationListVisitor (declarationListVisitor typeNames) schema
 
 
 
@@ -934,44 +924,6 @@ errorForUnknownIgnoredConstructor list =
 wrapInBackticks : String -> String
 wrapInBackticks s =
     "`" ++ s ++ "`"
-
-
-
--- DECLARATION LIST VISITOR
-
-
-declarationListVisitor : Set ( ModuleName, String ) -> List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
-declarationListVisitor constructorsToIgnore declarations context =
-    let
-        localIgnoredCustomTypes : List Constructor
-        localIgnoredCustomTypes =
-            List.filterMap (findCustomTypes constructorsToIgnore context) declarations
-    in
-    ( []
-    , { context
-        | localIgnoredCustomTypes = localIgnoredCustomTypes
-        , customTypesToReportInCases = localIgnoredCustomTypes ++ context.customTypesToReportInCases
-        , constructorsToIgnore = Set.union (buildConstructorsToIgnore localIgnoredCustomTypes) context.constructorsToIgnore
-      }
-    )
-
-
-findCustomTypes : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> Maybe Constructor
-findCustomTypes constructorsToIgnore context node =
-    case Node.value node of
-        Declaration.CustomTypeDeclaration { name, constructors } ->
-            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
-                Just
-                    { moduleName = context.moduleName
-                    , name = Node.value name
-                    , constructors = List.map (\constructor -> constructor |> Node.value |> .name |> Node.value) constructors
-                    }
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
 
 
 
