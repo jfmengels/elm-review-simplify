@@ -4943,7 +4943,7 @@ sameBodyForCaseOfChecks context parentRange cases =
                     List.map Tuple.first rest
             in
             if
-                introducesVariableOrUsesTypeConstructor (firstPattern :: restPatterns)
+                introducesVariableOrUsesTypeConstructor context (firstPattern :: restPatterns)
                     || not (Normalize.areAllTheSame context firstBody (List.map Tuple.second rest))
             then
                 []
@@ -5005,8 +5005,8 @@ caseKeyWordRange range =
     }
 
 
-introducesVariableOrUsesTypeConstructor : List (Node Pattern) -> Bool
-introducesVariableOrUsesTypeConstructor nodesToLookAt =
+introducesVariableOrUsesTypeConstructor : ModuleContext -> List (Node Pattern) -> Bool
+introducesVariableOrUsesTypeConstructor context nodesToLookAt =
     case nodesToLookAt of
         [] ->
             False
@@ -5023,22 +5023,22 @@ introducesVariableOrUsesTypeConstructor nodesToLookAt =
                     True
 
                 Pattern.ParenthesizedPattern pattern ->
-                    introducesVariableOrUsesTypeConstructor (pattern :: remaining)
+                    introducesVariableOrUsesTypeConstructor context (pattern :: remaining)
 
                 Pattern.TuplePattern nodes ->
-                    introducesVariableOrUsesTypeConstructor (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
 
                 Pattern.UnConsPattern first rest ->
-                    introducesVariableOrUsesTypeConstructor (first :: rest :: remaining)
+                    introducesVariableOrUsesTypeConstructor context (first :: rest :: remaining)
 
                 Pattern.ListPattern nodes ->
-                    introducesVariableOrUsesTypeConstructor (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
 
                 Pattern.NamedPattern _ nodes ->
-                    introducesVariableOrUsesTypeConstructor (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
 
                 _ ->
-                    introducesVariableOrUsesTypeConstructor remaining
+                    introducesVariableOrUsesTypeConstructor context remaining
 
 
 findUsedConstructors : ModuleContext -> List (Node Pattern) -> Set ( ModuleName, String ) -> Set ( ModuleName, String )
