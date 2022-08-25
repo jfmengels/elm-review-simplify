@@ -1057,7 +1057,7 @@ a = case value of
 a = x
 """
                         ]
-        , test "should replace case of with a single case by the body of the case" <|
+        , test "should not replace case of with a single case by the body of the case" <|
             \() ->
                 """module A exposing (..)
 type B = C
@@ -1065,17 +1065,7 @@ a = case value of
       C -> x
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary case expression"
-                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                            , under = "case"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-type B = C
-a = x
-"""
-                        ]
+                    |> Review.Test.expectNoErrors
         , test "should not replace case of with a single case when the constructor is ignored" <|
             \() ->
                 """module A exposing (..)
