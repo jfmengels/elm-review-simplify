@@ -597,11 +597,6 @@ import Simplify.RangeDict as RangeDict exposing (RangeDict)
 rule : Configuration -> Rule
 rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
-        Ok [] ->
-            Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialModuleContext
-                |> moduleVisitor
-                |> Rule.fromModuleRuleSchema
-
         Ok typeNamesList ->
             let
                 typeNames : Set ( ModuleName, String )
