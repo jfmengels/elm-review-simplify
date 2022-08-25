@@ -4989,7 +4989,7 @@ sameBodyForCaseOfChecks context parentRange cases =
 
         first :: rest ->
             if
-                List.any (\( pattern, _ ) -> introducesVariable pattern) (first :: rest)
+                introducesVariable (Tuple.first first :: List.map Tuple.first rest)
                     || not (Normalize.areAllTheSame context (Tuple.second first) (List.map Tuple.second rest))
             then
                 []
@@ -5046,35 +5046,40 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : Node Pattern -> Bool
-introducesVariable node =
-    case Node.value node of
-        Pattern.VarPattern _ ->
-            True
-
-        Pattern.RecordPattern _ ->
-            True
-
-        Pattern.AsPattern _ _ ->
-            True
-
-        Pattern.ParenthesizedPattern pattern ->
-            introducesVariable pattern
-
-        Pattern.TuplePattern nodes ->
-            List.any introducesVariable nodes
-
-        Pattern.UnConsPattern first rest ->
-            List.any introducesVariable [ first, rest ]
-
-        Pattern.ListPattern nodes ->
-            List.any introducesVariable nodes
-
-        Pattern.NamedPattern _ nodes ->
-            List.any introducesVariable nodes
-
-        _ ->
+introducesVariable : List (Node Pattern) -> Bool
+introducesVariable nodesToLookAt =
+    case nodesToLookAt of
+        [] ->
             False
+
+        node :: remaining ->
+            case Node.value node of
+                Pattern.VarPattern _ ->
+                    True
+
+                Pattern.RecordPattern _ ->
+                    True
+
+                Pattern.AsPattern _ _ ->
+                    True
+
+                Pattern.ParenthesizedPattern pattern ->
+                    introducesVariable (pattern :: remaining)
+
+                Pattern.TuplePattern nodes ->
+                    introducesVariable (nodes ++ remaining)
+
+                Pattern.UnConsPattern first rest ->
+                    introducesVariable (first :: rest :: remaining)
+
+                Pattern.ListPattern nodes ->
+                    introducesVariable (nodes ++ remaining)
+
+                Pattern.NamedPattern _ nodes ->
+                    introducesVariable (nodes ++ remaining)
+
+                _ ->
+                    introducesVariable remaining
 
 
 findUsedConstructors : ModuleContext -> List (Node Pattern) -> Set ( ModuleName, String ) -> Set ( ModuleName, String )
