@@ -4955,7 +4955,12 @@ sameBodyForCaseOfChecks context parentRange cases =
                         findUsedConstructors context (firstPattern :: restPatterns) Set.empty
                             |> Set.toList
                 in
-                if not (List.isEmpty context.customTypesToReportInCases) && allConstructorsWereUsedOfAType context.customTypesToReportInCases (constructorsUsed ()) then
+                if
+                    not (List.isEmpty context.customTypesToReportInCases)
+                        && allConstructorsWereUsedOfAType
+                            context.customTypesToReportInCases
+                            (constructorsUsed ())
+                then
                     []
 
                 else
