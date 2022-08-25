@@ -609,7 +609,7 @@ rule (Configuration config) =
                     Set.fromList typeNamesList
             in
             Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor typeNames)
+                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor config.ignoreConstructors typeNames)
                 |> Rule.withModuleVisitor (moduleVisitor typeNames)
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
@@ -868,8 +868,8 @@ foldProjectContexts newContext previousContext =
 -- DEPENDENCIES VISITOR
 
 
-dependenciesVisitor : Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
-dependenciesVisitor typeNames dict _ =
+dependenciesVisitor : List String -> Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
+dependenciesVisitor typeNamesAsStrings typeNames dict _ =
     let
         modules : List Elm.Docs.Module
         modules =
@@ -881,6 +881,11 @@ dependenciesVisitor typeNames dict _ =
         unions =
             List.concatMap (\module_ -> List.map (\union -> module_.name ++ "." ++ union.name) module_.unions) modules
                 |> Set.fromList
+
+        unknownTypesToIgnore : List String
+        unknownTypesToIgnore =
+            Set.diff (Set.fromList typeNamesAsStrings) unions
+                |> Set.toList
 
         ignoredCustomTypes : List { moduleName : ModuleName, name : String, constructors : List String }
         ignoredCustomTypes =
@@ -903,7 +908,11 @@ dependenciesVisitor typeNames dict _ =
                 )
                 modules
     in
-    ( []
+    ( if List.isEmpty unknownTypesToIgnore then
+        []
+
+      else
+        [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
     , { ignoredCustomTypes = ignoredCustomTypes
       , dependenciesModules =
             List.map (\module_ -> String.split "." module_.name) modules
@@ -937,6 +946,19 @@ errorForUnknownIgnoredConstructors ignoreConstructors ignoredCustomTypes =
                 ]
             }
         ]
+
+
+errorForUnknownIgnoredConstructor : List String -> Error scope
+errorForUnknownIgnoredConstructor list =
+    Rule.globalError
+        { message = "Could not find type names: " ++ (String.join ", " <| List.map wrapInBackticks list)
+        , details =
+            [ "I expected to find these custom types in the dependencies, but I could not find them."
+            , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+            , "If you find that these types have been moved or renamed, please update your configuration."
+            , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+            ]
+        }
 
 
 
