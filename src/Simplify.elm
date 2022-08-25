@@ -571,7 +571,6 @@ All of these also apply for `Sub`.
 
 import Dict exposing (Dict)
 import Elm.Docs
-import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -609,7 +608,7 @@ rule (Configuration config) =
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
                     , fromModuleToProject = fromModuleToProject
-                    , foldProjectContexts = foldProjectContexts
+                    , foldProjectContexts = \_ previous -> previous
                     }
                 |> Rule.fromProjectRuleSchema
 
@@ -751,7 +750,7 @@ isValidType typeAsString =
 
 
 type alias ProjectContext =
-    { customTypesToReportInCases : List Constructor
+    { customTypesToReportInCases : Set ConstructorName
     }
 
 
@@ -760,12 +759,16 @@ type alias ModuleContext =
     , moduleName : ModuleName
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
-    , customTypesToReportInCases : List Constructor
+    , customTypesToReportInCases : Set ConstructorName
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     }
+
+
+type alias ConstructorName =
+    String
 
 
 type alias Constructor =
@@ -777,7 +780,7 @@ type alias Constructor =
 
 initialContext : ProjectContext
 initialContext =
-    { customTypesToReportInCases = []
+    { customTypesToReportInCases = Set.empty
     }
 
 
@@ -785,7 +788,7 @@ fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
-            { customTypesToReportInCases = moduleContext.localIgnoredCustomTypes
+            { customTypesToReportInCases = Set.empty
             }
         )
 
@@ -832,26 +835,22 @@ dependenciesVisitor typeNamesAsStrings typeNames dict _ =
             Set.diff typeNamesAsStrings unions
                 |> Set.toList
 
-        customTypesToReportInCases : List { moduleName : ModuleName, name : String, constructors : List String }
+        customTypesToReportInCases : Set String
         customTypesToReportInCases =
-            List.concatMap
-                (\mod ->
-                    let
-                        moduleName : ModuleName
-                        moduleName =
-                            String.split "." mod.name
-                    in
-                    mod.unions
-                        |> List.filter (\{ name } -> not (Set.member ( moduleName, name ) typeNames))
-                        |> List.map
-                            (\union ->
-                                { moduleName = moduleName
-                                , name = union.name
-                                , constructors = List.map Tuple.first union.tags
-                                }
-                            )
-                )
-                modules
+            modules
+                |> List.concatMap
+                    (\mod ->
+                        let
+                            moduleName : ModuleName
+                            moduleName =
+                                String.split "." mod.name
+                        in
+                        mod.unions
+                            |> List.filter (\{ name } -> not (Set.member ( moduleName, name ) typeNames))
+                            |> List.concatMap (\union -> union.tags)
+                            |> List.map (\( tagName, _ ) -> mod.name ++ "." ++ tagName)
+                    )
+                |> Set.fromList
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
@@ -4924,9 +4923,9 @@ sameBodyForCaseOfChecks context parentRange cases =
                             |> Set.toList
                 in
                 if
-                    not (List.isEmpty context.customTypesToReportInCases)
+                    not (Set.isEmpty context.customTypesToReportInCases)
                         && allConstructorsWereUsedOfAType
-                            context.customTypesToReportInCases
+                            []
                             (constructorsUsed ())
                 then
                     []
