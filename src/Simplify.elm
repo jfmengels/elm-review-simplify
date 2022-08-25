@@ -800,26 +800,13 @@ fromProjectToModule =
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
             , customTypesToReportInCases = projectContext.customTypesToReportInCases
-            , constructorsToIgnore = buildConstructorsToIgnore projectContext.customTypesToReportInCases
+            , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             }
         )
         |> Rule.withModuleNameLookupTable
         |> Rule.withMetadata
-
-
-buildConstructorsToIgnore : List Constructor -> Set ( ModuleName, String )
-buildConstructorsToIgnore constructors =
-    constructors
-        |> List.concatMap (\c -> List.map (Tuple.pair c.moduleName) c.constructors)
-        |> Set.fromList
-
-
-foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
-foldProjectContexts newContext previousContext =
-    { customTypesToReportInCases = newContext.customTypesToReportInCases ++ previousContext.customTypesToReportInCases
-    }
 
 
 
