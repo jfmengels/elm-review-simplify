@@ -576,8 +576,6 @@ import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
-import Elm.Type
-import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency exposing (Dependency)
@@ -595,25 +593,15 @@ import Simplify.RangeDict as RangeDict exposing (RangeDict)
 -}
 rule : Configuration -> Rule
 rule (Configuration config) =
-    case parseTypeNames config.ignoreConstructors of
-        Ok _ ->
-            Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
-                |> Rule.withModuleVisitor moduleVisitor
-                |> Rule.withModuleContextUsingContextCreator
-                    { fromProjectToModule = fromProjectToModule
-                    , fromModuleToProject = fromModuleToProject
-                    , foldProjectContexts = \_ previous -> previous
-                    }
-                |> Rule.fromProjectRuleSchema
-
-        Err invalidTypes ->
-            Rule.configurationError "Simplify"
-                { message = "Invalid type names: " ++ (invalidTypes |> List.map wrapInBackticks |> String.join ", ")
-                , details =
-                    [ "I expect valid type names to be passed to Simplify.ignoreCaseOfForTypes, that include the module name, like `Module.Name.TypeName`."
-                    ]
-                }
+    Rule.newProjectRuleSchema "Simplify" initialContext
+        |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
+        |> Rule.withModuleVisitor moduleVisitor
+        |> Rule.withModuleContextUsingContextCreator
+            { fromProjectToModule = fromProjectToModule
+            , fromModuleToProject = fromModuleToProject
+            , foldProjectContexts = \_ previous -> previous
+            }
+        |> Rule.fromProjectRuleSchema
 
 
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
@@ -694,50 +682,6 @@ explanation next to each exception?
 ignoreCaseOfForTypes : List String -> Configuration -> Configuration
 ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
-
-
-parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
-parseTypeNames strings =
-    let
-        parsedTypeNames : List (Result String ( ModuleName, String ))
-        parsedTypeNames =
-            List.map isValidType strings
-
-        invalidTypeNames : List String
-        invalidTypeNames =
-            List.filterMap
-                (\result ->
-                    case result of
-                        Err typeName ->
-                            Just typeName
-
-                        Ok _ ->
-                            Nothing
-                )
-                parsedTypeNames
-    in
-    if List.isEmpty invalidTypeNames then
-        parsedTypeNames
-            |> List.filterMap Result.toMaybe
-            |> Ok
-
-    else
-        Err invalidTypeNames
-
-
-isValidType : String -> Result String ( ModuleName, String )
-isValidType typeAsString =
-    case Decode.decodeString Elm.Type.decoder ("\"" ++ typeAsString ++ "\"") of
-        Ok (Elm.Type.Type name _) ->
-            case List.reverse <| String.split "." name of
-                functionName :: moduleName :: restOfModuleName ->
-                    Ok ( List.reverse (moduleName :: restOfModuleName), functionName )
-
-                _ ->
-                    Err typeAsString
-
-        _ ->
-            Err typeAsString
 
 
 
