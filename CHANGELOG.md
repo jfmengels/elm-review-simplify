@@ -35,9 +35,6 @@ if x == 1 then
     ...
 ```
 
-Can some people try it out, and see whether the tool is wrong in some cases, or what it doesn't catch? (and we'll see if I can add support for those)
-
-
 Note that this will (purposefully) only simplify boolean expressions by what has been inferred from conditions. Therefore,
 the following will not be simplified. The reasoning behind the decision is that you would not be able to write code like
 below, which can be useful if you want to rely on top-level constants that you may wish to change at a later point in time.
