@@ -116,8 +116,8 @@ Below is the list of all kinds of simplifications this rule applies.
     --> if not condition then x else y
 
     case value of
-        A _ -> x
-        B -> x
+        Just _ -> x
+        Nothing -> x
     --> x
 
 
