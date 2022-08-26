@@ -805,6 +805,7 @@ errorForUnknownIgnoredConstructor list =
             , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
             , "If you find that these types have been moved or renamed, please update your configuration."
             , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+            , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
             ]
         }
 
