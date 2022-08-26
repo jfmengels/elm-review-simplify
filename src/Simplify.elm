@@ -596,14 +596,9 @@ import Simplify.RangeDict as RangeDict exposing (RangeDict)
 rule : Configuration -> Rule
 rule (Configuration config) =
     case parseTypeNames config.ignoreConstructors of
-        Ok typeNamesList ->
-            let
-                typeNames : Set ( ModuleName, String )
-                typeNames =
-                    Set.fromList typeNamesList
-            in
+        Ok _ ->
             Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors) typeNames)
+                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
                 |> Rule.withModuleVisitor moduleVisitor
                 |> Rule.withModuleContextUsingContextCreator
                     { fromProjectToModule = fromProjectToModule
@@ -812,8 +807,8 @@ fromProjectToModule =
 -- DEPENDENCIES VISITOR
 
 
-dependenciesVisitor : Set String -> Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
-dependenciesVisitor typeNamesAsStrings typeNames dict _ =
+dependenciesVisitor : Set String -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
+dependenciesVisitor typeNamesAsStrings dict _ =
     let
         modules : List Elm.Docs.Module
         modules =
@@ -1738,20 +1733,6 @@ divisionChecks { leftRange, rightRange, right } =
 
     else
         []
-
-
-find : (a -> Bool) -> List a -> Maybe a
-find predicate nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        node :: rest ->
-            if predicate node then
-                Just node
-
-            else
-                find predicate rest
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
@@ -4926,24 +4907,6 @@ sameBodyForCaseOfChecks context parentRange cases =
                 ]
 
 
-allConstructorsWereUsedOfAType : List Constructor -> List ( ModuleName, String ) -> Bool
-allConstructorsWereUsedOfAType customTypesToReportInCases constructorsUsed =
-    case constructorsUsed of
-        [] ->
-            False
-
-        ( moduleName, constructorName ) :: rest ->
-            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) customTypesToReportInCases of
-                Just customType ->
-                    List.all
-                        (\constructor -> List.member ( moduleName, constructor ) (( moduleName, constructorName ) :: rest))
-                        customType.constructors
-                        || allConstructorsWereUsedOfAType customTypesToReportInCases rest
-
-                Nothing ->
-                    allConstructorsWereUsedOfAType customTypesToReportInCases rest
-
-
 caseKeyWordRange : Range -> Range
 caseKeyWordRange range =
     { start = range.start
@@ -4994,62 +4957,6 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
 
                 _ ->
                     introducesVariableOrUsesTypeConstructor context remaining
-
-
-findUsedConstructors : ModuleContext -> List (Node Pattern) -> Set ( ModuleName, String ) -> Set ( ModuleName, String )
-findUsedConstructors context remainingNodes acc =
-    case remainingNodes of
-        [] ->
-            acc
-
-        node :: rest ->
-            case Node.value node of
-                Pattern.NamedPattern { name } nodes ->
-                    case isIgnoredConstructor context (Node.range node) name of
-                        Just moduleName ->
-                            findUsedConstructors context (nodes ++ rest) (Set.insert ( moduleName, name ) acc)
-
-                        Nothing ->
-                            findUsedConstructors context rest acc
-
-                Pattern.AsPattern pattern _ ->
-                    findUsedConstructors context (pattern :: rest) acc
-
-                Pattern.ParenthesizedPattern pattern ->
-                    findUsedConstructors context (pattern :: rest) acc
-
-                Pattern.TuplePattern nodes ->
-                    findUsedConstructors context (nodes ++ rest) acc
-
-                Pattern.UnConsPattern first second ->
-                    findUsedConstructors context (first :: second :: rest) acc
-
-                Pattern.ListPattern nodes ->
-                    findUsedConstructors context (nodes ++ rest) acc
-
-                _ ->
-                    findUsedConstructors context rest acc
-
-
-isIgnoredConstructor : ModuleContext -> Range -> String -> Maybe ModuleName
-isIgnoredConstructor context range name =
-    case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
-        Just [] ->
-            if Set.member ( context.moduleName, name ) context.constructorsToIgnore then
-                Just context.moduleName
-
-            else
-                Nothing
-
-        Just moduleName ->
-            if Set.member ( moduleName, name ) context.constructorsToIgnore then
-                Just moduleName
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
 
 
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
