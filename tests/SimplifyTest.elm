@@ -50,13 +50,11 @@ configurationTests =
     describe "Configuration"
         [ test "should not report configuration error if all ignored constructors exist" <|
             \() ->
-                [ """module A exposing (..)
+                """module A exposing (..)
 type B = B
 type C = C
-""", """module B.C exposing (..)
-type D = D
-""" ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "A.B", "A.C", "B.C.D" ] defaults)
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe", "Result.Result" ] defaults)
                     |> Review.Test.expectNoErrors
         , test "should report configuration error if passed an invalid module name" <|
             \() ->
