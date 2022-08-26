@@ -4987,7 +4987,7 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
                                 introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
 
                             else
-                                False
+                                True
 
                         Nothing ->
                             True
