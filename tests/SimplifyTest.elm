@@ -1064,28 +1064,17 @@ a = case value of
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should not replace case of with a single case when the constructor is ignored" <|
-            \() ->
-                """module A exposing (..)
-type B = C
-a = case value of
-      C -> x
-"""
-                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.B" ] <| defaults)
-                    |> Review.Test.expectNoErrors
-        , test "should not replace case of with a single case when the constructor from a different file is ignored" <|
-            \() ->
-                [ """module A exposing (..)
-import Other exposing (B(..))
-a = case value of
-      C -> x
-"""
-                , """module Other exposing (..)
-type B = C
-"""
-                ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
-                    |> Review.Test.expectNoErrors
+
+        -- TODO Create a project with a union with a single constructor
+        --        , test "should not replace case of with a single case when the constructor is ignored" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --type B = C
+        --a = case value of
+        --      C -> x
+        --"""
+        --                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.B" ] <| defaults)
+        --                    |> Review.Test.expectNoErrors
         , test "should replace case of with multiple cases that have the same body" <|
             \() ->
                 """module A exposing (..)
@@ -1115,17 +1104,12 @@ a = case value of
                     |> Review.Test.expectNoErrors
         , test "should not replace case of with multiple cases when all constructors of ignored type are used" <|
             \() ->
-                [ """module A exposing (..)
-import Other exposing (B(..))
+                """module A exposing (..)
 a = case value of
-      C -> x
-      D -> x
+      Just _ -> x
+      Nothing -> x
 """
-                , """module Other exposing (..)
-type B = C | D
-"""
-                ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace case of with multiple cases when not all constructors of ignored type are used" <|
             \() ->
