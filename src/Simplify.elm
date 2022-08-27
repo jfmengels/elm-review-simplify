@@ -115,6 +115,8 @@ Below is the list of all kinds of simplifications this rule applies.
         True -> x
     --> if not condition then x else y
 
+    -- only when no variables are introduced in the pattern
+    -- and no custom types defined in the project are referenced
     case value of
         Just _ -> x
         Nothing -> x
@@ -638,24 +640,21 @@ defaults =
     Configuration { ignoreConstructors = [] }
 
 
-{-| Ignore some reports about types used in case expressions.
+{-| Ignore some reports about types from dependencies used in case expressions.
 
 This rule simplifies the following construct:
 
     module Module.Name exposing (..)
 
-    type Type = A | B
-
     case value of
-        A -> x
-        B -> x
+        Just _ -> x
+        Nothing -> x
     --> x
 
-In some cases, you may want to disable this simplification because you expect to change or add constructors to this custom type.
-Keeping the case expression as it is will make the compiler remind you to update this code when you add new variants, which can be valuable.
+(Since `v2.0.19`) it will not try to simplify the case expression when some of the patterns references custom types constructors
+defined in the project. It will only do so for custom types that are defined in dependencies (including `elm/core`).
 
-Using the following configuration, case of expressions — where all variants of the `Type` custom type
-from the `Module.Name` module appear — will not be simplified.
+If you do happen to want to disable this simplification for a type `Module.Name.Type`, you can configure the rule like this:
 
     config =
         [ Simplify.defaults
@@ -663,20 +662,10 @@ from the `Module.Name` module appear — will not be simplified.
             |> Simplify.rule
         ]
 
-Note that if you use a wildcard, you will still get the simplification, since in this case the compiler will
-not remind you anyway.
-
-    case value of
-        A -> x
-        _ -> x
-    --> x
-
 I personally don't recommend to use this function too much, because this could be a sign of premature abstraction, and because
 I think that often [You Aren't Gonna Need this code](https://jfmengels.net/safe-dead-code-removal/#yagni-you-arent-gonna-need-it).
 
-Only use it for custom types that you think will change soon. When using it, I recommend not keeping it there too long.
-Come back after a while to see if this exception is still worth having. Maybe add a comment with the date and an
-explanation next to each exception?
+Please let me know by opening an issue if you do use this function, I am very curious to know;
 
 -}
 ignoreCaseOfForTypes : List String -> Configuration -> Configuration

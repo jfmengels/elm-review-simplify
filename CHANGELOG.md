@@ -2,11 +2,38 @@
 
 ## UNRELEASED
 
+The rule now DOESN'T (it did before) simplify case of expressions where all the branches have the same code when one of
+the patterns references a custom type from your project. For example
+```elm
+case x of
+  A -> 1
+  B -> 1
+  C -> 1
+```
+does not get simplified to `1` like before. But the simplification still happens if the patterns only reference custom
+types that come from dependencies or `elm/core`, like
+```elm
+case x of
+  Just _ -> 1
+  Nothing -> 1
+--> 1
+```
+
+The reasoning is that often you want the compiler to give you a reminder when you introduce a new custom type, which this
+simplification made very hard. It also sometimes created some worse code when you pattern matched on a custom type with
+only a single constructor.
+
+The configuration setting `Simplify.ignoreCaseOfForTypes` now only takes custom types from dependencies. Any type
+provided to this function that is not found in the dependencies will now trigger a global error.
+It is likely that you won't need this function anymore. If you do, please open an issue because I'd love to know. 
+
+A number of `elm-review` users didn't use `Simplify` because of the rule above, so I'm hoping that this change will make
+you able to use the rule again.
+
 The rule now simplifies:
 - `{ a = 1, b = 2 }.a` to `1`. Thanks [@miniBill]! [#35]
 - `{ foo | b = 1 }.a` to `foo.a`. Thanks [@miniBill]! [#37]
 - `if a == "a" then if a == "b" then 1 else 2 else 3` to `if a == "a" then 2 else 3`
-
 
 ## [2.0.18] - 2022-08-14
 
