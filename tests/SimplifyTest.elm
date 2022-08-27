@@ -41,63 +41,100 @@ all =
 
 configurationTests : Test
 configurationTests =
-    let
-        details : List String
-        details =
-            [ "I expect valid type names to be passed to Simplify.ignoreCaseOfForTypes, that include the module name, like `Module.Name.TypeName`."
-            ]
-    in
     describe "Configuration"
         [ test "should not report configuration error if all ignored constructors exist" <|
             \() ->
-                [ """module A exposing (..)
+                """module A exposing (..)
 type B = B
 type C = C
-""", """module B.C exposing (..)
-type D = D
-""" ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "A.B", "A.C", "B.C.D" ] defaults)
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe", "Result.Result" ] defaults)
                     |> Review.Test.expectNoErrors
         , test "should report configuration error if passed an invalid module name" <|
             \() ->
-                ignoreCaseOfForTypes [ "_.B" ] defaults
-                    |> rule
-                    |> Review.Test.expectConfigurationError
-                        { message = "Invalid type names: `_.B`"
-                        , details = details
-                        }
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "_.B" ] defaults)
+                    |> Review.Test.expectGlobalErrors
+                        [ { message = "Could not find type names: `_.B`"
+                          , details =
+                                [ "I expected to find these custom types in the dependencies, but I could not find them."
+                                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                                , "If you find that these types have been moved or renamed, please update your configuration."
+                                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
+                                ]
+                          }
+                        ]
         , test "should report configuration error if passed an invalid type name" <|
             \() ->
-                ignoreCaseOfForTypes [ "A.f" ] defaults
-                    |> rule
-                    |> Review.Test.expectConfigurationError
-                        { message = "Invalid type names: `A.f`"
-                        , details = details
-                        }
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.f" ] defaults)
+                    |> Review.Test.expectGlobalErrors
+                        [ { message = "Could not find type names: `A.f`"
+                          , details =
+                                [ "I expected to find these custom types in the dependencies, but I could not find them."
+                                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                                , "If you find that these types have been moved or renamed, please update your configuration."
+                                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
+                                ]
+                          }
+                        ]
         , test "should report configuration error if passed an empty type name" <|
             \() ->
-                ignoreCaseOfForTypes [ "" ] defaults
-                    |> rule
-                    |> Review.Test.expectConfigurationError
-                        { message = "Invalid type names: ``"
-                        , details = details
-                        }
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "" ] defaults)
+                    |> Review.Test.expectGlobalErrors
+                        [ { message = "Could not find type names: ``"
+                          , details =
+                                [ "I expected to find these custom types in the dependencies, but I could not find them."
+                                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                                , "If you find that these types have been moved or renamed, please update your configuration."
+                                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
+                                ]
+                          }
+                        ]
         , test "should report configuration error if passed a type name without a module name" <|
             \() ->
-                ignoreCaseOfForTypes [ "B" ] defaults
-                    |> rule
-                    |> Review.Test.expectConfigurationError
-                        { message = "Invalid type names: `B`"
-                        , details = details
-                        }
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "B" ] defaults)
+                    |> Review.Test.expectGlobalErrors
+                        [ { message = "Could not find type names: `B`"
+                          , details =
+                                [ "I expected to find these custom types in the dependencies, but I could not find them."
+                                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                                , "If you find that these types have been moved or renamed, please update your configuration."
+                                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
+                                ]
+                          }
+                        ]
         , test "should report configuration error if passed multiple invalid types" <|
             \() ->
-                ignoreCaseOfForTypes [ "_.B", "A.f", "B", "Is.Valid" ] defaults
-                    |> rule
-                    |> Review.Test.expectConfigurationError
-                        { message = "Invalid type names: `_.B`, `A.f`, `B`"
-                        , details = details
-                        }
+                """module A exposing (..)
+a = 1
+"""
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "_.B", "A.f", "B", "Maybe.Maybe" ] defaults)
+                    |> Review.Test.expectGlobalErrors
+                        [ { message = "Could not find type names: `A.f`, `B`, `_.B`"
+                          , details =
+                                [ "I expected to find these custom types in the dependencies, but I could not find them."
+                                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+                                , "If you find that these types have been moved or renamed, please update your configuration."
+                                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
+                                ]
+                          }
+                        ]
         , test "should report global error if ignored types were not found in the project" <|
             \() ->
                 """module A exposing (..)
@@ -107,10 +144,11 @@ a = 1
                     |> Review.Test.expectGlobalErrors
                         [ { message = "Could not find type names: `A.B`, `B.C`"
                           , details =
-                                [ "I expected to find these custom types in the code or dependencies, but I could not find them."
+                                [ "I expected to find these custom types in the dependencies, but I could not find them."
                                 , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
                                 , "If you find that these types have been moved or renamed, please update your configuration."
                                 , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+                                , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
                                 ]
                           }
                         ]
@@ -1057,12 +1095,32 @@ a = case value of
 a = x
 """
                         ]
-        , test "should replace case of with a single case by the body of the case" <|
+        , test "should not replace case of with a single case by the body of the case" <|
             \() ->
                 """module A exposing (..)
 type B = C
 a = case value of
       C -> x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+
+        -- TODO Create a project with a union with a single constructor
+        --        , test "should not replace case of with a single case when the constructor is ignored" <|
+        --            \() ->
+        --                """module A exposing (..)
+        --type B = C
+        --a = case value of
+        --      C -> x
+        --"""
+        --                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.B" ] <| defaults)
+        --                    |> Review.Test.expectNoErrors
+        , test "should replace case of with multiple cases that have the same body" <|
+            \() ->
+                """module A exposing (..)
+a = case value of
+      Just _ -> x
+      Nothing -> x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -1072,32 +1130,9 @@ a = case value of
                             , under = "case"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-type B = C
 a = x
 """
                         ]
-        , test "should not replace case of with a single case when the constructor is ignored" <|
-            \() ->
-                """module A exposing (..)
-type B = C
-a = case value of
-      C -> x
-"""
-                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "A.B" ] <| defaults)
-                    |> Review.Test.expectNoErrors
-        , test "should not replace case of with a single case when the constructor from a different file is ignored" <|
-            \() ->
-                [ """module A exposing (..)
-import Other exposing (B(..))
-a = case value of
-      C -> x
-"""
-                , """module Other exposing (..)
-type B = C
-"""
-                ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
-                    |> Review.Test.expectNoErrors
         , test "should not replace case of with a single case when the constructor from a dependency is ignored" <|
             \() ->
                 """module A exposing (..)
@@ -1109,63 +1144,30 @@ a = case value of
                     |> Review.Test.expectNoErrors
         , test "should not replace case of with multiple cases when all constructors of ignored type are used" <|
             \() ->
-                [ """module A exposing (..)
-import Other exposing (B(..))
+                """module A exposing (..)
 a = case value of
-      C -> x
-      D -> x
+      Just _ -> x
+      Nothing -> x
 """
-                , """module Other exposing (..)
-type B = C | D
-"""
-                ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe" ] <| defaults)
                     |> Review.Test.expectNoErrors
         , test "should replace case of with multiple cases when not all constructors of ignored type are used" <|
             \() ->
-                [ """module A exposing (..)
-import Other exposing (B(..))
+                """module A exposing (..)
 a = case value of
-      C -> x
-      D -> x
+      Just _ -> x
       _ -> x
 """
-                , """module Other exposing (..)
-type B = C | D | E
-"""
-                ]
-                    |> Review.Test.runOnModules (rule <| ignoreCaseOfForTypes [ "Other.B" ] <| defaults)
-                    |> Review.Test.expectErrorsForModules
-                        [ ( "A"
-                          , [ Review.Test.error
-                                { message = "Unnecessary case expression"
-                                , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                                , under = "case"
-                                }
-                                |> Review.Test.whenFixed """module A exposing (..)
-import Other exposing (B(..))
-a = x
-"""
-                            ]
-                          )
-                        ]
-        , test "should replace case of with a single case with ignored arguments by the body of the case" <|
+                    |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe" ] <| defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not replace case of with a single case with ignored arguments by the body of the case" <|
             \() ->
                 """module A exposing (..)
 a = case value of
       A (_) (B C) -> x
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary case expression"
-                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                            , under = "case"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = x
-"""
-                        ]
+                    |> Review.Test.expectNoErrors
         , test "should not replace case of where a pattern introduces a variable" <|
             \() ->
                 """module A exposing (..)
@@ -1174,23 +1176,6 @@ a = case value of
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace case of with multiple cases that have the same body" <|
-            \() ->
-                """module A exposing (..)
-a = case value of
-      A (_) (B C) -> x
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary case expression"
-                            , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                            , under = "case"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = x
-"""
-                        ]
         , test "should replace boolean case of with the same body by that body" <|
             \() ->
                 """module A exposing (..)

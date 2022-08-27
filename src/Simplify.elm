@@ -116,8 +116,8 @@ Below is the list of all kinds of simplifications this rule applies.
     --> if not condition then x else y
 
     case value of
-        A _ -> x
-        B -> x
+        Just _ -> x
+        Nothing -> x
     --> x
 
 
@@ -570,14 +570,12 @@ All of these also apply for `Sub`.
 -}
 
 import Dict exposing (Dict)
-import Elm.Syntax.Declaration as Declaration exposing (Declaration)
+import Elm.Docs
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
-import Elm.Type
-import Json.Decode as Decode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency exposing (Dependency)
@@ -595,55 +593,23 @@ import Simplify.RangeDict as RangeDict exposing (RangeDict)
 -}
 rule : Configuration -> Rule
 rule (Configuration config) =
-    case parseTypeNames config.ignoreConstructors of
-        Ok [] ->
-            Rule.newModuleRuleSchemaUsingContextCreator "Simplify" initialModuleContext
-                |> moduleVisitor Set.empty
-                |> Rule.fromModuleRuleSchema
-
-        Ok typeNamesList ->
-            let
-                typeNames : Set ( ModuleName, String )
-                typeNames =
-                    Set.fromList typeNamesList
-            in
-            Rule.newProjectRuleSchema "Simplify" initialContext
-                |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor typeNames)
-                |> Rule.withModuleVisitor (moduleVisitor typeNames)
-                |> Rule.withModuleContextUsingContextCreator
-                    { fromProjectToModule = fromProjectToModule
-                    , fromModuleToProject = fromModuleToProject
-                    , foldProjectContexts = foldProjectContexts
-                    }
-                |> Rule.withContextFromImportedModules
-                |> Rule.withFinalProjectEvaluation (finalEvaluation config.ignoreConstructors)
-                |> Rule.fromProjectRuleSchema
-
-        Err invalidTypes ->
-            Rule.configurationError "Simplify"
-                { message = "Invalid type names: " ++ (invalidTypes |> List.map wrapInBackticks |> String.join ", ")
-                , details =
-                    [ "I expect valid type names to be passed to Simplify.ignoreCaseOfForTypes, that include the module name, like `Module.Name.TypeName`."
-                    ]
-                }
+    Rule.newProjectRuleSchema "Simplify" initialContext
+        |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
+        |> Rule.withModuleVisitor moduleVisitor
+        |> Rule.withModuleContextUsingContextCreator
+            { fromProjectToModule = fromProjectToModule
+            , fromModuleToProject = fromModuleToProject
+            , foldProjectContexts = \_ previous -> previous
+            }
+        |> Rule.fromProjectRuleSchema
 
 
-moduleVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
-moduleVisitor typeNames schema =
+moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+moduleVisitor schema =
     schema
-        |> Rule.withDeclarationEnterVisitor declarationVisitor
+        |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
-        |> addDeclarationListVisitor typeNames
-
-
-addDeclarationListVisitor : Set ( ModuleName, String ) -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
-addDeclarationListVisitor typeNames schema =
-    if Set.isEmpty typeNames then
-        schema
-
-    else
-        Rule.withDeclarationListVisitor (declarationListVisitor typeNames) schema
 
 
 
@@ -718,56 +684,12 @@ ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
     Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
 
 
-parseTypeNames : List String -> Result (List String) (List ( ModuleName, String ))
-parseTypeNames strings =
-    let
-        parsedTypeNames : List (Result String ( ModuleName, String ))
-        parsedTypeNames =
-            List.map isValidType strings
-
-        invalidTypeNames : List String
-        invalidTypeNames =
-            List.filterMap
-                (\result ->
-                    case result of
-                        Err typeName ->
-                            Just typeName
-
-                        Ok _ ->
-                            Nothing
-                )
-                parsedTypeNames
-    in
-    if List.isEmpty invalidTypeNames then
-        parsedTypeNames
-            |> List.filterMap Result.toMaybe
-            |> Ok
-
-    else
-        Err invalidTypeNames
-
-
-isValidType : String -> Result String ( ModuleName, String )
-isValidType typeAsString =
-    case Decode.decodeString Elm.Type.decoder ("\"" ++ typeAsString ++ "\"") of
-        Ok (Elm.Type.Type name _) ->
-            case List.reverse <| String.split "." name of
-                functionName :: moduleName :: restOfModuleName ->
-                    Ok ( List.reverse (moduleName :: restOfModuleName), functionName )
-
-                _ ->
-                    Err typeAsString
-
-        _ ->
-            Err typeAsString
-
-
 
 -- CONTEXT
 
 
 type alias ProjectContext =
-    { ignoredCustomTypes : List Constructor
+    { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     }
 
 
@@ -776,12 +698,16 @@ type alias ModuleContext =
     , moduleName : ModuleName
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
-    , ignoredCustomTypes : List Constructor
+    , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     }
+
+
+type alias ConstructorName =
+    String
 
 
 type alias Constructor =
@@ -793,36 +719,13 @@ type alias Constructor =
 
 initialContext : ProjectContext
 initialContext =
-    { ignoredCustomTypes = []
+    { customTypesToReportInCases = Set.empty
     }
 
 
 fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
-    Rule.initContextCreator
-        (\moduleContext ->
-            { ignoredCustomTypes = moduleContext.localIgnoredCustomTypes
-            }
-        )
-
-
-initialModuleContext : Rule.ContextCreator () ModuleContext
-initialModuleContext =
-    Rule.initContextCreator
-        (\lookupTable metadata () ->
-            { lookupTable = lookupTable
-            , moduleName = Rule.moduleNameFromMetadata metadata
-            , rangesToIgnore = []
-            , rightSidesOfPlusPlus = []
-            , localIgnoredCustomTypes = []
-            , ignoredCustomTypes = []
-            , constructorsToIgnore = Set.empty
-            , inferredConstantsDict = RangeDict.empty
-            , inferredConstants = ( Infer.empty, [] )
-            }
-        )
-        |> Rule.withModuleNameLookupTable
-        |> Rule.withMetadata
+    Rule.initContextCreator (\_ -> initialContext)
 
 
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
@@ -834,8 +737,8 @@ fromProjectToModule =
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
-            , ignoredCustomTypes = projectContext.ignoredCustomTypes
-            , constructorsToIgnore = buildConstructorsToIgnore projectContext.ignoredCustomTypes
+            , customTypesToReportInCases = projectContext.customTypesToReportInCases
+            , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             }
@@ -844,30 +747,32 @@ fromProjectToModule =
         |> Rule.withMetadata
 
 
-buildConstructorsToIgnore : List Constructor -> Set ( ModuleName, String )
-buildConstructorsToIgnore constructors =
-    constructors
-        |> List.concatMap (\c -> List.map (Tuple.pair c.moduleName) c.constructors)
-        |> Set.fromList
-
-
-foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
-foldProjectContexts newContext previousContext =
-    { ignoredCustomTypes = newContext.ignoredCustomTypes ++ previousContext.ignoredCustomTypes
-    }
-
-
 
 -- DEPENDENCIES VISITOR
 
 
-dependenciesVisitor : Set ( ModuleName, String ) -> Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
-dependenciesVisitor typeNames dict _ =
-    ( []
-    , { ignoredCustomTypes =
+dependenciesVisitor : Set String -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
+dependenciesVisitor typeNamesAsStrings dict _ =
+    let
+        modules : List Elm.Docs.Module
+        modules =
             dict
                 |> Dict.values
                 |> List.concatMap Dependency.modules
+
+        unions : Set String
+        unions =
+            List.concatMap (\module_ -> List.map (\union -> module_.name ++ "." ++ union.name) module_.unions) modules
+                |> Set.fromList
+
+        unknownTypesToIgnore : List String
+        unknownTypesToIgnore =
+            Set.diff typeNamesAsStrings unions
+                |> Set.toList
+
+        customTypesToReportInCases : Set ( ModuleName, String )
+        customTypesToReportInCases =
+            modules
                 |> List.concatMap
                     (\mod ->
                         let
@@ -876,48 +781,33 @@ dependenciesVisitor typeNames dict _ =
                                 String.split "." mod.name
                         in
                         mod.unions
-                            |> List.filter (\{ name } -> Set.member ( moduleName, name ) typeNames)
-                            |> List.map
-                                (\union ->
-                                    { moduleName = moduleName
-                                    , name = union.name
-                                    , constructors = List.map Tuple.first union.tags
-                                    }
-                                )
+                            |> List.filter (\union -> not (Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings))
+                            |> List.concatMap (\union -> union.tags)
+                            |> List.map (\( tagName, _ ) -> ( moduleName, tagName ))
                     )
-      }
+                |> Set.fromList
+    in
+    ( if List.isEmpty unknownTypesToIgnore then
+        []
+
+      else
+        [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
+    , { customTypesToReportInCases = customTypesToReportInCases }
     )
 
 
-
--- FINAL EVALUATION
-
-
-finalEvaluation : List String -> ProjectContext -> List (Error { useErrorForModule : () })
-finalEvaluation ignoreConstructors projectContext =
-    let
-        list : List String
-        list =
-            projectContext.ignoredCustomTypes
-                |> List.map (\type_ -> String.join "." type_.moduleName ++ "." ++ type_.name)
-                |> Set.fromList
-                |> Set.diff (Set.fromList ignoreConstructors)
-                |> Set.toList
-    in
-    if List.isEmpty list then
-        []
-
-    else
-        [ Rule.globalError
-            { message = "Could not find type names: " ++ (String.join ", " <| List.map wrapInBackticks list)
-            , details =
-                [ "I expected to find these custom types in the code or dependencies, but I could not find them."
-                , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
-                , "If you find that these types have been moved or renamed, please update your configuration."
-                , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
-                ]
-            }
-        ]
+errorForUnknownIgnoredConstructor : List String -> Error scope
+errorForUnknownIgnoredConstructor list =
+    Rule.globalError
+        { message = "Could not find type names: " ++ (String.join ", " <| List.map wrapInBackticks list)
+        , details =
+            [ "I expected to find these custom types in the dependencies, but I could not find them."
+            , "Please check whether these types and have not been removed, and if so, remove them from the configuration of this rule."
+            , "If you find that these types have been moved or renamed, please update your configuration."
+            , "Note that I may have provided fixes for things you didn't wish to be fixed, so you might want to undo the changes I have applied."
+            , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
+            ]
+        }
 
 
 wrapInBackticks : String -> String
@@ -926,56 +816,16 @@ wrapInBackticks s =
 
 
 
--- DECLARATION LIST VISITOR
-
-
-declarationListVisitor : Set ( ModuleName, String ) -> List (Node Declaration) -> ModuleContext -> ( List nothing, ModuleContext )
-declarationListVisitor constructorsToIgnore declarations context =
-    let
-        localIgnoredCustomTypes : List Constructor
-        localIgnoredCustomTypes =
-            List.filterMap (findCustomTypes constructorsToIgnore context) declarations
-    in
-    ( []
-    , { context
-        | localIgnoredCustomTypes = localIgnoredCustomTypes
-        , ignoredCustomTypes = localIgnoredCustomTypes ++ context.ignoredCustomTypes
-        , constructorsToIgnore = Set.union (buildConstructorsToIgnore localIgnoredCustomTypes) context.constructorsToIgnore
-      }
-    )
-
-
-findCustomTypes : Set ( ModuleName, String ) -> ModuleContext -> Node Declaration -> Maybe Constructor
-findCustomTypes constructorsToIgnore context node =
-    case Node.value node of
-        Declaration.CustomTypeDeclaration { name, constructors } ->
-            if Set.member ( context.moduleName, Node.value name ) constructorsToIgnore then
-                Just
-                    { moduleName = context.moduleName
-                    , name = Node.value name
-                    , constructors = List.map (\constructor -> constructor |> Node.value |> .name |> Node.value) constructors
-                    }
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
-
-
-
 -- DECLARATION VISITOR
 
 
-declarationVisitor : Node a -> ModuleContext -> ( List nothing, ModuleContext )
+declarationVisitor : Node a -> ModuleContext -> ModuleContext
 declarationVisitor _ context =
-    ( []
-    , { context
+    { context
         | rangesToIgnore = []
         , rightSidesOfPlusPlus = []
         , inferredConstantsDict = RangeDict.empty
-      }
-    )
+    }
 
 
 
@@ -1828,20 +1678,6 @@ divisionChecks { leftRange, rightRange, right } =
 
     else
         []
-
-
-find : (a -> Bool) -> List a -> Maybe a
-find predicate nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        node :: rest ->
-            if predicate node then
-                Just node
-
-            else
-                find predicate rest
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
@@ -4987,56 +4823,33 @@ sameBodyForCaseOfChecks context parentRange cases =
         [] ->
             []
 
-        first :: rest ->
+        ( firstPattern, firstBody ) :: rest ->
+            let
+                restPatterns : List (Node Pattern)
+                restPatterns =
+                    List.map Tuple.first rest
+            in
             if
-                List.any (Tuple.first >> introducesVariable) (first :: rest)
-                    || not (Normalize.areAllTheSame context (Tuple.second first) (List.map Tuple.second rest))
+                introducesVariableOrUsesTypeConstructor context (firstPattern :: restPatterns)
+                    || not (Normalize.areAllTheSame context firstBody (List.map Tuple.second rest))
             then
                 []
 
             else
                 let
-                    constructorsUsed : () -> List ( ModuleName, String )
-                    constructorsUsed () =
-                        findUsedConstructors context (List.map Tuple.first (first :: rest)) Set.empty
-                            |> Set.toList
+                    firstBodyRange : Range
+                    firstBodyRange =
+                        Node.range firstBody
                 in
-                if not (List.isEmpty context.ignoredCustomTypes) && allConstructorsWereUsedOfAType context.ignoredCustomTypes (constructorsUsed ()) then
-                    []
-
-                else
-                    let
-                        firstBodyRange : Range
-                        firstBodyRange =
-                            Node.range (Tuple.second first)
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary case expression"
-                        , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
-                        }
-                        (caseKeyWordRange parentRange)
-                        [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
-                        , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
-                        ]
+                [ Rule.errorWithFix
+                    { message = "Unnecessary case expression"
+                    , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                    }
+                    (caseKeyWordRange parentRange)
+                    [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
+                    , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
                     ]
-
-
-allConstructorsWereUsedOfAType : List Constructor -> List ( ModuleName, String ) -> Bool
-allConstructorsWereUsedOfAType ignoredCustomTypes constructorsUsed =
-    case constructorsUsed of
-        [] ->
-            False
-
-        ( moduleName, constructorName ) :: rest ->
-            case find (\type_ -> type_.moduleName == moduleName && List.member constructorName type_.constructors) ignoredCustomTypes of
-                Just customType ->
-                    List.all
-                        (\constructor -> List.member ( moduleName, constructor ) (( moduleName, constructorName ) :: rest))
-                        customType.constructors
-                        || allConstructorsWereUsedOfAType ignoredCustomTypes rest
-
-                Nothing ->
-                    allConstructorsWereUsedOfAType ignoredCustomTypes rest
+                ]
 
 
 caseKeyWordRange : Range -> Range
@@ -5046,91 +4859,49 @@ caseKeyWordRange range =
     }
 
 
-introducesVariable : Node Pattern -> Bool
-introducesVariable node =
-    case Node.value node of
-        Pattern.VarPattern _ ->
-            True
-
-        Pattern.RecordPattern _ ->
-            True
-
-        Pattern.AsPattern _ _ ->
-            True
-
-        Pattern.ParenthesizedPattern pattern ->
-            introducesVariable pattern
-
-        Pattern.TuplePattern nodes ->
-            List.any introducesVariable nodes
-
-        Pattern.UnConsPattern first rest ->
-            List.any introducesVariable [ first, rest ]
-
-        Pattern.ListPattern nodes ->
-            List.any introducesVariable nodes
-
-        Pattern.NamedPattern _ nodes ->
-            List.any introducesVariable nodes
-
-        _ ->
+introducesVariableOrUsesTypeConstructor : ModuleContext -> List (Node Pattern) -> Bool
+introducesVariableOrUsesTypeConstructor context nodesToLookAt =
+    case nodesToLookAt of
+        [] ->
             False
 
-
-findUsedConstructors : ModuleContext -> List (Node Pattern) -> Set ( ModuleName, String ) -> Set ( ModuleName, String )
-findUsedConstructors context remainingNodes acc =
-    case remainingNodes of
-        [] ->
-            acc
-
-        node :: rest ->
+        node :: remaining ->
             case Node.value node of
-                Pattern.NamedPattern { name } nodes ->
-                    case isIgnoredConstructor context (Node.range node) name of
-                        Just moduleName ->
-                            findUsedConstructors context (nodes ++ rest) (Set.insert ( moduleName, name ) acc)
+                Pattern.VarPattern _ ->
+                    True
 
-                        Nothing ->
-                            findUsedConstructors context rest acc
+                Pattern.RecordPattern _ ->
+                    True
 
-                Pattern.AsPattern pattern _ ->
-                    findUsedConstructors context (pattern :: rest) acc
+                Pattern.AsPattern _ _ ->
+                    True
 
                 Pattern.ParenthesizedPattern pattern ->
-                    findUsedConstructors context (pattern :: rest) acc
+                    introducesVariableOrUsesTypeConstructor context (pattern :: remaining)
 
                 Pattern.TuplePattern nodes ->
-                    findUsedConstructors context (nodes ++ rest) acc
+                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
 
-                Pattern.UnConsPattern first second ->
-                    findUsedConstructors context (first :: second :: rest) acc
+                Pattern.UnConsPattern first rest ->
+                    introducesVariableOrUsesTypeConstructor context (first :: rest :: remaining)
 
                 Pattern.ListPattern nodes ->
-                    findUsedConstructors context (nodes ++ rest) acc
+                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+
+                Pattern.NamedPattern { name } nodes ->
+                    case ModuleNameLookupTable.fullModuleNameFor context.lookupTable node of
+                        Just moduleName ->
+                            if Set.member ( moduleName, name ) context.customTypesToReportInCases then
+                                introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+
+                            else
+                                True
+
+                        Nothing ->
+                            True
 
                 _ ->
-                    findUsedConstructors context rest acc
-
-
-isIgnoredConstructor : ModuleContext -> Range -> String -> Maybe ModuleName
-isIgnoredConstructor context range name =
-    case ModuleNameLookupTable.moduleNameAt context.lookupTable range of
-        Just [] ->
-            if Set.member ( context.moduleName, name ) context.constructorsToIgnore then
-                Just context.moduleName
-
-            else
-                Nothing
-
-        Just moduleName ->
-            if Set.member ( moduleName, name ) context.constructorsToIgnore then
-                Just moduleName
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
+                    introducesVariableOrUsesTypeConstructor context remaining
 
 
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
