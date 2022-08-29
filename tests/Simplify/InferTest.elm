@@ -186,9 +186,8 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Equals
-                                (FunctionOrValue [] "a")
-                                trueExpr
+                            [ NotEquals (FunctionOrValue [] "a") falseExpr
+                            , Equals (FunctionOrValue [] "a") trueExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
@@ -204,9 +203,8 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Equals
-                                (FunctionOrValue [] "a")
-                                falseExpr
+                            [ NotEquals (FunctionOrValue [] "a") trueExpr
+                            , Equals (FunctionOrValue [] "a") falseExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
@@ -225,28 +223,16 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { facts =
-                            [ Equals
-                                (FunctionOrValue [] "a")
-                                trueExpr
-                            , Equals
-                                (OperatorApplication "=="
-                                    Non
-                                    (n (FunctionOrValue [] "a"))
-                                    (n trueExpr)
-                                )
-                                trueExpr
+                        { deduced =
+                            [ ( FunctionOrValue [] "a", DTrue )
+                            , ( OperatorApplication "/=" Non (n (FunctionOrValue [] "a")) (n trueExpr), DFalse )
+                            , ( OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n trueExpr), DTrue )
                             ]
-                        , deduced =
-                            [ ( FunctionOrValue [] "a"
-                              , DTrue
-                              )
-                            , ( OperatorApplication "=="
-                                    Non
-                                    (n (FunctionOrValue [] "a"))
-                                    (n trueExpr)
-                              , DTrue
-                              )
+                        , facts =
+                            [ Equals (FunctionOrValue [] "a") trueExpr
+                            , NotEquals (OperatorApplication "/=" Non (n (FunctionOrValue [] "a")) (n trueExpr)) trueExpr
+                            , NotEquals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n trueExpr)) falseExpr
+                            , Equals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n trueExpr)) trueExpr
                             ]
                         }
         , test "should infer a == True when False" <|
@@ -261,16 +247,9 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Equals
-                                (FunctionOrValue [] "a")
-                                falseExpr
-                            , Equals
-                                (OperatorApplication "=="
-                                    Non
-                                    (n (FunctionOrValue [] "a"))
-                                    (n trueExpr)
-                                )
-                                falseExpr
+                            [ Equals (FunctionOrValue [] "a") falseExpr
+                            , NotEquals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n trueExpr)) trueExpr
+                            , Equals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n trueExpr)) falseExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "a"
@@ -295,28 +274,16 @@ detailedTests =
                     True
                     empty
                     |> expectEqual
-                        { facts =
-                            [ Equals
-                                (FunctionOrValue [] "a")
-                                (Floatable 1)
-                            , Equals
-                                (OperatorApplication "=="
-                                    Non
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (Floatable 1))
-                                )
-                                trueExpr
+                        { deduced =
+                            [ ( FunctionOrValue [] "a", DNumber 1 )
+                            , ( OperatorApplication "/=" Non (n (FunctionOrValue [] "a")) (n (Floatable 1)), DFalse )
+                            , ( OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Floatable 1)), DTrue )
                             ]
-                        , deduced =
-                            [ ( FunctionOrValue [] "a"
-                              , DNumber 1
-                              )
-                            , ( OperatorApplication "=="
-                                    Non
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (Floatable 1))
-                              , DTrue
-                              )
+                        , facts =
+                            [ Equals (FunctionOrValue [] "a") (Floatable 1)
+                            , NotEquals (OperatorApplication "/=" Non (n (FunctionOrValue [] "a")) (n (Floatable 1))) trueExpr
+                            , NotEquals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Floatable 1))) falseExpr
+                            , Equals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Floatable 1))) trueExpr
                             ]
                         }
         , test "should infer a == 1 when False" <|
@@ -331,22 +298,63 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ NotEquals
-                                (FunctionOrValue [] "a")
-                                (Floatable 1)
-                            , Equals
-                                (OperatorApplication "=="
-                                    Non
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (Floatable 1))
-                                )
-                                falseExpr
+                            [ NotEquals (FunctionOrValue [] "a") (Floatable 1)
+                            , NotEquals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Floatable 1))) trueExpr
+                            , Equals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Floatable 1))) falseExpr
                             ]
                         , deduced =
                             [ ( OperatorApplication "=="
                                     Non
                                     (n (FunctionOrValue [] "a"))
                                     (n (Floatable 1))
+                              , DFalse
+                              )
+                            ]
+                        }
+        , test "should infer a == \"ok\" when True" <|
+            \() ->
+                infer
+                    [ OperatorApplication "=="
+                        Infix.Non
+                        (n (FunctionOrValue [] "a"))
+                        (n (Literal "\"ok\""))
+                    ]
+                    True
+                    empty
+                    |> expectEqual
+                        { deduced =
+                            [ ( FunctionOrValue [] "a", DString "\"ok\"" )
+                            , ( OperatorApplication "/=" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\"")), DFalse )
+                            , ( OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\"")), DTrue )
+                            ]
+                        , facts =
+                            [ Equals (FunctionOrValue [] "a") (Literal "\"ok\"")
+                            , NotEquals (OperatorApplication "/=" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\""))) trueExpr
+                            , NotEquals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\""))) falseExpr
+                            , Equals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\""))) trueExpr
+                            ]
+                        }
+        , test "should infer a == \"ok\" when False" <|
+            \() ->
+                infer
+                    [ OperatorApplication "=="
+                        Infix.Non
+                        (n (FunctionOrValue [] "a"))
+                        (n (Literal "\"ok\""))
+                    ]
+                    False
+                    empty
+                    |> expectEqual
+                        { facts =
+                            [ NotEquals (FunctionOrValue [] "a") (Literal "\"ok\"")
+                            , NotEquals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\""))) trueExpr
+                            , Equals (OperatorApplication "==" Non (n (FunctionOrValue [] "a")) (n (Literal "\"ok\""))) falseExpr
+                            ]
+                        , deduced =
+                            [ ( OperatorApplication "=="
+                                    Non
+                                    (n (FunctionOrValue [] "a"))
+                                    (n (Literal "\"ok\""))
                               , DFalse
                               )
                             ]
@@ -363,15 +371,12 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Equals (FunctionOrValue [] "b") trueExpr
+                            [ NotEquals (FunctionOrValue [] "b") falseExpr
+                            , Equals (FunctionOrValue [] "b") trueExpr
+                            , NotEquals (FunctionOrValue [] "a") falseExpr
                             , Equals (FunctionOrValue [] "a") trueExpr
-                            , Equals
-                                (OperatorApplication "&&"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                trueExpr
+                            , NotEquals (OperatorApplication "&&" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
+                            , Equals (OperatorApplication "&&" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) trueExpr
                             ]
                         , deduced =
                             [ ( FunctionOrValue [] "b", DTrue )
@@ -396,19 +401,9 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Or
-                                (Equals
-                                    (FunctionOrValue [] "a")
-                                    falseExpr
-                                )
-                                (Equals (FunctionOrValue [] "b") falseExpr)
-                            , Equals
-                                (OperatorApplication "&&"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                falseExpr
+                            [ Or [ Equals (FunctionOrValue [] "a") falseExpr, NotEquals (FunctionOrValue [] "a") trueExpr ] [ Equals (FunctionOrValue [] "b") falseExpr, NotEquals (FunctionOrValue [] "b") trueExpr ]
+                            , NotEquals (OperatorApplication "&&" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) trueExpr
+                            , Equals (OperatorApplication "&&" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
                             [ ( OperatorApplication "&&"
@@ -431,22 +426,9 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Or
-                                (Equals
-                                    (FunctionOrValue [] "a")
-                                    trueExpr
-                                )
-                                (Equals
-                                    (FunctionOrValue [] "b")
-                                    trueExpr
-                                )
-                            , Equals
-                                (OperatorApplication "||"
-                                    Right
-                                    (n (FunctionOrValue [] "a"))
-                                    (n (FunctionOrValue [] "b"))
-                                )
-                                trueExpr
+                            [ Or [ Equals (FunctionOrValue [] "a") trueExpr, NotEquals (FunctionOrValue [] "a") falseExpr ] [ Equals (FunctionOrValue [] "b") trueExpr, NotEquals (FunctionOrValue [] "b") falseExpr ]
+                            , NotEquals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
+                            , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) trueExpr
                             ]
                         , deduced =
                             [ ( OperatorApplication "||"
@@ -469,8 +451,11 @@ detailedTests =
                     empty
                     |> expectEqual
                         { facts =
-                            [ Equals (FunctionOrValue [] "b") falseExpr
+                            [ NotEquals (FunctionOrValue [] "b") trueExpr
+                            , Equals (FunctionOrValue [] "b") falseExpr
+                            , NotEquals (FunctionOrValue [] "a") trueExpr
                             , Equals (FunctionOrValue [] "a") falseExpr
+                            , NotEquals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) trueExpr
                             , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
                             ]
                         , deduced =
@@ -493,14 +478,17 @@ detailedTests =
                         False
                     |> expectEqual
                         { facts =
-                            [ Equals (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True")
-                            , Equals (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "False")
-                            , Or (Equals (FunctionOrValue [] "a") (FunctionOrValue [ "Basics" ] "True")) (Equals (FunctionOrValue [] "b") (FunctionOrValue [ "Basics" ] "True"))
-                            , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) (FunctionOrValue [ "Basics" ] "True")
+                            [ NotEquals (FunctionOrValue [] "a") trueExpr
+                            , NotEquals (FunctionOrValue [] "b") falseExpr
+                            , Equals (FunctionOrValue [] "b") trueExpr
+                            , Equals (FunctionOrValue [] "a") falseExpr
+                            , Or [ Equals (FunctionOrValue [] "a") trueExpr, NotEquals (FunctionOrValue [] "a") falseExpr ] [ Equals (FunctionOrValue [] "b") trueExpr, NotEquals (FunctionOrValue [] "b") falseExpr ]
+                            , NotEquals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) falseExpr
+                            , Equals (OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b"))) trueExpr
                             ]
                         , deduced =
-                            [ ( FunctionOrValue [] "b", DTrue )
-                            , ( FunctionOrValue [] "a", DFalse )
+                            [ ( FunctionOrValue [] "a", DFalse )
+                            , ( FunctionOrValue [] "b", DTrue )
                             , ( OperatorApplication "||" Right (n (FunctionOrValue [] "a")) (n (FunctionOrValue [] "b")), DTrue )
                             ]
                         }
@@ -521,14 +509,8 @@ deduceNewFactsTests =
                 deduceNewFacts
                     (Equals (FunctionOrValue [] "a") falseExpr)
                     [ Or
-                        (Equals
-                            (FunctionOrValue [] "a")
-                            trueExpr
-                        )
-                        (Equals
-                            (FunctionOrValue [] "b")
-                            trueExpr
-                        )
+                        [ Equals (FunctionOrValue [] "a") trueExpr ]
+                        [ Equals (FunctionOrValue [] "b") trueExpr ]
                     ]
                     |> Expect.equal
                         [ Equals (FunctionOrValue [] "b") trueExpr ]

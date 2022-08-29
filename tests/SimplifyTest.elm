@@ -3470,6 +3470,34 @@ a =
     3
 """
                         ]
+        , test "should remove branches where the condition never matches (strings)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x /= "a" then
+    if x == "a" then
+      1
+    else
+      2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 4, column = 5 }, end = { row = 4, column = 7 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x /= "a" then
+    2
+  else
+    3
+"""
+                        ]
         , test "should not spread inferred things from one branch to another" <|
             \() ->
                 """module A exposing (..)
@@ -3563,6 +3591,34 @@ a =
   if x /= 1 then
     1
   else if True then
+    2
+  else
+    3
+"""
+                        ]
+        , test "should remove branches where the condition always matches (/= <then> == in else)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x /= 1 then
+    if x == 1 then
+      1
+    else
+      2
+  else
+    3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 4, column = 5 }, end = { row = 4, column = 7 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x /= 1 then
     2
   else
     3

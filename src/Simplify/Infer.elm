@@ -125,7 +125,7 @@ type DeducedValue
 type Fact
     = Equals Expression Expression
     | NotEquals Expression Expression
-    | Or Fact Fact
+    | Or (List Fact) (List Fact)
 
 
 type alias Resources a =
@@ -208,13 +208,13 @@ falseExpr =
     Expression.FunctionOrValue [ "Basics" ] "False"
 
 
-convertToFact : Expression -> Bool -> Fact
+convertToFact : Expression -> Bool -> List Fact
 convertToFact expr shouldBe =
     if shouldBe then
-        Equals expr trueExpr
+        [ Equals expr trueExpr, NotEquals expr falseExpr ]
 
     else
-        Equals expr falseExpr
+        [ Equals expr falseExpr, NotEquals expr trueExpr ]
 
 
 infer : List Expression -> Bool -> Inferred -> Inferred
@@ -227,7 +227,7 @@ inferHelp shouldBe node acc =
     let
         dict : Inferred
         dict =
-            injectFacts [ convertToFact node shouldBe ] acc
+            injectFacts (convertToFact node shouldBe) acc
     in
     case node of
         Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), expression ] ->
@@ -257,13 +257,25 @@ inferHelp shouldBe node acc =
             else
                 infer [ left, right ] shouldBe dict
 
-        Expression.OperatorApplication "==" _ left right ->
+        Expression.OperatorApplication "==" inf left right ->
             dict
+                |> (if shouldBe then
+                        injectFacts [ NotEquals (Expression.OperatorApplication "/=" inf left right) trueExpr ]
+
+                    else
+                        identity
+                   )
                 |> inferOnEquality left right shouldBe
                 |> inferOnEquality right left shouldBe
 
-        Expression.OperatorApplication "/=" _ left right ->
+        Expression.OperatorApplication "/=" inf left right ->
             dict
+                |> (if shouldBe then
+                        injectFacts [ NotEquals (Expression.OperatorApplication "==" inf left right) trueExpr ]
+
+                    else
+                        identity
+                   )
                 |> inferOnEquality left right (not shouldBe)
                 |> inferOnEquality right left (not shouldBe)
 
@@ -388,9 +400,10 @@ mergeEqualFacts equalFact fact =
     case fact of
         Or left right ->
             List.filterMap (ifSatisfy equalFact)
-                [ ( left, right )
-                , ( right, left )
-                ]
+                (List.map (\cond -> ( cond, right )) left
+                    ++ List.map (\cond -> ( cond, left )) right
+                )
+                |> List.concat
 
         _ ->
             []
@@ -401,6 +414,13 @@ ifSatisfy ( target, value ) ( targetFact, otherFact ) =
     case targetFact of
         Equals factTarget factValue ->
             if factTarget == target && areIncompatible value factValue then
+                Just otherFact
+
+            else
+                Nothing
+
+        NotEquals factTarget factValue ->
+            if factTarget == target && areCompatible value factValue then
                 Just otherFact
 
             else
@@ -422,8 +442,27 @@ areIncompatible value factValue =
         ( DNumber valueFloat, Expression.Floatable factFloat ) ->
             valueFloat /= factFloat
 
-        ( DString valueString, Expression.Literal constraintString ) ->
-            valueString /= constraintString
+        ( DString valueString, Expression.Literal factString ) ->
+            valueString /= factString
+
+        _ ->
+            False
+
+
+areCompatible : DeducedValue -> Expression -> Bool
+areCompatible value factValue =
+    case ( value, factValue ) of
+        ( DTrue, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
+            True
+
+        ( DFalse, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
+            True
+
+        ( DNumber valueFloat, Expression.Floatable factFloat ) ->
+            valueFloat == factFloat
+
+        ( DString valueString, Expression.Literal factString ) ->
+            valueString == factString
 
         _ ->
             False
