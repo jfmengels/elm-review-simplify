@@ -1,6 +1,6 @@
 # Changelog
 
-## UNRELEASED
+## [2.0.19] - 2022-08-29
 
 The rule now DOESN'T (it did before) simplify case of expressions where all the branches have the same code when one of
 the patterns references a custom type from your project. For example
@@ -27,7 +27,7 @@ The configuration setting `Simplify.ignoreCaseOfForTypes` now only takes custom 
 provided to this function that is not found in the dependencies will now trigger a global error.
 It is likely that you won't need this function anymore. If you do, please open an issue because I'd love to know. 
 
-A number of `elm-review` users didn't use `Simplify` because of the rule above, so I'm hoping that this change will make
+A number of `elm-review` users didn't use `Simplify` because of the simplification above, so I'm hoping that this change will make
 you able to use the rule again.
 
 The rule now simplifies:
@@ -126,6 +126,7 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.19]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.19
 [2.0.18]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.18
 [2.0.17]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.17
 [2.0.16]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.16
