@@ -38,6 +38,7 @@ config =
     , NoDebug.Log.rule
     , NoDebug.TodoOrToString.rule
         |> Rule.ignoreErrorsForDirectories [ "tests/" ]
+    , NoImportingEverything.rule []
     , NoExposingEverything.rule
     , NoForbiddenWords.rule [ "REPLACEME" ]
     , NoImportingEverything.rule []

@@ -6,7 +6,7 @@ import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.Node exposing (Node(..))
 import Elm.Syntax.Range as Range
 import Expect exposing (Expectation)
-import Simplify.Infer exposing (..)
+import Simplify.Infer exposing (DeducedValue(..), Fact(..), Inferred(..), deduceNewFacts, empty, falseExpr, get, infer, trueExpr)
 import Test exposing (Test, describe, test)
 
 
