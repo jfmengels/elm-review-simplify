@@ -1248,16 +1248,7 @@ distributeFieldAccess kind ((Node recordRange _) as record) (Node fieldRange fie
             }
             removalRange
             (Fix.removeRange removalRange
-                :: List.map
-                    (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName))
-                    (withoutParens ++ records)
-                ++ List.concatMap
-                    (\leafRange ->
-                        [ Fix.insertAt leafRange.start "("
-                        , Fix.insertAt leafRange.end (")." ++ fieldName)
-                        ]
-                    )
-                    withParens
+                :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
             )
         ]
 
