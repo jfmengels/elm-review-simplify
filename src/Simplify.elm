@@ -1214,14 +1214,102 @@ expressionVisitorHelp node context =
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
                     onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) (Node.value field) setters)
 
-                Expression.LetExpression { expression } ->
-                    onlyErrors (recordAccessLetInChecks (Node.range node) field expression)
+                Expression.LetExpression _ ->
+                    onlyErrors (distributeFieldAccess True "a let/in" record field)
+
+                Expression.IfBlock _ _ _ ->
+                    onlyErrors (distributeFieldAccess False "an if/then/else" record field)
+
+                Expression.CaseExpression _ ->
+                    onlyErrors (distributeFieldAccess False "a case/of" record field)
 
                 _ ->
                     onlyErrors []
 
         _ ->
             onlyErrors []
+
+
+distributeFieldAccess : Bool -> String -> Node Expression -> Node String -> List (Error {})
+distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
+    case recordLeavesRanges record of
+        { records, withoutParens, withParens } ->
+            if not (List.isEmpty withParens && List.isEmpty withoutParens) && not isLet then
+                []
+
+            else
+                [ let
+                    removalRange : Range
+                    removalRange =
+                        { start = recordRange.end, end = fieldRange.end }
+                  in
+                  Rule.errorWithFix
+                    { message = "Field access can be simplified"
+                    , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+                    }
+                    removalRange
+                    (Fix.removeRange removalRange
+                        :: List.map
+                            (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName))
+                            (withoutParens ++ records)
+                        ++ List.concatMap
+                            (\leafRange ->
+                                [ Fix.insertAt leafRange.start "("
+                                , Fix.insertAt leafRange.end (")." ++ fieldName)
+                                ]
+                            )
+                            withParens
+                    )
+                ]
+
+
+combineRecordLeavesRanges :
+    { records : List Range, withoutParens : List Range, withParens : List Range }
+    -> { records : List Range, withoutParens : List Range, withParens : List Range }
+    -> { records : List Range, withoutParens : List Range, withParens : List Range }
+combineRecordLeavesRanges left right =
+    { records = left.records ++ right.records
+    , withoutParens = left.withoutParens ++ right.withoutParens
+    , withParens = left.withParens ++ right.withParens
+    }
+
+
+recordLeavesRanges :
+    Node Expression
+    -> { records : List Range, withoutParens : List Range, withParens : List Range }
+recordLeavesRanges (Node range expr) =
+    case expr of
+        Expression.IfBlock _ thenNode elseNode ->
+            combineRecordLeavesRanges
+                (recordLeavesRanges thenNode)
+                (recordLeavesRanges elseNode)
+
+        Expression.LetExpression { expression } ->
+            recordLeavesRanges expression
+
+        Expression.ParenthesizedExpression child ->
+            recordLeavesRanges child
+
+        Expression.CaseExpression { cases } ->
+            List.foldl
+                (\( _, e ) -> combineRecordLeavesRanges (recordLeavesRanges e))
+                { records = [], withParens = [], withoutParens = [] }
+                cases
+
+        Expression.RecordExpr _ ->
+            { records = [ range ], withParens = [], withoutParens = [] }
+
+        Expression.RecordAccess _ _ ->
+            { records = [], withParens = [], withoutParens = [ range ] }
+
+        Expression.RecordUpdateExpression _ _ ->
+            { records = [ range ], withParens = [], withoutParens = [] }
+
+        Expression.FunctionOrValue _ _ ->
+            { records = [], withParens = [], withoutParens = [ range ] }
+
+        _ ->
+            { records = [], withParens = [ range ], withoutParens = [] }
 
 
 recordAccessChecks : Range -> Maybe Range -> String -> List (Node RecordSetter) -> List (Error {})
@@ -1302,39 +1390,6 @@ needsParens expr =
 
         _ ->
             False
-
-
-recordAccessLetInChecks : Range -> Node String -> Node Expression -> List (Error {})
-recordAccessLetInChecks nodeRange (Node fieldRange fieldName) expr =
-    let
-        fieldRangeStart : Location
-        fieldRangeStart =
-            fieldRange.start
-
-        fieldRemovalFix : Fix
-        fieldRemovalFix =
-            Fix.removeRange
-                { start = { row = fieldRangeStart.row, column = fieldRangeStart.column - 1 }
-                , end = fieldRange.end
-                }
-    in
-    [ Rule.errorWithFix
-        { message = "Field access can be simplified"
-        , details = [ "Accessing the field outside a let expression can be simplified to access the field inside it" ]
-        }
-        nodeRange
-        (if needsParens (Node.value expr) then
-            [ Fix.insertAt (Node.range expr).start "("
-            , Fix.insertAt (Node.range expr).end (")." ++ fieldName)
-            , fieldRemovalFix
-            ]
-
-         else
-            [ Fix.insertAt (Node.range expr).end ("." ++ fieldName)
-            , fieldRemovalFix
-            ]
-        )
-    ]
 
 
 type alias CheckInfo =
