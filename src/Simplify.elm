@@ -1218,10 +1218,10 @@ expressionVisitorHelp node context =
                     onlyErrors [ injectRecordAccessIntoLetExpression "a let/in" (Node.range record) expression field ]
 
                 Expression.IfBlock _ _ _ ->
-                    onlyErrors (distributeFieldAccess False "an if/then/else" record field)
+                    onlyErrors (distributeFieldAccess "an if/then/else" record field)
 
                 Expression.CaseExpression _ ->
-                    onlyErrors (distributeFieldAccess False "a case/of" record field)
+                    onlyErrors (distributeFieldAccess "a case/of" record field)
 
                 _ ->
                     onlyErrors []
@@ -1230,13 +1230,13 @@ expressionVisitorHelp node context =
             onlyErrors []
 
 
-distributeFieldAccess : Bool -> String -> Node Expression -> Node String -> List (Error {})
-distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
+distributeFieldAccess : String -> Node Expression -> Node String -> List (Error {})
+distributeFieldAccess kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
     let
         { records, withoutParens, withParens } =
             recordLeavesRanges record
     in
-    if isLet || (List.isEmpty withParens && List.isEmpty withoutParens) then
+    if List.isEmpty withParens && List.isEmpty withoutParens then
         [ let
             removalRange : Range
             removalRange =
