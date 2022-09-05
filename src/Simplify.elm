@@ -1214,8 +1214,8 @@ expressionVisitorHelp node context =
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
                     onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) (Node.value field) setters)
 
-                Expression.LetExpression _ ->
-                    onlyErrors (distributeFieldAccess True "a let/in" record field)
+                Expression.LetExpression { expression } ->
+                    onlyErrors [ injectRecordAccessIntoLetExpression "a let/in" (Node.range record) expression field ]
 
                 Expression.IfBlock _ _ _ ->
                     onlyErrors (distributeFieldAccess False "an if/then/else" record field)
@@ -1263,6 +1263,23 @@ distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRan
 
     else
         []
+
+
+injectRecordAccessIntoLetExpression : String -> Range -> Node Expression -> Node String -> Rule.Error {}
+injectRecordAccessIntoLetExpression kind recordRange letBody (Node fieldRange fieldName) =
+    let
+        removalRange : Range
+        removalRange =
+            { start = recordRange.end, end = fieldRange.end }
+    in
+    Rule.errorWithFix
+        { message = "Field access can be simplified"
+        , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+        }
+        removalRange
+        (Fix.removeRange removalRange
+            :: replaceSubExpressionByRecordAccessFix fieldName letBody
+        )
 
 
 recordLeavesRanges : Node Expression -> { records : List Range, withoutParens : List Range, withParens : List Range }
@@ -1364,6 +1381,17 @@ replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
         [ Fix.removeRange { start = outerRange.start, end = exprRange.start }
         , Fix.removeRange { start = exprRange.end, end = outerRange.end }
         ]
+
+
+replaceSubExpressionByRecordAccessFix : String -> Node Expression -> List Fix
+replaceSubExpressionByRecordAccessFix fieldName (Node exprRange exprValue) =
+    if needsParens exprValue then
+        [ Fix.insertAt exprRange.start "("
+        , Fix.insertAt exprRange.end (")." ++ fieldName)
+        ]
+
+    else
+        [ Fix.insertAt exprRange.end ("." ++ fieldName) ]
 
 
 needsParens : Expression -> Bool
