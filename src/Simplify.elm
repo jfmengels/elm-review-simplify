@@ -1232,28 +1232,25 @@ expressionVisitorHelp node context =
 
 distributeFieldAccess : String -> Node Expression -> Node String -> List (Error {})
 distributeFieldAccess kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
-    let
-        { records, withoutParens, withParens } =
-            recordLeavesRanges record
-    in
-    if List.isEmpty withParens && List.isEmpty withoutParens then
-        [ let
-            removalRange : Range
-            removalRange =
-                { start = recordRange.end, end = fieldRange.end }
-          in
-          Rule.errorWithFix
-            { message = "Field access can be simplified"
-            , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
-            }
-            removalRange
-            (Fix.removeRange removalRange
-                :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
-            )
-        ]
+    case recordLeavesRanges record of
+        Just records ->
+            [ let
+                removalRange : Range
+                removalRange =
+                    { start = recordRange.end, end = fieldRange.end }
+              in
+              Rule.errorWithFix
+                { message = "Field access can be simplified"
+                , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+                }
+                removalRange
+                (Fix.removeRange removalRange
+                    :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
+                )
+            ]
 
-    else
-        []
+        Nothing ->
+            []
 
 
 injectRecordAccessIntoLetExpression : String -> Range -> Node Expression -> Node String -> Rule.Error {}
@@ -1273,53 +1270,39 @@ injectRecordAccessIntoLetExpression kind recordRange letBody (Node fieldRange fi
         )
 
 
-recordLeavesRanges : Node Expression -> { records : List Range, withoutParens : List Range, withParens : List Range }
+recordLeavesRanges : Node Expression -> Maybe (List Range)
 recordLeavesRanges node =
-    recordLeavesRangesHelp [ node ] { records = [], withParens = [], withoutParens = [] }
+    recordLeavesRangesHelp [ node ] []
 
 
-recordLeavesRangesHelp :
-    List (Node Expression)
-    -> { records : List Range, withoutParens : List Range, withParens : List Range }
-    -> { records : List Range, withoutParens : List Range, withParens : List Range }
-recordLeavesRangesHelp nodes acc =
+recordLeavesRangesHelp : List (Node Expression) -> List Range -> Maybe (List Range)
+recordLeavesRangesHelp nodes foundRanges =
     case nodes of
         [] ->
-            acc
+            Just foundRanges
 
         (Node range expr) :: rest ->
             case expr of
                 Expression.IfBlock _ thenNode elseNode ->
-                    recordLeavesRangesHelp (thenNode :: elseNode :: rest) acc
+                    recordLeavesRangesHelp (thenNode :: elseNode :: rest) foundRanges
 
                 Expression.LetExpression { expression } ->
-                    recordLeavesRangesHelp (expression :: rest) acc
+                    recordLeavesRangesHelp (expression :: rest) foundRanges
 
                 Expression.ParenthesizedExpression child ->
-                    recordLeavesRangesHelp (child :: rest) acc
+                    recordLeavesRangesHelp (child :: rest) foundRanges
 
                 Expression.CaseExpression { cases } ->
-                    recordLeavesRangesHelp (List.map Tuple.second cases ++ rest) acc
+                    recordLeavesRangesHelp (List.map Tuple.second cases ++ rest) foundRanges
 
                 Expression.RecordExpr _ ->
-                    recordLeavesRangesHelp rest
-                        { records = range :: acc.records, withParens = acc.withParens, withoutParens = acc.withoutParens }
-
-                Expression.RecordAccess _ _ ->
-                    recordLeavesRangesHelp rest
-                        { records = acc.records, withParens = acc.withParens, withoutParens = range :: acc.withoutParens }
+                    recordLeavesRangesHelp rest (range :: foundRanges)
 
                 Expression.RecordUpdateExpression _ _ ->
-                    recordLeavesRangesHelp rest
-                        { records = range :: acc.records, withParens = acc.withParens, withoutParens = acc.withoutParens }
-
-                Expression.FunctionOrValue _ _ ->
-                    recordLeavesRangesHelp rest
-                        { records = acc.records, withParens = acc.withParens, withoutParens = range :: acc.withoutParens }
+                    recordLeavesRangesHelp rest (range :: foundRanges)
 
                 _ ->
-                    recordLeavesRangesHelp rest
-                        { records = acc.records, withParens = range :: acc.withParens, withoutParens = acc.withoutParens }
+                    Nothing
 
 
 recordAccessChecks : Range -> Maybe Range -> String -> List (Node RecordSetter) -> List (Error {})
