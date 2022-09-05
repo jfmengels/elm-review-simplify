@@ -1215,7 +1215,7 @@ expressionVisitorHelp node context =
                     onlyErrors (recordAccessChecks (Node.range node) (Just recordNameRange) (Node.value field) setters)
 
                 Expression.LetExpression { expression } ->
-                    onlyErrors [ injectRecordAccessIntoLetExpression "a let/in" (Node.range record) expression field ]
+                    onlyErrors [ injectRecordAccessIntoLetExpression (Node.range record) expression field ]
 
                 Expression.IfBlock _ thenBranch elseBranch ->
                     onlyErrors (distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field)
@@ -1253,8 +1253,8 @@ distributeFieldAccess kind recordRange branches (Node fieldRange fieldName) =
             []
 
 
-injectRecordAccessIntoLetExpression : String -> Range -> Node Expression -> Node String -> Rule.Error {}
-injectRecordAccessIntoLetExpression kind recordRange letBody (Node fieldRange fieldName) =
+injectRecordAccessIntoLetExpression : Range -> Node Expression -> Node String -> Rule.Error {}
+injectRecordAccessIntoLetExpression recordRange letBody (Node fieldRange fieldName) =
     let
         removalRange : Range
         removalRange =
@@ -1262,7 +1262,7 @@ injectRecordAccessIntoLetExpression kind recordRange letBody (Node fieldRange fi
     in
     Rule.errorWithFix
         { message = "Field access can be simplified"
-        , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+        , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
         }
         removalRange
         (Fix.removeRange removalRange
