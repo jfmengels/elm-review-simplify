@@ -1283,8 +1283,8 @@ recordLeavesRangesHelp nodes foundRanges =
 
         (Node range expr) :: rest ->
             case expr of
-                Expression.IfBlock _ thenNode elseNode ->
-                    recordLeavesRangesHelp (thenNode :: elseNode :: rest) foundRanges
+                Expression.IfBlock _ thenBranch elseBranch ->
+                    recordLeavesRangesHelp (thenBranch :: elseBranch :: rest) foundRanges
 
                 Expression.LetExpression { expression } ->
                     recordLeavesRangesHelp (expression :: rest) foundRanges
