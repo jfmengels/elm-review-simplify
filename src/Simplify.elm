@@ -1395,7 +1395,7 @@ distributeFieldAccess : Bool -> String -> Node Expression -> Node String -> List
 distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
     case recordLeavesRanges record of
         { records, withoutParens, withParens } ->
-            if List.isEmpty records && not isLet then
+            if not (List.isEmpty withParens && List.isEmpty withoutParens) && not isLet then
                 []
 
             else
