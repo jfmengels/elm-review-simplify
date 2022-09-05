@@ -1217,11 +1217,11 @@ expressionVisitorHelp node context =
                 Expression.LetExpression { expression } ->
                     onlyErrors [ injectRecordAccessIntoLetExpression "a let/in" (Node.range record) expression field ]
 
-                Expression.IfBlock _ _ _ ->
-                    onlyErrors (distributeFieldAccess "an if/then/else" record field)
+                Expression.IfBlock _ thenBranch elseBranch ->
+                    onlyErrors (distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field)
 
-                Expression.CaseExpression _ ->
-                    onlyErrors (distributeFieldAccess "a case/of" record field)
+                Expression.CaseExpression { cases } ->
+                    onlyErrors (distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second cases) field)
 
                 _ ->
                     onlyErrors []
@@ -1230,21 +1230,21 @@ expressionVisitorHelp node context =
             onlyErrors []
 
 
-distributeFieldAccess : String -> Node Expression -> Node String -> List (Error {})
-distributeFieldAccess kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
-    case recordLeavesRanges record of
+distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
+distributeFieldAccess kind recordRange branches (Node fieldRange fieldName) =
+    case recordLeavesRanges branches of
         Just records ->
             [ let
-                removalRange : Range
-                removalRange =
+                fieldAccessRange : Range
+                fieldAccessRange =
                     { start = recordRange.end, end = fieldRange.end }
               in
               Rule.errorWithFix
                 { message = "Field access can be simplified"
                 , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
                 }
-                removalRange
-                (Fix.removeRange removalRange
+                fieldAccessRange
+                (Fix.removeRange fieldAccessRange
                     :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
                 )
             ]
@@ -1270,9 +1270,9 @@ injectRecordAccessIntoLetExpression kind recordRange letBody (Node fieldRange fi
         )
 
 
-recordLeavesRanges : Node Expression -> Maybe (List Range)
-recordLeavesRanges node =
-    recordLeavesRangesHelp [ node ] []
+recordLeavesRanges : List (Node Expression) -> Maybe (List Range)
+recordLeavesRanges nodes =
+    recordLeavesRangesHelp nodes []
 
 
 recordLeavesRangesHelp : List (Node Expression) -> List Range -> Maybe (List Range)
