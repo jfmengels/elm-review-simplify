@@ -1234,10 +1234,7 @@ distributeFieldAccess : Bool -> String -> Node Expression -> Node String -> List
 distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
     case recordLeavesRanges record of
         { records, withoutParens, withParens } ->
-            if not (List.isEmpty withParens && List.isEmpty withoutParens) && not isLet then
-                []
-
-            else
+            if isLet || (List.isEmpty withParens && List.isEmpty withoutParens) then
                 [ let
                     removalRange : Range
                     removalRange =
@@ -1261,6 +1258,9 @@ distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRan
                             withParens
                     )
                 ]
+
+            else
+                []
 
 
 combineRecordLeavesRanges :
