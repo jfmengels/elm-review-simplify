@@ -1263,53 +1263,53 @@ distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRan
                 []
 
 
-combineRecordLeavesRanges :
-    { records : List Range, withoutParens : List Range, withParens : List Range }
+recordLeavesRanges : Node Expression -> { records : List Range, withoutParens : List Range, withParens : List Range }
+recordLeavesRanges node =
+    recordLeavesRangesHelp [ node ] { records = [], withParens = [], withoutParens = [] }
+
+
+recordLeavesRangesHelp :
+    List (Node Expression)
     -> { records : List Range, withoutParens : List Range, withParens : List Range }
     -> { records : List Range, withoutParens : List Range, withParens : List Range }
-combineRecordLeavesRanges left right =
-    { records = left.records ++ right.records
-    , withoutParens = left.withoutParens ++ right.withoutParens
-    , withParens = left.withParens ++ right.withParens
-    }
+recordLeavesRangesHelp nodes acc =
+    case nodes of
+        [] ->
+            acc
 
+        (Node range expr) :: rest ->
+            case expr of
+                Expression.IfBlock _ thenNode elseNode ->
+                    recordLeavesRangesHelp (thenNode :: elseNode :: rest) acc
 
-recordLeavesRanges :
-    Node Expression
-    -> { records : List Range, withoutParens : List Range, withParens : List Range }
-recordLeavesRanges (Node range expr) =
-    case expr of
-        Expression.IfBlock _ thenNode elseNode ->
-            combineRecordLeavesRanges
-                (recordLeavesRanges thenNode)
-                (recordLeavesRanges elseNode)
+                Expression.LetExpression { expression } ->
+                    recordLeavesRangesHelp (expression :: rest) acc
 
-        Expression.LetExpression { expression } ->
-            recordLeavesRanges expression
+                Expression.ParenthesizedExpression child ->
+                    recordLeavesRangesHelp (child :: rest) acc
 
-        Expression.ParenthesizedExpression child ->
-            recordLeavesRanges child
+                Expression.CaseExpression { cases } ->
+                    recordLeavesRangesHelp (List.map Tuple.second cases ++ rest) acc
 
-        Expression.CaseExpression { cases } ->
-            List.foldl
-                (\( _, e ) -> combineRecordLeavesRanges (recordLeavesRanges e))
-                { records = [], withParens = [], withoutParens = [] }
-                cases
+                Expression.RecordExpr _ ->
+                    recordLeavesRangesHelp rest
+                        { records = range :: acc.records, withParens = acc.withParens, withoutParens = acc.withoutParens }
 
-        Expression.RecordExpr _ ->
-            { records = [ range ], withParens = [], withoutParens = [] }
+                Expression.RecordAccess _ _ ->
+                    recordLeavesRangesHelp rest
+                        { records = acc.records, withParens = acc.withParens, withoutParens = range :: acc.withoutParens }
 
-        Expression.RecordAccess _ _ ->
-            { records = [], withParens = [], withoutParens = [ range ] }
+                Expression.RecordUpdateExpression _ _ ->
+                    recordLeavesRangesHelp rest
+                        { records = range :: acc.records, withParens = acc.withParens, withoutParens = acc.withoutParens }
 
-        Expression.RecordUpdateExpression _ _ ->
-            { records = [ range ], withParens = [], withoutParens = [] }
+                Expression.FunctionOrValue _ _ ->
+                    recordLeavesRangesHelp rest
+                        { records = acc.records, withParens = acc.withParens, withoutParens = range :: acc.withoutParens }
 
-        Expression.FunctionOrValue _ _ ->
-            { records = [], withParens = [], withoutParens = [ range ] }
-
-        _ ->
-            { records = [], withParens = [ range ], withoutParens = [] }
+                _ ->
+                    recordLeavesRangesHelp rest
+                        { records = acc.records, withParens = range :: acc.withParens, withoutParens = acc.withoutParens }
 
 
 recordAccessChecks : Range -> Maybe Range -> String -> List (Node RecordSetter) -> List (Error {})
