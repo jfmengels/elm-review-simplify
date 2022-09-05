@@ -1232,35 +1232,37 @@ expressionVisitorHelp node context =
 
 distributeFieldAccess : Bool -> String -> Node Expression -> Node String -> List (Error {})
 distributeFieldAccess isLet kind ((Node recordRange _) as record) (Node fieldRange fieldName) =
-    case recordLeavesRanges record of
-        { records, withoutParens, withParens } ->
-            if isLet || (List.isEmpty withParens && List.isEmpty withoutParens) then
-                [ let
-                    removalRange : Range
-                    removalRange =
-                        { start = recordRange.end, end = fieldRange.end }
-                  in
-                  Rule.errorWithFix
-                    { message = "Field access can be simplified"
-                    , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
-                    }
-                    removalRange
-                    (Fix.removeRange removalRange
-                        :: List.map
-                            (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName))
-                            (withoutParens ++ records)
-                        ++ List.concatMap
-                            (\leafRange ->
-                                [ Fix.insertAt leafRange.start "("
-                                , Fix.insertAt leafRange.end (")." ++ fieldName)
-                                ]
-                            )
-                            withParens
+    let
+        { records, withoutParens, withParens } =
+            recordLeavesRanges record
+    in
+    if isLet || (List.isEmpty withParens && List.isEmpty withoutParens) then
+        [ let
+            removalRange : Range
+            removalRange =
+                { start = recordRange.end, end = fieldRange.end }
+          in
+          Rule.errorWithFix
+            { message = "Field access can be simplified"
+            , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+            }
+            removalRange
+            (Fix.removeRange removalRange
+                :: List.map
+                    (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName))
+                    (withoutParens ++ records)
+                ++ List.concatMap
+                    (\leafRange ->
+                        [ Fix.insertAt leafRange.start "("
+                        , Fix.insertAt leafRange.end (")." ++ fieldName)
+                        ]
                     )
-                ]
+                    withParens
+            )
+        ]
 
-            else
-                []
+    else
+        []
 
 
 recordLeavesRanges : Node Expression -> { records : List Range, withoutParens : List Range, withParens : List Range }
