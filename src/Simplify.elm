@@ -1011,6 +1011,12 @@ expressionVisitorHelp node context =
         Expression.CaseExpression caseBlock ->
             onlyErrors (caseOfChecks context (Node.range node) caseBlock)
 
+        ------------
+        -- LET IN --
+        ------------
+        Expression.LetExpression caseBlock ->
+            onlyErrors (letInChecks caseBlock)
+
         ----------
         -- (<|) --
         ----------
@@ -5086,6 +5092,53 @@ getUncomputedNumberValue node =
 
         _ ->
             Nothing
+
+
+letInChecks : Expression.LetBlock -> List (Error {})
+letInChecks letBlock =
+    case Node.value letBlock.expression of
+        Expression.LetExpression _ ->
+            let
+                letRange : Range
+                letRange =
+                    letKeyWordRange (Node.range letBlock.expression)
+            in
+            [ Rule.errorWithFix
+                { message = "Let blocks can be joined together"
+                , details = [ "Let blocks can contain multiple declarations, and there is no advantage to having multiple chained let expressions rather than one longer let expressions." ]
+                }
+                letRange
+                (case lastElementRange letBlock.declarations of
+                    Just lastDeclRange ->
+                        [ Fix.replaceRangeBy { start = lastDeclRange.end, end = letRange.end } "\n" ]
+
+                    Nothing ->
+                        []
+                )
+            ]
+
+        _ ->
+            []
+
+
+letKeyWordRange : Range -> Range
+letKeyWordRange range =
+    { start = range.start
+    , end = { row = range.start.row, column = range.start.column + 3 }
+    }
+
+
+lastElementRange : List (Node a) -> Maybe Range
+lastElementRange nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        _ :: last :: [] ->
+            Just (Node.range last)
+
+        _ :: rest ->
+            lastElementRange rest
 
 
 

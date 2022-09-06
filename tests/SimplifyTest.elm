@@ -32,6 +32,7 @@ all =
         , parserTests
         , jsonDecodeTests
         , recordAccessTests
+        , letTests
         ]
 
 
@@ -10700,6 +10701,52 @@ a = (if x then { f = 3 } else if y then {f = 2} else
 a = (if x then { f = 3 }.f else if y then {f = 2}.f else
             case b of Nothing -> { f = 4 }.f
                       Just _ -> { f = 5 }.f)
+"""
+                        ]
+        ]
+
+
+letTests : Test
+letTests =
+    describe "Let declarations"
+        [ test "should merge two adjacent let declarations" <|
+            \() ->
+                """module A exposing (..)
+a =
+    let
+        b =
+            1
+
+        c =
+            1
+    in
+    let
+        d =
+            1
+    in
+    b + c + d
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Let blocks can be joined together"
+                            , details = [ "Let blocks can contain multiple declarations, and there is no advantage to having multiple chained let expressions rather than one longer let expressions." ]
+                            , under = "let"
+                            }
+                            |> Review.Test.atExactly { start = { row = 10, column = 5 }, end = { row = 10, column = 8 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    let
+        b =
+            1
+
+        c =
+            1
+
+        d =
+            1
+    in
+    b + c + d
 """
                         ]
         ]
