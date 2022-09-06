@@ -5141,7 +5141,7 @@ letInChecks letBlock =
             in
             [ Rule.errorWithFix
                 { message = "Let blocks can be joined together"
-                , details = [ "Let blocks can contain multiple declarations, and there is no advantage to having multiple chained let expressions rather than one longer let expressions." ]
+                , details = [ "Let blocks can contain multiple declarations, and there is no advantage to having multiple chained let expressions rather than one longer let expression." ]
                 }
                 letRange
                 (case lastElementRange letBlock.declarations of
@@ -5170,7 +5170,7 @@ lastElementRange nodes =
         [] ->
             Nothing
 
-        _ :: last :: [] ->
+        last :: [] ->
             Just (Node.range last)
 
         _ :: rest ->
