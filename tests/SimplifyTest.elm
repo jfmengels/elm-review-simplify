@@ -1205,8 +1205,8 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use a let binding to destructure data"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use a let expression to destructure data"
+                            , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
                             , under = "( x, y )"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1227,8 +1227,8 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use a let binding to destructure data"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use a let expression to destructure data"
+                            , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
                             , under = "{ x, y }"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1249,8 +1249,8 @@ a =
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use a let binding to destructure data"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use a let expression to destructure data"
+                            , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
                             , under = "var"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

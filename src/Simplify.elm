@@ -5015,8 +5015,8 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
                         String.repeat (bodyRange.start.column - 1) " "
                 in
                 [ Rule.errorWithFix
-                    { message = "Use a let binding to destructure data"
-                    , details = [ "REPLACEME" ]
+                    { message = "Use a let expression to destructure data"
+                    , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
                     }
                     (Node.range singlePattern)
                     [ Fix.replaceRangeBy { start = parentRange.start, end = exprRange.start } ("let " ++ extractSourceCode (Node.range singlePattern) ++ " = ")
