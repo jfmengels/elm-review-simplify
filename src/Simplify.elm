@@ -5038,7 +5038,7 @@ isSimpleDestructurePattern pattern =
             True
 
         Pattern.RecordPattern _ ->
-            False
+            True
 
         Pattern.VarPattern _ ->
             False

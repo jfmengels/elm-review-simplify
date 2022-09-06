@@ -1216,6 +1216,28 @@ a =
             1
 """
                         ]
+        , test "should replace case expression that destructures a record by a let declaration" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case value of
+        { x, y } ->
+            1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use a let binding to destructure data"
+                            , details = [ "REPLACEME" ]
+                            , under = "{ x, y }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    let { x, y } = value
+    in
+            1
+"""
+                        ]
         ]
 
 
