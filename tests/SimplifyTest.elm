@@ -1194,6 +1194,72 @@ a = case value of
 a = x
 """
                         ]
+        , test "should replace case expression that destructures a tuple by a let declaration" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case value of
+        ( x, y ) ->
+            1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use a let expression to destructure data"
+                            , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
+                            , under = "( x, y )"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    let ( x, y ) = value
+    in
+            1
+"""
+                        ]
+        , test "should replace case expression that destructures a record by a let declaration" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case value of
+        { x, y } ->
+            1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use a let expression to destructure data"
+                            , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
+                            , under = "{ x, y }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    let { x, y } = value
+    in
+            1
+"""
+                        ]
+        , test "should replace case expression that destructures a variable by a let declaration" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case value of
+        var ->
+            1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use a let expression to destructure data"
+                            , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
+                            , under = "var"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    let var = value
+    in
+            1
+"""
+                        ]
         ]
 
 

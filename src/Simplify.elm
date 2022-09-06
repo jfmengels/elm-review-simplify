@@ -692,6 +692,7 @@ type alias ModuleContext =
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , extractSourceCode : Range -> String
     }
 
 
@@ -720,7 +721,7 @@ fromModuleToProject =
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
 fromProjectToModule =
     Rule.initContextCreator
-        (\lookupTable metadata projectContext ->
+        (\lookupTable metadata extractSourceCode projectContext ->
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
@@ -730,10 +731,12 @@ fromProjectToModule =
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
+            , extractSourceCode = extractSourceCode
             }
         )
         |> Rule.withModuleNameLookupTable
         |> Rule.withMetadata
+        |> Rule.withSourceCodeExtractor
 
 
 
@@ -4861,6 +4864,7 @@ caseOfChecks context parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
         , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
+        , \() -> destructuringCaseOfChecks context.extractSourceCode parentRange caseBlock
         ]
         ()
 
@@ -4985,6 +4989,62 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
 
         _ ->
             []
+
+
+destructuringCaseOfChecks : (Range -> String) -> Range -> Expression.CaseBlock -> List (Error {})
+destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
+    case cases of
+        [ ( rawSinglePattern, Node bodyRange _ ) ] ->
+            let
+                singlePattern : Node Pattern
+                singlePattern =
+                    AstHelpers.removeParensFromPattern rawSinglePattern
+            in
+            if isSimpleDestructurePattern singlePattern then
+                let
+                    exprRange : Range
+                    exprRange =
+                        Node.range expression
+
+                    caseIndentation : String
+                    caseIndentation =
+                        String.repeat (parentRange.start.column - 1) " "
+
+                    bodyIndentation : String
+                    bodyIndentation =
+                        String.repeat (bodyRange.start.column - 1) " "
+                in
+                [ Rule.errorWithFix
+                    { message = "Use a let expression to destructure data"
+                    , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
+                    }
+                    (Node.range singlePattern)
+                    [ Fix.replaceRangeBy { start = parentRange.start, end = exprRange.start } ("let " ++ extractSourceCode (Node.range singlePattern) ++ " = ")
+                    , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start } ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
+                    ]
+                ]
+
+            else
+                []
+
+        _ ->
+            []
+
+
+isSimpleDestructurePattern : Node Pattern -> Bool
+isSimpleDestructurePattern pattern =
+    case Node.value pattern of
+        Pattern.TuplePattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.VarPattern _ ->
+            True
+
+        _ ->
+            False
 
 
 isSpecificFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
