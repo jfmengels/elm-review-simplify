@@ -5000,36 +5000,51 @@ destructuringCaseOfChecks extractSourceCode lookupTable parentRange { expression
                 singlePattern =
                     AstHelpers.removeParensFromPattern rawSinglePattern
             in
-            case Node.value singlePattern of
-                Pattern.TuplePattern _ ->
-                    let
-                        exprRange : Range
-                        exprRange =
-                            Node.range expression
+            if isSimpleDestructurePattern singlePattern then
+                let
+                    exprRange : Range
+                    exprRange =
+                        Node.range expression
 
-                        caseIndentation : String
-                        caseIndentation =
-                            String.repeat (parentRange.start.column - 1) " "
+                    caseIndentation : String
+                    caseIndentation =
+                        String.repeat (parentRange.start.column - 1) " "
 
-                        bodyIndentation : String
-                        bodyIndentation =
-                            String.repeat (bodyRange.start.column - 1) " "
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Use a let binding to destructure data"
-                        , details = [ "REPLACEME" ]
-                        }
-                        (Node.range singlePattern)
-                        [ Fix.replaceRangeBy { start = parentRange.start, end = exprRange.start } ("let " ++ extractSourceCode (Node.range singlePattern) ++ " = ")
-                        , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start } ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
-                        ]
+                    bodyIndentation : String
+                    bodyIndentation =
+                        String.repeat (bodyRange.start.column - 1) " "
+                in
+                [ Rule.errorWithFix
+                    { message = "Use a let binding to destructure data"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (Node.range singlePattern)
+                    [ Fix.replaceRangeBy { start = parentRange.start, end = exprRange.start } ("let " ++ extractSourceCode (Node.range singlePattern) ++ " = ")
+                    , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start } ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
                     ]
+                ]
 
-                _ ->
-                    []
+            else
+                []
 
         _ ->
             []
+
+
+isSimpleDestructurePattern : Node Pattern -> Bool
+isSimpleDestructurePattern pattern =
+    case Node.value pattern of
+        Pattern.TuplePattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            False
+
+        Pattern.VarPattern _ ->
+            False
+
+        _ ->
+            False
 
 
 isSpecificFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
