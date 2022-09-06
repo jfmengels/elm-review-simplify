@@ -1207,7 +1207,7 @@ a =
                         [ Review.Test.error
                             { message = "Use a let binding to destructure data"
                             , details = [ "REPLACEME" ]
-                            , under = "case"
+                            , under = "( x, y )"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
