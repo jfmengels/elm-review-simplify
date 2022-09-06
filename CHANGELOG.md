@@ -1,5 +1,65 @@
 # Changelog
 
+## [2.0.20] - 2022-09-06
+
+The rule now simplifies:
+1. Applying record access simplification over if and case expressions.
+```elm
+(if condition then
+   { record | a = 1 }
+ else
+   { record | field = 2 }
+).field
+-->
+ if condition then
+   { record | a = 1 }.field
+ else
+   { record | field = 2 }.field
+```
+when all patterns can later be simplified. In this example the final result will be
+```elm
+if condition then
+  record.field
+else
+  2
+```
+
+This also applies to case expressions when all branches can be simplified. Thanks [@miniBill]! [#40]
+
+2. Simplify case expressions that can be simplified to let variables [#48]
+
+```elm
+a =
+  case value of
+    { x, y } ->
+      1
+-->
+a =
+  let
+    { x, y } =
+      value
+  in
+  1
+```
+
+3. Merging multiple let declarations
+
+```elm
+let
+    a = 1
+in
+let
+    b = 1
+in
+a + b
+-->
+let
+    a = 1
+    b = 1
+in
+a + b
+```
+
 ## [2.0.19] - 2022-08-29
 
 The rule now DOESN'T (it did before) simplify case of expressions where all the branches have the same code when one of
@@ -126,6 +186,7 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.20]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.20
 [2.0.19]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.19
 [2.0.18]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.18
 [2.0.17]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.17
@@ -138,5 +199,7 @@ Help would be appreciated to fill the blanks!
 [#31]: https://github.com/jfmengels/elm-review-simplify/pull/31
 [#35]: https://github.com/jfmengels/elm-review-simplify/pull/35
 [#37]: https://github.com/jfmengels/elm-review-simplify/pull/37
+[#40]: https://github.com/jfmengels/elm-review-simplify/pull/40
+[#48]: https://github.com/jfmengels/elm-review-simplify/pull/48
 
 [@miniBill]: https://github.com/miniBill

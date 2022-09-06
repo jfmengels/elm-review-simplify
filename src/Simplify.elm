@@ -122,6 +122,42 @@ Below is the list of all kinds of simplifications this rule applies.
         Nothing -> x
     --> x
 
+Destructuring using case expressions
+
+    case value of
+        ( x, y ) ->
+            x + y
+
+    -->
+    let
+        ( x, y ) =
+            value
+    in
+    x + y
+
+
+### Let expressions
+
+    let
+        a =
+            1
+    in
+    let
+        b =
+            1
+    in
+    a + b
+
+    -->
+    let
+        a =
+            1
+
+        b =
+            1
+    in
+    a + b
+
 
 ### Record updates
 
