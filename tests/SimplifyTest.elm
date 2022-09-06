@@ -1238,6 +1238,28 @@ a =
             1
 """
                         ]
+        , test "should replace case expression that destructures a variable by a let declaration" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case value of
+        var ->
+            1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use a let binding to destructure data"
+                            , details = [ "REPLACEME" ]
+                            , under = "var"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    let var = value
+    in
+            1
+"""
+                        ]
         ]
 
 
