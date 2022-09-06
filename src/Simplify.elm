@@ -4864,6 +4864,7 @@ caseOfChecks context parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
         , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
+        , \() -> destructuringCaseOfChecks context.lookupTable parentRange caseBlock
         ]
         ()
 
@@ -4981,6 +4982,30 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
                             , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
                             ]
                         )
+                    ]
+
+                _ ->
+                    []
+
+        _ ->
+            []
+
+
+destructuringCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
+destructuringCaseOfChecks lookupTable parentRange { expression, cases } =
+    case cases of
+        [ ( rawSinglePattern, body ) ] ->
+            let
+                singlePattern =
+                    AstHelpers.removeParensFromPattern rawSinglePattern
+            in
+            case Node.value singlePattern of
+                Pattern.TuplePattern tuple ->
+                    [ Rule.error
+                        { message = "Use a let binding to destructure data"
+                        , details = [ "REPLACEME" ]
+                        }
+                        (Node.range singlePattern)
                     ]
 
                 _ ->
