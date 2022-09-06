@@ -4994,19 +4994,35 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
 destructuringCaseOfChecks : (Range -> String) -> ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
 destructuringCaseOfChecks extractSourceCode lookupTable parentRange { expression, cases } =
     case cases of
-        [ ( rawSinglePattern, body ) ] ->
+        [ ( rawSinglePattern, Node bodyRange _ ) ] ->
             let
+                singlePattern : Node Pattern
                 singlePattern =
                     AstHelpers.removeParensFromPattern rawSinglePattern
             in
             case Node.value singlePattern of
                 Pattern.TuplePattern _ ->
+                    let
+                        exprRange : Range
+                        exprRange =
+                            Node.range expression
+
+                        caseIndentation : String
+                        caseIndentation =
+                            String.repeat (parentRange.start.column - 1) " "
+
+                        bodyIndentation : String
+                        bodyIndentation =
+                            String.repeat (bodyRange.start.column - 1) " "
+                    in
                     [ Rule.errorWithFix
                         { message = "Use a let binding to destructure data"
                         , details = [ "REPLACEME" ]
                         }
                         (Node.range singlePattern)
-                        []
+                        [ Fix.replaceRangeBy { start = parentRange.start, end = exprRange.start } ("let " ++ extractSourceCode (Node.range singlePattern) ++ " = ")
+                        , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start } ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
+                        ]
                     ]
 
                 _ ->
