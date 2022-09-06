@@ -5000,12 +5000,13 @@ destructuringCaseOfChecks lookupTable parentRange { expression, cases } =
                     AstHelpers.removeParensFromPattern rawSinglePattern
             in
             case Node.value singlePattern of
-                Pattern.TuplePattern tuple ->
-                    [ Rule.error
+                Pattern.TuplePattern _ ->
+                    [ Rule.errorWithFix
                         { message = "Use a let binding to destructure data"
                         , details = [ "REPLACEME" ]
                         }
                         (Node.range singlePattern)
+                        []
                     ]
 
                 _ ->
