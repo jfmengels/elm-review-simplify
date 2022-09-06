@@ -4864,7 +4864,7 @@ caseOfChecks context parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
         , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
-        , \() -> destructuringCaseOfChecks context.lookupTable parentRange caseBlock
+        , \() -> destructuringCaseOfChecks context.extractSourceCode context.lookupTable parentRange caseBlock
         ]
         ()
 
@@ -4991,8 +4991,8 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
             []
 
 
-destructuringCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
-destructuringCaseOfChecks lookupTable parentRange { expression, cases } =
+destructuringCaseOfChecks : (Range -> String) -> ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
+destructuringCaseOfChecks extractSourceCode lookupTable parentRange { expression, cases } =
     case cases of
         [ ( rawSinglePattern, body ) ] ->
             let
