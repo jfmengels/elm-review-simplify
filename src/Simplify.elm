@@ -692,6 +692,7 @@ type alias ModuleContext =
     , constructorsToIgnore : Set ( ModuleName, String )
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , extractSourceCode : Range -> String
     }
 
 
@@ -720,7 +721,7 @@ fromModuleToProject =
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
 fromProjectToModule =
     Rule.initContextCreator
-        (\lookupTable metadata projectContext ->
+        (\lookupTable metadata extractSourceCode projectContext ->
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
             , rangesToIgnore = []
@@ -730,10 +731,12 @@ fromProjectToModule =
             , constructorsToIgnore = Set.empty
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
+            , extractSourceCode = extractSourceCode
             }
         )
         |> Rule.withModuleNameLookupTable
         |> Rule.withMetadata
+        |> Rule.withSourceCodeExtractor
 
 
 
