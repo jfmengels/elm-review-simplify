@@ -1708,7 +1708,12 @@ minusChecks { leftRange, rightRange, left, right } =
             , details = [ "You can negate the expression on the right like `-n`." ]
             }
             range
-            [ Fix.replaceRangeBy range "-" ]
+            (if needsParens (Node.value right) then
+                [ Fix.replaceRangeBy range "-(", Fix.insertAt rightRange.end ")" ]
+
+             else
+                [ Fix.replaceRangeBy range "-" ]
+            )
         ]
 
     else
