@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.22] - 2022-11-03
+
+Fixed an issue where `0 - f x` would be simplified to `-f x` instead of `-(f x)` [#52]
+
 ## [2.0.21] - 2022-09-06
 
 Fixed an issue in where let declarations would not be fused when there was only a single element in the first let declaration.
@@ -190,6 +194,7 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.22]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.22
 [2.0.21]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.21
 [2.0.20]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.20
 [2.0.19]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.19
@@ -206,5 +211,6 @@ Help would be appreciated to fill the blanks!
 [#37]: https://github.com/jfmengels/elm-review-simplify/pull/37
 [#40]: https://github.com/jfmengels/elm-review-simplify/pull/40
 [#48]: https://github.com/jfmengels/elm-review-simplify/pull/48
+[#52]: https://github.com/jfmengels/elm-review-simplify/pull/52
 
 [@miniBill]: https://github.com/miniBill
