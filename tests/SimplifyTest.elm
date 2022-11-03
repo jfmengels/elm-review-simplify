@@ -1569,6 +1569,22 @@ a = 0 - n
 a = -n
 """
                         ]
+        , test "should simplify 0 - List.length list to -(List.length list)" <|
+            \() ->
+                """module A exposing (..)
+a = 0 - List.length list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary subtracting from 0"
+                            , details = [ "You can negate the expression on the right like `-n`." ]
+                            , under = "0 - "
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = -(List.length list)
+"""
+                        ]
         ]
 
 
