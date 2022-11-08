@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.23] - 2022-11-08
+
+Add better support for `jfmengels/elm-review` v2.10.0.
+
 ## [2.0.22] - 2022-11-03
 
 Fixed an issue where `0 - f x` would be simplified to `-f x` instead of `-(f x)` [#52]
@@ -194,6 +198,7 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.23]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.23
 [2.0.22]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.22
 [2.0.21]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.21
 [2.0.20]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.20
