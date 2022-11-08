@@ -639,6 +639,7 @@ rule (Configuration config) =
             , fromModuleToProject = fromModuleToProject
             , foldProjectContexts = \_ previous -> previous
             }
+        |> Rule.providesFixesForProjectRule
         |> Rule.fromProjectRuleSchema
 
 
