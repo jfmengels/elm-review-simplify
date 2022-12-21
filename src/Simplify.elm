@@ -200,13 +200,13 @@ Destructuring using case expressions
 
 ### Lambdas
 
-    (\\() -> x) data
+    (\_ -> x) data
     --> x
 
-    (\\() y -> x) data
+    (\() y -> x) ()
     --> (\y -> x)
 
-    (\\_ y -> x) data
+    (\_ y -> x) data
     --> (\y -> x)
 
 
