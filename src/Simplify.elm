@@ -336,7 +336,7 @@ Destructuring using case expressions
 ### Result
 
     Result.map identity x
-    --> x.and
+    --> x
 
     Result.map f (Err x)
     --> Err x
@@ -373,9 +373,6 @@ Destructuring using case expressions
 
     [] ++ list
     --> list
-
-    [ a, b ] ++ [ c ]
-    --> [ a, b, c ]
 
     [ a, b ] ++ [ c ]
     --> [ a, b, c ]
@@ -478,13 +475,13 @@ Destructuring using case expressions
     --> True
 
     List.any (always False) list
-    --> True
+    --> False
 
     List.range 6 3
     --> []
 
-    List.length [ a ]
-    --> 1
+    List.length [ a, b, c ]
+    --> 3
 
     List.repeat 0 list
     --> []
@@ -596,13 +593,13 @@ All of these also apply for `Sub`.
 
 ### Json.Decode
 
-    Json.Decode.oneOf [a]
+    Json.Decode.oneOf [ a ]
     --> a
 
 
 ### Parser
 
-    Parser.oneOf [a]
+    Parser.oneOf [ a ]
     --> a
 
 -}
