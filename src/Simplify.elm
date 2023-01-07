@@ -2811,7 +2811,7 @@ stringConcatChecks { parentRange, fnRange, firstArg } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using String.concat on an empty list will result in a empty string"
+                { message = "Using String.concat on an empty list will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
@@ -2859,7 +2859,7 @@ stringReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
     case Node.value firstArg of
         Expression.Literal "" ->
             [ Rule.errorWithFix
-                { message = "Using String.reverse on an empty string will result in a empty string"
+                { message = "Using String.reverse on an empty string will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
@@ -2892,7 +2892,7 @@ stringSliceChecks checkInfo =
 
         ( _, Just (Node _ (Expression.Integer 0)) ) ->
             [ Rule.errorWithFix
-                { message = "Using String.slice with end index 0 will result in a empty string"
+                { message = "Using String.slice with end index 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
@@ -2902,7 +2902,7 @@ stringSliceChecks checkInfo =
         ( start, Just end ) ->
             if Normalize.areAllTheSame checkInfo start [ end ] then
                 [ Rule.errorWithFix
-                    { message = "Using String.slice with equal start and end index will result in a empty string"
+                    { message = "Using String.slice with equal start and end index will result in an empty string"
                     , details = [ "You can replace this call by an empty string." ]
                     }
                     checkInfo.fnRange
@@ -2928,7 +2928,7 @@ stringJoinChecks { parentRange, fnRange, firstArg, secondArg } =
     case secondArg of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
-                { message = "Using String.join on an empty list will result in a empty string"
+                { message = "Using String.join on an empty list will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
@@ -2971,7 +2971,7 @@ stringRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) 
     case secondArg of
         Just (Node _ (Expression.Literal "")) ->
             [ Rule.errorWithFix
-                { message = "Using String.repeat with an empty string will result in a empty string"
+                { message = "Using String.repeat with an empty string will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 fnRange
