@@ -4336,7 +4336,7 @@ a =
 appliedLambdaTests : Test
 appliedLambdaTests =
     describe "Applied lambda functions"
-        [ test "should not report a okay function/lambda calls" <|
+        [ test "should not report okay function/lambda calls" <|
             \() ->
                 """
 module A exposing (..)
