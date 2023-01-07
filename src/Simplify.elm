@@ -300,7 +300,7 @@ Destructuring using case expressions
     --> x
 
 
-### Maybe
+### Maybes
 
     Maybe.map identity x
     --> x
