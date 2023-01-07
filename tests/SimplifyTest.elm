@@ -5075,7 +5075,7 @@ a = String.slice b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace String.slice b 0 by \"\"" <|
+        , test "should replace String.slice b 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.slice b 0
@@ -5139,6 +5139,38 @@ a = String.slice 0
 a = String.left
 """
                         ]
+        , test "should replace String.slice 0 0 by always \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice 0 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with end index 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always ""
+"""
+                        ]
+        , test "should replace String.slice literal literal by the computed slice" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice 1 2 "abc"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to String.slice will result in \"b\""
+                            , details = [ "You can replace this slice operation by \"b\"." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "b"
+"""
+                        ]
         ]
 
 
@@ -5200,6 +5232,22 @@ a = String.left n ""
 a = ""
 """
                         ]
+        , test "should replace String.left literal literal by the computed substring" <|
+            \() ->
+                """module A exposing (..)
+a = String.left 2 "abc"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to String.left will result in \"ab\""
+                            , details = [ "You can replace this left operation by \"ab\"." ]
+                            , under = "String.left"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "ab"
+"""
+                        ]
         ]
 
 
@@ -5259,6 +5307,22 @@ a = String.right n ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ""
+"""
+                        ]
+        , test "should replace String.right literal literal by the computed substring" <|
+            \() ->
+                """module A exposing (..)
+a = String.right 2 "abc"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to String.right will result in \"bc\""
+                            , details = [ "You can replace this right operation by \"bc\"." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "bc"
 """
                         ]
         ]
