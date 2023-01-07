@@ -2908,6 +2908,15 @@ stringReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
 stringSliceChecks : CheckInfo -> List (Error {})
 stringSliceChecks checkInfo =
     case ( checkInfo.firstArg, checkInfo.secondArg, checkInfo.thirdArg ) of
+        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.slice with end index 0 will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
         ( Node _ (Expression.Integer 0), _, _ ) ->
             [ Rule.errorWithFix
                 { message = "Use String.left instead"
@@ -2920,15 +2929,6 @@ stringSliceChecks checkInfo =
                     }
                     "String.left"
                 ]
-            ]
-
-        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
-            [ Rule.errorWithFix
-                { message = "Using String.slice with end index 0 will result in an empty string"
-                , details = [ "You can replace this call by an empty string." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
         ( _, _, Just (Node _ (Expression.Literal "")) ) ->
