@@ -299,6 +299,36 @@ Destructuring using case expressions
     String.reverse <| String.reverse x
     --> x
 
+    String.slice n n string
+    --> ""
+
+    String.slice 0 n string
+    --> String.left n string
+
+    String.slice n 0 string
+    --> ""
+
+    String.slice a z ""
+    --> ""
+
+    String.left 0 string
+    --> ""
+
+    String.left -1 string
+    --> ""
+
+    String.left n ""
+    --> ""
+
+    String.right 0 string
+    --> ""
+
+    String.right -1 string
+    --> ""
+
+    String.right n ""
+    --> ""
+
 
 ### Maybes
 
