@@ -4623,6 +4623,8 @@ stringSimplificationTests =
         , stringLinesTests
         , stringReverseTests
         , stringSliceTests
+        , stringRightTests
+        , stringLeftTests
         ]
 
 
@@ -5167,6 +5169,128 @@ a = str |> String.slice 0 n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = str |> String.left n
+"""
+                        ]
+        ]
+
+
+stringLeftTests : Test
+stringLeftTests =
+    describe "String.left"
+        [ test "should not report String.left that contains variables or expressions" <|
+            \() ->
+                """module A exposing (..)
+a = String.left b c
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.left 0 by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.left 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.left with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.left"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test """should replace String.left -literal by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.left -1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.left with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.left"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.left n \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.left n ""
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.left on an empty string will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.left"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        ]
+
+
+stringRightTests : Test
+stringRightTests =
+    describe "String.right"
+        [ test "should not report String.right that contains variables or expressions" <|
+            \() ->
+                """module A exposing (..)
+a = String.right b c
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test """should replace String.right 0 by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.right 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test """should replace String.right -literal by \"\"""" <|
+            \() ->
+                """module A exposing (..)
+a = String.right -1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.right n \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.right n ""
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right on an empty string will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         ]

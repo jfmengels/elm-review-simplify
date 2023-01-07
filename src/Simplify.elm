@@ -1510,6 +1510,8 @@ functionCallChecks =
         , ( ( [ "String" ], "lines" ), stringLinesChecks )
         , ( ( [ "String" ], "reverse" ), stringReverseChecks )
         , ( ( [ "String" ], "slice" ), stringSliceChecks )
+        , ( ( [ "String" ], "left" ), stringLeftChecks )
+        , ( ( [ "String" ], "right" ), stringRightChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
         , ( ( [ "Platform", "Cmd" ], "map" ), collectionMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
@@ -2922,6 +2924,74 @@ stringSliceChecks checkInfo =
                 []
 
         ( _, Nothing, _ ) ->
+            []
+
+
+stringLeftChecks : CheckInfo -> List (Error {})
+stringLeftChecks checkInfo =
+    case ( checkInfo.firstArg, checkInfo.secondArg ) of
+        ( _, Just (Node _ (Expression.Literal "")) ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.left on an empty string will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
+        ( Node _ (Expression.Integer 0), _ ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.left with length 0 will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
+        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.left with negative length will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
+        _ ->
+            []
+
+
+stringRightChecks : CheckInfo -> List (Error {})
+stringRightChecks checkInfo =
+    case ( checkInfo.firstArg, checkInfo.secondArg ) of
+        ( _, Just (Node _ (Expression.Literal "")) ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.right on an empty string will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
+        ( Node _ (Expression.Integer 0), _ ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.right with length 0 will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
+        ( Node _ (Expression.Negation (Node _ (Expression.Integer length))), _ ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.right with negative length will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+            ]
+
+        _ ->
             []
 
 
