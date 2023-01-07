@@ -4689,7 +4689,7 @@ a = String.concat []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.concat on an empty list will result in a empty string"
+                            { message = "Using String.concat on an empty list will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             , under = "String.concat"
                             }
@@ -4718,7 +4718,7 @@ a = String.join b []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.join on an empty list will result in a empty string"
+                            { message = "Using String.join on an empty list will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             , under = "String.join"
                             }
@@ -4796,7 +4796,7 @@ a = String.repeat n ""
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with an empty string will result in a empty string"
+                            { message = "Using String.repeat with an empty string will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             , under = "String.repeat"
                             }
@@ -5035,7 +5035,7 @@ a = String.reverse ""
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.reverse on an empty string will result in a empty string"
+                            { message = "Using String.reverse on an empty string will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             , under = "String.reverse"
                             }
