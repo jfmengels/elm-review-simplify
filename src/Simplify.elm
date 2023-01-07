@@ -3012,7 +3012,7 @@ stringRightChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( Node _ (Expression.Negation (Node _ (Expression.Integer length))), _ ) ->
+        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.right with negative length will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
