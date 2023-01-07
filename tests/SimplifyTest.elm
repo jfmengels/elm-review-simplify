@@ -4684,7 +4684,7 @@ a = String.concat list
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test """should replace String.concat [] by \"\"""" <|
+        , test "should replace String.concat [] by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.concat []
@@ -4713,7 +4713,7 @@ a = String.join b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test """should replace String.join b [] by \"\"""" <|
+        , test "should replace String.join b [] by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.join b []
@@ -4807,7 +4807,7 @@ a = String.repeat n ""
 a = ""
 """
                         ]
-        , test """should replace String.repeat 0 str by \"\"""" <|
+        , test "should replace String.repeat 0 str by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.repeat 0 str
@@ -4839,7 +4839,7 @@ a = String.repeat 0
 a = (always "")
 """
                         ]
-        , test """should replace String.repeat -5 str by \"\"""" <|
+        , test "should replace String.repeat -5 str by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.repeat -5 str
@@ -5075,7 +5075,7 @@ a = String.slice b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test """should replace String.slice b 0 by \"\"""" <|
+        , test "should replace String.slice b 0 by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.slice b 0
@@ -5123,7 +5123,7 @@ a = String.slice a z ""
 a = ""
 """
                         ]
-        , test """should replace String.slice 0 by String.left""" <|
+        , test "should replace String.slice 0 by String.left" <|
             \() ->
                 """module A exposing (..)
 a = String.slice 0
@@ -5152,7 +5152,7 @@ a = String.left b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test """should replace String.left 0 by always \"\"""" <|
+        , test "should replace String.left 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.left 0
@@ -5168,7 +5168,7 @@ a = String.left 0
 a = always ""
 """
                         ]
-        , test """should replace String.left -literal by always \"\"""" <|
+        , test "should replace String.left -literal by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.left -1
@@ -5213,7 +5213,7 @@ a = String.right b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test """should replace String.right 0 by \"\"""" <|
+        , test "should replace String.right 0 by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.right 0
@@ -5229,7 +5229,7 @@ a = String.right 0
 a = always ""
 """
                         ]
-        , test """should replace String.right -literal by \"\"""" <|
+        , test "should replace String.right -literal by \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.right -1
