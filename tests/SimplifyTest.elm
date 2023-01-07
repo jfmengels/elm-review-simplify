@@ -5121,6 +5121,22 @@ a = String.slice n n str
 a = ""
 """
                         ]
+        , test "should replace String.slice a z \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice a z ""
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice on an empty string will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         , test """should replace String.slice 0 n str by String.left n str""" <|
             \() ->
                 """module A exposing (..)
