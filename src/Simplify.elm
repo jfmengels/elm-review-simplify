@@ -2907,31 +2907,8 @@ stringReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
 
 stringSliceChecks : CheckInfo -> List (Error {})
 stringSliceChecks checkInfo =
-    case ( checkInfo.firstArg, checkInfo.secondArg, checkInfo.thirdArg ) of
-        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
-            [ Rule.errorWithFix
-                { message = "Using String.slice with end index 0 will result in an empty string"
-                , details = [ "You can replace this call by an empty string." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
-            ]
-
-        ( Node _ (Expression.Integer 0), _, _ ) ->
-            [ Rule.errorWithFix
-                { message = "Use String.left instead"
-                , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.fnRange.start
-                    , end = (Node.range checkInfo.firstArg).end
-                    }
-                    "String.left"
-                ]
-            ]
-
-        ( _, _, Just (Node _ (Expression.Literal "")) ) ->
+    case checkInfo.thirdArg of
+        Just (Node _ (Expression.Literal "")) ->
             [ Rule.errorWithFix
                 { message = "Using String.slice on an empty string will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
@@ -2940,21 +2917,46 @@ stringSliceChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( start, Just end, _ ) ->
-            if Normalize.areAllTheSame checkInfo start [ end ] then
-                [ Rule.errorWithFix
-                    { message = "Using String.slice with equal start and end index will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
-                ]
+        _ ->
+            case ( checkInfo.firstArg, checkInfo.secondArg ) of
+                ( _, Just (Node _ (Expression.Integer 0)) ) ->
+                    [ Rule.errorWithFix
+                        { message = "Using String.slice with end index 0 will result in an empty string"
+                        , details = [ "You can replace this call by an empty string." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                    ]
 
-            else
-                []
+                ( Node _ (Expression.Integer 0), _ ) ->
+                    [ Rule.errorWithFix
+                        { message = "Use String.left instead"
+                        , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy
+                            { start = checkInfo.fnRange.start
+                            , end = (Node.range checkInfo.firstArg).end
+                            }
+                            "String.left"
+                        ]
+                    ]
 
-        ( _, Nothing, _ ) ->
-            []
+                ( start, Just end ) ->
+                    if Normalize.areAllTheSame checkInfo start [ end ] then
+                        [ Rule.errorWithFix
+                            { message = "Using String.slice with equal start and end index will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                        ]
+
+                    else
+                        []
+
+                ( _, Nothing ) ->
+                    []
 
 
 stringLeftChecks : CheckInfo -> List (Error {})
