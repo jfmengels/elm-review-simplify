@@ -5088,29 +5088,13 @@ a = String.slice b 0
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ""
+a = always ""
 """
                         ]
-        , test "should replace String.slice n 0 str by \"\"" <|
+        , test "should replace String.slice n n by always \"\"" <|
             \() ->
                 """module A exposing (..)
-a = String.slice n 0 str
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            , under = "String.slice"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = ""
-"""
-                        ]
-        , test "should replace String.slice n n str by \"\"" <|
-            \() ->
-                """module A exposing (..)
-a = String.slice n n str
+a = String.slice n n
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -5120,7 +5104,7 @@ a = String.slice n n str
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ""
+a = always ""
 """
                         ]
         , test "should replace String.slice a z \"\" by \"\"" <|
@@ -5139,10 +5123,10 @@ a = String.slice a z ""
 a = ""
 """
                         ]
-        , test """should replace String.slice 0 n str by String.left n str""" <|
+        , test """should replace String.slice 0 by String.left""" <|
             \() ->
                 """module A exposing (..)
-a = String.slice 0 n str
+a = String.slice 0
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -5152,23 +5136,7 @@ a = String.slice 0 n str
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = String.left n str
-"""
-                        ]
-        , test """should replace str |> String.slice 0 n by str |> String.left n""" <|
-            \() ->
-                """module A exposing (..)
-a = str |> String.slice 0 n
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Use String.left instead"
-                            , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
-                            , under = "String.slice"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = str |> String.left n
+a = String.left
 """
                         ]
         ]
@@ -5184,7 +5152,7 @@ a = String.left b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test """should replace String.left 0 by \"\"""" <|
+        , test """should replace String.left 0 by always \"\"""" <|
             \() ->
                 """module A exposing (..)
 a = String.left 0
@@ -5197,10 +5165,10 @@ a = String.left 0
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ""
+a = always ""
 """
                         ]
-        , test """should replace String.left -literal by \"\"""" <|
+        , test """should replace String.left -literal by always \"\"""" <|
             \() ->
                 """module A exposing (..)
 a = String.left -1
@@ -5213,7 +5181,7 @@ a = String.left -1
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ""
+a = always ""
 """
                         ]
         , test "should replace String.left n \"\" by \"\"" <|
@@ -5258,7 +5226,7 @@ a = String.right 0
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ""
+a = always ""
 """
                         ]
         , test """should replace String.right -literal by \"\"""" <|
@@ -5274,7 +5242,7 @@ a = String.right -1
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ""
+a = always ""
 """
                         ]
         , test "should replace String.right n \"\" by \"\"" <|

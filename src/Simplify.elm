@@ -2914,7 +2914,7 @@ stringSliceChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
 
         ( Node _ (Expression.Integer 0), _, _ ) ->
@@ -2947,7 +2947,7 @@ stringSliceChecks checkInfo =
                     , details = [ "You can replace this call by an empty string." ]
                     }
                     checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                    [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
                 ]
 
             else
@@ -2975,7 +2975,7 @@ stringLeftChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
 
         ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
@@ -2984,7 +2984,7 @@ stringLeftChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
 
         _ ->
@@ -3009,7 +3009,7 @@ stringRightChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
 
         ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
@@ -3018,7 +3018,7 @@ stringRightChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
 
         _ ->
