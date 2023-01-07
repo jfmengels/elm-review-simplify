@@ -329,6 +329,15 @@ Destructuring using case expressions
     String.right n ""
     --> ""
 
+    String.slice 1 2 "abc"
+    --> "b"
+
+    String.left 2 "abc"
+    --> "ab"
+
+    String.right 2 "abc"
+    --> "bc"
+
 
 ### Maybes
 
@@ -2907,8 +2916,8 @@ stringReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
 
 stringSliceChecks : CheckInfo -> List (Error {})
 stringSliceChecks checkInfo =
-    case checkInfo.thirdArg of
-        Just (Node _ (Expression.Literal "")) ->
+    case ( checkInfo.firstArg, checkInfo.secondArg, checkInfo.thirdArg ) of
+        ( _, _, Just (Node _ (Expression.Literal "")) ) ->
             [ Rule.errorWithFix
                 { message = "Using String.slice on an empty string will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
@@ -2917,32 +2926,51 @@ stringSliceChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        _ ->
-            case ( checkInfo.firstArg, checkInfo.secondArg ) of
-                ( _, Just (Node _ (Expression.Integer 0)) ) ->
-                    [ Rule.errorWithFix
-                        { message = "Using String.slice with end index 0 will result in an empty string"
-                        , details = [ "You can replace this call by an empty string." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
-                    ]
+        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
+            [ Rule.errorWithFix
+                { message = "Using String.slice with end index 0 will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+            ]
 
-                ( Node _ (Expression.Integer 0), _ ) ->
-                    [ Rule.errorWithFix
-                        { message = "Use String.left instead"
-                        , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy
-                            { start = checkInfo.fnRange.start
-                            , end = (Node.range checkInfo.firstArg).end
-                            }
-                            "String.left"
-                        ]
-                    ]
+        ( Node _ (Expression.Integer 0), _, _ ) ->
+            [ Rule.errorWithFix
+                { message = "Use String.left instead"
+                , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.fnRange.start
+                    , end = (Node.range checkInfo.firstArg).end
+                    }
+                    "String.left"
+                ]
+            ]
 
-                ( start, Just end ) ->
+        ( start, Just end, stringArgument ) ->
+            case stringArgument of
+                Just (Node _ (Expression.Literal nonEmptyString)) ->
+                    case Maybe.map2 Tuple.pair (Evaluate.getInt checkInfo start) (Evaluate.getInt checkInfo end) of
+                        Nothing ->
+                            []
+
+                        Just ( startInt, endInt ) ->
+                            [ let
+                                sliced : String
+                                sliced =
+                                    "\"" ++ String.slice startInt endInt nonEmptyString ++ "\""
+                              in
+                              Rule.errorWithFix
+                                { message = "The call to String.slice will result in " ++ sliced
+                                , details = [ "You can replace this slice operation by " ++ sliced ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange sliced ]
+                            ]
+
+                _ ->
                     if Normalize.areAllTheSame checkInfo start [ end ] then
                         [ Rule.errorWithFix
                             { message = "Using String.slice with equal start and end index will result in an empty string"
@@ -2955,8 +2983,8 @@ stringSliceChecks checkInfo =
                     else
                         []
 
-                ( _, Nothing ) ->
-                    []
+        ( _, Nothing, _ ) ->
+            []
 
 
 stringLeftChecks : CheckInfo -> List (Error {})
@@ -2988,6 +3016,25 @@ stringLeftChecks checkInfo =
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
+
+        ( length, Just (Node _ (Expression.Literal nonEmptyString)) ) ->
+            case Evaluate.getInt checkInfo length of
+                Nothing ->
+                    []
+
+                Just lengthInt ->
+                    [ let
+                        left : String
+                        left =
+                            "\"" ++ String.left lengthInt nonEmptyString ++ "\""
+                      in
+                      Rule.errorWithFix
+                        { message = "The call to String.left will result in " ++ left
+                        , details = [ "You can replace this left operation by " ++ left ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange left ]
+                    ]
 
         _ ->
             []
@@ -3022,6 +3069,25 @@ stringRightChecks checkInfo =
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
+
+        ( length, Just (Node _ (Expression.Literal nonEmptyString)) ) ->
+            case Evaluate.getInt checkInfo length of
+                Nothing ->
+                    []
+
+                Just lengthInt ->
+                    [ let
+                        right : String
+                        right =
+                            "\"" ++ String.right lengthInt nonEmptyString ++ "\""
+                      in
+                      Rule.errorWithFix
+                        { message = "The call to String.right will result in " ++ right
+                        , details = [ "You can replace this right operation by " ++ right ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange right ]
+                    ]
 
         _ ->
             []
