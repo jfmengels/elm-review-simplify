@@ -2614,18 +2614,18 @@ basicsIdentityChecks checkInfo =
     ]
 
 
+identityCompositionErrorMessage : { message : String, details : List String }
+identityCompositionErrorMessage =
+    { message = "`identity` should be removed"
+    , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+    }
+
+
 identityCompositionCheck : CompositionCheckInfo -> List (Error {})
 identityCompositionCheck { lookupTable, left, right } =
-    let
-        errorInfo : () -> { message : String, details : List String }
-        errorInfo () =
-            { message = "`identity` should be removed"
-            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-            }
-    in
     if isIdentity lookupTable right then
         [ Rule.errorWithFix
-            (errorInfo ())
+            identityCompositionErrorMessage
             (Node.range right)
             [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
             ]
@@ -2633,7 +2633,7 @@ identityCompositionCheck { lookupTable, left, right } =
 
     else if isIdentity lookupTable left then
         [ Rule.errorWithFix
-            (errorInfo ())
+            identityCompositionErrorMessage
             (Node.range left)
             [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
             ]
@@ -2667,19 +2667,19 @@ basicsAlwaysChecks ({ fnRange, firstArg, secondArg, usingRightPizza } as checkIn
             []
 
 
+alwaysCompositionErrorMessage : { message : String, details : List String }
+alwaysCompositionErrorMessage =
+    { message = "Function composed with always will be ignored"
+    , details = [ "`always` will swallow the function composed into it." ]
+    }
+
+
 alwaysCompositionCheck : CompositionCheckInfo -> List (Error {})
 alwaysCompositionCheck { lookupTable, fromLeftToRight, left, right, leftRange, rightRange } =
-    let
-        errorInfo : () -> { message : String, details : List String }
-        errorInfo () =
-            { message = "Function composed with always will be ignored"
-            , details = [ "`always` will swallow the function composed into it." ]
-            }
-    in
     if fromLeftToRight then
         if isAlwaysCall lookupTable right then
             [ Rule.errorWithFix
-                (errorInfo ())
+                alwaysCompositionErrorMessage
                 rightRange
                 [ Fix.removeRange { start = leftRange.start, end = rightRange.start } ]
             ]
@@ -2689,7 +2689,7 @@ alwaysCompositionCheck { lookupTable, fromLeftToRight, left, right, leftRange, r
 
     else if isAlwaysCall lookupTable left then
         [ Rule.errorWithFix
-            (errorInfo ())
+            alwaysCompositionErrorMessage
             leftRange
             [ Fix.removeRange { start = leftRange.end, end = rightRange.end } ]
         ]
