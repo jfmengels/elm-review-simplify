@@ -2479,17 +2479,7 @@ getNotCall lookupTable baseNode =
 
 getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNotFunction lookupTable baseNode =
-    case AstHelpers.removeParens baseNode of
-        Node notRange (Expression.FunctionOrValue _ "not") ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
-                Just [ "Basics" ] ->
-                    Just notRange
-
-                _ ->
-                    Nothing
-
-        _ ->
-            Nothing
+    getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
 
 
 getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
