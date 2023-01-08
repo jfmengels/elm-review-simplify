@@ -329,14 +329,11 @@ Destructuring using case expressions
     String.right n ""
     --> ""
 
-    String.slice 1 2 "abc"
-    --> "b"
+    String.slice 2 1 str
+    --> ""
 
-    String.left 2 "abc"
-    --> "ab"
-
-    String.right 2 "abc"
-    --> "bc"
+    String.slice -1 -2 str
+    --> ""
 
 
 ### Maybes
@@ -2949,29 +2946,33 @@ stringSliceChecks checkInfo =
                 ]
             ]
 
-        ( start, Just end, stringArgument ) ->
-            case stringArgument of
-                Just (Node _ (Expression.Literal nonEmptyString)) ->
-                    case Maybe.map2 Tuple.pair (Evaluate.getInt checkInfo start) (Evaluate.getInt checkInfo end) of
-                        Nothing ->
-                            []
+        ( start, Just end, _ ) ->
+            Maybe.map2
+                (\startInt endInt ->
+                    if
+                        (startInt >= endInt)
+                            && -- have the same sign
+                               ((startInt <= -1 && endInt <= -1)
+                                    || (startInt >= 0 && endInt >= 0)
+                               )
+                    then
+                        [ Rule.errorWithFix
+                            { message = "The call to String.slice will result in \"\""
+                            , details = [ "You can replace this slice operation by \"\"." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                        ]
+                            |> Just
 
-                        Just ( startInt, endInt ) ->
-                            [ let
-                                sliced : String
-                                sliced =
-                                    "\"" ++ String.slice startInt endInt nonEmptyString ++ "\""
-                              in
-                              Rule.errorWithFix
-                                { message = "The call to String.slice will result in " ++ sliced
-                                , details = [ "You can replace this slice operation by " ++ sliced ++ "." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange sliced ]
-                            ]
-
-                _ ->
-                    if Normalize.areAllTheSame checkInfo start [ end ] then
+                    else
+                        -- either is negative or startInt < endInt
+                        Nothing
+                )
+                (Evaluate.getInt checkInfo start)
+                (Evaluate.getInt checkInfo end)
+                |> Maybe.withDefault
+                    (if Normalize.areAllTheSame checkInfo start [ end ] then
                         [ Rule.errorWithFix
                             { message = "Using String.slice with equal start and end index will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
@@ -2979,9 +2980,12 @@ stringSliceChecks checkInfo =
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
                         ]
+                            |> Just
 
-                    else
-                        []
+                     else
+                        Nothing
+                    )
+                |> Maybe.withDefault []
 
         ( _, Nothing, _ ) ->
             []
@@ -3017,25 +3021,6 @@ stringLeftChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
 
-        ( length, Just (Node _ (Expression.Literal nonEmptyString)) ) ->
-            case Evaluate.getInt checkInfo length of
-                Nothing ->
-                    []
-
-                Just lengthInt ->
-                    [ let
-                        left : String
-                        left =
-                            "\"" ++ String.left lengthInt nonEmptyString ++ "\""
-                      in
-                      Rule.errorWithFix
-                        { message = "The call to String.left will result in " ++ left
-                        , details = [ "You can replace this left operation by " ++ left ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange left ]
-                    ]
-
         _ ->
             []
 
@@ -3069,25 +3054,6 @@ stringRightChecks checkInfo =
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
             ]
-
-        ( length, Just (Node _ (Expression.Literal nonEmptyString)) ) ->
-            case Evaluate.getInt checkInfo length of
-                Nothing ->
-                    []
-
-                Just lengthInt ->
-                    [ let
-                        right : String
-                        right =
-                            "\"" ++ String.right lengthInt nonEmptyString ++ "\""
-                      in
-                      Rule.errorWithFix
-                        { message = "The call to String.right will result in " ++ right
-                        , details = [ "You can replace this right operation by " ++ right ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange right ]
-                    ]
 
         _ ->
             []

@@ -5155,22 +5155,54 @@ a = String.slice 0 0
 a = always ""
 """
                         ]
-        , test "should replace String.slice literal literal by the computed slice" <|
+        , test "should replace String.slice with natural start >= natural end by always \"\"" <|
             \() ->
                 """module A exposing (..)
-a = String.slice 1 2 "abc"
+a = String.slice 2 1
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to String.slice will result in \"b\""
-                            , details = [ "You can replace this slice operation by \"b\"." ]
+                            { message = "The call to String.slice will result in \"\""
+                            , details = [ "You can replace this slice operation by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = "b"
+a = always ""
 """
                         ]
+        , test "should replace String.slice with negative start >= negative end by always \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice -1 -2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to String.slice will result in \"\""
+                            , details = [ "You can replace this slice operation by \"\"." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always ""
+"""
+                        ]
+        , test "should not report String.slice with negative start, natural end" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice -1 2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        []
+        , test "should not report String.slice with natural start, negative end" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice 1 -2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        []
         ]
 
 
@@ -5232,22 +5264,6 @@ a = String.left n ""
 a = ""
 """
                         ]
-        , test "should replace String.left literal literal by the computed substring" <|
-            \() ->
-                """module A exposing (..)
-a = String.left 2 "abc"
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "The call to String.left will result in \"ab\""
-                            , details = [ "You can replace this left operation by \"ab\"." ]
-                            , under = "String.left"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = "ab"
-"""
-                        ]
         ]
 
 
@@ -5307,22 +5323,6 @@ a = String.right n ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ""
-"""
-                        ]
-        , test "should replace String.right literal literal by the computed substring" <|
-            \() ->
-                """module A exposing (..)
-a = String.right 2 "abc"
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "The call to String.right will result in \"bc\""
-                            , details = [ "You can replace this right operation by \"bc\"." ]
-                            , under = "String.right"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = "bc"
 """
                         ]
         ]
