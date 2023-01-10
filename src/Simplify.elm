@@ -3910,13 +3910,7 @@ listTakeChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
             , details = [ "You can replace this call by []." ]
             }
             fnRange
-            (case secondArg of
-                Just _ ->
-                    [ Fix.replaceRangeBy parentRange "[]" ]
-
-                Nothing ->
-                    [ Fix.replaceRangeBy parentRange "(always [])" ]
-            )
+            (replaceByEmptyFix "[]" parentRange secondArg)
         ]
 
     else
@@ -5443,7 +5437,7 @@ replaceByEmptyFix empty parentRange secondArg =
             Fix.replaceRangeBy parentRange empty
 
         Nothing ->
-            Fix.replaceRangeBy parentRange ("(always " ++ empty ++ ")")
+            Fix.replaceRangeBy parentRange ("always " ++ empty)
     ]
 
 

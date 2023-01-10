@@ -4836,7 +4836,7 @@ a = String.repeat 0
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always "")
+a = always ""
 """
                         ]
         , test "should replace String.repeat -5 str by \"\"" <|
@@ -5672,7 +5672,7 @@ a = List.concatMap (always [])
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.concatMap (\\_ -> [a]) x by List.map (\\_ -> a) x" <|
@@ -6220,7 +6220,7 @@ a = List.filter (always False)
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.filter <| (always False) by always []" <|
@@ -6236,7 +6236,7 @@ a = List.filter <| (always False)
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace always False |> List.filter by always []" <|
@@ -6252,7 +6252,7 @@ a = always False |> List.filter
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         ]
@@ -6377,7 +6377,7 @@ a = List.filterMap (always Nothing)
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.filterMap <| always Nothing by always []" <|
@@ -6393,7 +6393,7 @@ a = List.filterMap <| always Nothing
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace always Nothing |> List.filterMap by always []" <|
@@ -6409,7 +6409,7 @@ a = always Nothing |> List.filterMap
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.filterMap Just x by x" <|
@@ -7158,7 +7158,7 @@ a = List.repeat 0
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.repeat -5 list by []" <|
@@ -7289,7 +7289,7 @@ a = List.take 0
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         ]
@@ -9161,7 +9161,7 @@ a = Set.filter (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always Set.empty)
+a = always Set.empty
 """
                         ]
         , test "should replace Set.filter <| (always False) by always Set.empty" <|
@@ -9177,7 +9177,7 @@ a = Set.filter <| (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always Set.empty)
+a = always Set.empty
 """
                         ]
         , test "should replace always False |> Set.filter by always Set.empty" <|
@@ -9193,7 +9193,7 @@ a = always False |> Set.filter
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always Set.empty)
+a = always Set.empty
 """
                         ]
         ]
