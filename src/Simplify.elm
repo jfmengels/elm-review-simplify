@@ -2920,19 +2920,16 @@ stringSliceChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.thirdArg)
             ]
 
-        ( _, Just (Node endArgumentRange (Expression.Integer 0)), _ ) ->
+        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.slice with end index 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.fnRange.start, end = endArgumentRange.end }
-                    "always \"\""
-                ]
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.thirdArg)
             ]
 
         ( Node startArgumentRange (Expression.Integer 0), _, _ ) ->
@@ -2962,10 +2959,7 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this slice operation by \"\"." ]
                             }
                             checkInfo.fnRange
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = (Node.range end).end }
-                                "always \"\""
-                            ]
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.thirdArg)
                         ]
                             |> Just
 
@@ -2982,10 +2976,7 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this call by an empty string." ]
                             }
                             checkInfo.fnRange
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = (Node.range end).end }
-                                "always \"\""
-                            ]
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.thirdArg)
                         ]
                             |> Just
 
@@ -3010,28 +3001,22 @@ stringLeftChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( Node lengthArgumentRange (Expression.Integer 0), _ ) ->
+        ( Node _ (Expression.Integer 0), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.left with length 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
-                    "always \"\""
-                ]
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.secondArg)
             ]
 
-        ( Node lengthArgumentRange (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
+        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.left with negative length will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
-                    "always \"\""
-                ]
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.secondArg)
             ]
 
         _ ->
@@ -3158,7 +3143,7 @@ stringRepeatChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) 
                             , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
                             }
                             fnRange
-                            (replaceByEmptyFix "\"\"" parentRange secondArg)
+                            (replaceByEmptyFix emptyStringAsString parentRange secondArg)
                         ]
 
                     else
@@ -5439,6 +5424,11 @@ replaceByEmptyFix empty parentRange secondArg =
         Nothing ->
             Fix.replaceRangeBy parentRange ("always " ++ empty)
     ]
+
+
+emptyStringAsString : String
+emptyStringAsString =
+    "\"\""
 
 
 replaceByBoolFix : Range -> Maybe a -> Bool -> List Fix
