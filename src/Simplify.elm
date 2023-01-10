@@ -2962,7 +2962,10 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this slice operation by \"\"." ]
                             }
                             checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = (Node.range end).end }
+                                "always \"\""
+                            ]
                         ]
                             |> Just
 
