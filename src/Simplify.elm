@@ -3003,22 +3003,28 @@ stringLeftChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( Node _ (Expression.Integer 0), _ ) ->
+        ( Node lengthArgumentRange (Expression.Integer 0), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.left with length 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
+                    "always \"\""
+                ]
             ]
 
-        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
+        ( Node lengthArgumentRange (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.left with negative length will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
+                    "always \"\""
+                ]
             ]
 
         _ ->
@@ -3037,22 +3043,28 @@ stringRightChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( Node _ (Expression.Integer 0), _ ) ->
+        ( Node lengthArgumentRange (Expression.Integer 0), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.right with length 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
+                    "always \"\""
+                ]
             ]
 
-        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
+        ( Node _ (Expression.Negation (Node lengthArgumentRange (Expression.Integer _))), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.right with negative length will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
+                    "always \"\""
+                ]
             ]
 
         _ ->
