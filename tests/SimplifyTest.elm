@@ -5091,6 +5091,22 @@ a = String.slice b 0
 a = always ""
 """
                         ]
+        , test "should replace String.slice b 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice b 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with end index 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         , test "should replace String.slice n n by always \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -5105,6 +5121,22 @@ a = String.slice n n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always ""
+"""
+                        ]
+        , test "should replace String.slice n n str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice n n str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with equal start and end index will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         , test "should replace String.slice a z \"\" by \"\"" <|
@@ -5153,6 +5185,22 @@ a = String.slice 0 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always ""
+"""
+                        ]
+        , test "should replace String.slice 0 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice 0 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with end index 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         , test "should replace String.slice with natural start >= natural end by always \"\"" <|
@@ -5216,6 +5264,22 @@ a = String.left b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should replace String.left 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.left 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.left with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.left"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         , test "should replace String.left 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
