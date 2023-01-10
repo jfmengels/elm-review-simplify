@@ -2923,25 +2923,26 @@ stringSliceChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
+        ( _, Just (Node endArgumentRange (Expression.Integer 0)), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.slice with end index 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.fnRange.start, end = endArgumentRange.end }
+                    "always \"\""
+                ]
             ]
 
-        ( Node _ (Expression.Integer 0), _, _ ) ->
+        ( Node startArgumentRange (Expression.Integer 0), _, _ ) ->
             [ Rule.errorWithFix
                 { message = "Use String.left instead"
                 , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
                 }
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy
-                    { start = checkInfo.fnRange.start
-                    , end = (Node.range checkInfo.firstArg).end
-                    }
+                    { start = checkInfo.fnRange.start, end = startArgumentRange.end }
                     "String.left"
                 ]
             ]
@@ -2978,7 +2979,10 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this call by an empty string." ]
                             }
                             checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange "always \"\"" ]
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = (Node.range end).end }
+                                "always \"\""
+                            ]
                         ]
                             |> Just
 
