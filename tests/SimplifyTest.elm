@@ -5341,7 +5341,23 @@ a = String.right b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace String.right 0 by \"\"" <|
+        , test "should replace String.right 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.right 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.right 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.right 0
@@ -5357,7 +5373,23 @@ a = String.right 0
 a = always ""
 """
                         ]
-        , test "should replace String.right -literal by \"\"" <|
+        , test "should replace String.right -literal str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.right -1 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.right -literal by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.right -1
