@@ -4836,7 +4836,7 @@ a = String.repeat 0
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always "")
+a = always ""
 """
                         ]
         , test "should replace String.repeat -5 str by \"\"" <|
@@ -5091,6 +5091,22 @@ a = String.slice b 0
 a = always ""
 """
                         ]
+        , test "should replace String.slice b 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice b 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with end index 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         , test "should replace String.slice n n by always \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -5105,6 +5121,22 @@ a = String.slice n n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always ""
+"""
+                        ]
+        , test "should replace String.slice n n str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice n n str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with equal start and end index will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         , test "should replace String.slice a z \"\" by \"\"" <|
@@ -5153,6 +5185,22 @@ a = String.slice 0 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always ""
+"""
+                        ]
+        , test "should replace String.slice 0 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice 0 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.slice with end index 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
 """
                         ]
         , test "should replace String.slice with natural start >= natural end by always \"\"" <|
@@ -5216,6 +5264,22 @@ a = String.left b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should replace String.left 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.left 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.left with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.left"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         , test "should replace String.left 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -5277,7 +5341,23 @@ a = String.right b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace String.right 0 by \"\"" <|
+        , test "should replace String.right 0 str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.right 0 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.right 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.right 0
@@ -5293,7 +5373,23 @@ a = String.right 0
 a = always ""
 """
                         ]
-        , test "should replace String.right -literal by \"\"" <|
+        , test "should replace String.right -literal str by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.right -1 str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.right with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.right -literal by always \"\"" <|
             \() ->
                 """module A exposing (..)
 a = String.right -1
@@ -5672,7 +5768,7 @@ a = List.concatMap (always [])
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.concatMap (\\_ -> [a]) x by List.map (\\_ -> a) x" <|
@@ -6220,7 +6316,7 @@ a = List.filter (always False)
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.filter <| (always False) by always []" <|
@@ -6236,7 +6332,7 @@ a = List.filter <| (always False)
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace always False |> List.filter by always []" <|
@@ -6252,7 +6348,7 @@ a = always False |> List.filter
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         ]
@@ -6377,7 +6473,7 @@ a = List.filterMap (always Nothing)
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.filterMap <| always Nothing by always []" <|
@@ -6393,7 +6489,7 @@ a = List.filterMap <| always Nothing
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace always Nothing |> List.filterMap by always []" <|
@@ -6409,7 +6505,7 @@ a = always Nothing |> List.filterMap
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.filterMap Just x by x" <|
@@ -7158,7 +7254,7 @@ a = List.repeat 0
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         , test "should replace List.repeat -5 list by []" <|
@@ -7289,7 +7385,7 @@ a = List.take 0
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always [])
+a = always []
 """
                         ]
         ]
@@ -9161,7 +9257,7 @@ a = Set.filter (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always Set.empty)
+a = always Set.empty
 """
                         ]
         , test "should replace Set.filter <| (always False) by always Set.empty" <|
@@ -9177,7 +9273,7 @@ a = Set.filter <| (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always Set.empty)
+a = always Set.empty
 """
                         ]
         , test "should replace always False |> Set.filter by always Set.empty" <|
@@ -9193,7 +9289,7 @@ a = always False |> Set.filter
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always Set.empty)
+a = always Set.empty
 """
                         ]
         ]
