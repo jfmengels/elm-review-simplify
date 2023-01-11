@@ -3035,28 +3035,22 @@ stringRightChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
             ]
 
-        ( Node lengthArgumentRange (Expression.Integer 0), _ ) ->
+        ( Node _ (Expression.Integer 0), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.right with length 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
-                    "always \"\""
-                ]
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.secondArg)
             ]
 
-        ( Node _ (Expression.Negation (Node lengthArgumentRange (Expression.Integer _))), _ ) ->
+        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.right with negative length will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.parentRange.start, end = lengthArgumentRange.end }
-                    "always \"\""
-                ]
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange checkInfo.secondArg)
             ]
 
         _ ->
