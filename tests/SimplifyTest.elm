@@ -7545,102 +7545,102 @@ a = (list |> List.sum) + initial
 
 listFoldlProductTests : List Test
 listFoldlProductTests =
-    [ test "should replace List.foldl (*) 0 by List.product" <|
+    [ test "should replace List.foldl (*) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldl (*) 0
+a = List.foldl (*) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldl (\\x -> (*) x) 0 by List.product" <|
+    , test "should replace List.foldl (\\x -> (*) x) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldl (\\x -> (*) x) 0
+a = List.foldl (\\x -> (*) x) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldl (\\x y -> x * y) 0 by List.product" <|
+    , test "should replace List.foldl (\\x y -> x * y) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldl (\\x y -> x * y) 0
+a = List.foldl (\\x y -> x * y) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldl (\\x y -> y * x) 0 by List.product" <|
+    , test "should replace List.foldl (\\x y -> y * x) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldl (\\x y -> y * x) 0
+a = List.foldl (\\x y -> y * x) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldl (\\x y -> x |> (*) y) 0 by List.product" <|
+    , test "should replace List.foldl (\\x y -> x |> (*) y) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldl (\\x y -> x |> (*) y) 0
+a = List.foldl (\\x y -> x |> (*) y) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldl (\\x y -> y |> (*) x) 0 by List.product" <|
+    , test "should replace List.foldl (\\x y -> y |> (*) x) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldl (\\x y -> y |> (*) x) 0
+a = List.foldl (\\x y -> y |> (*) x) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -7657,7 +7657,7 @@ a = List.foldl (*) initial
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -7674,7 +7674,7 @@ a = List.foldl (*) initial list
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -7691,7 +7691,7 @@ a = List.foldl (*) initial <| list
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -7708,7 +7708,7 @@ a = list |> List.foldl (*) initial
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -8302,102 +8302,102 @@ a = (list |> List.sum) + initial
 
 listFoldrProductTests : List Test
 listFoldrProductTests =
-    [ test "should replace List.foldr (*) 0 by List.product" <|
+    [ test "should replace List.foldr (*) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldr (*) 0
+a = List.foldr (*) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldr (\\x -> (*) x) 0 by List.product" <|
+    , test "should replace List.foldr (\\x -> (*) x) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldr (\\x -> (*) x) 0
+a = List.foldr (\\x -> (*) x) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldr (\\x y -> x * y) 0 by List.product" <|
+    , test "should replace List.foldr (\\x y -> x * y) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldr (\\x y -> x * y) 0
+a = List.foldr (\\x y -> x * y) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldr (\\x y -> y * x) 0 by List.product" <|
+    , test "should replace List.foldr (\\x y -> y * x) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldr (\\x y -> y * x) 0
+a = List.foldr (\\x y -> y * x) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldr (\\x y -> x |> (*) y) 0 by List.product" <|
+    , test "should replace List.foldr (\\x y -> x |> (*) y) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldr (\\x y -> x |> (*) y) 0
+a = List.foldr (\\x y -> x |> (*) y) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
 a = List.product
 """
                     ]
-    , test "should replace List.foldr (\\x y -> y |> (*) x) 0 by List.product" <|
+    , test "should replace List.foldr (\\x y -> y |> (*) x) 1 by List.product" <|
         \() ->
             """module A exposing (..)
-a = List.foldr (\\x y -> y |> (*) x) 0
+a = List.foldr (\\x y -> y |> (*) x) 1
 """
                 |> Review.Test.run (rule defaults)
                 |> Review.Test.expectErrors
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -8414,7 +8414,7 @@ a = List.foldr (*) initial
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -8431,7 +8431,7 @@ a = List.foldr (*) initial list
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -8448,7 +8448,7 @@ a = List.foldr (*) initial <| list
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
@@ -8465,7 +8465,7 @@ a = list |> List.foldr (*) initial
                     [ Review.Test.error
                         { message = "Use List.product instead"
                         , details =
-                            [ "Using List.foldr (*) 0 is the same as using List.product." ]
+                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)

@@ -504,6 +504,12 @@ Destructuring using case expressions
     List.foldl reduce initial []
     --> initial
 
+    List.foldl 0 (+) list
+    --> List.sum list
+
+    List.foldl 1 (*) list
+    --> List.product list
+
     List.foldl initial (+) list
     --> initial + List.sum list
 
@@ -524,6 +530,12 @@ Destructuring using case expressions
 
     List.foldr reduce initial []
     --> initial
+
+    List.foldr 0 (+) list
+    --> List.sum list
+
+    List.foldr 1 (*) list
+    --> List.product list
 
     List.foldr initial (+) list
     --> initial + List.sum list
@@ -3740,20 +3752,20 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 |> Maybe.andThen
                     (\initialArgument ->
                         let
-                            numberBinaryOperationChecks : { two : String, list : String } -> List (Error {})
-                            numberBinaryOperationChecks operationName =
+                            numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> List (Error {})
+                            numberBinaryOperationChecks operation =
                                 [ Rule.errorWithFix
-                                    { message = "Use List." ++ operationName.list ++ " instead"
+                                    { message = "Use List." ++ operation.list ++ " instead"
                                     , details =
-                                        [ "Using List." ++ foldOperationName ++ " (" ++ operationName.two ++ ") 0 is the same as using List." ++ operationName.list ++ "." ]
+                                        [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
                                     }
                                     checkInfo.fnRange
-                                    (if getUncomputedNumberValue initialArgument == Just 0 then
+                                    (if getUncomputedNumberValue initialArgument == Just (Basics.toFloat operation.identity) then
                                         [ Fix.replaceRangeBy
                                             { start = checkInfo.parentRange.start
                                             , end = (Node.range initialArgument).end
                                             }
-                                            ("List." ++ operationName.list)
+                                            ("List." ++ operation.list)
                                         ]
 
                                      else
@@ -3772,20 +3784,20 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                                     , end = (Node.range initialArgument).start
                                                     }
                                                 , Fix.insertAt (Node.range initialArgument).start
-                                                    (" >> (" ++ operationName.two ++ ") ")
+                                                    (" >> (" ++ operation.two ++ ") ")
                                                 , Fix.insertAt checkInfo.parentRange.start
-                                                    ("(List." ++ operationName.list)
+                                                    ("(List." ++ operation.list)
                                                 ]
 
                                             Just _ ->
                                                 if checkInfo.usingRightPizza then
                                                     -- list |> fold op initial --> (list |> List.op) + initial
-                                                    [ Fix.insertAt (Node.range initialArgument).start (operationName.two ++ " ")
+                                                    [ Fix.insertAt (Node.range initialArgument).start (operation.two ++ " ")
                                                     , Fix.replaceRangeBy
                                                         { start = checkInfo.fnRange.start
                                                         , end = (Node.range checkInfo.firstArg).end
                                                         }
-                                                        ("List." ++ operationName.list ++ ")")
+                                                        ("List." ++ operation.list ++ ")")
                                                     , Fix.insertAt checkInfo.parentRange.start "("
                                                     ]
 
@@ -3794,7 +3806,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                                     -- fold op initial list --> initial + (List.op list)
                                                     [ Fix.insertAt checkInfo.parentRange.end ")"
                                                     , Fix.insertAt (Node.range initialArgument).end
-                                                        (" " ++ operationName.two ++ " (List." ++ operationName.list)
+                                                        (" " ++ operation.two ++ " (List." ++ operation.list)
                                                     , Fix.removeRange
                                                         { start = checkInfo.parentRange.start
                                                         , end = (Node.range initialArgument).start
@@ -3804,10 +3816,10 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 ]
                         in
                         if isBinaryOperation "+" checkInfo checkInfo.firstArg then
-                            Just (numberBinaryOperationChecks { two = "+", list = "sum" })
+                            Just (numberBinaryOperationChecks { identity = 0, two = "+", list = "sum" })
 
                         else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
-                            Just (numberBinaryOperationChecks { two = "*", list = "product" })
+                            Just (numberBinaryOperationChecks { identity = 1, two = "*", list = "product" })
 
                         else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
                             Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
