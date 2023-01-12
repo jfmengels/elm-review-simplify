@@ -501,6 +501,48 @@ Destructuring using case expressions
     List.isEmpty (x :: xs)
     --> False
 
+    List.foldl reduce initial []
+    --> initial
+
+    List.foldl initial (+) list
+    --> initial + List.sum list
+
+    List.foldl initial (*) list
+    --> initial + List.product list
+
+    List.foldl True (&&) list
+    --> List.all identity list
+
+    List.foldl False (&&) list
+    --> False
+
+    List.foldl fn x []
+    --> x
+
+    List.foldl (always identity) x list
+    --> x
+
+    List.foldr reduce initial []
+    --> initial
+
+    List.foldr initial (+) list
+    --> initial + List.sum list
+
+    List.foldr initial (*) list
+    --> initial + List.product list
+
+    List.foldr True (&&) list
+    --> List.all identity list
+
+    List.foldr False (&&) list
+    --> False
+
+    List.foldr fn x []
+    --> x
+
+    List.foldr (always identity) x list
+    --> x
+
     List.all fn []
     --> True
 
@@ -652,8 +694,8 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers
-import Simplify.Evaluate as Evaluate
+import Simplify.AstHelpers as AstHelpers exposing (removeParens)
+import Simplify.Evaluate as Evaluate exposing (getBoolean)
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
@@ -1132,7 +1174,30 @@ expressionVisitorHelp node context =
                         )
                         [ applicationRange ]
 
-                _ ->
+                Nothing ->
+                    onlyErrors []
+
+        Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: secondArg :: []))) thirdArgument ->
+            case
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+            of
+                Just checkFn ->
+                    errorsAndRangesToIgnore
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = Just secondArg
+                            , thirdArg = Just thirdArgument
+                            , usingRightPizza = False
+                            }
+                        )
+                        [ applicationRange ]
+
+                Nothing ->
                     onlyErrors []
 
         ----------
@@ -1175,6 +1240,29 @@ expressionVisitorHelp node context =
                             , firstArg = firstArg
                             , secondArg = Just secondArgument
                             , thirdArg = Nothing
+                            , usingRightPizza = True
+                            }
+                        )
+                        [ applicationRange ]
+
+                _ ->
+                    onlyErrors []
+
+        Expression.OperatorApplication "|>" _ thirdArgument (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: secondArg :: []))) ->
+            case
+                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+            of
+                Just checkFn ->
+                    errorsAndRangesToIgnore
+                        (checkFn
+                            { lookupTable = context.lookupTable
+                            , inferredConstants = context.inferredConstants
+                            , parentRange = Node.range node
+                            , fnRange = fnRange
+                            , firstArg = firstArg
+                            , secondArg = Just secondArg
+                            , thirdArg = Just thirdArgument
                             , usingRightPizza = True
                             }
                         )
@@ -1507,6 +1595,8 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), listIndexedMapChecks )
+        , ( ( [ "List" ], "foldl" ), listFoldlChecks )
+        , ( ( [ "List" ], "foldr" ), listFoldrChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
         , ( ( [ "List" ], "any" ), listAnyChecks )
         , ( ( [ "List" ], "range" ), listRangeChecks )
@@ -3605,6 +3695,228 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
                     []
 
 
+listFoldlChecks : CheckInfo -> List (Error {})
+listFoldlChecks checkInfo =
+    listFoldAnyDirectionChecks "foldl" checkInfo
+
+
+listFoldrChecks : CheckInfo -> List (Error {})
+listFoldrChecks checkInfo =
+    listFoldAnyDirectionChecks "foldr" checkInfo
+
+
+listFoldAnyDirectionChecks : String -> CheckInfo -> List (Error {})
+listFoldAnyDirectionChecks foldOperationName checkInfo =
+    -- TODO discuss adding
+    -- List.fold (&|) initial list --> initial &| (List.all identity list)
+    --         and piping versions
+    -- List.fold (&|) initial --> (List.all identity >> (&|) initial)
+    --     Are those simplifications? arguable, I'm leaning no
+    --     At the very least, they are more performant (stoppable).
+    -- List.fold f x [ a ] --> f (a) x
+    --         @jfmengels' comment: potentially quite ugly
+    --         I'd say it looks fine
+    case ( checkInfo.secondArg, checkInfo.thirdArg ) of
+        ( Just (Node initialArgumentRange _), Just (Node _ (Expression.ListExpr [])) ) ->
+            [ Rule.errorWithFix
+                { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                , details = [ "You can replace this call by the initial accumulator." ]
+                }
+                checkInfo.fnRange
+                [ Fix.removeRange
+                    { start = initialArgumentRange.end, end = checkInfo.parentRange.end }
+                , Fix.removeRange
+                    { start = checkInfo.parentRange.start, end = initialArgumentRange.start }
+                ]
+            ]
+
+        _ ->
+            checkInfo.secondArg
+                -- when there's no initial accumulator,
+                -- we could fix to like \init -> List.sum >> (+) init
+                --     but we would then have to check for argument name clashes etc.
+                -- a point-free alternative is (>>) List.sum << (+)
+                --     but don't expect anyone to call this as simpler (except hayleigh)
+                |> Maybe.andThen
+                    (\initialArgument ->
+                        let
+                            numberBinaryOperationChecks : { two : String, list : String } -> List (Error {})
+                            numberBinaryOperationChecks operationName =
+                                [ Rule.errorWithFix
+                                    { message = "Use List." ++ operationName.list ++ " instead"
+                                    , details =
+                                        [ "Using List." ++ foldOperationName ++ " (" ++ operationName.two ++ ") 0 is the same as using List." ++ operationName.list ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (if getUncomputedNumberValue initialArgument == Just 0 then
+                                        [ Fix.replaceRangeBy
+                                            { start = checkInfo.parentRange.start
+                                            , end = (Node.range initialArgument).end
+                                            }
+                                            ("List." ++ operationName.list)
+                                        ]
+
+                                     else
+                                        case checkInfo.thirdArg of
+                                            Nothing ->
+                                                -- fold op initial --> (List.op >> op initial)
+                                                -- TODO Can we call this a simplification?
+                                                --
+                                                -- why parens? edge cases with operator precedence
+                                                -- List.foldl (+) 0 << List.map .age
+                                                -- --> List.sum >> (+) 0 << List.map .age -- error!
+                                                --
+                                                [ Fix.insertAt checkInfo.parentRange.end ")"
+                                                , Fix.removeRange
+                                                    { start = checkInfo.parentRange.start
+                                                    , end = (Node.range initialArgument).start
+                                                    }
+                                                , Fix.insertAt (Node.range initialArgument).start
+                                                    (" >> (" ++ operationName.two ++ ") ")
+                                                , Fix.insertAt checkInfo.parentRange.start
+                                                    ("(List." ++ operationName.list)
+                                                ]
+
+                                            Just _ ->
+                                                if checkInfo.usingRightPizza then
+                                                    -- list |> fold op initial --> (list |> List.op) + initial
+                                                    [ Fix.insertAt (Node.range initialArgument).start (operationName.two ++ " ")
+                                                    , Fix.replaceRangeBy
+                                                        { start = checkInfo.fnRange.start
+                                                        , end = (Node.range checkInfo.firstArg).end
+                                                        }
+                                                        ("List." ++ operationName.list ++ ")")
+                                                    , Fix.insertAt checkInfo.parentRange.start "("
+                                                    ]
+
+                                                else
+                                                    -- <| or application
+                                                    -- fold op initial list --> initial + (List.op list)
+                                                    [ Fix.insertAt checkInfo.parentRange.end ")"
+                                                    , Fix.insertAt (Node.range initialArgument).end
+                                                        (" " ++ operationName.two ++ " (List." ++ operationName.list)
+                                                    , Fix.removeRange
+                                                        { start = checkInfo.parentRange.start
+                                                        , end = (Node.range initialArgument).start
+                                                        }
+                                                    ]
+                                    )
+                                ]
+                        in
+                        if isBinaryOperation "+" checkInfo checkInfo.firstArg then
+                            Just (numberBinaryOperationChecks { two = "+", list = "sum" })
+
+                        else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
+                            Just (numberBinaryOperationChecks { two = "*", list = "product" })
+
+                        else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                            Match.toDetermined (getBoolean checkInfo initialArgument)
+                                |> Maybe.map
+                                    (\initialIsTrue ->
+                                        if not initialIsTrue then
+                                            [ Rule.errorWithFix
+                                                { message = "The call to List." ++ foldOperationName ++ " will result in False"
+                                                , details = [ "You can replace this call by False." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceByEmptyFix "False" checkInfo.parentRange checkInfo.thirdArg)
+                                            ]
+
+                                        else
+                                            -- initialIsTrue
+                                            [ Rule.errorWithFix
+                                                { message = "Use List.all identity instead"
+                                                , details = [ "Using List." ++ foldOperationName ++ " (&&) True is the same as using List.all identity." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy
+                                                    { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
+                                                    "List.all identity"
+                                                ]
+                                            ]
+                                    )
+
+                        else if isBinaryOperation "||" checkInfo checkInfo.firstArg then
+                            Match.toDetermined (getBoolean checkInfo initialArgument)
+                                |> Maybe.map
+                                    (\initialIsTrue ->
+                                        if initialIsTrue then
+                                            [ Rule.errorWithFix
+                                                { message = "The call to List." ++ foldOperationName ++ " will result in True"
+                                                , details = [ "You can replace this call by True." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceByEmptyFix "True" checkInfo.parentRange checkInfo.thirdArg)
+                                            ]
+
+                                        else
+                                            -- not initialIsTrue
+                                            [ Rule.errorWithFix
+                                                { message = "Use List.any identity instead"
+                                                , details = [ "Using List." ++ foldOperationName ++ " (||) False is the same as using List.any identity." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy
+                                                    { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
+                                                    "List.any identity"
+                                                ]
+                                            ]
+                                    )
+
+                        else
+                            Nothing
+                    )
+                -- orElse
+                |> Maybe.map Just
+                |> Maybe.withDefault
+                    (getAlwaysResult checkInfo checkInfo.firstArg
+                        |> -- filter
+                           Maybe.andThen
+                            (\alwaysResult ->
+                                if isIdentity checkInfo.lookupTable alwaysResult then
+                                    Just ()
+
+                                else
+                                    Nothing
+                            )
+                        |> Maybe.map
+                            (\() ->
+                                [ Rule.errorWithFix
+                                    { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                                    , details = [ "You can replace this call by the initial accumulator." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (case checkInfo.secondArg of
+                                        Nothing ->
+                                            [ Fix.replaceRangeBy checkInfo.parentRange "(always >> identity)" ]
+
+                                        Just (Node initialArgumentRange _) ->
+                                            case checkInfo.thirdArg of
+                                                Nothing ->
+                                                    [ Fix.replaceRangeBy
+                                                        { start = checkInfo.parentRange.start
+                                                        , end = (Node.range checkInfo.firstArg).end
+                                                        }
+                                                        "always"
+                                                    ]
+
+                                                Just _ ->
+                                                    [ Fix.removeRange
+                                                        { start = initialArgumentRange.end
+                                                        , end = checkInfo.parentRange.end
+                                                        }
+                                                    , Fix.removeRange
+                                                        { start = checkInfo.parentRange.start
+                                                        , end = initialArgumentRange.start
+                                                        }
+                                                    ]
+                                    )
+                                ]
+                            )
+                    )
+                |> Maybe.withDefault []
+
+
 listAllChecks : CheckInfo -> List (Error {})
 listAllChecks ({ parentRange, fnRange, firstArg, secondArg } as checkInfo) =
     case Maybe.map (AstHelpers.removeParens >> Node.value) secondArg of
@@ -5465,12 +5777,8 @@ isIdentity lookupTable baseNode =
                 arg :: [] ->
                     case getVarPattern arg of
                         Just patternName ->
-                            case getExpressionName expression of
-                                Just expressionName ->
-                                    patternName == expressionName
-
-                                _ ->
-                                    False
+                            getExpressionName expression
+                                == Just patternName
 
                         _ ->
                             False
@@ -5539,6 +5847,60 @@ getBooleanPattern lookupTable node =
 
         Pattern.ParenthesizedPattern pattern ->
             getBooleanPattern lookupTable pattern
+
+        _ ->
+            Nothing
+
+
+getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
+getAlwaysResult inferResources expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: result :: []) ->
+            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    Just result
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "<|" _ (Node alwaysRange (Expression.FunctionOrValue _ "always")) result ->
+            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    Just result
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "|>" _ result (Node alwaysRange (Expression.FunctionOrValue _ "always")) ->
+            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    Just result
+
+                _ ->
+                    Nothing
+
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                -- invalid syntax
+                [] ->
+                    Nothing
+
+                (Node _ Pattern.AllPattern) :: [] ->
+                    Just lambda.expression
+
+                (Node _ Pattern.AllPattern) :: patternsAfter_ ->
+                    Just
+                        (Node (Node.range expressionNode)
+                            (Expression.LambdaExpression
+                                { args = patternsAfter_
+                                , expression = lambda.expression
+                                }
+                            )
+                        )
+
+                -- not an ignore-first
+                _ :: _ ->
+                    Nothing
 
         _ ->
             Nothing
@@ -5852,5 +6214,53 @@ isEmptyList node =
         Expression.ListExpr [] ->
             True
 
+        _ ->
+            False
+
+
+isBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool
+isBinaryOperation symbol checkInfo expression =
+    case expression |> Normalize.normalize checkInfo |> Node.value of
+        Expression.PrefixOperator operatorSymbol ->
+            operatorSymbol == symbol
+
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                -- invalid syntax
+                [] ->
+                    False
+
+                [ Node _ (Pattern.VarPattern element) ] ->
+                    case Node.value lambda.expression of
+                        Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] argument) ] ->
+                            (operatorSymbol == symbol)
+                                && (argument == element)
+
+                        -- no simple application
+                        _ ->
+                            False
+
+                [ Node _ (Pattern.VarPattern element), Node _ (Pattern.VarPattern soFar) ] ->
+                    case Node.value lambda.expression of
+                        Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] left), Node _ (Expression.FunctionOrValue [] right) ] ->
+                            (operatorSymbol == symbol)
+                                && ((left == element && right == soFar)
+                                        || (left == soFar && right == element)
+                                   )
+
+                        Expression.OperatorApplication operatorSymbol _ (Node _ (Expression.FunctionOrValue [] left)) (Node _ (Expression.FunctionOrValue [] right)) ->
+                            (operatorSymbol == symbol)
+                                && ((left == element && right == soFar)
+                                        || (left == soFar && right == element)
+                                   )
+
+                        _ ->
+                            False
+
+                -- too many/unsimplified patterns
+                _ ->
+                    False
+
+        -- not a known simple operator function
         _ ->
             False
