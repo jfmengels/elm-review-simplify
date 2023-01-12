@@ -3868,39 +3868,36 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                        Maybe.andThen
                                         (\alwaysResult ->
                                             if isIdentity checkInfo.lookupTable alwaysResult then
-                                                Just ()
+                                                Just
+                                                    [ Rule.errorWithFix
+                                                        { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                                                        , details = [ "You can replace this call by the initial accumulator." ]
+                                                        }
+                                                        checkInfo.fnRange
+                                                        (case checkInfo.thirdArg of
+                                                            Nothing ->
+                                                                [ Fix.replaceRangeBy
+                                                                    { start = checkInfo.parentRange.start
+                                                                    , end = (Node.range checkInfo.firstArg).end
+                                                                    }
+                                                                    "always"
+                                                                ]
+
+                                                            Just _ ->
+                                                                [ Fix.removeRange
+                                                                    { start = (Node.range initialArgument).end
+                                                                    , end = checkInfo.parentRange.end
+                                                                    }
+                                                                , Fix.removeRange
+                                                                    { start = checkInfo.parentRange.start
+                                                                    , end = (Node.range initialArgument).start
+                                                                    }
+                                                                ]
+                                                        )
+                                                    ]
 
                                             else
                                                 Nothing
-                                        )
-                                    |> Maybe.map
-                                        (\() ->
-                                            [ Rule.errorWithFix
-                                                { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
-                                                , details = [ "You can replace this call by the initial accumulator." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (case checkInfo.thirdArg of
-                                                    Nothing ->
-                                                        [ Fix.replaceRangeBy
-                                                            { start = checkInfo.parentRange.start
-                                                            , end = (Node.range checkInfo.firstArg).end
-                                                            }
-                                                            "always"
-                                                        ]
-
-                                                    Just _ ->
-                                                        [ Fix.removeRange
-                                                            { start = (Node.range initialArgument).end
-                                                            , end = checkInfo.parentRange.end
-                                                            }
-                                                        , Fix.removeRange
-                                                            { start = checkInfo.parentRange.start
-                                                            , end = (Node.range initialArgument).start
-                                                            }
-                                                        ]
-                                                )
-                                            ]
                                         )
                                 )
             )
