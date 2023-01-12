@@ -5439,6 +5439,8 @@ listSimplificationTests =
         , listFilterMapTests
         , listIndexedMapTests
         , listIsEmptyTests
+        , listFoldlTests
+        , listFoldrTests
         , listAllTests
         , listAnyTests
         , listRangeTests
@@ -6956,6 +6958,770 @@ a = List.isEmpty (List.singleton x)
 a = False
 """
                         ]
+        ]
+
+
+listFoldlTests : Test
+listFoldlTests =
+    describe "List.foldl"
+        [ test "should not report List.foldl used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\el soFar -> soFar - el) 20 list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.foldl f x [] by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f x []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.foldl (always identity) x list by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always identity) x list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.foldl (\\_ -> identity) x list by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\_ -> identity) x list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.foldl (\\_ a -> a) x list by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\_ a -> a) x list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.foldl (always <| \\a -> a) x list by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always <| \\a -> a) x list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.foldl (always identity) x by always x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always identity) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always x
+"""
+                        ]
+        , test "should replace List.foldl (always identity) by (always >> identity)" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always identity)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (always >> identity)
+"""
+                        ]
+        , Test.concat listFoldlSumTests
+        , Test.concat listFoldlProductTests
+        , Test.concat listFoldlAllTests
+        , Test.concat listFoldlAnyTests
+        ]
+
+
+listFoldlAnyTests : List Test
+listFoldlAnyTests =
+    [ test "should replace List.foldl (||) True by always True" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (||) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldl will result in True"
+                        , details = [ "You can replace this call by True." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = always True
+"""
+                    ]
+    , test "should replace List.foldl (||) True list by True" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (||) True list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldl will result in True"
+                        , details = [ "You can replace this call by True." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                    ]
+    , test "should replace List.foldl (||) False by List.any identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (||) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.any identity instead"
+                        , details =
+                            [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x -> (||) x) False by List.any identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x -> (||) x) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.any identity instead"
+                        , details =
+                            [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x || y) False by List.any identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x || y) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.any identity instead"
+                        , details =
+                            [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y || x) False by List.any identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y || x) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.any identity instead"
+                        , details =
+                            [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x |> (||) y) False by List.any identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x |> (||) y) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.any identity instead"
+                        , details =
+                            [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y |> (||) x) False by List.any identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y |> (||) x) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.any identity instead"
+                        , details =
+                            [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity
+"""
+                    ]
+    ]
+
+
+listFoldlAllTests : List Test
+listFoldlAllTests =
+    [ test "should replace List.foldl (&&) False by always False" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (&&) False
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldl will result in False"
+                        , details = [ "You can replace this call by False." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = always False
+"""
+                    ]
+    , test "should replace List.foldl (&&) False list by False" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (&&) False list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldl will result in False"
+                        , details = [ "You can replace this call by False." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                    ]
+    , test "should replace List.foldl (&&) True by List.all identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (&&) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.all identity instead"
+                        , details =
+                            [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x -> (&&) x) True by List.all identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x -> (&&) x) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.all identity instead"
+                        , details =
+                            [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x && y) True by List.all identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x && y) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.all identity instead"
+                        , details =
+                            [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y && x) True by List.all identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y && x) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.all identity instead"
+                        , details =
+                            [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x |> (&&) y) True by List.all identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x |> (&&) y) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.all identity instead"
+                        , details =
+                            [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y |> (&&) x) True by List.all identity" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y |> (&&) x) True
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.all identity instead"
+                        , details =
+                            [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity
+"""
+                    ]
+    ]
+
+
+listFoldlSumTests : List Test
+listFoldlSumTests =
+    [ test "should replace List.foldl (+) 0 by List.sum" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (+) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum
+"""
+                    ]
+    , test "should replace List.foldl (\\x -> (+) x) 0 by List.sum" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x -> (+) x) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x + y) 0 by List.sum" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x + y) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y + x) 0 by List.sum" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y + x) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x |> (+) y) 0 by List.sum" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x |> (+) y) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y |> (+) x) 0 by List.sum" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y |> (+) x) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum
+"""
+                    ]
+    , test "should replace List.foldl (+) initial by (List.sum >> (+) initial)" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (+) initial
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = (List.sum >> (+) initial)
+"""
+                    ]
+    , test "should replace List.foldl (+) initial list by initial + (List.sum list)" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (+) initial list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = initial + (List.sum list)
+"""
+                    ]
+    , test "should replace List.foldl (+) initial <| list by initial + (List.sum <| list)" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (+) initial <| list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = initial + (List.sum <| list)
+"""
+                    ]
+    , test "should replace list |> List.foldl (+) initial by (list |> List.sum) + initial" <|
+        \() ->
+            """module A exposing (..)
+a = list |> List.foldl (+) initial
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.sum instead"
+                        , details =
+                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = (list |> List.sum) + initial
+"""
+                    ]
+    ]
+
+
+listFoldlProductTests : List Test
+listFoldlProductTests =
+    [ test "should replace List.foldl (*) 0 by List.product" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (*) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.product
+"""
+                    ]
+    , test "should replace List.foldl (\\x -> (*) x) 0 by List.product" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x -> (*) x) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.product
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x * y) 0 by List.product" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x * y) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.product
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y * x) 0 by List.product" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y * x) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.product
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> x |> (*) y) 0 by List.product" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> x |> (*) y) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.product
+"""
+                    ]
+    , test "should replace List.foldl (\\x y -> y |> (*) x) 0 by List.product" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (\\x y -> y |> (*) x) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = List.product
+"""
+                    ]
+    , test "should replace List.foldl (*) initial by (List.product >> (*) initial)" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (*) initial
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = (List.product >> (*) initial)
+"""
+                    ]
+    , test "should replace List.foldl (*) initial list by initial * (List.product list)" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (*) initial list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = initial * (List.product list)
+"""
+                    ]
+    , test "should replace List.foldl (*) initial <| list by initial * (List.product <| list)" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (*) initial <| list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = initial * (List.product <| list)
+"""
+                    ]
+    , test "should replace list |> List.foldl (*) initial by (list |> List.product) * initial" <|
+        \() ->
+            """module A exposing (..)
+a = list |> List.foldl (*) initial
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "Use List.product instead"
+                        , details =
+                            [ "Using List.foldl (*) 0 is the same as using List.product." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = (list |> List.product) * initial
+"""
+                    ]
+    ]
+
+
+listFoldrTests : Test
+listFoldrTests =
+    describe "List.foldr"
+        [ Test.todo ""
         ]
 
 
