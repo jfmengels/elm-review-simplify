@@ -504,67 +504,61 @@ Destructuring using case expressions
     List.foldl reduce initial []
     --> initial
 
-    List.foldl 0 (+) list
+    List.foldl (+) 0 list
     --> List.sum list
 
-    List.foldl initial (+) list
+    List.foldl (+) initial list
     --> initial + List.sum list
 
-    List.foldl 1 (*) list
+    List.foldl (*) 1 list
     --> List.product list
 
-    List.foldl initial (*) list
+    List.foldl (*) initial list
     --> initial + List.product list
 
-    List.foldl True (&&) list
+    List.foldl (&&) True list
     --> List.all identity list
 
-    List.foldl False (&&) list
+    List.foldl (&&) False list
     --> False
 
-    List.foldl False (||) list
+    List.foldl (||) False list
     --> List.any identity list
 
-    List.foldl True (||) list
+    List.foldl (||) True list
     --> True
 
     List.foldl fn x []
     --> x
 
-    List.foldl (always identity) x list
+    List.foldl (\_ soFar -> soFar) x list
     --> x
 
     List.foldr reduce initial []
     --> initial
 
-    List.foldr 0 (+) list
-    --> List.sum list
-
-    List.foldr initial (+) list
+    List.foldr (+) initial list
     --> initial + List.sum list
 
-    List.foldr 1 (*) list
-    --> List.product list
-
-    List.foldr initial (*) list
+    List.foldr (*) initial list
     --> initial + List.product list
 
-    List.foldr True (&&) list
+    List.foldr (&&) True list
     --> List.all identity list
 
-    List.foldr False (&&) list
+    List.foldr (&&) False list
     --> False
 
-    List.foldr False (||) list
+    List.foldr (||) False list
     --> List.any identity list
 
-    List.foldr True (||) list
+    List.foldr (||) True list
     --> True
 
     List.foldr fn x []
     --> x
 
-    List.foldr (always identity) x list
+    List.foldr (\_ soFar -> soFar) x list
     --> x
 
     List.all fn []
