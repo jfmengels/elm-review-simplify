@@ -7067,22 +7067,6 @@ a = List.foldl (always identity) x
 a = always x
 """
                         ]
-        , test "should replace List.foldl (always identity) by (always >> identity)" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldl (always identity)
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
-                            , under = "List.foldl"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = (always >> identity)
-"""
-                        ]
         , Test.concat listFoldlSumTests
         , Test.concat listFoldlProductTests
         , Test.concat listFoldlAllTests
@@ -7788,22 +7772,6 @@ a = List.foldr (always identity) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always x
-"""
-                        ]
-        , test "should replace List.foldr (always identity) by (always >> identity)" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldr (always identity)
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "The call to List.foldr will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
-                            , under = "List.foldr"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = (always >> identity)
 """
                         ]
         , Test.concat listFoldrSumTests
