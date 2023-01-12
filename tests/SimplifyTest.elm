@@ -7664,7 +7664,7 @@ a = List.foldl (*) initial <| list
 a = initial * (List.product <| list)
 """
                     ]
-    , test "should replace list |> List.foldl (*) initial by (list |> List.product) * initial" <|
+    , test "should replace list |> List.foldl (*) initial by ((list |> List.product) * initial)" <|
         \() ->
             """module A exposing (..)
 a = list |> List.foldl (*) initial
