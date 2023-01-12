@@ -3725,186 +3725,186 @@ listFoldrChecks checkInfo =
 
 listFoldAnyDirectionChecks : String -> CheckInfo -> List (Error {})
 listFoldAnyDirectionChecks foldOperationName checkInfo =
-    case checkInfo.secondArg of
-        Just initialArgument ->
-            case checkInfo.thirdArg of
-                Just (Node _ (Expression.ListExpr [])) ->
-                    [ Rule.errorWithFix
-                        { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
-                        , details = [ "You can replace this call by the initial accumulator." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.removeRange
-                            { start = checkInfo.parentRange.start, end = (Node.range initialArgument).start }
-                        , Fix.removeRange
-                            { start = (Node.range initialArgument).end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
-
-                _ ->
-                    let
-                        numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> Maybe (List (Error {}))
-                        numberBinaryOperationChecks operation =
-                            Maybe.map
-                                (\fixes ->
-                                    [ Rule.errorWithFix
-                                        { message = "Use List." ++ operation.list ++ " instead"
-                                        , details =
-                                            [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
+    checkInfo.secondArg
+        |> Maybe.andThen
+            (\initialArgument ->
+                let
+                    numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> Maybe (List (Error {}))
+                    numberBinaryOperationChecks operation =
+                        Maybe.map
+                            (\fixes ->
+                                [ Rule.errorWithFix
+                                    { message = "Use List." ++ operation.list ++ " instead"
+                                    , details =
+                                        [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    fixes
+                                ]
+                            )
+                            (if getUncomputedNumberValue initialArgument == Just (Basics.toFloat operation.identity) then
+                                Just
+                                    [ Fix.replaceRangeBy
+                                        { start = checkInfo.parentRange.start
+                                        , end = (Node.range initialArgument).end
                                         }
-                                        checkInfo.fnRange
-                                        fixes
+                                        ("List." ++ operation.list)
                                     ]
-                                )
-                                (if getUncomputedNumberValue initialArgument == Just (Basics.toFloat operation.identity) then
-                                    Just
-                                        [ Fix.replaceRangeBy
-                                            { start = checkInfo.parentRange.start
-                                            , end = (Node.range initialArgument).end
-                                            }
-                                            ("List." ++ operation.list)
-                                        ]
 
-                                 else
-                                    checkInfo.thirdArg
-                                        |> Maybe.map
-                                            (\_ ->
-                                                if checkInfo.usingRightPizza then
-                                                    -- list |> fold op initial --> ((list |> List.op) op initial)
-                                                    [ Fix.insertAt (Node.range initialArgument).end ")"
-                                                    , Fix.insertAt (Node.range initialArgument).start (operation.two ++ " ")
-                                                    , Fix.replaceRangeBy
-                                                        { start = checkInfo.fnRange.start
-                                                        , end = (Node.range checkInfo.firstArg).end
-                                                        }
-                                                        ("List." ++ operation.list ++ ")")
-                                                    , Fix.insertAt checkInfo.parentRange.start "(("
-                                                    ]
+                             else
+                                checkInfo.thirdArg
+                                    |> Maybe.map
+                                        (\_ ->
+                                            if checkInfo.usingRightPizza then
+                                                -- list |> fold op initial --> ((list |> List.op) op initial)
+                                                [ Fix.insertAt (Node.range initialArgument).end ")"
+                                                , Fix.insertAt (Node.range initialArgument).start (operation.two ++ " ")
+                                                , Fix.replaceRangeBy
+                                                    { start = checkInfo.fnRange.start
+                                                    , end = (Node.range checkInfo.firstArg).end
+                                                    }
+                                                    ("List." ++ operation.list ++ ")")
+                                                , Fix.insertAt checkInfo.parentRange.start "(("
+                                                ]
 
-                                                else
-                                                    -- <| or application
-                                                    -- fold op initial list --> (initial op (List.op list))
-                                                    [ Fix.insertAt checkInfo.parentRange.end ")"
-                                                    , Fix.insertAt (Node.range initialArgument).end
-                                                        (" " ++ operation.two ++ " (List." ++ operation.list)
-                                                    , Fix.removeRange
-                                                        { start = checkInfo.parentRange.start
-                                                        , end = (Node.range initialArgument).start
-                                                        }
-                                                    ]
-                                            )
-                                )
-                    in
-                    (if isBinaryOperation "+" checkInfo checkInfo.firstArg then
-                        numberBinaryOperationChecks { identity = 0, two = "+", list = "sum" }
+                                            else
+                                                -- <| or application
+                                                -- fold op initial list --> (initial op (List.op list))
+                                                [ Fix.insertAt checkInfo.parentRange.end ")"
+                                                , Fix.insertAt (Node.range initialArgument).end
+                                                    (" " ++ operation.two ++ " (List." ++ operation.list)
+                                                , Fix.removeRange
+                                                    { start = checkInfo.parentRange.start
+                                                    , end = (Node.range initialArgument).start
+                                                    }
+                                                ]
+                                        )
+                            )
+                in
+                case checkInfo.thirdArg of
+                    Just (Node _ (Expression.ListExpr [])) ->
+                        Just
+                            [ Rule.errorWithFix
+                                { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                                , details = [ "You can replace this call by the initial accumulator." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange
+                                    { start = checkInfo.parentRange.start, end = (Node.range initialArgument).start }
+                                , Fix.removeRange
+                                    { start = (Node.range initialArgument).end, end = checkInfo.parentRange.end }
+                                ]
+                            ]
 
-                     else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
-                        numberBinaryOperationChecks { identity = 1, two = "*", list = "product" }
+                    _ ->
+                        (if isBinaryOperation "+" checkInfo checkInfo.firstArg then
+                            numberBinaryOperationChecks { identity = 0, two = "+", list = "sum" }
 
-                     else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
-                        Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
-                            |> Maybe.map
-                                (\initialIsTrue ->
-                                    if not initialIsTrue then
-                                        [ Rule.errorWithFix
-                                            { message = "The call to List." ++ foldOperationName ++ " will result in False"
-                                            , details = [ "You can replace this call by False." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (replaceByEmptyFix "False" checkInfo.parentRange checkInfo.thirdArg)
-                                        ]
+                         else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
+                            numberBinaryOperationChecks { identity = 1, two = "*", list = "product" }
 
-                                    else
-                                        -- initialIsTrue
-                                        [ Rule.errorWithFix
-                                            { message = "Use List.all identity instead"
-                                            , details = [ "Using List." ++ foldOperationName ++ " (&&) True is the same as using List.all identity." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.replaceRangeBy
-                                                { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
-                                                "List.all identity"
+                         else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                            Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
+                                |> Maybe.map
+                                    (\initialIsTrue ->
+                                        if not initialIsTrue then
+                                            [ Rule.errorWithFix
+                                                { message = "The call to List." ++ foldOperationName ++ " will result in False"
+                                                , details = [ "You can replace this call by False." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceByEmptyFix "False" checkInfo.parentRange checkInfo.thirdArg)
                                             ]
-                                        ]
-                                )
-
-                     else if isBinaryOperation "||" checkInfo checkInfo.firstArg then
-                        Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
-                            |> Maybe.map
-                                (\initialIsTrue ->
-                                    if initialIsTrue then
-                                        [ Rule.errorWithFix
-                                            { message = "The call to List." ++ foldOperationName ++ " will result in True"
-                                            , details = [ "You can replace this call by True." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (replaceByEmptyFix "True" checkInfo.parentRange checkInfo.thirdArg)
-                                        ]
-
-                                    else
-                                        -- not initialIsTrue
-                                        [ Rule.errorWithFix
-                                            { message = "Use List.any identity instead"
-                                            , details = [ "Using List." ++ foldOperationName ++ " (||) False is the same as using List.any identity." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.replaceRangeBy
-                                                { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
-                                                "List.any identity"
-                                            ]
-                                        ]
-                                )
-
-                     else
-                        Nothing
-                    )
-                        -- orElse
-                        |> Maybe.map Just
-                        |> Maybe.withDefault
-                            (getAlwaysResult checkInfo checkInfo.firstArg
-                                |> -- filter
-                                   Maybe.andThen
-                                    (\alwaysResult ->
-                                        if isIdentity checkInfo.lookupTable alwaysResult then
-                                            Just ()
 
                                         else
-                                            Nothing
+                                            -- initialIsTrue
+                                            [ Rule.errorWithFix
+                                                { message = "Use List.all identity instead"
+                                                , details = [ "Using List." ++ foldOperationName ++ " (&&) True is the same as using List.all identity." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy
+                                                    { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
+                                                    "List.all identity"
+                                                ]
+                                            ]
                                     )
+
+                         else if isBinaryOperation "||" checkInfo checkInfo.firstArg then
+                            Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
                                 |> Maybe.map
-                                    (\() ->
-                                        [ Rule.errorWithFix
-                                            { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
-                                            , details = [ "You can replace this call by the initial accumulator." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (case checkInfo.thirdArg of
-                                                Nothing ->
-                                                    [ Fix.replaceRangeBy
-                                                        { start = checkInfo.parentRange.start
-                                                        , end = (Node.range checkInfo.firstArg).end
-                                                        }
-                                                        "always"
-                                                    ]
+                                    (\initialIsTrue ->
+                                        if initialIsTrue then
+                                            [ Rule.errorWithFix
+                                                { message = "The call to List." ++ foldOperationName ++ " will result in True"
+                                                , details = [ "You can replace this call by True." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceByEmptyFix "True" checkInfo.parentRange checkInfo.thirdArg)
+                                            ]
 
-                                                Just _ ->
-                                                    [ Fix.removeRange
-                                                        { start = (Node.range initialArgument).end
-                                                        , end = checkInfo.parentRange.end
-                                                        }
-                                                    , Fix.removeRange
-                                                        { start = checkInfo.parentRange.start
-                                                        , end = (Node.range initialArgument).start
-                                                        }
-                                                    ]
-                                            )
-                                        ]
+                                        else
+                                            -- not initialIsTrue
+                                            [ Rule.errorWithFix
+                                                { message = "Use List.any identity instead"
+                                                , details = [ "Using List." ++ foldOperationName ++ " (||) False is the same as using List.any identity." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy
+                                                    { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
+                                                    "List.any identity"
+                                                ]
+                                            ]
                                     )
-                            )
-                        |> Maybe.withDefault []
 
-        _ ->
-            []
+                         else
+                            Nothing
+                        )
+                            -- orElse
+                            |> Maybe.map Just
+                            |> Maybe.withDefault
+                                (getAlwaysResult checkInfo checkInfo.firstArg
+                                    |> -- filter
+                                       Maybe.andThen
+                                        (\alwaysResult ->
+                                            if isIdentity checkInfo.lookupTable alwaysResult then
+                                                Just ()
+
+                                            else
+                                                Nothing
+                                        )
+                                    |> Maybe.map
+                                        (\() ->
+                                            [ Rule.errorWithFix
+                                                { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                                                , details = [ "You can replace this call by the initial accumulator." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (case checkInfo.thirdArg of
+                                                    Nothing ->
+                                                        [ Fix.replaceRangeBy
+                                                            { start = checkInfo.parentRange.start
+                                                            , end = (Node.range checkInfo.firstArg).end
+                                                            }
+                                                            "always"
+                                                        ]
+
+                                                    Just _ ->
+                                                        [ Fix.removeRange
+                                                            { start = (Node.range initialArgument).end
+                                                            , end = checkInfo.parentRange.end
+                                                            }
+                                                        , Fix.removeRange
+                                                            { start = checkInfo.parentRange.start
+                                                            , end = (Node.range initialArgument).start
+                                                            }
+                                                        ]
+                                                )
+                                            ]
+                                        )
+                                )
+            )
+        |> Maybe.withDefault []
 
 
 listAllChecks : CheckInfo -> List (Error {})
