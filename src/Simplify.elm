@@ -3726,14 +3726,9 @@ listFoldrChecks checkInfo =
 listFoldAnyDirectionChecks : String -> CheckInfo -> List (Error {})
 listFoldAnyDirectionChecks foldOperationName checkInfo =
     -- TODO discuss adding
-    -- List.fold (&|) initial list --> initial &| (List.all identity list)
-    --         and piping versions
-    -- List.fold (&|) initial --> (List.all identity >> (&|) initial)
-    --     Are those simplifications? arguable, I'm leaning no
-    --     At the very least, they are more performant (stoppable).
     -- List.fold f x [ a ] --> f (a) x
-    --         @jfmengels' comment: potentially quite ugly
-    --         I'd say it looks fine
+    --     @jfmengels' comment: potentially quite ugly
+    --     I'd say it looks fine
     case ( checkInfo.secondArg, checkInfo.thirdArg ) of
         ( Just (Node initialArgumentRange _), Just (Node _ (Expression.ListExpr [])) ) ->
             [ Rule.errorWithFix
@@ -3758,74 +3753,63 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 |> Maybe.andThen
                     (\initialArgument ->
                         let
-                            numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> List (Error {})
+                            numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> Maybe (List (Error {}))
                             numberBinaryOperationChecks operation =
-                                [ Rule.errorWithFix
-                                    { message = "Use List." ++ operation.list ++ " instead"
-                                    , details =
-                                        [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (if getUncomputedNumberValue initialArgument == Just (Basics.toFloat operation.identity) then
-                                        [ Fix.replaceRangeBy
-                                            { start = checkInfo.parentRange.start
-                                            , end = (Node.range initialArgument).end
+                                Maybe.map
+                                    (\fixes ->
+                                        [ Rule.errorWithFix
+                                            { message = "Use List." ++ operation.list ++ " instead"
+                                            , details =
+                                                [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
                                             }
-                                            ("List." ++ operation.list)
+                                            checkInfo.fnRange
+                                            fixes
                                         ]
+                                    )
+                                    (if getUncomputedNumberValue initialArgument == Just (Basics.toFloat operation.identity) then
+                                        Just
+                                            [ Fix.replaceRangeBy
+                                                { start = checkInfo.parentRange.start
+                                                , end = (Node.range initialArgument).end
+                                                }
+                                                ("List." ++ operation.list)
+                                            ]
 
                                      else
-                                        case checkInfo.thirdArg of
-                                            Nothing ->
-                                                -- fold op initial --> (List.op >> op initial)
-                                                -- TODO Can we call this a simplification?
-                                                --
-                                                -- why parens? edge cases with operator precedence
-                                                -- List.foldl (+) 0 << List.map .age
-                                                -- --> List.sum >> (+) 0 << List.map .age -- error!
-                                                --
-                                                [ Fix.insertAt checkInfo.parentRange.end ")"
-                                                , Fix.removeRange
-                                                    { start = checkInfo.parentRange.start
-                                                    , end = (Node.range initialArgument).start
-                                                    }
-                                                , Fix.insertAt (Node.range initialArgument).start
-                                                    (" >> (" ++ operation.two ++ ") ")
-                                                , Fix.insertAt checkInfo.parentRange.start
-                                                    ("(List." ++ operation.list)
-                                                ]
+                                        checkInfo.thirdArg
+                                            |> Maybe.map
+                                                (\_ ->
+                                                    if checkInfo.usingRightPizza then
+                                                        -- list |> fold op initial --> ((list |> List.op) op initial)
+                                                        [ Fix.insertAt (Node.range initialArgument).end ")"
+                                                        , Fix.insertAt (Node.range initialArgument).start (operation.two ++ " ")
+                                                        , Fix.replaceRangeBy
+                                                            { start = checkInfo.fnRange.start
+                                                            , end = (Node.range checkInfo.firstArg).end
+                                                            }
+                                                            ("List." ++ operation.list ++ ")")
+                                                        , Fix.insertAt checkInfo.parentRange.start "(("
+                                                        ]
 
-                                            Just _ ->
-                                                if checkInfo.usingRightPizza then
-                                                    -- list |> fold op initial --> (list |> List.op) + initial
-                                                    [ Fix.insertAt (Node.range initialArgument).start (operation.two ++ " ")
-                                                    , Fix.replaceRangeBy
-                                                        { start = checkInfo.fnRange.start
-                                                        , end = (Node.range checkInfo.firstArg).end
-                                                        }
-                                                        ("List." ++ operation.list ++ ")")
-                                                    , Fix.insertAt checkInfo.parentRange.start "("
-                                                    ]
-
-                                                else
-                                                    -- <| or application
-                                                    -- fold op initial list --> initial + (List.op list)
-                                                    [ Fix.insertAt checkInfo.parentRange.end ")"
-                                                    , Fix.insertAt (Node.range initialArgument).end
-                                                        (" " ++ operation.two ++ " (List." ++ operation.list)
-                                                    , Fix.removeRange
-                                                        { start = checkInfo.parentRange.start
-                                                        , end = (Node.range initialArgument).start
-                                                        }
-                                                    ]
+                                                    else
+                                                        -- <| or application
+                                                        -- fold op initial list --> (initial op (List.op list))
+                                                        [ Fix.insertAt checkInfo.parentRange.end ")"
+                                                        , Fix.insertAt (Node.range initialArgument).end
+                                                            (" " ++ operation.two ++ " (List." ++ operation.list)
+                                                        , Fix.removeRange
+                                                            { start = checkInfo.parentRange.start
+                                                            , end = (Node.range initialArgument).start
+                                                            }
+                                                        ]
+                                                )
                                     )
-                                ]
                         in
                         if isBinaryOperation "+" checkInfo checkInfo.firstArg then
-                            Just (numberBinaryOperationChecks { identity = 0, two = "+", list = "sum" })
+                            numberBinaryOperationChecks { identity = 0, two = "+", list = "sum" }
 
                         else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
-                            Just (numberBinaryOperationChecks { identity = 1, two = "*", list = "product" })
+                            numberBinaryOperationChecks { identity = 1, two = "*", list = "product" }
 
                         else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
                             Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)

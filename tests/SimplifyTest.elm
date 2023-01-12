@@ -7472,23 +7472,6 @@ a = List.foldl (\\x y -> y |> (+) x) 0
 a = List.sum
 """
                     ]
-    , test "should replace List.foldl (+) initial by (List.sum >> (+) initial)" <|
-        \() ->
-            """module A exposing (..)
-a = List.foldl (+) initial
-"""
-                |> Review.Test.run (rule defaults)
-                |> Review.Test.expectErrors
-                    [ Review.Test.error
-                        { message = "Use List.sum instead"
-                        , details =
-                            [ "Using List.foldl (+) 0 is the same as using List.sum." ]
-                        , under = "List.foldl"
-                        }
-                        |> Review.Test.whenFixed """module A exposing (..)
-a = (List.sum >> (+) initial)
-"""
-                    ]
     , test "should replace List.foldl (+) initial list by initial + (List.sum list)" <|
         \() ->
             """module A exposing (..)
@@ -7523,7 +7506,7 @@ a = List.foldl (+) initial <| list
 a = initial + (List.sum <| list)
 """
                     ]
-    , test "should replace list |> List.foldl (+) initial by (list |> List.sum) + initial" <|
+    , test "should replace list |> List.foldl (+) initial by ((list |> List.sum) + initial)" <|
         \() ->
             """module A exposing (..)
 a = list |> List.foldl (+) initial
@@ -7537,7 +7520,7 @@ a = list |> List.foldl (+) initial
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
-a = (list |> List.sum) + initial
+a = ((list |> List.sum) + initial)
 """
                     ]
     ]
@@ -7647,23 +7630,6 @@ a = List.foldl (\\x y -> y |> (*) x) 1
 a = List.product
 """
                     ]
-    , test "should replace List.foldl (*) initial by (List.product >> (*) initial)" <|
-        \() ->
-            """module A exposing (..)
-a = List.foldl (*) initial
-"""
-                |> Review.Test.run (rule defaults)
-                |> Review.Test.expectErrors
-                    [ Review.Test.error
-                        { message = "Use List.product instead"
-                        , details =
-                            [ "Using List.foldl (*) 1 is the same as using List.product." ]
-                        , under = "List.foldl"
-                        }
-                        |> Review.Test.whenFixed """module A exposing (..)
-a = (List.product >> (*) initial)
-"""
-                    ]
     , test "should replace List.foldl (*) initial list by initial * (List.product list)" <|
         \() ->
             """module A exposing (..)
@@ -7712,7 +7678,7 @@ a = list |> List.foldl (*) initial
                         , under = "List.foldl"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
-a = (list |> List.product) * initial
+a = ((list |> List.product) * initial)
 """
                     ]
     ]
@@ -8229,23 +8195,6 @@ a = List.foldr (\\x y -> y |> (+) x) 0
 a = List.sum
 """
                     ]
-    , test "should replace List.foldr (+) initial by (List.sum >> (+) initial)" <|
-        \() ->
-            """module A exposing (..)
-a = List.foldr (+) initial
-"""
-                |> Review.Test.run (rule defaults)
-                |> Review.Test.expectErrors
-                    [ Review.Test.error
-                        { message = "Use List.sum instead"
-                        , details =
-                            [ "Using List.foldr (+) 0 is the same as using List.sum." ]
-                        , under = "List.foldr"
-                        }
-                        |> Review.Test.whenFixed """module A exposing (..)
-a = (List.sum >> (+) initial)
-"""
-                    ]
     , test "should replace List.foldr (+) initial list by initial + (List.sum list)" <|
         \() ->
             """module A exposing (..)
@@ -8280,7 +8229,7 @@ a = List.foldr (+) initial <| list
 a = initial + (List.sum <| list)
 """
                     ]
-    , test "should replace list |> List.foldr (+) initial by (list |> List.sum) + initial" <|
+    , test "should replace list |> List.foldr (+) initial by ((list |> List.sum) + initial)" <|
         \() ->
             """module A exposing (..)
 a = list |> List.foldr (+) initial
@@ -8294,7 +8243,7 @@ a = list |> List.foldr (+) initial
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
-a = (list |> List.sum) + initial
+a = ((list |> List.sum) + initial)
 """
                     ]
     ]
@@ -8404,23 +8353,6 @@ a = List.foldr (\\x y -> y |> (*) x) 1
 a = List.product
 """
                     ]
-    , test "should replace List.foldr (*) initial by (List.product >> (*) initial)" <|
-        \() ->
-            """module A exposing (..)
-a = List.foldr (*) initial
-"""
-                |> Review.Test.run (rule defaults)
-                |> Review.Test.expectErrors
-                    [ Review.Test.error
-                        { message = "Use List.product instead"
-                        , details =
-                            [ "Using List.foldr (*) 1 is the same as using List.product." ]
-                        , under = "List.foldr"
-                        }
-                        |> Review.Test.whenFixed """module A exposing (..)
-a = (List.product >> (*) initial)
-"""
-                    ]
     , test "should replace List.foldr (*) initial list by initial * (List.product list)" <|
         \() ->
             """module A exposing (..)
@@ -8455,7 +8387,7 @@ a = List.foldr (*) initial <| list
 a = initial * (List.product <| list)
 """
                     ]
-    , test "should replace list |> List.foldr (*) initial by (list |> List.product) * initial" <|
+    , test "should replace list |> List.foldr (*) initial by ((list |> List.product) * initial)" <|
         \() ->
             """module A exposing (..)
 a = list |> List.foldr (*) initial
@@ -8469,7 +8401,7 @@ a = list |> List.foldr (*) initial
                         , under = "List.foldr"
                         }
                         |> Review.Test.whenFixed """module A exposing (..)
-a = (list |> List.product) * initial
+a = ((list |> List.product) * initial)
 """
                     ]
     ]
