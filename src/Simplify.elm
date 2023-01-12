@@ -3725,10 +3725,6 @@ listFoldrChecks checkInfo =
 
 listFoldAnyDirectionChecks : String -> CheckInfo -> List (Error {})
 listFoldAnyDirectionChecks foldOperationName checkInfo =
-    -- TODO discuss adding
-    -- List.fold f x [ a ] --> f (a) x
-    --     @jfmengels' comment: potentially quite ugly
-    --     I'd say it looks fine
     case checkInfo.secondArg of
         Just initialArgument ->
             case checkInfo.thirdArg of
