@@ -544,7 +544,7 @@ Destructuring using case expressions
     --> initial + List.sum list
 
     List.foldr 1 (*) list
-    --> initial + List.product list
+    --> List.product list
 
     List.foldr initial (*) list
     --> initial + List.product list
