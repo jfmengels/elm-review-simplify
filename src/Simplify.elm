@@ -3737,9 +3737,9 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 }
                 checkInfo.fnRange
                 [ Fix.removeRange
-                    { start = initialArgumentRange.end, end = checkInfo.parentRange.end }
-                , Fix.removeRange
                     { start = checkInfo.parentRange.start, end = initialArgumentRange.start }
+                , Fix.removeRange
+                    { start = initialArgumentRange.end, end = checkInfo.parentRange.end }
                 ]
             ]
 
