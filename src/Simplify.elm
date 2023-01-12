@@ -507,11 +507,11 @@ Destructuring using case expressions
     List.foldl 0 (+) list
     --> List.sum list
 
-    List.foldl 1 (*) list
-    --> List.product list
-
     List.foldl initial (+) list
     --> initial + List.sum list
+
+    List.foldl 1 (*) list
+    --> List.product list
 
     List.foldl initial (*) list
     --> initial + List.product list
@@ -521,6 +521,12 @@ Destructuring using case expressions
 
     List.foldl False (&&) list
     --> False
+
+    List.foldl False (||) list
+    --> List.any identity list
+
+    List.foldl True (||) list
+    --> True
 
     List.foldl fn x []
     --> x
@@ -534,11 +540,11 @@ Destructuring using case expressions
     List.foldr 0 (+) list
     --> List.sum list
 
-    List.foldr 1 (*) list
-    --> List.product list
-
     List.foldr initial (+) list
     --> initial + List.sum list
+
+    List.foldr 1 (*) list
+    --> initial + List.product list
 
     List.foldr initial (*) list
     --> initial + List.product list
@@ -548,6 +554,12 @@ Destructuring using case expressions
 
     List.foldr False (&&) list
     --> False
+
+    List.foldr False (||) list
+    --> List.any identity list
+
+    List.foldr True (||) list
+    --> True
 
     List.foldr fn x []
     --> x
