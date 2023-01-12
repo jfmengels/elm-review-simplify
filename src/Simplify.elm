@@ -694,8 +694,8 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers exposing (removeParens)
-import Simplify.Evaluate as Evaluate exposing (getBoolean)
+import Simplify.AstHelpers as AstHelpers
+import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
@@ -3810,7 +3810,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             Just (numberBinaryOperationChecks { two = "*", list = "product" })
 
                         else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
-                            Match.toDetermined (getBoolean checkInfo initialArgument)
+                            Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
                                 |> Maybe.map
                                     (\initialIsTrue ->
                                         if not initialIsTrue then
@@ -3837,7 +3837,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     )
 
                         else if isBinaryOperation "||" checkInfo checkInfo.firstArg then
-                            Match.toDetermined (getBoolean checkInfo initialArgument)
+                            Match.toDetermined (Evaluate.getBoolean checkInfo initialArgument)
                                 |> Maybe.map
                                     (\initialIsTrue ->
                                         if initialIsTrue then
@@ -5854,7 +5854,7 @@ getBooleanPattern lookupTable node =
 
 getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
 getAlwaysResult inferResources expressionNode =
-    case Node.value (removeParens expressionNode) of
+    case Node.value (AstHelpers.removeParens expressionNode) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: result :: []) ->
             case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
                 Just [ "Basics" ] ->
