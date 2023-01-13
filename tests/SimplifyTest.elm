@@ -7512,7 +7512,41 @@ a = ((list |> List.sum) + initial)
 
 listFoldlProductTests : List Test
 listFoldlProductTests =
-    [ test "should replace List.foldl (*) 1 by List.product" <|
+    [ test "should replace List.foldl (*) 0 by always 0" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (*) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldl (*) 0 will result in 0."
+                        , details =
+                            [ "You can replace this call by 0." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = always 0
+"""
+                    ]
+    , test "should replace List.foldl (*) 0 list by 0" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldl (*) 0 list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldl (*) 0 will result in 0."
+                        , details =
+                            [ "You can replace this call by 0." ]
+                        , under = "List.foldl"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                    ]
+    , test "should replace List.foldl (*) 1 by List.product" <|
         \() ->
             """module A exposing (..)
 a = List.foldl (*) 1
@@ -8219,7 +8253,41 @@ a = ((list |> List.sum) + initial)
 
 listFoldrProductTests : List Test
 listFoldrProductTests =
-    [ test "should replace List.foldr (*) 1 by List.product" <|
+    [ test "should replace List.foldr (*) 0 by always 0" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldr (*) 0
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldr (*) 0 will result in 0."
+                        , details =
+                            [ "You can replace this call by 0." ]
+                        , under = "List.foldr"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = always 0
+"""
+                    ]
+    , test "should replace List.foldr (*) 0 list by 0" <|
+        \() ->
+            """module A exposing (..)
+a = List.foldr (*) 0 list
+"""
+                |> Review.Test.run (rule defaults)
+                |> Review.Test.expectErrors
+                    [ Review.Test.error
+                        { message = "The call to List.foldr (*) 0 will result in 0."
+                        , details =
+                            [ "You can replace this call by 0." ]
+                        , under = "List.foldr"
+                        }
+                        |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                    ]
+    , test "should replace List.foldr (*) 1 by List.product" <|
         \() ->
             """module A exposing (..)
 a = List.foldr (*) 1
