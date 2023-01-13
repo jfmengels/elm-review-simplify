@@ -501,6 +501,7 @@ Destructuring using case expressions
     List.isEmpty (x :: xs)
     --> False
 
+    -- The following simplifications for List.foldl also work for List.foldr
     List.foldl reduce initial []
     --> initial
 
@@ -535,36 +536,6 @@ Destructuring using case expressions
     --> x
 
     List.foldl (\_ soFar -> soFar) x list
-    --> x
-
-    List.foldr reduce initial []
-    --> initial
-
-    List.foldr (+) initial list
-    --> initial + List.sum list
-
-    List.foldr (*) initial list
-    --> initial + List.product list
-
-    List.foldr (*) 0 list
-    --> 0
-
-    List.foldr (&&) True list
-    --> List.all identity list
-
-    List.foldr (&&) False list
-    --> False
-
-    List.foldr (||) False list
-    --> List.any identity list
-
-    List.foldr (||) True list
-    --> True
-
-    List.foldr fn x []
-    --> x
-
-    List.foldr (\_ soFar -> soFar) x list
     --> x
 
     List.all fn []
