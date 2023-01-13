@@ -513,6 +513,9 @@ Destructuring using case expressions
     List.foldl (*) 1 list
     --> List.product list
 
+    List.foldl (*) 0 list
+    --> 0
+
     List.foldl (*) initial list
     --> initial + List.product list
 
@@ -542,6 +545,9 @@ Destructuring using case expressions
 
     List.foldr (*) initial list
     --> initial + List.product list
+
+    List.foldr (*) 0 list
+    --> 0
 
     List.foldr (&&) True list
     --> List.all identity list
@@ -3860,7 +3866,18 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
             else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
-                numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
+                if getUncomputedNumberValue initialArgument == Just 0 then
+                    [ Rule.errorWithFix
+                        { message = "The call to List." ++ foldOperationName ++ " (*) 0 will result in 0."
+                        , details = [ "You can replace this call by 0." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceByEmptyFix "0" checkInfo.parentRange checkInfo.thirdArg)
+                    ]
+
+                else
+                    -- getUncomputedNumberValue initialArgument /= Just 0
+                    numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
             else if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
                 boolBinaryOperationChecks { two = "&&", list = "all", determining = False }
