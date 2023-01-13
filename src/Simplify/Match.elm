@@ -2,7 +2,6 @@ module Simplify.Match exposing
     ( Match(..)
     , map
     , maybeAndThen
-    , toDetermined
     )
 
 {-|
@@ -10,7 +9,6 @@ module Simplify.Match exposing
 @docs Match
 @docs map
 @docs maybeAndThen
-@docs toDetermined
 
 -}
 
@@ -38,13 +36,3 @@ maybeAndThen fn maybe =
 
         Nothing ->
             Undetermined
-
-
-toDetermined : Match determined -> Maybe determined
-toDetermined match =
-    case match of
-        Undetermined ->
-            Nothing
-
-        Determined determined ->
-            Just determined
