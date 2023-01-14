@@ -502,8 +502,11 @@ Destructuring using case expressions
     --> False
 
     -- The following simplifications for List.foldl also work for List.foldr
-    List.foldl reduce initial []
-    --> initial
+    List.foldl fn x []
+    --> x
+
+    List.foldl (\_ soFar -> soFar) x list
+    --> x
 
     List.foldl (+) 0 list
     --> List.sum list
@@ -518,7 +521,7 @@ Destructuring using case expressions
     --> 0
 
     List.foldl (*) initial list
-    --> initial + List.product list
+    --> initial * List.product list
 
     List.foldl (&&) True list
     --> List.all identity list
@@ -531,12 +534,6 @@ Destructuring using case expressions
 
     List.foldl (||) True list
     --> True
-
-    List.foldl fn x []
-    --> x
-
-    List.foldl (\_ soFar -> soFar) x list
-    --> x
 
     List.all fn []
     --> True
