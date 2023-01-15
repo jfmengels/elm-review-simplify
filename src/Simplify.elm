@@ -4333,21 +4333,6 @@ listSortWithChecks checkInfo =
                             fixToIdentity
 
 
-getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
-getOrder lookupTable expression =
-    if isSpecificFunction [ "Basics" ] "LT" lookupTable expression then
-        Just LT
-
-    else if isSpecificFunction [ "Basics" ] "EQ" lookupTable expression then
-        Just EQ
-
-    else if isSpecificFunction [ "Basics" ] "GT" lookupTable expression then
-        Just GT
-
-    else
-        Nothing
-
-
 orderToString : Order -> String
 orderToString order =
     case order of
@@ -6072,6 +6057,21 @@ getAlwaysResult inferResources expressionNode =
 
         _ ->
             Nothing
+
+
+getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
+getOrder lookupTable expression =
+    if isSpecificFunction [ "Basics" ] "LT" lookupTable expression then
+        Just LT
+
+    else if isSpecificFunction [ "Basics" ] "EQ" lookupTable expression then
+        Just EQ
+
+    else if isSpecificFunction [ "Basics" ] "GT" lookupTable expression then
+        Just GT
+
+    else
+        Nothing
 
 
 isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { ranges : List Range, throughLambdaFunction : Bool })
