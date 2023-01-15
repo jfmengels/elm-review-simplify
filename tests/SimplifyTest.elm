@@ -9331,6 +9331,38 @@ a = List.sortWith (always (always LT)) list
 a = List.reverse list
 """
                         ]
+        , test "should replace List.sortWith (always (always LT)) <| list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always LT)) <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse <| list
+"""
+                        ]
+        , test "should replace list |> List.sortWith (always (always LT)) by list" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.sortWith (always (always LT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.reverse
+"""
+                        ]
         , test "should replace List.sortWith (\\_ -> always LT) by List.reverse" <|
             \() ->
                 """module A exposing (..)
