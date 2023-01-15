@@ -9019,38 +9019,6 @@ b = List.sortBy fn [ a ]
 b = [ a ]
 """
                         ]
-        , test "should replace List.sortBy identity by identity" <|
-            \() ->
-                """module A exposing (..)
-a = List.sortBy identity
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using List.sortBy identity will always return the same list"
-                            , details = [ "You can replace this call by identity." ]
-                            , under = "List.sortBy"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = identity
-"""
-                        ]
-        , test "should replace List.sortBy identity list by list" <|
-            \() ->
-                """module A exposing (..)
-a = List.sortBy identity list
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using List.sortBy identity will always return the same list"
-                            , details = [ "You can replace this call by the list argument." ]
-                            , under = "List.sortBy"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = list
-"""
-                        ]
         , test "should replace List.sortBy (always a) by identity" <|
             \() ->
                 """module A exposing (..)

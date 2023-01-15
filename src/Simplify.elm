@@ -575,9 +575,6 @@ Destructuring using case expressions
     --> x
 
 
-    List.sortBy identity list
-    --> list
-
     List.sortBy (\_ -> a) list
     --> list
 
@@ -4214,13 +4211,15 @@ listSortByChecks checkInfo =
             ]
 
         _ ->
-            let
-                fixToIdentity : String -> List (Error {})
-                fixToIdentity aspect =
+            case getAlwaysResult checkInfo checkInfo.firstArg of
+                Nothing ->
+                    []
+
+                Just _ ->
                     case checkInfo.secondArg of
                         Nothing ->
                             [ Rule.errorWithFix
-                                { message = "Using List.sortBy " ++ aspect ++ " will always return the same list"
+                                { message = "Using List.sortBy (always a) will always return the same list"
                                 , details = [ "You can replace this call by identity." ]
                                 }
                                 checkInfo.fnRange
@@ -4230,7 +4229,7 @@ listSortByChecks checkInfo =
 
                         Just (Node listArgument _) ->
                             [ Rule.errorWithFix
-                                { message = "Using List.sortBy " ++ aspect ++ " will always return the same list"
+                                { message = "Using List.sortBy (always a) will always return the same list"
                                 , details = [ "You can replace this call by the list argument." ]
                                 }
                                 checkInfo.fnRange
@@ -4240,17 +4239,6 @@ listSortByChecks checkInfo =
                                     }
                                 ]
                             ]
-            in
-            if isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                fixToIdentity "identity"
-
-            else
-                case getAlwaysResult checkInfo checkInfo.firstArg of
-                    Just _ ->
-                        fixToIdentity "(always a)"
-
-                    Nothing ->
-                        []
 
 
 listSortWithChecks : CheckInfo -> List (Error {})
