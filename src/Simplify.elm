@@ -575,6 +575,29 @@ Destructuring using case expressions
     --> x
 
 
+    List.sortBy identity list
+    --> list
+
+    List.sortBy (\_ -> a) list
+    --> list
+
+    List.sortWith (\_ _ -> LT) list
+    --> List.reverse list
+
+    List.sortWith (\_ _ -> EQ) list
+    --> list
+
+    List.sortWith (\_ _ -> GT) list
+    --> list
+
+    -- The following simplifications for List.sort also work for List.sortBy fn and List.sortWith fn
+    List.sort []
+    --> []
+
+    List.sort [ a ]
+    --> [ a ]
+
+
 ### Set
 
     Set.map fn Set.empty -- same for Set.filter, Set.remove...
@@ -1597,6 +1620,9 @@ functionCallChecks =
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
         , ( ( [ "List" ], "reverse" ), listReverseChecks )
+        , ( ( [ "List" ], "sort" ), listSortChecks )
+        , ( ( [ "List" ], "sortBy" ), listSortByChecks )
+        , ( ( [ "List" ], "sortWith" ), listSortWithChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
         , ( ( [ "List" ], "member" ), collectionMemberChecks listCollection )
@@ -4131,6 +4157,220 @@ listReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
                 reverseReverseCompositionErrorMessage
                 (getSpecificFunction ( [ "List" ], "reverse" ))
                 checkInfo
+
+
+listSortChecks : CheckInfo -> List (Error {})
+listSortChecks checkInfo =
+    case checkInfo.firstArg of
+        Node _ (Expression.ListExpr []) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sort on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
+
+        Node singletonListRange (Expression.ListExpr (_ :: [])) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sort on [ a ] will result in [ a ]"
+                , details = [ "You can replace this call by the list argument." ]
+                }
+                checkInfo.fnRange
+                [ Fix.removeRange
+                    { start = checkInfo.parentRange.start
+                    , end = singletonListRange.start
+                    }
+                ]
+            ]
+
+        _ ->
+            []
+
+
+listSortByChecks : CheckInfo -> List (Error {})
+listSortByChecks checkInfo =
+    case checkInfo.secondArg of
+        Just (Node _ (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sortBy on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
+
+        Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sortBy on [ a ] will result in [ a ]"
+                , details = [ "You can replace this call by the list argument." ]
+                }
+                checkInfo.fnRange
+                [ Fix.removeRange
+                    { start = checkInfo.parentRange.start
+                    , end = singletonListRange.start
+                    }
+                ]
+            ]
+
+        _ ->
+            let
+                fixToIdentity : String -> List (Error {})
+                fixToIdentity aspect =
+                    case checkInfo.secondArg of
+                        Nothing ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.sortBy " ++ aspect ++ " will always return the same list"
+                                , details = [ "You can replace this call by identity." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange "identity"
+                                ]
+                            ]
+
+                        Just (Node listArgument _) ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.sortBy " ++ aspect ++ " will always return the same list"
+                                , details = [ "You can replace this call by the list argument." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange
+                                    { start = checkInfo.parentRange.start
+                                    , end = listArgument.start
+                                    }
+                                ]
+                            ]
+            in
+            if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                fixToIdentity "identity"
+
+            else
+                case getAlwaysResult checkInfo checkInfo.firstArg of
+                    Just _ ->
+                        fixToIdentity "(always a)"
+
+                    Nothing ->
+                        []
+
+
+listSortWithChecks : CheckInfo -> List (Error {})
+listSortWithChecks checkInfo =
+    case checkInfo.secondArg of
+        Just (Node _ (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sortWith on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
+
+        Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sortWith on [ a ] will result in [ a ]"
+                , details = [ "You can replace this call by the list argument." ]
+                }
+                checkInfo.fnRange
+                [ Fix.removeRange
+                    { start = checkInfo.parentRange.start
+                    , end = singletonListRange.start
+                    }
+                ]
+            ]
+
+        _ ->
+            let
+                alwaysAlwaysOrder : Maybe Order
+                alwaysAlwaysOrder =
+                    Maybe.andThen (getOrder checkInfo.lookupTable)
+                        (Maybe.andThen (getAlwaysResult checkInfo)
+                            (getAlwaysResult checkInfo checkInfo.firstArg)
+                        )
+            in
+            case alwaysAlwaysOrder of
+                Nothing ->
+                    []
+
+                Just order ->
+                    let
+                        fixToIdentity : List (Error {})
+                        fixToIdentity =
+                            case checkInfo.secondArg of
+                                Nothing ->
+                                    [ Rule.errorWithFix
+                                        { message = "Using List.sortWith (\\_ _ -> " ++ orderToString order ++ ") will always return the same list"
+                                        , details = [ "You can replace this call by identity." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy checkInfo.parentRange "identity"
+                                        ]
+                                    ]
+
+                                Just (Node listArgument _) ->
+                                    [ Rule.errorWithFix
+                                        { message = "Using List.sortWith (\\_ _ -> " ++ orderToString order ++ ") will always return the same list"
+                                        , details = [ "You can replace this call by the list argument." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.removeRange
+                                            { start = checkInfo.parentRange.start
+                                            , end = listArgument.start
+                                            }
+                                        , Fix.removeRange
+                                            { start = listArgument.end
+                                            , end = checkInfo.parentRange.end
+                                            }
+                                        ]
+                                    ]
+                    in
+                    case order of
+                        LT ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                                , details = [ "You can replace this call by List.reverse." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy
+                                    { start = checkInfo.fnRange.start
+                                    , end = (Node.range checkInfo.firstArg).end
+                                    }
+                                    "List.reverse"
+                                ]
+                            ]
+
+                        EQ ->
+                            fixToIdentity
+
+                        GT ->
+                            fixToIdentity
+
+
+getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
+getOrder lookupTable expression =
+    if isSpecificFunction [ "Basics" ] "LT" lookupTable expression then
+        Just LT
+
+    else if isSpecificFunction [ "Basics" ] "EQ" lookupTable expression then
+        Just EQ
+
+    else if isSpecificFunction [ "Basics" ] "GT" lookupTable expression then
+        Just GT
+
+    else
+        Nothing
+
+
+orderToString : Order -> String
+orderToString order =
+    case order of
+        LT ->
+            "LT"
+
+        EQ ->
+            "EQ"
+
+        GT ->
+            "GT"
 
 
 listTakeChecks : CheckInfo -> List (Error {})
