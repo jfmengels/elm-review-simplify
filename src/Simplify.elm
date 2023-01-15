@@ -5808,21 +5808,6 @@ removeBoundariesFix node =
     ]
 
 
-noopFix : CheckInfo -> List Fix
-noopFix { fnRange, parentRange, secondArg, usingRightPizza } =
-    [ case secondArg of
-        Just listArg ->
-            if usingRightPizza then
-                Fix.removeRange { start = (Node.range listArg).end, end = parentRange.end }
-
-            else
-                Fix.removeRange { start = fnRange.start, end = (Node.range listArg).start }
-
-        Nothing ->
-            Fix.replaceRangeBy parentRange "identity"
-    ]
-
-
 replaceByEmptyFix : String -> Range -> Maybe a -> List Fix
 replaceByEmptyFix empty parentRange secondArg =
     [ case secondArg of
@@ -5855,6 +5840,13 @@ toIdentityErrorInfo config =
     { message = "Using " ++ config.toFix ++ " will always return the same " ++ config.lastArgName
     , details = [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
     }
+
+
+{-| TODO replace uses with `toIdentityFix` to be more explicit
+-}
+noopFix : CheckInfo -> List Fix
+noopFix { parentRange, secondArg } =
+    toIdentityFix { lastArg = secondArg, parentRange = parentRange }
 
 
 toIdentityFix : { lastArg : Maybe (Node lastArgument), parentRange : Range } -> List Fix
