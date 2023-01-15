@@ -4174,11 +4174,11 @@ listSortChecks checkInfo =
                 , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
-                [ Fix.removeRange
-                    { start = checkInfo.parentRange.start
-                    , end = singletonListRange.start
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = singletonListRange
                     }
-                ]
+                )
             ]
 
         _ ->
@@ -4190,7 +4190,6 @@ listSortByChecks checkInfo =
     case checkInfo.secondArg of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
-                -- TODO will always return the same list
                 { message = "Using List.sortBy on [] will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
@@ -4200,16 +4199,15 @@ listSortByChecks checkInfo =
 
         Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
             [ Rule.errorWithFix
-                -- TODO will always return the same list
                 { message = "Using List.sortBy on [ a ] will result in [ a ]"
                 , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
-                [ Fix.removeRange
-                    { start = checkInfo.parentRange.start
-                    , end = singletonListRange.start
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = singletonListRange
                     }
-                ]
+                )
             ]
 
         _ ->
@@ -4243,11 +4241,11 @@ listSortWithChecks checkInfo =
                 , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
-                [ Fix.removeRange
-                    { start = checkInfo.parentRange.start
-                    , end = singletonListRange.start
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = singletonListRange
                     }
-                ]
+                )
             ]
 
         _ ->
@@ -5791,6 +5789,19 @@ removeFunctionAndFirstArg { fnRange, firstArg, usingRightPizza } secondArgRange 
         Fix.removeRange { start = fnRange.start, end = secondArgRange.start }
 
 
+keepOnlyFix : { parentRange : Range, keep : Range } -> List Fix
+keepOnlyFix { parentRange, keep } =
+    [ Fix.removeRange
+        { start = parentRange.start
+        , end = keep.start
+        }
+    , Fix.removeRange
+        { start = keep.end
+        , end = parentRange.end
+        }
+    ]
+
+
 removeBoundariesFix : Node a -> List Fix
 removeBoundariesFix node =
     let
@@ -5857,15 +5868,7 @@ toIdentityFix config =
             ]
 
         Just (Node listArgument _) ->
-            [ Fix.removeRange
-                { start = config.parentRange.start
-                , end = listArgument.start
-                }
-            , Fix.removeRange
-                { start = listArgument.end
-                , end = config.parentRange.end
-                }
-            ]
+            keepOnlyFix { parentRange = config.parentRange, keep = listArgument }
 
 
 boolToString : Bool -> String
