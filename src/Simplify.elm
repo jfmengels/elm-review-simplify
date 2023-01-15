@@ -4171,7 +4171,7 @@ listSortChecks checkInfo =
         Node singletonListRange (Expression.ListExpr (_ :: [])) ->
             [ Rule.errorWithFix
                 { message = "Using List.sort on [ a ] will result in [ a ]"
-                , details = [ "You can replace this call by the list argument." ]
+                , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
                 [ Fix.removeRange
@@ -4190,6 +4190,7 @@ listSortByChecks checkInfo =
     case checkInfo.secondArg of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
+                -- TODO will always return the same list
                 { message = "Using List.sortBy on [] will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
@@ -4199,8 +4200,9 @@ listSortByChecks checkInfo =
 
         Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
             [ Rule.errorWithFix
+                -- TODO will always return the same list
                 { message = "Using List.sortBy on [ a ] will result in [ a ]"
-                , details = [ "You can replace this call by the list argument." ]
+                , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
                 [ Fix.removeRange
@@ -4216,29 +4218,11 @@ listSortByChecks checkInfo =
                     []
 
                 Just _ ->
-                    case checkInfo.secondArg of
-                        Nothing ->
-                            [ Rule.errorWithFix
-                                { message = "Using List.sortBy (always a) will always return the same list"
-                                , details = [ "You can replace this call by identity." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange "identity"
-                                ]
-                            ]
-
-                        Just (Node listArgument _) ->
-                            [ Rule.errorWithFix
-                                { message = "Using List.sortBy (always a) will always return the same list"
-                                , details = [ "You can replace this call by the list argument." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.removeRange
-                                    { start = checkInfo.parentRange.start
-                                    , end = listArgument.start
-                                    }
-                                ]
-                            ]
+                    [ Rule.errorWithFix
+                        (toIdentityErrorInfo { toFix = "List.sortBy (always a)", lastArgName = "list" })
+                        checkInfo.fnRange
+                        (toIdentityFix { lastArg = checkInfo.secondArg, parentRange = checkInfo.parentRange })
+                    ]
 
 
 listSortWithChecks : CheckInfo -> List (Error {})
@@ -4256,7 +4240,7 @@ listSortWithChecks checkInfo =
         Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
             [ Rule.errorWithFix
                 { message = "Using List.sortWith on [ a ] will result in [ a ]"
-                , details = [ "You can replace this call by the list argument." ]
+                , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
                 [ Fix.removeRange
@@ -4283,33 +4267,11 @@ listSortWithChecks checkInfo =
                     let
                         fixToIdentity : List (Error {})
                         fixToIdentity =
-                            case checkInfo.secondArg of
-                                Nothing ->
-                                    [ Rule.errorWithFix
-                                        { message = "Using List.sortWith (\\_ _ -> " ++ orderToString order ++ ") will always return the same list"
-                                        , details = [ "You can replace this call by identity." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange "identity"
-                                        ]
-                                    ]
-
-                                Just (Node listArgument _) ->
-                                    [ Rule.errorWithFix
-                                        { message = "Using List.sortWith (\\_ _ -> " ++ orderToString order ++ ") will always return the same list"
-                                        , details = [ "You can replace this call by the list argument." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.removeRange
-                                            { start = checkInfo.parentRange.start
-                                            , end = listArgument.start
-                                            }
-                                        , Fix.removeRange
-                                            { start = listArgument.end
-                                            , end = checkInfo.parentRange.end
-                                            }
-                                        ]
-                                    ]
+                            [ Rule.errorWithFix
+                                (toIdentityErrorInfo { toFix = "List.sortWith (\\_ _ -> " ++ orderToString order ++ ")", lastArgName = "list" })
+                                checkInfo.fnRange
+                                (toIdentityFix { lastArg = checkInfo.secondArg, parentRange = checkInfo.parentRange })
+                            ]
                     in
                     case order of
                         LT ->
@@ -4331,19 +4293,6 @@ listSortWithChecks checkInfo =
 
                         GT ->
                             fixToIdentity
-
-
-orderToString : Order -> String
-orderToString order =
-    case order of
-        LT ->
-            "LT"
-
-        EQ ->
-            "EQ"
-
-        GT ->
-            "GT"
 
 
 listTakeChecks : CheckInfo -> List (Error {})
@@ -5901,6 +5850,32 @@ replaceByBoolFix parentRange secondArg replacementValue =
     ]
 
 
+toIdentityErrorInfo : { toFix : String, lastArgName : String } -> { message : String, details : List String }
+toIdentityErrorInfo config =
+    { message = "Using " ++ config.toFix ++ " will always return the same " ++ config.lastArgName
+    , details = [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
+    }
+
+
+toIdentityFix : { lastArg : Maybe (Node lastArgument), parentRange : Range } -> List Fix
+toIdentityFix config =
+    case config.lastArg of
+        Nothing ->
+            [ Fix.replaceRangeBy config.parentRange "identity"
+            ]
+
+        Just (Node listArgument _) ->
+            [ Fix.removeRange
+                { start = config.parentRange.start
+                , end = listArgument.start
+                }
+            , Fix.removeRange
+                { start = listArgument.end
+                , end = config.parentRange.end
+                }
+            ]
+
+
 boolToString : Bool -> String
 boolToString bool =
     if bool then
@@ -5908,6 +5883,19 @@ boolToString bool =
 
     else
         "False"
+
+
+orderToString : Order -> String
+orderToString order =
+    case order of
+        LT ->
+            "LT"
+
+        EQ ->
+            "EQ"
+
+        GT ->
+            "GT"
 
 
 
