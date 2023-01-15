@@ -4170,7 +4170,7 @@ listSortChecks checkInfo =
 
         Node singletonListRange (Expression.ListExpr (_ :: [])) ->
             [ Rule.errorWithFix
-                { message = "Using List.sort on [ a ] will result in [ a ]"
+                { message = "Sorting a list with a single element will result in the list itself"
                 , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
@@ -4199,7 +4199,7 @@ listSortByChecks checkInfo =
 
         Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
             [ Rule.errorWithFix
-                { message = "Using List.sortBy on [ a ] will result in [ a ]"
+                { message = "Sorting a list with a single element will result in the list itself"
                 , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange
@@ -4237,7 +4237,7 @@ listSortWithChecks checkInfo =
 
         Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
             [ Rule.errorWithFix
-                { message = "Using List.sortWith on [ a ] will result in [ a ]"
+                { message = "Sorting a list with a single element will result in the list itself"
                 , details = [ "You can replace this call by the list itself." ]
                 }
                 checkInfo.fnRange

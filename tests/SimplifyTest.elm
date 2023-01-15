@@ -8957,7 +8957,7 @@ a = List.sort [ a ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sort on [ a ] will result in [ a ]"
+                            { message = "Sorting a list with a single element will result in the list itself"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sort"
                             }
@@ -9011,7 +9011,7 @@ b = List.sortBy fn [ a ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy on [ a ] will result in [ a ]"
+                            { message = "Sorting a list with a single element will result in the list itself"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
@@ -9131,7 +9131,7 @@ b = List.sortWith fn [ a ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith on [ a ] will result in [ a ]"
+                            { message = "Sorting a list with a single element will result in the list itself"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
