@@ -5447,6 +5447,9 @@ listSimplificationTests =
         , listLengthTests
         , listRepeatTests
         , listPartitionTests
+        , listSortTests
+        , listSortByTests
+        , listSortWithTests
         , listReverseTests
         , listTakeTests
         , listDropTests
@@ -8908,6 +8911,506 @@ a = List.repeat 1 x
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        ]
+
+
+listSortTests : Test
+listSortTests =
+    describe "List.sort"
+        [ test "should not report List.sort on a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort
+b = List.sort list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sort on a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort (a :: bToZ)
+b = List.sort [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.sort [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sort on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.sort [ a ] by [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Sorting a list with a single element will result in the list itself"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ a ]
+"""
+                        ]
+        ]
+
+
+listSortByTests : Test
+listSortByTests =
+    describe "List.sortBy"
+        [ test "should not report List.sortBy with a function variable and a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy fn
+b = List.sortBy fn list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sortBy with a function variable and a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy fn (a :: bToZ)
+b = List.sortBy fn [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.sortBy fn [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy fn []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.sortBy fn [ a ] by [ a ]" <|
+            \() ->
+                """module A exposing (..)
+b = List.sortBy fn [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Sorting a list with a single element will result in the list itself"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+b = [ a ]
+"""
+                        ]
+        , test "should replace List.sortBy (always a) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (always b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy (always a) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortBy (always a) list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (always b) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy (always a) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list
+"""
+                        ]
+        , test "should replace List.sortBy (\\_ -> a) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\_ -> b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy (always a) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortBy (\\_ -> a) list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\_ -> b) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy (always a) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list
+"""
+                        ]
+        ]
+
+
+listSortWithTests : Test
+listSortWithTests =
+    describe "List.sortWith"
+        [ test "should not report List.sortWith with a function variable and a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith fn
+b = List.sortWith fn list
+b = List.sortWith (always fn) list
+b = List.sortWith (always (always fn)) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sortWith with a function variable and a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith fn (a :: bToZ)
+b = List.sortWith fn [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.sortWith fn [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith fn []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.sortWith fn [ a ] by [ a ]" <|
+            \() ->
+                """module A exposing (..)
+b = List.sortWith fn [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Sorting a list with a single element will result in the list itself"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+b = [ a ]
+"""
+                        ]
+        , test "should replace List.sortWith (always (always GT)) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always GT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (always (always GT)) list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always GT)) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list
+"""
+                        ]
+        , test "should replace List.sortWith (\\_ -> always GT) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (\\_ -> (always GT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (\\_ _ -> GT) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (\\_ _ -> GT)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (always (\\_ -> GT)) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (\\_ -> GT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (always (always EQ)) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always EQ))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (always (always EQ)) list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always EQ)) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list
+"""
+                        ]
+        , test "should replace List.sortWith (\\_ -> always EQ) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (\\_ -> (always EQ))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (\\_ _ -> EQ) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (\\_ _ -> EQ)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (always (\\_ -> EQ)) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (\\_ -> EQ))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.sortWith (always (always LT)) by List.reverse" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always LT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse
+"""
+                        ]
+        , test "should replace List.sortWith (always (always LT)) list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always LT)) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse list
+"""
+                        ]
+        , test "should replace List.sortWith (always (always LT)) <| list by list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (always LT)) <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse <| list
+"""
+                        ]
+        , test "should replace list |> List.sortWith (always (always LT)) by list" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.sortWith (always (always LT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.reverse
+"""
+                        ]
+        , test "should replace List.sortWith (\\_ -> always LT) by List.reverse" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (\\_ -> (always LT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse
+"""
+                        ]
+        , test "should replace List.sortWith (\\_ _ -> LT) by List.reverse" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (\\_ _ -> LT)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse
+"""
+                        ]
+        , test "should replace List.sortWith (always (\\_ -> LT)) by List.reverse" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith (always (\\_ -> LT))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            , details = [ "You can replace this call by List.reverse." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse
+"""
+                        ]
         ]
 
 

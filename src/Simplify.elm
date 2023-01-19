@@ -575,6 +575,26 @@ Destructuring using case expressions
     --> x
 
 
+    List.sortBy (\_ -> a) list
+    --> list
+
+    List.sortWith (\_ _ -> LT) list
+    --> List.reverse list
+
+    List.sortWith (\_ _ -> EQ) list
+    --> list
+
+    List.sortWith (\_ _ -> GT) list
+    --> list
+
+    -- The following simplifications for List.sort also work for List.sortBy fn and List.sortWith fn
+    List.sort []
+    --> []
+
+    List.sort [ a ]
+    --> [ a ]
+
+
 ### Set
 
     Set.map fn Set.empty -- same for Set.filter, Set.remove...
@@ -1597,6 +1617,9 @@ functionCallChecks =
         , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
         , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
         , ( ( [ "List" ], "reverse" ), listReverseChecks )
+        , ( ( [ "List" ], "sort" ), listSortChecks )
+        , ( ( [ "List" ], "sortBy" ), listSortByChecks )
+        , ( ( [ "List" ], "sortWith" ), listSortWithChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
         , ( ( [ "List" ], "member" ), collectionMemberChecks listCollection )
@@ -4133,6 +4156,143 @@ listReverseChecks ({ parentRange, fnRange, firstArg } as checkInfo) =
                 checkInfo
 
 
+listSortChecks : CheckInfo -> List (Error {})
+listSortChecks checkInfo =
+    case checkInfo.firstArg of
+        Node _ (Expression.ListExpr []) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sort on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
+
+        Node singletonListRange (Expression.ListExpr (_ :: [])) ->
+            [ Rule.errorWithFix
+                { message = "Sorting a list with a single element will result in the list itself"
+                , details = [ "You can replace this call by the list itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = singletonListRange
+                    }
+                )
+            ]
+
+        _ ->
+            []
+
+
+listSortByChecks : CheckInfo -> List (Error {})
+listSortByChecks checkInfo =
+    case checkInfo.secondArg of
+        Just (Node _ (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sortBy on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
+
+        Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
+            [ Rule.errorWithFix
+                { message = "Sorting a list with a single element will result in the list itself"
+                , details = [ "You can replace this call by the list itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = singletonListRange
+                    }
+                )
+            ]
+
+        _ ->
+            case getAlwaysResult checkInfo checkInfo.firstArg of
+                Nothing ->
+                    []
+
+                Just _ ->
+                    [ Rule.errorWithFix
+                        (toIdentityErrorInfo { toFix = "List.sortBy (always a)", lastArgName = "list" })
+                        checkInfo.fnRange
+                        (toIdentityFix { lastArg = checkInfo.secondArg, parentRange = checkInfo.parentRange })
+                    ]
+
+
+listSortWithChecks : CheckInfo -> List (Error {})
+listSortWithChecks checkInfo =
+    case checkInfo.secondArg of
+        Just (Node _ (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Using List.sortWith on [] will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
+
+        Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
+            [ Rule.errorWithFix
+                { message = "Sorting a list with a single element will result in the list itself"
+                , details = [ "You can replace this call by the list itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = singletonListRange
+                    }
+                )
+            ]
+
+        _ ->
+            let
+                alwaysAlwaysOrder : Maybe Order
+                alwaysAlwaysOrder =
+                    Maybe.andThen (getOrder checkInfo.lookupTable)
+                        (Maybe.andThen (getAlwaysResult checkInfo)
+                            (getAlwaysResult checkInfo checkInfo.firstArg)
+                        )
+            in
+            case alwaysAlwaysOrder of
+                Nothing ->
+                    []
+
+                Just order ->
+                    let
+                        fixToIdentity : List (Error {})
+                        fixToIdentity =
+                            [ Rule.errorWithFix
+                                (toIdentityErrorInfo { toFix = "List.sortWith (\\_ _ -> " ++ orderToString order ++ ")", lastArgName = "list" })
+                                checkInfo.fnRange
+                                (toIdentityFix { lastArg = checkInfo.secondArg, parentRange = checkInfo.parentRange })
+                            ]
+                    in
+                    case order of
+                        LT ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                                , details = [ "You can replace this call by List.reverse." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy
+                                    { start = checkInfo.fnRange.start
+                                    , end = (Node.range checkInfo.firstArg).end
+                                    }
+                                    "List.reverse"
+                                ]
+                            ]
+
+                        EQ ->
+                            fixToIdentity
+
+                        GT ->
+                            fixToIdentity
+
+
 listTakeChecks : CheckInfo -> List (Error {})
 listTakeChecks { lookupTable, parentRange, fnRange, firstArg, secondArg } =
     if getUncomputedNumberValue firstArg == Just 0 then
@@ -5629,6 +5789,19 @@ removeFunctionAndFirstArg { fnRange, firstArg, usingRightPizza } secondArgRange 
         Fix.removeRange { start = fnRange.start, end = secondArgRange.start }
 
 
+keepOnlyFix : { parentRange : Range, keep : Range } -> List Fix
+keepOnlyFix { parentRange, keep } =
+    [ Fix.removeRange
+        { start = parentRange.start
+        , end = keep.start
+        }
+    , Fix.removeRange
+        { start = keep.end
+        , end = parentRange.end
+        }
+    ]
+
+
 removeBoundariesFix : Node a -> List Fix
 removeBoundariesFix node =
     let
@@ -5643,21 +5816,6 @@ removeBoundariesFix node =
         { start = { row = end.row, column = end.column - 1 }
         , end = { row = end.row, column = end.column }
         }
-    ]
-
-
-noopFix : CheckInfo -> List Fix
-noopFix { fnRange, parentRange, secondArg, usingRightPizza } =
-    [ case secondArg of
-        Just listArg ->
-            if usingRightPizza then
-                Fix.removeRange { start = (Node.range listArg).end, end = parentRange.end }
-
-            else
-                Fix.removeRange { start = fnRange.start, end = (Node.range listArg).start }
-
-        Nothing ->
-            Fix.replaceRangeBy parentRange "identity"
     ]
 
 
@@ -5688,6 +5846,31 @@ replaceByBoolFix parentRange secondArg replacementValue =
     ]
 
 
+toIdentityErrorInfo : { toFix : String, lastArgName : String } -> { message : String, details : List String }
+toIdentityErrorInfo config =
+    { message = "Using " ++ config.toFix ++ " will always return the same " ++ config.lastArgName
+    , details = [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
+    }
+
+
+{-| TODO replace uses with `toIdentityFix` to be more explicit
+-}
+noopFix : CheckInfo -> List Fix
+noopFix { parentRange, secondArg } =
+    toIdentityFix { lastArg = secondArg, parentRange = parentRange }
+
+
+toIdentityFix : { lastArg : Maybe (Node lastArgument), parentRange : Range } -> List Fix
+toIdentityFix config =
+    case config.lastArg of
+        Nothing ->
+            [ Fix.replaceRangeBy config.parentRange "identity"
+            ]
+
+        Just (Node listArgument _) ->
+            keepOnlyFix { parentRange = config.parentRange, keep = listArgument }
+
+
 boolToString : Bool -> String
 boolToString bool =
     if bool then
@@ -5695,6 +5878,19 @@ boolToString bool =
 
     else
         "False"
+
+
+orderToString : Order -> String
+orderToString order =
+    case order of
+        LT ->
+            "LT"
+
+        EQ ->
+            "EQ"
+
+        GT ->
+            "GT"
 
 
 
@@ -5844,6 +6040,21 @@ getAlwaysResult inferResources expressionNode =
 
         _ ->
             Nothing
+
+
+getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
+getOrder lookupTable expression =
+    if isSpecificFunction [ "Basics" ] "LT" lookupTable expression then
+        Just LT
+
+    else if isSpecificFunction [ "Basics" ] "EQ" lookupTable expression then
+        Just EQ
+
+    else if isSpecificFunction [ "Basics" ] "GT" lookupTable expression then
+        Just GT
+
+    else
+        Nothing
 
 
 isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { ranges : List Range, throughLambdaFunction : Bool })
