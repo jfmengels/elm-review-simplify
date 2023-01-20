@@ -578,6 +578,9 @@ Destructuring using case expressions
     List.sortBy (\_ -> a) list
     --> list
 
+    List.sortBy identity list
+    --> List.sort list
+
     List.sortWith (\_ _ -> LT) list
     --> List.reverse list
 
@@ -4212,15 +4215,31 @@ listSortByChecks checkInfo =
 
         _ ->
             case getAlwaysResult checkInfo checkInfo.firstArg of
-                Nothing ->
-                    []
-
                 Just _ ->
                     [ Rule.errorWithFix
                         (toIdentityErrorInfo { toFix = "List.sortBy (always a)", lastArgName = "list" })
                         checkInfo.fnRange
                         (toIdentityFix { lastArg = checkInfo.secondArg, parentRange = checkInfo.parentRange })
                     ]
+
+                Nothing ->
+                    if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                        [ Rule.errorWithFix
+                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.fnRange.start
+                                , end = (Node.range checkInfo.firstArg).end
+                                }
+                                "List.sort"
+                            ]
+                        ]
+
+                    else
+                        -- firstArg isn't identity
+                        []
 
 
 listSortWithChecks : CheckInfo -> List (Error {})
