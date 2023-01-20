@@ -3725,11 +3725,11 @@ listSumChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.sum on [] will result in []"
-                , details = [ "You can replace this call by []." ]
+                { message = "Using List.sum on [] will result in 0"
+                , details = [ "You can replace this call by 0." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
             ]
 
         Expression.ListExpr ((Node elementRange _) :: []) ->

@@ -7073,12 +7073,12 @@ a = List.sum []
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sum on [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.sum on [] will result in 0"
+                            , details = [ "You can replace this call by 0." ]
                             , under = "List.sum"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = []
+a = 0
 """
                         ]
         , test "should replace List.sum [ a ] by a" <|
