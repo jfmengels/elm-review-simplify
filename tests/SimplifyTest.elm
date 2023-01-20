@@ -4735,6 +4735,23 @@ a = String.length "a\\t🚀b\\\\c🇲🇻\\u{000D}\\r"
 a = 13
 """
                         ]
+        , test "should replace String.length \"\"\"a\\t🚀b\\c🇲🇻\\u{000D}\\r\"\"\" by 13" <|
+            \() ->
+                """module A exposing (..)
+a = String.length \"\"\"a\\t🚀b\\\\c🇲🇻\\u{000D}\\r\"\"\"
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the string is 13"
+                            , details = [ "The length of the string can be determined by looking at the code." ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+a = 13
+"""
+                        ]
         ]
 
 
