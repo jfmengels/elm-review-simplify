@@ -501,6 +501,12 @@ Destructuring using case expressions
     List.isEmpty (x :: xs)
     --> False
 
+    List.sum []
+    --> 0
+
+    List.sum [ a ]
+    --> a
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl fn x []
     --> x
@@ -1610,6 +1616,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), listIndexedMapChecks )
+        , ( ( [ "List" ], "sum" ), listSumChecks )
         , ( ( [ "List" ], "foldl" ), listFoldlChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
@@ -3711,6 +3718,35 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
 
                 Nothing ->
                     []
+
+
+listSumChecks : CheckInfo -> List (Error {})
+listSumChecks checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.sum on [] will result in 0"
+                , details = [ "You can replace this call by 0." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
+            ]
+
+        Expression.ListExpr ((Node elementRange _) :: []) ->
+            [ Rule.errorWithFix
+                { message = "Summing a list with a single element will result in the element itself"
+                , details = [ "You can replace this call by the single element itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = elementRange
+                    }
+                )
+            ]
+
+        _ ->
+            []
 
 
 listFoldlChecks : CheckInfo -> List (Error {})
