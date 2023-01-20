@@ -9164,6 +9164,70 @@ a = List.sortBy (\\_ -> b) list
 a = list
 """
                         ]
+        , test "should replace List.sortBy identity by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy identity
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\a -> a) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\b -> b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy identity list by List.sort list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy identity list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort list
+"""
+                        ]
+        , test "should replace List.sortBy (\\a -> a) list by List.sort list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\b -> b) list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort list
+"""
+                        ]
         ]
 
 
