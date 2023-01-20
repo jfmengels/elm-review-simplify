@@ -507,6 +507,12 @@ Destructuring using case expressions
     List.sum [ a ]
     --> a
 
+    List.product []
+    --> 0
+
+    List.product [ a ]
+    --> a
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl fn x []
     --> x
@@ -1617,6 +1623,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), listIndexedMapChecks )
         , ( ( [ "List" ], "sum" ), listSumChecks )
+        , ( ( [ "List" ], "product" ), listProductChecks )
         , ( ( [ "List" ], "foldl" ), listFoldlChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
@@ -3735,6 +3742,35 @@ listSumChecks checkInfo =
         Expression.ListExpr ((Node elementRange _) :: []) ->
             [ Rule.errorWithFix
                 { message = "Summing a list with a single element will result in the element itself"
+                , details = [ "You can replace this call by the single element itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = elementRange
+                    }
+                )
+            ]
+
+        _ ->
+            []
+
+
+listProductChecks : CheckInfo -> List (Error {})
+listProductChecks checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.product on [] will result in 1"
+                , details = [ "You can replace this call by 1." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "1" ]
+            ]
+
+        Expression.ListExpr ((Node elementRange _) :: []) ->
+            [ Rule.errorWithFix
+                { message = "List.product on a list with a single element will result in the element itself"
                 , details = [ "You can replace this call by the single element itself." ]
                 }
                 checkInfo.fnRange
