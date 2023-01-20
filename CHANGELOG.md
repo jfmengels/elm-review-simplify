@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.0.24] - 2023-01-20
+
+All the changes in this release were contributed by [@lue-bird](https://github.com/lue-bird).
+
+The rule now simplifies:
+- `String.slice n n str` to `""`
+- `String.slice 0 n str ` to `String.left n str`
+- `String.slice n 0 str` to `""`
+- `String.slice a z ""` to `""`
+- `String.left 0 str` to `""`
+- `String.left -1 str` to `""`
+- `String.left n ""` to `""`
+- `String.right 0 str` to `""`
+- `String.right -1 str` to `""`
+- `String.right n ""` to `""`
+- `String.slice 2 1 str` to `""`
+- `String.slice -1 -2 str` to `""`
+
+- `List.sortBy (\_ -> a) list ` to `list`
+- `List.sortBy identity list ` to `List.sort list`
+- `List.sortWith (\_ _ -> LT) list ` to `List.reverse list`
+- `List.sortWith (\_ _ -> EQ) list ` to `list`
+- `List.sortWith (\_ _ -> GT) list ` to `list`
+
+The following simplifications for `List.sort` also work for `List.sortBy fn` and `List.sortWith fn`:
+- `List.sort []` to `[]`
+- `List.sort [ a ]` to `[ a ]`
+
+The following simplifications for List.foldl also work for `List.foldr`:
+- `List.foldl fn x []` to `x`
+- `List.foldl (\_ soFar -> soFar) x list ` to `x`
+- `List.foldl (+) 0 list ` to `List.sum list`
+- `List.foldl (+) initial list ` to `initial + List.sum list`
+- `List.foldl (*) 1 list ` to `List.product list`
+- `List.foldl (*) 0 list ` to `0`
+- `List.foldl (*) initial list ` to `initial * List.product list`
+- `List.foldl (&&) True list ` to `List.all identity list`
+- `List.foldl (&&) False list ` to `False`
+- `List.foldl (||) False list ` to `List.any identity list`
+- `List.foldl (||) True list ` to `True`
+
+
 ## [2.0.23] - 2022-11-08
 
 Add better support for `jfmengels/elm-review` v2.10.0.
