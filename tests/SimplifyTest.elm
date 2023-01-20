@@ -5520,6 +5520,7 @@ listSimplificationTests =
         , listFilterMapTests
         , listIndexedMapTests
         , listIsEmptyTests
+        , listSumTests
         , listFoldlTests
         , listFoldrTests
         , listAllTests
@@ -7040,6 +7041,60 @@ a = List.isEmpty (List.singleton x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
+"""
+                        ]
+        ]
+
+
+listSumTests : Test
+listSumTests =
+    describe "List.sum"
+        [ test "should not report List.sum on a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum
+b = List.sum list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sum on a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum (a :: bToZ)
+b = List.sum [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.sum [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.sum on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace List.sum [ a ] by a" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Summing a list with a single element will result in the element itself"
+                            , details = [ "You can replace this call by the single element itself." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = a
 """
                         ]
         ]
