@@ -508,7 +508,7 @@ Destructuring using case expressions
     --> a
 
     List.product []
-    --> 0
+    --> 1
 
     List.product [ a ]
     --> a
