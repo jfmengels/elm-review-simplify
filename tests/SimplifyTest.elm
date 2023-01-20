@@ -4731,7 +4731,7 @@ a = String.length "a\\t🚀b\\\\c🇲🇻\\u{000D}\\r"
                             , under = "String.length"
                             }
                             |> Review.Test.whenFixed
-                                """module A exposing (..)"
+                                """module A exposing (..)
 a = 13
 """
                         ]
