@@ -5521,6 +5521,7 @@ listSimplificationTests =
         , listIndexedMapTests
         , listIsEmptyTests
         , listSumTests
+        , listProductTests
         , listFoldlTests
         , listFoldrTests
         , listAllTests
@@ -7065,7 +7066,7 @@ b = List.sum [ a, b ]
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should replace List.sum [] by []" <|
+        , test "should replace List.sum [] by 0" <|
             \() ->
                 """module A exposing (..)
 a = List.sum []
@@ -7092,6 +7093,60 @@ a = List.sum [ a ]
                             { message = "Summing a list with a single element will result in the element itself"
                             , details = [ "You can replace this call by the single element itself." ]
                             , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = a
+"""
+                        ]
+        ]
+
+
+listProductTests : Test
+listProductTests =
+    describe "List.product"
+        [ test "should not report List.product on a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.product
+b = List.product list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.product on a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.product (a :: bToZ)
+b = List.product [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.product [] by 1" <|
+            \() ->
+                """module A exposing (..)
+a = List.product []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.product on [] will result in 1"
+                            , details = [ "You can replace this call by 1." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should replace List.product [ a ] by a" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list with a single element will result in the element itself"
+                            , details = [ "You can replace this call by the single element itself." ]
+                            , under = "List.product"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
