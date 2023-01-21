@@ -6033,12 +6033,15 @@ toIdentityErrorInfo config =
     }
 
 
-{-| TODO replace uses with `toIdentityFix` to be more explicit
+{-| identity if there's no second argument, else the second argument.
+
+TODO replace uses with `toIdentityFix` to be more explicit
+
 -}
 noopFix : CheckInfo -> List Fix
 noopFix checkInfo =
     toIdentityFix
-        { lastArg = Array.get (Array.length checkInfo.argsAfterFirst - 1) checkInfo.argsAfterFirst
+        { lastArg = secondArg checkInfo
         , parentRange = checkInfo.parentRange
         }
 
