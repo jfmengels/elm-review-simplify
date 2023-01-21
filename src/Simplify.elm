@@ -363,7 +363,7 @@ Destructuring using case expressions
     --> y
 
 
-### Result
+### Results
 
     Result.map identity x
     --> x
