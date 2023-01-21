@@ -513,6 +513,12 @@ Destructuring using case expressions
     List.product [ a ]
     --> a
 
+    List.minimum []
+    --> Nothing
+
+    List.minimum [ a ]
+    --> a
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl fn x []
     --> x
@@ -1624,6 +1630,7 @@ functionCallChecks =
         , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), listIndexedMapChecks )
         , ( ( [ "List" ], "sum" ), listSumChecks )
         , ( ( [ "List" ], "product" ), listProductChecks )
+        , ( ( [ "List" ], "minimum" ), listMinimumChecks )
         , ( ( [ "List" ], "foldl" ), listFoldlChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
@@ -3778,6 +3785,36 @@ listProductChecks checkInfo =
                     { parentRange = checkInfo.parentRange
                     , keep = elementRange
                     }
+                )
+            ]
+
+        _ ->
+            []
+
+
+listMinimumChecks : CheckInfo -> List (Error {})
+listMinimumChecks checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.minimum on [] will result in Nothing"
+                , details = [ "You can replace this call by Nothing." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+            ]
+
+        Expression.ListExpr ((Node elementRange _) :: []) ->
+            [ Rule.errorWithFix
+                { message = "List.minimum on a list with a single element will result in Just the element itself"
+                , details = [ "You can replace this call by Just the single element itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = elementRange
+                    }
+                    ++ [ Fix.insertAt checkInfo.parentRange.start "Just " ]
                 )
             ]
 

@@ -5522,6 +5522,7 @@ listSimplificationTests =
         , listIsEmptyTests
         , listSumTests
         , listProductTests
+        , listMinimumTests
         , listFoldlTests
         , listFoldrTests
         , listAllTests
@@ -7150,6 +7151,60 @@ a = List.product [ a ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
+"""
+                        ]
+        ]
+
+
+listMinimumTests : Test
+listMinimumTests =
+    describe "List.minimum"
+        [ test "should not report List.minimum on a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum
+b = List.minimum list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.minimum on a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (a :: bToZ)
+b = List.minimum [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.minimum [] by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.minimum on [] will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace List.minimum [ a ] by a" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.minimum on a list with a single element will result in Just the element itself"
+                            , details = [ "You can replace this call by Just the single element itself." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just a
 """
                         ]
         ]
