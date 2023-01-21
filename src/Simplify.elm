@@ -517,7 +517,7 @@ Destructuring using case expressions
     --> Nothing
 
     List.minimum [ a ]
-    --> a
+    --> Just a
 
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl fn x []
