@@ -4614,7 +4614,8 @@ a = left ++ ([ b ] ++ c)
 stringSimplificationTests : Test
 stringSimplificationTests =
     describe "String"
-        [ stringIsEmptyTests
+        [ stringFromListTests
+        , stringIsEmptyTests
         , stringLengthTests
         , concatTests
         , joinTests
@@ -5095,6 +5096,52 @@ a = String.lines ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        ]
+
+
+stringFromListTests : Test
+stringFromListTests =
+    describe "String.fromList"
+        [ test "should not report String.fromList that contains a variable" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList
+b = String.fromList str
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.fromList [] by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling String.fromList [] will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.fromList [ a ] by String.fromChar a" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
+                            , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromChar a
 """
                         ]
         ]
