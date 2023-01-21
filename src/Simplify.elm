@@ -1013,14 +1013,14 @@ onlyErrors errors =
 expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp node context =
     let
-        separateArgs :
+        toCheckInfo :
             { fnRange : Range
             , firstArg : Node Expression
             , argsAfterFirst : Array (Node Expression)
             , usingRightPizza : Bool
             }
             -> CheckInfo
-        separateArgs checkInfo =
+        toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
             , inferredConstants = context.inferredConstants
             , parentRange = Node.range node
@@ -1042,7 +1042,7 @@ expressionVisitorHelp node context =
                 Just checkFn ->
                     onlyErrors
                         (checkFn
-                            (separateArgs
+                            (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
                                 , argsAfterFirst = Array.fromList restOfArguments
@@ -1164,7 +1164,7 @@ expressionVisitorHelp node context =
                 Just checkFn ->
                     onlyErrors
                         (checkFn
-                            (separateArgs
+                            (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
                                 , argsAfterFirst = Array.empty
@@ -1184,7 +1184,7 @@ expressionVisitorHelp node context =
                 Just checkFn ->
                     errorsAndRangesToIgnore
                         (checkFn
-                            (separateArgs
+                            (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
                                 , argsAfterFirst = Array.push lastArg (Array.fromList argsBetweenFirstAndLastArg)
@@ -1208,7 +1208,7 @@ expressionVisitorHelp node context =
                 Just checkFn ->
                     onlyErrors
                         (checkFn
-                            (separateArgs
+                            (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
                                 , argsAfterFirst = Array.empty
@@ -1228,7 +1228,7 @@ expressionVisitorHelp node context =
                 Just checkFn ->
                     errorsAndRangesToIgnore
                         (checkFn
-                            (separateArgs
+                            (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
                                 , argsAfterFirst = Array.push lastArg (Array.fromList argsBetweenFirstAndLast)
