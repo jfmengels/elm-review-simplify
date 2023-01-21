@@ -552,7 +552,6 @@ Destructuring using case expressions
     List.partition (always True) list
     --> ( list, [] )
 
-
     List.take 0 x
     --> []
 
