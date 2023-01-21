@@ -49,9 +49,6 @@ Below is the list of all kinds of simplifications this rule applies.
     not (not x)
     --> x
 
-    not >> not
-    --> identity
-
 
 ### Comparisons
 
@@ -239,9 +236,6 @@ Destructuring using case expressions
     -(-n)
     --> n
 
-    negate >> negate
-    --> identity
-
     negate (negate x)
     --> x
 
@@ -296,8 +290,8 @@ Destructuring using case expressions
     String.reverse ""
     --> ""
 
-    String.reverse <| String.reverse x
-    --> x
+    String.reverse (String.reverse str)
+    --> str
 
     String.slice n n str
     --> ""
@@ -419,32 +413,14 @@ Destructuring using case expressions
     List.map identity list
     --> list
 
-    List.map identity
-    --> identity
-
-    List.filter (always True) list
-    --> list
-
     List.filter (\a -> True) list
     --> list
 
     List.filter (always False) list
     --> []
 
-    List.filter (always True)
-    --> identity
-
-    List.filter (always False)
-    --> always []
-
     List.filterMap Just list
     --> list
-
-    List.filterMap (\a -> Just a) list
-    --> list
-
-    List.filterMap Just
-    --> identity
 
     List.filterMap (\a -> if condition a then Just b else Just c) list
     --> List.map (\a -> if condition a then b else c) list
@@ -452,15 +428,11 @@ Destructuring using case expressions
     List.filterMap (always Nothing) list
     --> []
 
-    List.filterMap (always Nothing)
-    --> (always [])
-
     List.filterMap identity (List.map f x)
     --> List.filterMap f x
 
     List.filterMap identity [ Just x, Just y ]
     --> [ x, y ]
-
 
     List.concat [ [ a, b ], [ c ] ]
     --> [ a, b, c ]
@@ -468,13 +440,7 @@ Destructuring using case expressions
     List.concat [ a, [ 1 ], [ 2 ] ]
     --> List.concat [ a, [ 1, 2 ] ]
 
-    List.concatMap identity x
-    --> List.concat list
-
-    List.concatMap identity
-    --> List.concat
-
-    List.concatMap (\a -> a) list
+    List.concatMap identity list
     --> List.concat list
 
     List.concatMap (\a -> [ b ]) list
@@ -577,7 +543,7 @@ Destructuring using case expressions
     List.length [ a, b, c ]
     --> 3
 
-    List.repeat 0 list
+    List.repeat 0 x
     --> []
 
     List.partition fn []
@@ -586,18 +552,14 @@ Destructuring using case expressions
     List.partition (always True) list
     --> ( list, [] )
 
-
     List.take 0 x
     --> []
-
 
     List.drop 0 x
     --> x
 
-
-    List.reverse <| List.reverse x
+    List.reverse (List.reverse x)
     --> x
-
 
     List.sortBy (\_ -> a) list
     --> list
@@ -629,9 +591,6 @@ Destructuring using case expressions
 
     Set.map identity set
     --> set
-
-    Set.map identity
-    --> identity
 
     Set.isEmpty Set.empty
     --> True
