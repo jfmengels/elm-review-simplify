@@ -583,6 +583,9 @@ Destructuring using case expressions
     List.sort [ a ]
     --> [ a ]
 
+    List.unzip []
+    --> ( [], [] )
+
 
 ### Set
 
@@ -1613,6 +1616,7 @@ functionCallChecks =
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
         , ( ( [ "List" ], "member" ), collectionMemberChecks listCollection )
+        , ( ( [ "List" ], "unzip" ), listUnzipChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -4483,6 +4487,22 @@ listDropChecks { lookupTable, parentRange, fnRange, firstArg, secondArg, usingRi
 
             _ ->
                 []
+
+
+listUnzipChecks : CheckInfo -> List (Error {})
+listUnzipChecks checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.unzip on [] will result in ( [], [] )"
+                , details = [ "You can replace this call by ( [], [] )." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "( [], [] )" ]
+            ]
+
+        _ ->
+            []
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})

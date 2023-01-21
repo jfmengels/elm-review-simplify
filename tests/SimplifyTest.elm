@@ -5540,6 +5540,7 @@ listSimplificationTests =
         , listDropTests
         , listIntersperseTests
         , listMemberTests
+        , listUnzipTests
         ]
 
 
@@ -10170,6 +10171,38 @@ a = List.member x []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
+"""
+                        ]
+        ]
+
+
+listUnzipTests : Test
+listUnzipTests =
+    describe "List.unzip"
+        [ test "should not report List.unzip on a list argument containing a variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.unzip
+b = List.unzip list
+c = List.unzip [ h ]
+d = List.unzip (h :: t)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.unzip [] by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.unzip []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.unzip on [] will result in ( [], [] )"
+                            , details = [ "You can replace this call by ( [], [] )." ]
+                            , under = "List.unzip"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( [], [] )
 """
                         ]
         ]
