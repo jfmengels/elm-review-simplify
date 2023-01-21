@@ -543,7 +543,7 @@ Destructuring using case expressions
     List.length [ a, b, c ]
     --> 3
 
-    List.repeat 0 list
+    List.repeat 0 x
     --> []
 
     List.partition fn []
