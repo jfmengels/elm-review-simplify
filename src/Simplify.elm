@@ -245,6 +245,12 @@ Destructuring using case expressions
     "a" ++ ""
     --> "a"
 
+    String.fromList []
+    --> ""
+
+    String.fromList [ a ]
+    --> String.fromChar a
+
     String.isEmpty ""
     --> True
 
@@ -1635,6 +1641,7 @@ functionCallChecks =
         , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
         , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
         , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
+        , ( ( [ "String" ], "fromList" ), stringFromListChecks )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
@@ -2920,6 +2927,33 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 
 -- STRING
+
+
+stringFromListChecks : CheckInfo -> List (Error {})
+stringFromListChecks checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Calling String.fromList [] will result in " ++ emptyStringAsString
+                , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+            ]
+
+        Expression.ListExpr ((Node keep _) :: []) ->
+            [ Rule.errorWithFix
+                { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
+                , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = keep }
+                    ++ [ Fix.insertAt checkInfo.parentRange.start "String.fromChar " ]
+                )
+            ]
+
+        _ ->
+            []
 
 
 stringIsEmptyChecks : CheckInfo -> List (Error {})
