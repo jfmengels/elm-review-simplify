@@ -519,6 +519,12 @@ Destructuring using case expressions
     List.minimum [ a ]
     --> Just a
 
+    List.maximum []
+    --> Nothing
+
+    List.maximum [ a ]
+    --> Just a
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl fn x []
     --> x
@@ -1631,6 +1637,7 @@ functionCallChecks =
         , ( ( [ "List" ], "sum" ), listSumChecks )
         , ( ( [ "List" ], "product" ), listProductChecks )
         , ( ( [ "List" ], "minimum" ), listMinimumChecks )
+        , ( ( [ "List" ], "maximum" ), listMaximumChecks )
         , ( ( [ "List" ], "foldl" ), listFoldlChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrChecks )
         , ( ( [ "List" ], "all" ), listAllChecks )
@@ -3807,6 +3814,36 @@ listMinimumChecks checkInfo =
         Expression.ListExpr ((Node elementRange _) :: []) ->
             [ Rule.errorWithFix
                 { message = "List.minimum on a list with a single element will result in Just the element itself"
+                , details = [ "You can replace this call by Just the single element itself." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = elementRange
+                    }
+                    ++ [ Fix.insertAt checkInfo.parentRange.start "Just " ]
+                )
+            ]
+
+        _ ->
+            []
+
+
+listMaximumChecks : CheckInfo -> List (Error {})
+listMaximumChecks checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.maximum on [] will result in Nothing"
+                , details = [ "You can replace this call by Nothing." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+            ]
+
+        Expression.ListExpr ((Node elementRange _) :: []) ->
+            [ Rule.errorWithFix
+                { message = "List.maximum on a list with a single element will result in Just the element itself"
                 , details = [ "You can replace this call by Just the single element itself." ]
                 }
                 checkInfo.fnRange
