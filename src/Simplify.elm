@@ -236,8 +236,8 @@ Destructuring using case expressions
     -(-n)
     --> n
 
-    negate (negate x)
-    --> x
+    negate (negate n)
+    --> n
 
 
 ### Strings
