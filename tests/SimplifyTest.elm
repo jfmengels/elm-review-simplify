@@ -5523,6 +5523,7 @@ listSimplificationTests =
         , listSumTests
         , listProductTests
         , listMinimumTests
+        , listMaximumTests
         , listFoldlTests
         , listFoldrTests
         , listAllTests
@@ -7202,6 +7203,60 @@ a = List.minimum [ a ]
                             { message = "List.minimum on a list with a single element will result in Just the element itself"
                             , details = [ "You can replace this call by Just the single element itself." ]
                             , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just a
+"""
+                        ]
+        ]
+
+
+listMaximumTests : Test
+listMaximumTests =
+    describe "List.maximum"
+        [ test "should not report List.maximum on a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum
+b = List.maximum list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.maximum on a list with >= 2 elements" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum (a :: bToZ)
+b = List.maximum [ a, b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.maximum [] by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.maximum on [] will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace List.maximum [ a ] by a" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum [ a ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.maximum on a list with a single element will result in Just the element itself"
+                            , details = [ "You can replace this call by Just the single element itself." ]
+                            , under = "List.maximum"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Just a
