@@ -4525,15 +4525,18 @@ listDropChecks checkInfo =
 
 listMapNChecks : { n : Int } -> CheckInfo -> List (Error {})
 listMapNChecks { n } checkInfo =
-    if List.any (\(Node _ expression) -> expression == Expression.ListExpr []) checkInfo.argsAfterFirst then
+    if List.any (\(Node _ list) -> list == Expression.ListExpr []) checkInfo.argsAfterFirst then
+        let
+            callReplacement : String
+            callReplacement =
+                multiAlways (n - List.length checkInfo.argsAfterFirst) "[]"
+        in
         [ Rule.errorWithFix
             { message = "Using List.map" ++ String.fromInt n ++ " with any list being [] will result in []"
-            , details = [ "You can replace this call by []." ]
+            , details = [ "You can replace this call by " ++ callReplacement ++ "." ]
             }
             checkInfo.fnRange
-            [ Fix.replaceRangeBy checkInfo.parentRange
-                (multiAlways (n - List.length checkInfo.argsAfterFirst) "[]")
-            ]
+            [ Fix.replaceRangeBy checkInfo.parentRange callReplacement ]
         ]
 
     else

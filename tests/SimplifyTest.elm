@@ -10298,7 +10298,7 @@ a = List.map2 f []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map2 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.map2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10364,7 +10364,7 @@ a = List.map3 f [] list1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map3 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10380,7 +10380,7 @@ a = List.map3 f []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map3 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10463,7 +10463,7 @@ a = List.map4 f [] list1 list2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map4 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.map4"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10479,7 +10479,7 @@ a = List.map4 f [] list1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map4 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map4"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10495,7 +10495,7 @@ a = List.map4 f []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map4 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by (\\_ _ _ -> [])." ]
                             , under = "List.map4"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10595,7 +10595,7 @@ a = List.map5 f [] list1 list2 list3
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map5 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10611,7 +10611,7 @@ a = List.map5 f [] list1 list2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map5 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10627,7 +10627,7 @@ a = List.map5 f [] list1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map5 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by (\\_ _ _ -> [])." ]
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10643,7 +10643,7 @@ a = List.map5 f []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.map5 with any list being [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            , details = [ "You can replace this call by (\\_ _ _ _ -> [])." ]
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
