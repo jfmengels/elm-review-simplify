@@ -10371,7 +10371,7 @@ a = List.map3 f [] list1
 a = always []
 """
                         ]
-        , test "should replace List.map3 f [] list1 by \\_ _ -> []" <|
+        , test "should replace List.map3 f [] list1 by (\\_ _ -> [])" <|
             \() ->
                 """module A exposing (..)
 a = List.map3 f []
@@ -10384,7 +10384,7 @@ a = List.map3 f []
                             , under = "List.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = \\_ _ -> []
+a = (\\_ _ -> [])
 """
                         ]
         , test "should replace List.map3 f list0 [] list2 by []" <|
@@ -10470,7 +10470,7 @@ a = List.map4 f [] list1 list2
 a = always []
 """
                         ]
-        , test "should replace List.map4 f [] list1 by \\_ _ -> []" <|
+        , test "should replace List.map4 f [] list1 by (\\_ _ -> [])" <|
             \() ->
                 """module A exposing (..)
 a = List.map4 f [] list1
@@ -10483,10 +10483,10 @@ a = List.map4 f [] list1
                             , under = "List.map4"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = \\_ _ -> []
+a = (\\_ _ -> [])
 """
                         ]
-        , test "should replace List.map4 f [] by \\_ _ _ -> []" <|
+        , test "should replace List.map4 f [] by (\\_ _ _ -> [])" <|
             \() ->
                 """module A exposing (..)
 a = List.map4 f []
@@ -10499,7 +10499,7 @@ a = List.map4 f []
                             , under = "List.map4"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = \\_ _ _ -> []
+a = (\\_ _ _ -> [])
 """
                         ]
         , test "should replace List.map4 f list0 [] list2 list3 by []" <|
@@ -10602,7 +10602,7 @@ a = List.map5 f [] list1 list2 list3
 a = always []
 """
                         ]
-        , test "should replace List.map5 f [] list1 list2 by \\_ _ -> []" <|
+        , test "should replace List.map5 f [] list1 list2 by (\\_ _ -> [])" <|
             \() ->
                 """module A exposing (..)
 a = List.map5 f [] list1 list2
@@ -10615,10 +10615,10 @@ a = List.map5 f [] list1 list2
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = \\_ _ -> []
+a = (\\_ _ -> [])
 """
                         ]
-        , test "should replace List.map5 f [] list1 by \\_ _ _ -> []" <|
+        , test "should replace List.map5 f [] list1 by (\\_ _ _ -> [])" <|
             \() ->
                 """module A exposing (..)
 a = List.map5 f [] list1
@@ -10631,10 +10631,10 @@ a = List.map5 f [] list1
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = \\_ _ _ -> []
+a = (\\_ _ _ -> [])
 """
                         ]
-        , test "should replace List.map5 f [] by \\_ _ _ _ -> []" <|
+        , test "should replace List.map5 f [] by (\\_ _ _ _ -> [])" <|
             \() ->
                 """module A exposing (..)
 a = List.map5 f []
@@ -10647,7 +10647,7 @@ a = List.map5 f []
                             , under = "List.map5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = \\_ _ _ _ -> []
+a = (\\_ _ _ _ -> [])
 """
                         ]
         , test "should replace List.map5 f list0 [] list2 list3 list4 by []" <|

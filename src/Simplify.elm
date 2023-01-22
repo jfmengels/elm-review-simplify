@@ -4550,7 +4550,7 @@ multiAlways alwaysCount alwaysResultExpressionAsString =
             "always " ++ alwaysResultExpressionAsString
 
         alwaysCountPositive ->
-            "\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString
+            "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
 
 
 listUnzipChecks : CheckInfo -> List (Error {})
