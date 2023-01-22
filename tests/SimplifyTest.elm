@@ -10289,6 +10289,22 @@ a = List.map2 f [] list1
 a = []
 """
                         ]
+        , test "should replace List.map2 f [] by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map2 f []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map2 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map2"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always []
+"""
+                        ]
         , test "should replace List.map2 f list0 [] by []" <|
             \() ->
                 """module A exposing (..)
@@ -10337,6 +10353,38 @@ a = List.map3 f [] list1 list2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.map3 f [] list1 by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map3 f [] list1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map3 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always []
+"""
+                        ]
+        , test "should replace List.map3 f [] list1 by \\_ _ -> []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map3 f []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map3 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \\_ _ -> []
 """
                         ]
         , test "should replace List.map3 f list0 [] list2 by []" <|
@@ -10404,6 +10452,54 @@ a = List.map4 f [] list1 list2 list3
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.map4 f [] list1 list2 by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map4 f [] list1 list2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map4 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always []
+"""
+                        ]
+        , test "should replace List.map4 f [] list1 by \\_ _ -> []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map4 f [] list1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map4 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \\_ _ -> []
+"""
+                        ]
+        , test "should replace List.map4 f [] by \\_ _ _ -> []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map4 f []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map4 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \\_ _ _ -> []
 """
                         ]
         , test "should replace List.map4 f list0 [] list2 list3 by []" <|
@@ -10488,6 +10584,70 @@ a = List.map5 f [] list1 list2 list3 list4
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.map5 f [] list1 list2 list3 by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map5 f [] list1 list2 list3
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map5 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map5"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always []
+"""
+                        ]
+        , test "should replace List.map5 f [] list1 list2 by \\_ _ -> []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map5 f [] list1 list2
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map5 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map5"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \\_ _ -> []
+"""
+                        ]
+        , test "should replace List.map5 f [] list1 by \\_ _ _ -> []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map5 f [] list1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map5 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map5"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \\_ _ _ -> []
+"""
+                        ]
+        , test "should replace List.map5 f [] by \\_ _ _ _ -> []" <|
+            \() ->
+                """module A exposing (..)
+a = List.map5 f []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.map5 with any list being [] will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.map5"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \\_ _ _ _ -> []
 """
                         ]
         , test "should replace List.map5 f list0 [] list2 list3 list4 by []" <|

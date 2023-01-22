@@ -4531,11 +4531,26 @@ listMapNChecks { n } checkInfo =
             , details = [ "You can replace this call by []." ]
             }
             checkInfo.fnRange
-            [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            [ Fix.replaceRangeBy checkInfo.parentRange
+                (multiAlways (n - List.length checkInfo.argsAfterFirst) "[]")
+            ]
         ]
 
     else
         []
+
+
+multiAlways : Int -> String -> String
+multiAlways alwaysCount alwaysResultExpressionAsString =
+    case alwaysCount of
+        0 ->
+            alwaysResultExpressionAsString
+
+        1 ->
+            "always " ++ alwaysResultExpressionAsString
+
+        alwaysCountPositive ->
+            "\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString
 
 
 listUnzipChecks : CheckInfo -> List (Error {})
