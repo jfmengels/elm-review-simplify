@@ -589,6 +589,13 @@ Destructuring using case expressions
     List.sort [ a ]
     --> [ a ]
 
+    -- same for up to List.map5 when any list is empty
+    List.map2 fn xs []
+    --> []
+
+    List.map2 fn [] ys
+    --> []
+
     List.unzip []
     --> ( [], [] )
 
@@ -1601,6 +1608,10 @@ functionCallChecks =
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
         , ( ( [ "List" ], "member" ), collectionMemberChecks listCollection )
+        , ( ( [ "List" ], "map2" ), listMapNChecks { n = 2 } )
+        , ( ( [ "List" ], "map3" ), listMapNChecks { n = 3 } )
+        , ( ( [ "List" ], "map4" ), listMapNChecks { n = 4 } )
+        , ( ( [ "List" ], "map5" ), listMapNChecks { n = 5 } )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
         , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
@@ -4510,6 +4521,39 @@ listDropChecks checkInfo =
 
             _ ->
                 []
+
+
+listMapNChecks : { n : Int } -> CheckInfo -> List (Error {})
+listMapNChecks { n } checkInfo =
+    if List.any (\(Node _ list) -> list == Expression.ListExpr []) checkInfo.argsAfterFirst then
+        let
+            callReplacement : String
+            callReplacement =
+                multiAlways (n - List.length checkInfo.argsAfterFirst) "[]"
+        in
+        [ Rule.errorWithFix
+            { message = "Using List.map" ++ String.fromInt n ++ " with any list being [] will result in []"
+            , details = [ "You can replace this call by " ++ callReplacement ++ "." ]
+            }
+            checkInfo.fnRange
+            [ Fix.replaceRangeBy checkInfo.parentRange callReplacement ]
+        ]
+
+    else
+        []
+
+
+multiAlways : Int -> String -> String
+multiAlways alwaysCount alwaysResultExpressionAsString =
+    case alwaysCount of
+        0 ->
+            alwaysResultExpressionAsString
+
+        1 ->
+            "always " ++ alwaysResultExpressionAsString
+
+        alwaysCountPositive ->
+            "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
 
 
 listUnzipChecks : CheckInfo -> List (Error {})
