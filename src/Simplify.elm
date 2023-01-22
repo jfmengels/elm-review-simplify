@@ -2014,7 +2014,6 @@ errorForAddingEmptyStrings range rangeToRemove =
 errorForAddingEmptyLists : Range -> Range -> Error {}
 errorForAddingEmptyLists range rangeToRemove =
     Rule.errorWithFix
-        -- TODO this message seems just wrong?
         { message = "Concatenating with a single list doesn't have any effect"
         , details = [ "You should remove the concatenation with the empty list." ]
         }
