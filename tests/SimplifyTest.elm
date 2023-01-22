@@ -5560,6 +5560,7 @@ listSimplificationTests : Test
 listSimplificationTests =
     describe "List"
         [ usingConsTests
+        , listAppendTests
         , usingListConcatTests
         , listConcatMapTests
         , listMapTests
@@ -5636,6 +5637,86 @@ a = 1 :: []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ 1 ]
+"""
+                        ]
+        ]
+
+
+listAppendTests : Test
+listAppendTests =
+    describe "List.append"
+        [ test "should not report List.append with a list variable" <|
+            \() ->
+                """module A exposing (..)
+a = List.append
+b = List.append [ 1 ]
+c = List.append [ 1 ] ys
+d = List.append xs [ 1 ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should report List.append on two list literals" <|
+            \() ->
+                """module A exposing (..)
+a = List.append [b] [c,d,0]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Appending literal lists could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            , under = "List.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [b,c,d,0]
+"""
+                        ]
+        , test "should replace List.append [] ys by ys" <|
+            \() ->
+                """module A exposing (..)
+a = List.append [] ys
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Appending [] doesn't have any effect"
+                            , details = [ "You can remove the List.append function and the []." ]
+                            , under = "List.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ys
+"""
+                        ]
+        , test "should replace List.append [] by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.append []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Appending [] doesn't have any effect"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "List.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace List.append xs [] by xs" <|
+            \() ->
+                """module A exposing (..)
+a = List.append xs []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Appending [] doesn't have any effect"
+                            , details = [ "You can remove the List.append function and the []." ]
+                            , under = "List.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = xs
 """
                         ]
         ]

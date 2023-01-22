@@ -413,6 +413,12 @@ Destructuring using case expressions
     [ a, b ] ++ [ c ]
     --> [ a, b, c ]
 
+    List.append [] ys
+    --> ys
+
+    List.append [ a, b ] [ c ]
+    --> [ a, b, c ]
+
     List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -1581,6 +1587,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "map" ), resultMapChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
+        , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -2007,6 +2014,7 @@ errorForAddingEmptyStrings range rangeToRemove =
 errorForAddingEmptyLists : Range -> Range -> Error {}
 errorForAddingEmptyLists range rangeToRemove =
     Rule.errorWithFix
+        -- TODO this message seems just wrong?
         { message = "Concatenating with a single list doesn't have any effect"
         , details = [ "You should remove the concatenation with the empty list." ]
         }
@@ -3731,6 +3739,63 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
 
                 Nothing ->
                     []
+
+
+listAppendEmptyErrorInfo : { message : String, details : List String }
+listAppendEmptyErrorInfo =
+    { message = "Appending [] doesn't have any effect"
+    , details = [ "You can remove the List.append function and the []." ]
+    }
+
+
+listAppendChecks : CheckInfo -> List (Error {})
+listAppendChecks checkInfo =
+    case ( checkInfo.firstArg, secondArg checkInfo ) of
+        ( Node _ (Expression.ListExpr []), secondListArgument ) ->
+            case secondListArgument of
+                Nothing ->
+                    [ Rule.errorWithFix
+                        { listAppendEmptyErrorInfo
+                            | details = [ "You can replace this call by identity." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "identity" ]
+                    ]
+
+                Just (Node secondListRange _) ->
+                    [ Rule.errorWithFix
+                        listAppendEmptyErrorInfo
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = secondListRange })
+                    ]
+
+        ( Node firstListRange _, Just (Node _ (Expression.ListExpr [])) ) ->
+            [ Rule.errorWithFix
+                listAppendEmptyErrorInfo
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = firstListRange })
+            ]
+
+        ( Node firstListRange (Expression.ListExpr (_ :: _)), Just (Node secondListRange (Expression.ListExpr (_ :: _))) ) ->
+            [ Rule.errorWithFix
+                { message = "Appending literal lists could be simplified to be a single List"
+                , details = [ "Try moving all the elements into a single list." ]
+                }
+                checkInfo.fnRange
+                (Fix.replaceRangeBy
+                    { start = { row = firstListRange.end.row, column = firstListRange.end.column - 1 }
+                    , end = { row = secondListRange.start.row, column = secondListRange.start.column + 1 }
+                    }
+                    ","
+                    :: keepOnlyFix
+                        { parentRange = checkInfo.parentRange
+                        , keep = Range.combine [ firstListRange, secondListRange ]
+                        }
+                )
+            ]
+
+        _ ->
+            []
 
 
 listSumChecks : CheckInfo -> List (Error {})
@@ -6104,8 +6169,8 @@ toIdentityFix config =
             [ Fix.replaceRangeBy config.parentRange "identity"
             ]
 
-        Just (Node listArgument _) ->
-            keepOnlyFix { parentRange = config.parentRange, keep = listArgument }
+        Just (Node lastArgRange _) ->
+            keepOnlyFix { parentRange = config.parentRange, keep = lastArgRange }
 
 
 boolToString : Bool -> String
