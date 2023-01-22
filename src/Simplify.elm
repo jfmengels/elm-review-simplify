@@ -689,7 +689,6 @@ All of these also apply for `Sub`.
 
 -}
 
-import Array exposing (Array)
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
