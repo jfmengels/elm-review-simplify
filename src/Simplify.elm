@@ -1016,7 +1016,7 @@ expressionVisitorHelp node context =
         toCheckInfo :
             { fnRange : Range
             , firstArg : Node Expression
-            , argsAfterFirst : Array (Node Expression)
+            , argsAfterFirst : List (Node Expression)
             , usingRightPizza : Bool
             }
             -> CheckInfo
@@ -1027,6 +1027,8 @@ expressionVisitorHelp node context =
             , fnRange = checkInfo.fnRange
             , firstArg = checkInfo.firstArg
             , argsAfterFirst = checkInfo.argsAfterFirst
+            , secondArg = List.head checkInfo.argsAfterFirst
+            , thirdArg = List.head (List.drop 1 checkInfo.argsAfterFirst)
             , usingRightPizza = checkInfo.usingRightPizza
             }
     in
@@ -1045,7 +1047,7 @@ expressionVisitorHelp node context =
                             (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
-                                , argsAfterFirst = Array.fromList restOfArguments
+                                , argsAfterFirst = restOfArguments
                                 , usingRightPizza = False
                                 }
                             )
@@ -1167,7 +1169,7 @@ expressionVisitorHelp node context =
                             (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
-                                , argsAfterFirst = Array.empty
+                                , argsAfterFirst = []
                                 , usingRightPizza = False
                                 }
                             )
@@ -1176,7 +1178,7 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLastArg))) lastArg ->
+        Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast))) lastArg ->
             case
                 ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                     |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
@@ -1187,7 +1189,7 @@ expressionVisitorHelp node context =
                             (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
-                                , argsAfterFirst = Array.push lastArg (Array.fromList argsBetweenFirstAndLastArg)
+                                , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                 , usingRightPizza = False
                                 }
                             )
@@ -1211,7 +1213,7 @@ expressionVisitorHelp node context =
                             (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
-                                , argsAfterFirst = Array.empty
+                                , argsAfterFirst = []
                                 , usingRightPizza = True
                                 }
                             )
@@ -1231,7 +1233,7 @@ expressionVisitorHelp node context =
                             (toCheckInfo
                                 { fnRange = fnRange
                                 , firstArg = firstArg
-                                , argsAfterFirst = Array.push lastArg (Array.fromList argsBetweenFirstAndLast)
+                                , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                 , usingRightPizza = True
                                 }
                             )
@@ -1540,18 +1542,24 @@ type alias CheckInfo =
     , fnRange : Range
     , usingRightPizza : Bool
     , firstArg : Node Expression
-    , argsAfterFirst : Array (Node Expression)
+    , argsAfterFirst : List (Node Expression)
+
+    -- stored for quick access since usage is very common
+    -- prefer using secondArg and thirdArg functions
+    -- because the optimization could change in the future
+    , secondArg : Maybe (Node Expression)
+    , thirdArg : Maybe (Node Expression)
     }
 
 
 secondArg : CheckInfo -> Maybe (Node Expression)
 secondArg checkInfo =
-    Array.get 0 checkInfo.argsAfterFirst
+    checkInfo.secondArg
 
 
 thirdArg : CheckInfo -> Maybe (Node Expression)
 thirdArg checkInfo =
-    Array.get 1 checkInfo.argsAfterFirst
+    checkInfo.thirdArg
 
 
 functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> List (Error {}))
