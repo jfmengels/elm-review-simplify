@@ -347,7 +347,7 @@ Destructuring using case expressions
     Maybe.map f (Just x)
     --> Just (f x)
 
-    MaybeThen f Nothing
+    Maybe.andThen f Nothing
     --> Nothing
 
     Maybe.andThen (always Nothing) x
