@@ -1594,7 +1594,7 @@ functionCallChecks =
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
         , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), listIndexedMapChecks )
+        , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), \_ -> [] )
         , ( ( [ "List" ], "sum" ), listSumChecks )
         , ( ( [ "List" ], "product" ), listProductChecks )
         , ( ( [ "List" ], "minimum" ), listMinimumChecks )
