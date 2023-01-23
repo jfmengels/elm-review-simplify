@@ -440,8 +440,8 @@ Destructuring using case expressions
     List.filterMap (always Nothing) list
     --> []
 
-    List.filterMap identity (List.map f x)
-    --> List.filterMap f x
+    List.filterMap identity (List.map f list)
+    --> List.filterMap f list
 
     List.filterMap identity [ Just x, Just y ]
     --> [ x, y ]
@@ -464,8 +464,8 @@ Destructuring using case expressions
     List.concatMap (always []) list
     --> []
 
-    List.concat (List.map f x)
-    --> List.concatMap f x
+    List.concat (List.map f list)
+    --> List.concatMap f list
 
     List.indexedMap (\_ value -> f value) list
     --> List.map (\value -> f value) list
@@ -564,14 +564,14 @@ Destructuring using case expressions
     List.partition (always True) list
     --> ( list, [] )
 
-    List.take 0 x
+    List.take 0 list
     --> []
 
-    List.drop 0 x
-    --> x
+    List.drop 0 list
+    --> list
 
-    List.reverse (List.reverse x)
-    --> x
+    List.reverse (List.reverse list)
+    --> list
 
     List.sortBy (\_ -> a) list
     --> list
