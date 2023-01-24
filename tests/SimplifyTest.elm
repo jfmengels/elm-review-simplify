@@ -7504,6 +7504,22 @@ a = List.foldl (always identity) x
 a = always x
 """
                         ]
+        , test "should replace List.foldl f x (Set.toList set) by Set.foldl f x set" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f x (Set.toList set)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.foldl f x set
+"""
+                        ]
         , listFoldlSumTests
         , listFoldlProductTests
         , listFoldlAllTests
@@ -8315,6 +8331,22 @@ a = List.foldr (always identity) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always x
+"""
+                        ]
+        , test "should replace List.foldr f x (Set.toList set) by Set.foldl f x set" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr f x (Set.toList set)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldr directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.foldr f x set
 """
                         ]
         , listFoldrSumTests
