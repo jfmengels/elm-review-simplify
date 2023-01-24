@@ -1734,6 +1734,8 @@ compositionChecks =
     , resultMapCompositionChecks
     , filterAndMapCompositionCheck
     , concatAndMapCompositionCheck
+    , foldAndSetToListCompositionChecks "foldl"
+    , foldAndSetToListCompositionChecks "foldr"
     ]
 
 
@@ -3716,10 +3718,10 @@ listConcatMapChecks checkInfo =
 concatAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
 concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
     if fromLeftToRight then
-        if isSpecificFunction [ "List" ] "concat" lookupTable right then
+        if isSpecificValueOrFunction [ "List" ] "concat" lookupTable right then
             case Node.value (AstHelpers.removeParens left) of
                 Expression.Application [ leftFunction, _ ] ->
-                    if isSpecificFunction [ "List" ] "map" lookupTable leftFunction then
+                    if isSpecificValueOrFunction [ "List" ] "map" lookupTable leftFunction then
                         [ Rule.errorWithFix
                             { message = "List.map and List.concat can be combined using List.concatMap"
                             , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
@@ -3739,10 +3741,10 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
         else
             []
 
-    else if isSpecificFunction [ "List" ] "concat" lookupTable left then
+    else if isSpecificValueOrFunction [ "List" ] "concat" lookupTable left then
         case Node.value (AstHelpers.removeParens right) of
             Expression.Application [ rightFunction, _ ] ->
-                if isSpecificFunction [ "List" ] "map" lookupTable rightFunction then
+                if isSpecificValueOrFunction [ "List" ] "map" lookupTable rightFunction then
                     [ Rule.errorWithFix
                         { message = "List.map and List.concat can be combined using List.concatMap"
                         , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
@@ -4181,6 +4183,36 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     []
 
 
+foldAndSetToListCompositionChecks : String -> CompositionCheckInfo -> List (Error {})
+foldAndSetToListCompositionChecks foldOperationName checkInfo =
+    let
+        ( earlier, later ) =
+            if checkInfo.fromLeftToRight then
+                ( checkInfo.left, checkInfo.right )
+
+            else
+                ( checkInfo.right, checkInfo.left )
+    in
+    case getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable later of
+        Just listFoldCall ->
+            if isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable earlier then
+                [ Rule.errorWithFix
+                    { message = "To fold a set, you don't need to convert to a List"
+                    , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
+                    }
+                    listFoldCall.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range later }
+                        ++ [ Fix.replaceRangeBy listFoldCall.fnRange ("Set." ++ foldOperationName) ]
+                    )
+                ]
+
+            else
+                []
+
+        _ ->
+            []
+
+
 listAllChecks : CheckInfo -> List (Error {})
 listAllChecks checkInfo =
     case Maybe.map (AstHelpers.removeParens >> Node.value) (secondArg checkInfo) of
@@ -4337,10 +4369,10 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
     if fromLeftToRight then
         case Node.value (AstHelpers.removeParens right) of
             Expression.Application [ rightFunction, arg ] ->
-                if isSpecificFunction [ "List" ] "filterMap" lookupTable rightFunction && isIdentity lookupTable arg then
+                if isSpecificValueOrFunction [ "List" ] "filterMap" lookupTable rightFunction && isIdentity lookupTable arg then
                     case Node.value (AstHelpers.removeParens left) of
                         Expression.Application [ leftFunction, _ ] ->
-                            if isSpecificFunction [ "List" ] "map" lookupTable leftFunction then
+                            if isSpecificValueOrFunction [ "List" ] "map" lookupTable leftFunction then
                                 [ Rule.errorWithFix
                                     { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                                     , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
@@ -4366,10 +4398,10 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
     else
         case Node.value (AstHelpers.removeParens left) of
             Expression.Application [ leftFunction, arg ] ->
-                if isSpecificFunction [ "List" ] "filterMap" lookupTable leftFunction && isIdentity lookupTable arg then
+                if isSpecificValueOrFunction [ "List" ] "filterMap" lookupTable leftFunction && isIdentity lookupTable arg then
                     case Node.value (AstHelpers.removeParens right) of
                         Expression.Application [ rightFunction, _ ] ->
-                            if isSpecificFunction [ "List" ] "map" lookupTable rightFunction then
+                            if isSpecificValueOrFunction [ "List" ] "map" lookupTable rightFunction then
                                 [ Rule.errorWithFix
                                     { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                                     , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
@@ -4843,7 +4875,7 @@ setCollection =
     , represents = "set"
     , emptyAsString = "Set.empty"
     , emptyDescription = "Set.empty"
-    , isEmpty = isSpecificFunction [ "Set" ] "empty"
+    , isEmpty = isSpecificValueOrFunction [ "Set" ] "empty"
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Set" ] 1
     }
@@ -4855,7 +4887,7 @@ dictCollection =
     , represents = "Dict"
     , emptyAsString = "Dict.empty"
     , emptyDescription = "Dict.empty"
-    , isEmpty = isSpecificFunction [ "Dict" ] "empty"
+    , isEmpty = isSpecificValueOrFunction [ "Dict" ] "empty"
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Dict" ] 2
     }
@@ -4886,7 +4918,7 @@ maybeCollection =
     , represents = "maybe"
     , emptyAsString = "Nothing"
     , emptyDescription = "Nothing"
-    , isEmpty = isSpecificFunction [ "Maybe" ] "Nothing"
+    , isEmpty = isSpecificValueOrFunction [ "Maybe" ] "Nothing"
     , isSomethingConstructor = "Just"
     }
 
@@ -4908,7 +4940,7 @@ cmdCollection =
     , represents = "command"
     , emptyAsString = "Cmd.none"
     , emptyDescription = "Cmd.none"
-    , isEmpty = isSpecificFunction [ "Platform", "Cmd" ] "none"
+    , isEmpty = isSpecificValueOrFunction [ "Platform", "Cmd" ] "none"
     }
 
 
@@ -4918,7 +4950,7 @@ subCollection =
     , represents = "subscription"
     , emptyAsString = "Sub.none"
     , emptyDescription = "Sub.none"
-    , isEmpty = isSpecificFunction [ "Platform", "Sub" ] "none"
+    , isEmpty = isSpecificValueOrFunction [ "Platform", "Sub" ] "none"
     }
 
 
@@ -5561,7 +5593,7 @@ combineSingleElementFixes lookupTable nodes soFar =
 
 determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
 determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
-    if isSpecificFunction moduleName "empty" lookupTable node then
+    if isSpecificValueOrFunction moduleName "empty" lookupTable node then
         Just (Exactly 0)
 
     else
@@ -6070,8 +6102,8 @@ isSimpleDestructurePattern pattern =
             False
 
 
-isSpecificFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificFunction moduleName fnName lookupTable node =
+isSpecificValueOrFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificValueOrFunction moduleName fnName lookupTable node =
     case AstHelpers.removeParens node of
         Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
             (foundFnName == fnName)
@@ -6441,13 +6473,13 @@ getAlwaysResult inferResources expressionNode =
 
 getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
 getOrder lookupTable expression =
-    if isSpecificFunction [ "Basics" ] "LT" lookupTable expression then
+    if isSpecificValueOrFunction [ "Basics" ] "LT" lookupTable expression then
         Just LT
 
-    else if isSpecificFunction [ "Basics" ] "EQ" lookupTable expression then
+    else if isSpecificValueOrFunction [ "Basics" ] "EQ" lookupTable expression then
         Just EQ
 
-    else if isSpecificFunction [ "Basics" ] "GT" lookupTable expression then
+    else if isSpecificValueOrFunction [ "Basics" ] "GT" lookupTable expression then
         Just GT
 
     else
