@@ -606,7 +606,7 @@ Destructuring using case expressions
     --> ( [], [] )
 
 
-### Set
+### Sets
 
     Set.map fn Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
