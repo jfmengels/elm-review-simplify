@@ -2697,23 +2697,51 @@ getFunctionCall baseNode =
                 , argsAfterFirst = argsAfterFirst
                 }
 
-        Expression.OperatorApplication "|>" _ firstArg (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst))) ->
-            Just
-                { nodeRange = Node.range baseNode
-                , fnRange = fnRange
-                , fnName = fnName
-                , firstArg = firstArg
-                , argsAfterFirst = argsAfterFirst
-                }
+        Expression.OperatorApplication "|>" _ firstArg fedFunction ->
+            case fedFunction of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = []
+                        }
 
-        Expression.OperatorApplication "<|" _ (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst))) firstArg ->
-            Just
-                { nodeRange = Node.range baseNode
-                , fnRange = fnRange
-                , fnName = fnName
-                , firstArg = firstArg
-                , argsAfterFirst = argsAfterFirst
-                }
+                Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst)) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = argsAfterFirst
+                        }
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "<|" _ fedFunction firstArg ->
+            case fedFunction of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = []
+                        }
+
+                Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst)) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = argsAfterFirst
+                        }
+
+                _ ->
+                    Nothing
 
         _ ->
             Nothing
