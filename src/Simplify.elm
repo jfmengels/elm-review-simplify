@@ -4195,19 +4195,30 @@ foldAndSetToListCompositionChecks foldOperationName checkInfo =
     in
     case getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable later of
         Just listFoldCall ->
-            if isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable earlier then
-                [ Rule.errorWithFix
-                    { message = "To fold a set, you don't need to convert to a List"
-                    , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
-                    }
-                    listFoldCall.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range later }
-                        ++ [ Fix.replaceRangeBy listFoldCall.fnRange ("Set." ++ foldOperationName) ]
-                    )
-                ]
+            case listFoldCall.argsAfterFirst of
+                -- initial and reduce arguments are present
+                _ :: [] ->
+                    if isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable earlier then
+                        [ Rule.errorWithFix
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
+                            }
+                            listFoldCall.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range later }
+                                ++ [ Fix.replaceRangeBy listFoldCall.fnRange ("Set." ++ foldOperationName) ]
+                            )
+                        ]
 
-            else
-                []
+                    else
+                        []
+
+                -- composition onto fully constructed value (compile-time error)
+                _ :: _ :: _ ->
+                    []
+
+                -- reduce argument is missing
+                [] ->
+                    []
 
         _ ->
             []
