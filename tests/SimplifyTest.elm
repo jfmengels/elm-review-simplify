@@ -8269,6 +8269,16 @@ a = List.foldr (\\el soFar -> soFar - el) 20 list
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should not report List.foldr ... << Set.toList ... used with wrong amount of arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr reduce init << Set.toList list
+a = List.foldr reduce init compileTimeError << Set.toList
+a = List.foldr reduce << Set.toList
+a = List.foldr << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should replace List.foldr fn x [] by x" <|
             \() ->
                 """module A exposing (..)
