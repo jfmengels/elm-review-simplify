@@ -227,9 +227,6 @@ Destructuring using case expressions
     n * 1
     --> n
 
-    n * 0
-    --> 0
-
     n / 1
     --> n
 
@@ -1867,46 +1864,41 @@ minusChecks { leftRange, rightRange, left, right } =
 
 
 multiplyChecks : OperatorCheckInfo -> List (Error {})
-multiplyChecks { parentRange, leftRange, rightRange, left, right } =
+multiplyChecks { leftRange, rightRange, left, right } =
     findMap
         (\( node, getRange ) ->
-            if getUncomputedNumberValue node == Just 1 then
-                Just
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary multiplication by 1"
-                        , details = [ "Multiplying by 1 does not change the value of the number." ]
-                        }
-                        (getRange ())
-                        [ Fix.removeRange (getRange ()) ]
-                    ]
+            case getUncomputedNumberValue node of
+                Just number ->
+                    if number == 1 then
+                        Just
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary multiplication by 1"
+                                , details = [ "Multiplying by 1 does not change the value of the number." ]
+                                }
+                                (getRange ())
+                                [ Fix.removeRange (getRange ()) ]
+                            ]
 
-            else if getUncomputedIntValue node == Just 0 then
-                Just
-                    [ Rule.errorWithFix
-                        { message = "Multiplying by 0 equals 0"
-                        , details = [ "You can replace this value by 0." ]
-                        }
-                        (getRange ())
-                        [ Fix.replaceRangeBy parentRange "0" ]
-                    ]
-
-            else if getUncomputedFloatValue node == Just 0 then
-                Just
-                    [ Rule.error
-                        { message = "Multiplication by 0.0 should be replaced"
-                        , details =
-                            [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                            , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
-                            , """If you do want the described behavior, though, make your intention clear for the reader
+                    else if number == 0 then
+                        Just
+                            [ Rule.error
+                                { message = "Multiplication by 0 should be replaced"
+                                , details =
+                                    [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                    , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
+                                    , """If you do want the described behavior, though, make your intention clear for the reader
 by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
 and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                    ]
+                                }
+                                (getRange ())
                             ]
-                        }
-                        (getRange ())
-                    ]
 
-            else
-                Nothing
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
         )
         [ ( right, \() -> { start = leftRange.end, end = rightRange.end } )
         , ( left, \() -> { start = leftRange.start, end = rightRange.start } )
@@ -4161,20 +4153,11 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         ]
 
                     else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
-                        if getUncomputedIntValue initialArgument == Just 0 then
-                            [ Rule.errorWithFix
-                                { message = "The call to List." ++ foldOperationName ++ " (*) 0 will result in 0."
-                                , details = [ "You can replace this call by 0." ]
-                                }
-                                checkInfo.fnRange
-                                (replaceByEmptyFix "0" checkInfo.parentRange (thirdArg checkInfo))
-                            ]
-
-                        else if getUncomputedFloatValue initialArgument == Just 0 then
+                        if initialNumber == Just 0 then
                             [ Rule.error
-                                { message = "Multiplication by 0.0 should be replaced"
+                                { message = "Multiplication by 0 should be replaced"
                                 , details =
-                                    [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                    [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
                                     , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
                                     , """If you do want the described behavior, though, make your intention clear for the reader
 by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
