@@ -1698,6 +1698,25 @@ a = 0 * n
 a = 0
 """
                         ]
+        , test "should report but not fix simplify 0.0 * n" <|
+            \() ->
+                """module A exposing (..)
+a = 0.0 * n
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Multiplication by 0.0 should be replaced"
+                            , details =
+                                [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
+                            , under = "0.0 * "
+                            }
+                        ]
         ]
 
 
