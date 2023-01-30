@@ -6161,35 +6161,6 @@ getUncomputedNumberValue node =
             Nothing
 
 
-getUncomputedIntValue : Node Expression -> Maybe Float
-getUncomputedIntValue node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Integer n ->
-            Just (toFloat n)
-
-        Expression.Hex n ->
-            Just (toFloat n)
-
-        Expression.Negation expr ->
-            Maybe.map negate (getUncomputedIntValue expr)
-
-        _ ->
-            Nothing
-
-
-getUncomputedFloatValue : Node Expression -> Maybe Float
-getUncomputedFloatValue node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Floatable n ->
-            Just n
-
-        Expression.Negation expr ->
-            Maybe.map negate (getUncomputedFloatValue expr)
-
-        _ ->
-            Nothing
-
-
 letInChecks : Expression.LetBlock -> List (Error {})
 letInChecks letBlock =
     case Node.value letBlock.expression of
