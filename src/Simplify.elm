@@ -1887,8 +1887,9 @@ multiplyChecks { leftRange, rightRange, left, right } =
                                     [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
                                     , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
                                     , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
+                                    , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
+Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                     ]
                                 }
                                 (getRange ())
