@@ -4153,23 +4153,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         ]
 
                     else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
-                        if initialNumber == Just 0 then
-                            [ Rule.error
-                                { message = "Multiplication by 0 should be replaced"
-                                , details =
-                                    [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                    , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                    , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                    ]
-                                }
-                                (Range.combine [ Node.range checkInfo.firstArg, Node.range initialArgument ])
-                            ]
-
-                        else
-                            -- initialNumber /= Just 0
-                            numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
+                        numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
                     else if isBinaryOperation "+" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }

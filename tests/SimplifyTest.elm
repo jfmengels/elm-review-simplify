@@ -8080,64 +8080,7 @@ a = ((list |> List.sum) + initial)
 listFoldlProductTests : Test
 listFoldlProductTests =
     describe "product"
-        [ test "should report but not fix List.foldl (*) 0" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldl (*) 0
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Multiplication by 0 should be replaced"
-                            , details =
-                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                ]
-                            , under = "(*) 0"
-                            }
-                        ]
-        , test "should report but not fix List.foldl (*) 0 list" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldl (*) 0 list
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Multiplication by 0 should be replaced"
-                            , details =
-                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                ]
-                            , under = "(*) 0"
-                            }
-                        ]
-        , test "should report but not fix List.foldl (*) 0.0" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldl (*) 0.0
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Multiplication by 0 should be replaced"
-                            , details =
-                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                ]
-                            , under = "(*) 0.0"
-                            }
-                        ]
-        , test "should replace List.foldl (*) 1 by List.product" <|
+        [ test "should replace List.foldl (*) 1 by List.product" <|
             \() ->
                 """module A exposing (..)
 a = List.foldl (*) 1
@@ -8974,64 +8917,7 @@ a = ((list |> List.sum) + initial)
 listFoldrProductTests : Test
 listFoldrProductTests =
     describe "product"
-        [ test "should report but not fix List.foldr (*) 0" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldr (*) 0
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Multiplication by 0 should be replaced"
-                            , details =
-                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                ]
-                            , under = "(*) 0"
-                            }
-                        ]
-        , test "should report but not fix List.foldr (*) 0 list" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldr (*) 0 list
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Multiplication by 0 should be replaced"
-                            , details =
-                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                ]
-                            , under = "(*) 0"
-                            }
-                        ]
-        , test "should report but not fix List.foldr (*) 0.0" <|
-            \() ->
-                """module A exposing (..)
-a = List.foldr (*) 0.0
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Multiplication by 0 should be replaced"
-                            , details =
-                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
-                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
-                                , """If you do want the described behavior, though, make your intention clear for the reader
-by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
-and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
-                                ]
-                            , under = "(*) 0.0"
-                            }
-                        ]
-        , test "should replace List.foldr (*) 1 by List.product" <|
+        [ test "should replace List.foldr (*) 1 by List.product" <|
             \() ->
                 """module A exposing (..)
 a = List.foldr (*) 1
