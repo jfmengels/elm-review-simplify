@@ -1647,7 +1647,7 @@ a = 1 * n
 a = n
 """
                         ]
-        , test "should simplify n * 0 to 0" <|
+        , test "should report but not fix n * 0" <|
             \() ->
                 """module A exposing (..)
 a = n * 0
@@ -1655,13 +1655,16 @@ a = n * 0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Multiplying by 0 equals 0"
-                            , details = [ "You can replace this value by 0." ]
+                            { message = "Multiplication by 0 should be replaced"
+                            , details =
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
                             , under = " * 0"
                             }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = 0
-"""
                         ]
         , test "should report but not fix simplify n * 0.0" <|
             \() ->
@@ -1671,9 +1674,9 @@ a = n * 0.0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Multiplication by 0.0 should be replaced"
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
                                 , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
                                 , """If you do want the described behavior, though, make your intention clear for the reader
 by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
@@ -1682,7 +1685,7 @@ and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/
                             , under = " * 0.0"
                             }
                         ]
-        , test "should simplify 0 * n to 0" <|
+        , test "should report but not fix 0 * n" <|
             \() ->
                 """module A exposing (..)
 a = 0 * n
@@ -1690,15 +1693,18 @@ a = 0 * n
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Multiplying by 0 equals 0"
-                            , details = [ "You can replace this value by 0." ]
+                            { message = "Multiplication by 0 should be replaced"
+                            , details =
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
                             , under = "0 * "
                             }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = 0
-"""
                         ]
-        , test "should report but not fix simplify 0.0 * n" <|
+        , test "should report but not fix 0.0 * n" <|
             \() ->
                 """module A exposing (..)
 a = 0.0 * n
@@ -1706,9 +1712,9 @@ a = 0.0 * n
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Multiplication by 0.0 should be replaced"
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
                                 , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
                                 , """If you do want the described behavior, though, make your intention clear for the reader
 by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
@@ -8074,7 +8080,7 @@ a = ((list |> List.sum) + initial)
 listFoldlProductTests : Test
 listFoldlProductTests =
     describe "product"
-        [ test "should replace List.foldl (*) 0 by always 0" <|
+        [ test "should report but not fix List.foldl (*) 0" <|
             \() ->
                 """module A exposing (..)
 a = List.foldl (*) 0
@@ -8082,16 +8088,18 @@ a = List.foldl (*) 0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl (*) 0 will result in 0."
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "You can replace this call by 0." ]
-                            , under = "List.foldl"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
+                            , under = "(*) 0"
                             }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = always 0
-"""
                         ]
-        , test "should replace List.foldl (*) 0 list by 0" <|
+        , test "should report but not fix List.foldl (*) 0 list" <|
             \() ->
                 """module A exposing (..)
 a = List.foldl (*) 0 list
@@ -8099,14 +8107,16 @@ a = List.foldl (*) 0 list
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl (*) 0 will result in 0."
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "You can replace this call by 0." ]
-                            , under = "List.foldl"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
+                            , under = "(*) 0"
                             }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = 0
-"""
                         ]
         , test "should report but not fix List.foldl (*) 0.0" <|
             \() ->
@@ -8116,9 +8126,9 @@ a = List.foldl (*) 0.0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Multiplication by 0.0 should be replaced"
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
                                 , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
                                 , """If you do want the described behavior, though, make your intention clear for the reader
 by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
@@ -8964,7 +8974,7 @@ a = ((list |> List.sum) + initial)
 listFoldrProductTests : Test
 listFoldrProductTests =
     describe "product"
-        [ test "should replace List.foldr (*) 0 by always 0" <|
+        [ test "should report but not fix List.foldr (*) 0" <|
             \() ->
                 """module A exposing (..)
 a = List.foldr (*) 0
@@ -8972,16 +8982,18 @@ a = List.foldr (*) 0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr (*) 0 will result in 0."
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "You can replace this call by 0." ]
-                            , under = "List.foldr"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
+                            , under = "(*) 0"
                             }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = always 0
-"""
                         ]
-        , test "should replace List.foldr (*) 0 list by 0" <|
+        , test "should report but not fix List.foldr (*) 0 list" <|
             \() ->
                 """module A exposing (..)
 a = List.foldr (*) 0 list
@@ -8989,16 +9001,18 @@ a = List.foldr (*) 0 list
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr (*) 0 will result in 0."
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "You can replace this call by 0." ]
-                            , under = "List.foldr"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
+and [`Basics.isInfinite`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite)"""
+                                ]
+                            , under = "(*) 0"
                             }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = 0
-"""
                         ]
-        , test "should report but not fix List.foldr (*) 0" <|
+        , test "should report but not fix List.foldr (*) 0.0" <|
             \() ->
                 """module A exposing (..)
 a = List.foldr (*) 0.0
@@ -9006,9 +9020,9 @@ a = List.foldr (*) 0.0
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Multiplication by 0.0 should be replaced"
+                            { message = "Multiplication by 0 should be replaced"
                             , details =
-                                [ "Multiplying by Float 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
                                 , "Most likely, multiplying by 0 was unintentional and you had a different factor like 1 in mind."
                                 , """If you do want the described behavior, though, make your intention clear for the reader
 by explicitly checking for [`Basics.isNaN`](https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN)
