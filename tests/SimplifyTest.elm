@@ -6276,7 +6276,7 @@ a = List.singleton b |> List.head
 a = b |> Just
 """
                         ]
-        , test "should replace List.head [ a ] by Just (a)" <|
+        , test "should replace List.head [ a ] by Just a" <|
             \() ->
                 """module A exposing (..)
 a = List.head [ b ]
@@ -6289,10 +6289,26 @@ a = List.head [ b ]
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (b)
+a = Just b
 """
                         ]
-        , test "should replace List.head [ a, b, c ] by Just (a)" <|
+        , test "should replace List.head [ f a ] by Just (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.head [ f b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            , details = [ "You can replace this call by Just the first list element." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (f b)
+"""
+                        ]
+        , test "should replace List.head [ a, b, c ] by Just a" <|
             \() ->
                 """module A exposing (..)
 a = List.head [ b, c, d ]
@@ -6305,7 +6321,23 @@ a = List.head [ b, c, d ]
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (b)
+a = Just b
+"""
+                        ]
+        , test "should replace List.head [ f a, b, c ] by Just (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.head [ f b, c, d ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            , details = [ "You can replace this call by Just the first list element." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (f b)
 """
                         ]
         , test "should replace List.head (a :: bToZ) by Just (a)" <|

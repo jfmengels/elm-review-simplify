@@ -3916,22 +3916,21 @@ listHeadChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
             ]
 
-        Expression.ListExpr (head :: _) ->
-            let
-                headRange : Range
-                headRange =
-                    Node.range head
-            in
-            [ Rule.errorWithFix
-                listHeadExistsError
-                checkInfo.fnRange
-                (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
-                    ++ [ Fix.insertAt headRange.start "("
-                       , Fix.insertAt headRange.end ")"
-                       , Fix.replaceRangeBy checkInfo.fnRange "Just"
-                       ]
-                )
-            ]
+        Expression.ListExpr ((Node headRange head) :: _) ->
+            if needsParens head then
+                [ Rule.errorWithFix
+                    listHeadExistsError
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
+                        ++ [ Fix.insertAt headRange.start "("
+                           , Fix.insertAt headRange.end ")"
+                           , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                           ]
+                    )
+                ]
+
+            else
+                justFirstElementError headRange
 
         Expression.OperatorApplication "::" _ head _ ->
             justFirstElementError (Node.range head)
