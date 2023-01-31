@@ -3882,15 +3882,20 @@ listAppendChecks checkInfo =
             []
 
 
+listHeadExistsError : { message : String, details : List String }
+listHeadExistsError =
+    { message = "Using List.head on a list with a first element will result in Just that element"
+    , details = [ "You can replace this call by Just the first list element." ]
+    }
+
+
 listHeadChecks : CheckInfo -> List (Error {})
 listHeadChecks checkInfo =
     let
         justFirstElementError : Range -> List (Error {})
         justFirstElementError keep =
             [ Rule.errorWithFix
-                { message = "Using List.head on a list with a first element will result in Just that element"
-                , details = [ "You can replace this call by Just the first list element." ]
-                }
+                listHeadExistsError
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = Node.range listArg, keep = keep }
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
@@ -3912,7 +3917,21 @@ listHeadChecks checkInfo =
             ]
 
         Expression.ListExpr (head :: _) ->
-            justFirstElementError (Node.range head)
+            let
+                headRange : Range
+                headRange =
+                    Node.range head
+            in
+            [ Rule.errorWithFix
+                listHeadExistsError
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
+                    ++ [ Fix.insertAt headRange.start "("
+                       , Fix.insertAt headRange.end ")"
+                       , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                       ]
+                )
+            ]
 
         Expression.OperatorApplication "::" _ head _ ->
             justFirstElementError (Node.range head)
