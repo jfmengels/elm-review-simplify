@@ -5596,6 +5596,7 @@ listSimplificationTests =
         , usingListConcatTests
         , listConcatMapTests
         , listHeadTests
+        , listTailTests
         , listMapTests
         , listFilterTests
         , listFilterMapTests
@@ -6464,7 +6465,7 @@ a = List.tail [ b, c, d ]
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just [ b, c ]
+a = Just [ c, d ]
 """
                         ]
         , test "should replace List.tail (a :: bToZ) by Just (bToZ)" <|
@@ -6480,7 +6481,7 @@ a = List.tail (b :: cToZ)
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (bToZ)
+a = Just (cToZ)
 """
                         ]
         ]
