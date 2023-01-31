@@ -428,6 +428,12 @@ Destructuring using case expressions
     List.tail (a :: bToZ)
     --> Just bToZ
 
+    List.member a []
+    --> False
+
+    List.member a [ a, b, c ]
+    --> True
+
     List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -1603,6 +1609,7 @@ functionCallChecks =
         , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "head" ), listHeadChecks )
         , ( ( [ "List" ], "tail" ), listTailChecks )
+        , ( ( [ "List" ], "member" ), listMemberChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -1629,7 +1636,6 @@ functionCallChecks =
         , ( ( [ "List" ], "sortWith" ), listSortWithChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
-        , ( ( [ "List" ], "member" ), collectionMemberChecks listCollection )
         , ( ( [ "List" ], "map2" ), listMapNChecks { n = 2 } )
         , ( ( [ "List" ], "map3" ), listMapNChecks { n = 3 } )
         , ( ( [ "List" ], "map4" ), listMapNChecks { n = 4 } )
@@ -4043,6 +4049,83 @@ listTailChecks checkInfo =
 
                 Nothing ->
                     []
+
+
+listMemberChecks : CheckInfo -> List (Error {})
+listMemberChecks checkInfo =
+    let
+        needleArg : Node Expression
+        needleArg =
+            checkInfo.firstArg
+
+        isNeedle : Node Expression -> Bool
+        isNeedle element =
+            Normalize.compare checkInfo element needleArg
+                == Normalize.ConfirmedEquality
+    in
+    case secondArg checkInfo of
+        Just listArg ->
+            let
+                listMemberExistsError : List (Error {})
+                listMemberExistsError =
+                    [ Rule.errorWithFix
+                        { message = "Using List.member on a list which contains the given element will result in True"
+                        , details = [ "You can replace this call by True." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "True" ]
+                    ]
+            in
+            case Node.value (AstHelpers.removeParens listArg) of
+                Expression.ListExpr listLiteral ->
+                    case listLiteral of
+                        [] ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.member on an empty list will result in False"
+                                , details = [ "You can replace this call by False." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange "False" ]
+                            ]
+
+                        head :: tail ->
+                            if List.any isNeedle (head :: tail) then
+                                listMemberExistsError
+
+                            else
+                                []
+
+                Expression.OperatorApplication "::" _ head tail ->
+                    if List.any isNeedle (head :: getBeforeLastCons tail) then
+                        listMemberExistsError
+
+                    else
+                        []
+
+                _ ->
+                    case getListSingletonCall checkInfo.lookupTable listArg of
+                        Just single ->
+                            if isNeedle single.element then
+                                listMemberExistsError
+
+                            else
+                                []
+
+                        Nothing ->
+                            []
+
+        Nothing ->
+            []
+
+
+getBeforeLastCons : Node Expression -> List (Node Expression)
+getBeforeLastCons expressionNode =
+    case Node.value expressionNode of
+        Expression.OperatorApplication "::" _ beforeCons afterCons ->
+            beforeCons :: getBeforeLastCons afterCons
+
+        _ ->
+            []
 
 
 listSumChecks : CheckInfo -> List (Error {})
