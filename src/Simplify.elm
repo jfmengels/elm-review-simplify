@@ -4043,12 +4043,12 @@ listTailChecks checkInfo =
             ]
 
         _ ->
-            case getListSingletonCall checkInfo.lookupTable checkInfo.firstArg of
+            case getListSingletonCall checkInfo.lookupTable listArg of
                 Just _ ->
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy listArgRange listCollection.emptyAsString
+                        [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) listCollection.emptyAsString
                         , Fix.replaceRangeBy checkInfo.fnRange "Just"
                         ]
                     ]
