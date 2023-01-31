@@ -2647,6 +2647,21 @@ getNotFunction lookupTable baseNode =
     getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
 
 
+getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
+getListSingletonCall lookupTable expressionNode =
+    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+        Just singletonCall ->
+            case singletonCall.argsAfterFirst of
+                [] ->
+                    Just { element = singletonCall.firstArg }
+
+                _ :: _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
 getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificFunction ( moduleName, name ) lookupTable baseNode =
     case AstHelpers.removeParens baseNode of
@@ -4040,21 +4055,6 @@ listTailChecks checkInfo =
 
                 Nothing ->
                     []
-
-
-getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
-getListSingletonCall lookupTable expressionNode =
-    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
-        Just singletonCall ->
-            case singletonCall.argsAfterFirst of
-                [] ->
-                    Just { element = singletonCall.firstArg }
-
-                _ :: _ ->
-                    Nothing
-
-        Nothing ->
-            Nothing
 
 
 listSumChecks : CheckInfo -> List (Error {})
