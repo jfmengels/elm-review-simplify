@@ -6417,7 +6417,7 @@ a = List.tail <| List.singleton b
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just <| b
+a = Just <| []
 """
                         ]
         , test "should replace List.singleton a |> List.tail by [] |> Just" <|
