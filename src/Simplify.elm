@@ -422,6 +422,12 @@ Destructuring using case expressions
     List.head (a :: bToZ)
     --> Just a
 
+    List.tail []
+    --> Nothing
+
+    List.tail (a :: bToZ)
+    --> Just bToZ
+
     List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -1596,6 +1602,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
         , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "head" ), listHeadChecks )
+        , ( ( [ "List" ], "tail" ), listTailChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -2638,6 +2645,21 @@ getNotCall lookupTable baseNode =
 getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNotFunction lookupTable baseNode =
     getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
+
+
+getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
+getListSingletonCall lookupTable expressionNode =
+    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+        Just singletonCall ->
+            case singletonCall.argsAfterFirst of
+                [] ->
+                    Just { element = singletonCall.firstArg }
+
+                _ :: _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
@@ -3944,19 +3966,83 @@ listHeadChecks checkInfo =
                     []
 
 
-getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
-getListSingletonCall lookupTable expressionNode =
-    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
-        Just singletonCall ->
-            case singletonCall.argsAfterFirst of
+listTailExistsError : { message : String, details : List String }
+listTailExistsError =
+    { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+    , details = [ "You can replace this call by Just the list elements after the first." ]
+    }
+
+
+listEmptyTailExistsError : { message : String, details : List String }
+listEmptyTailExistsError =
+    { message = "Using List.tail on a list with a single element will result in Just the empty list"
+    , details = [ "You can replace this call by Just the empty list." ]
+    }
+
+
+listTailChecks : CheckInfo -> List (Error {})
+listTailChecks checkInfo =
+    let
+        listArg : Node Expression
+        listArg =
+            AstHelpers.removeParens checkInfo.firstArg
+
+        listArgRange : Range
+        listArgRange =
+            Node.range listArg
+    in
+    case Node.value listArg of
+        Expression.ListExpr listLiteral ->
+            case listLiteral of
                 [] ->
-                    Just { element = singletonCall.firstArg }
+                    [ Rule.errorWithFix
+                        { message = "Using List.tail on an empty list will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+                    ]
 
-                _ :: _ ->
-                    Nothing
+                _ :: [] ->
+                    [ Rule.errorWithFix
+                        listEmptyTailExistsError
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy listArgRange listCollection.emptyAsString
+                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        ]
+                    ]
 
-        Nothing ->
-            Nothing
+                (Node headRange _) :: (Node tailFirstRange _) :: _ ->
+                    [ Rule.errorWithFix
+                        listTailExistsError
+                        checkInfo.fnRange
+                        [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
+                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        ]
+                    ]
+
+        Expression.OperatorApplication "::" _ _ tail ->
+            [ Rule.errorWithFix
+                listTailExistsError
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = listArgRange, keep = Node.range tail }
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
+                )
+            ]
+
+        _ ->
+            case getListSingletonCall checkInfo.lookupTable listArg of
+                Just _ ->
+                    [ Rule.errorWithFix
+                        listEmptyTailExistsError
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) listCollection.emptyAsString
+                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
 
 listSumChecks : CheckInfo -> List (Error {})
