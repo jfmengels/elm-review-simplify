@@ -4012,25 +4012,13 @@ listTailChecks checkInfo =
                         ]
                     ]
 
-                _ :: (Node tailFirstRange _) :: tailAfterFirst ->
-                    let
-                        tailLastRange : Range
-                        tailLastRange =
-                            Maybe.withDefault tailFirstRange (lastElementRange tailAfterFirst)
-
-                        tailRange : Range
-                        tailRange =
-                            { start = tailFirstRange.start, end = tailLastRange.end }
-                    in
+                (Node headRange _) :: (Node tailFirstRange _) :: _ ->
                     [ Rule.errorWithFix
                         listTailExistsError
                         checkInfo.fnRange
-                        (keepOnlyFix { parentRange = listArgRange, keep = tailRange }
-                            ++ [ Fix.insertAt tailFirstRange.start "[ "
-                               , Fix.insertAt tailLastRange.end " ]"
-                               , Fix.replaceRangeBy checkInfo.fnRange "Just"
-                               ]
-                        )
+                        [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
+                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        ]
                     ]
 
         Expression.OperatorApplication "::" _ _ tail ->
