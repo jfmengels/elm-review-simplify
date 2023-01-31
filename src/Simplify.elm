@@ -416,6 +416,12 @@ Destructuring using case expressions
     List.append [ a, b ] [ c ]
     --> [ a, b, c ]
 
+    List.head []
+    --> Nothing
+
+    List.head (a :: bToZ)
+    --> Just a
+
     List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -1589,6 +1595,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
         , ( ( [ "List" ], "append" ), listAppendChecks )
+        , ( ( [ "List" ], "head" ), listHeadChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -3873,6 +3880,65 @@ listAppendChecks checkInfo =
 
         _ ->
             []
+
+
+listHeadChecks : CheckInfo -> List (Error {})
+listHeadChecks checkInfo =
+    let
+        justFirstElementError : Range -> List (Error {})
+        justFirstElementError keep =
+            [ Rule.errorWithFix
+                { message = "Using List.head on a list with a first element will result in Just that element"
+                , details = [ "You can replace this call by Just the first list element." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = Node.range listArg, keep = keep }
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
+                )
+            ]
+
+        listArg : Node Expression
+        listArg =
+            AstHelpers.removeParens checkInfo.firstArg
+    in
+    case Node.value listArg of
+        Expression.ListExpr [] ->
+            [ Rule.errorWithFix
+                { message = "Using List.head on an empty list will result in Nothing"
+                , details = [ "You can replace this call by Nothing." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+            ]
+
+        Expression.ListExpr (head :: _) ->
+            justFirstElementError (Node.range head)
+
+        Expression.OperatorApplication "::" _ head _ ->
+            justFirstElementError (Node.range head)
+
+        _ ->
+            case getListSingletonCall checkInfo.lookupTable listArg of
+                Just single ->
+                    justFirstElementError (Node.range single.element)
+
+                Nothing ->
+                    []
+
+
+getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
+getListSingletonCall lookupTable expressionNode =
+    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+        Just singletonCall ->
+            case singletonCall.argsAfterFirst of
+                [] ->
+                    Just { element = singletonCall.firstArg }
+
+                _ :: _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 listSumChecks : CheckInfo -> List (Error {})
