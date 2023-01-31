@@ -4044,13 +4044,13 @@ listTailChecks checkInfo =
 
         _ ->
             case getListSingletonCall checkInfo.lookupTable listArg of
-                Just single ->
+                Just _ ->
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
                         checkInfo.fnRange
-                        (keepOnlyFix { parentRange = listArgRange, keep = Node.range single.element }
-                            ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
-                        )
+                        [ Fix.replaceRangeBy listArgRange listCollection.emptyAsString
+                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        ]
                     ]
 
                 Nothing ->
