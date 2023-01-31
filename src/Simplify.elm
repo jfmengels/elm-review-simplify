@@ -4043,7 +4043,7 @@ listTailChecks checkInfo =
             ]
 
         _ ->
-            case getListSingletonCall checkInfo.lookupTable listArg of
+            case getListSingletonCall checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
