@@ -6359,6 +6359,133 @@ a = Just (b)
         ]
 
 
+listTailTests : Test
+listTailTests =
+    describe "List.tail"
+        [ test "should not report List.tail used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail
+b = List.tail list
+c = List.tail (List.filter f list)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.tail [] by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on an empty list will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace List.tail (List.singleton a) by Just []" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail (List.singleton b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
+                            , details = [ "You can replace this call by Just the empty list." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just []
+"""
+                        ]
+        , test "should replace List.tail <| List.singleton a by Just <| []" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail <| List.singleton b
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
+                            , details = [ "You can replace this call by Just the empty list." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just <| b
+"""
+                        ]
+        , test "should replace List.singleton a |> List.tail by [] |> Just" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton b |> List.tail
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
+                            , details = [ "You can replace this call by Just the empty list." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [] |> Just
+"""
+                        ]
+        , test "should replace List.tail [ a ] by Just []" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail [ b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
+                            , details = [ "You can replace this call by Just the empty list." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just []
+"""
+                        ]
+        , test "should replace List.tail [ a, b, c ] by Just [ b, c ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail [ b, c, d ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+                            , details = [ "You can replace this call by Just the list elements after the first." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just [ b, c ]
+"""
+                        ]
+        , test "should replace List.tail (a :: bToZ) by Just (bToZ)" <|
+            \() ->
+                """module A exposing (..)
+a = List.tail (b :: cToZ)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+                            , details = [ "You can replace this call by Just the list elements after the first." ]
+                            , under = "List.tail"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (bToZ)
+"""
+                        ]
+        ]
+
+
 listMapTests : Test
 listMapTests =
     describe "List.map"

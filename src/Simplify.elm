@@ -422,6 +422,12 @@ Destructuring using case expressions
     List.head (a :: bToZ)
     --> Just a
 
+    List.tail []
+    --> Nothing
+
+    List.tail (a :: bToZ)
+    --> Just bToZ
+
     List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -1596,6 +1602,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
         , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "head" ), listHeadChecks )
+        , ( ( [ "List" ], "tail" ), listTailChecks )
         , ( ( [ "List" ], "map" ), collectionMapChecks listCollection )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
@@ -3939,6 +3946,97 @@ listHeadChecks checkInfo =
             case getListSingletonCall checkInfo.lookupTable listArg of
                 Just single ->
                     justFirstElementError (Node.range single.element)
+
+                Nothing ->
+                    []
+
+
+listTailExistsError : { message : String, details : List String }
+listTailExistsError =
+    { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+    , details = [ "You can replace this call by Just the list elements after the first." ]
+    }
+
+
+listEmptyTailExistsError : { message : String, details : List String }
+listEmptyTailExistsError =
+    { message = "Using List.tail on a list with a single element will result in Just the empty list"
+    , details = [ "You can replace this call by Just the empty list." ]
+    }
+
+
+listTailChecks : CheckInfo -> List (Error {})
+listTailChecks checkInfo =
+    let
+        listArg : Node Expression
+        listArg =
+            AstHelpers.removeParens checkInfo.firstArg
+
+        listArgRange : Range
+        listArgRange =
+            Node.range listArg
+    in
+    case Node.value listArg of
+        Expression.ListExpr listLiteral ->
+            case listLiteral of
+                [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.tail on an empty list will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+                    ]
+
+                _ :: [] ->
+                    [ Rule.errorWithFix
+                        listEmptyTailExistsError
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy listArgRange listCollection.emptyAsString
+                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        ]
+                    ]
+
+                _ :: (Node tailFirstRange _) :: tailAfterFirst ->
+                    let
+                        tailLastRange : Range
+                        tailLastRange =
+                            Maybe.withDefault tailFirstRange (lastElementRange tailAfterFirst)
+
+                        tailRange : Range
+                        tailRange =
+                            { start = tailFirstRange.start, end = tailLastRange.end }
+                    in
+                    [ Rule.errorWithFix
+                        listTailExistsError
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = listArgRange, keep = tailRange }
+                            ++ [ Fix.insertAt tailFirstRange.start "[ "
+                               , Fix.insertAt tailLastRange.end " ]"
+                               , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                               ]
+                        )
+                    ]
+
+        Expression.OperatorApplication "::" _ _ tail ->
+            [ Rule.errorWithFix
+                listTailExistsError
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = listArgRange, keep = Node.range tail }
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
+                )
+            ]
+
+        _ ->
+            case getListSingletonCall checkInfo.lookupTable listArg of
+                Just single ->
+                    [ Rule.errorWithFix
+                        listEmptyTailExistsError
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = listArgRange, keep = Node.range single.element }
+                            ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
+                        )
+                    ]
 
                 Nothing ->
                     []
