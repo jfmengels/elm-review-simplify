@@ -4054,13 +4054,15 @@ listTailChecks checkInfo =
 listMemberChecks : CheckInfo -> List (Error {})
 listMemberChecks checkInfo =
     let
-        needleArg : Node Expression
-        needleArg =
-            checkInfo.firstArg
+        needleArgNormalized : Node Expression
+        needleArgNormalized =
+            Normalize.normalize checkInfo checkInfo.firstArg
 
         isNeedle : Node Expression -> Bool
         isNeedle element =
-            Normalize.compare checkInfo element needleArg
+            Normalize.compareWithoutNormalization
+                (Normalize.normalize checkInfo element)
+                needleArgNormalized
                 == Normalize.ConfirmedEquality
     in
     case secondArg checkInfo of
