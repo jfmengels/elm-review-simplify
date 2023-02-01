@@ -4162,42 +4162,6 @@ listMemberChecks checkInfo =
             []
 
 
-parenthesizeIfNeededFix : Node Expression -> List Fix
-parenthesizeIfNeededFix expressionNode =
-    if needsParens (Node.value expressionNode) then
-        parenthesizeFix (Node.range expressionNode)
-
-    else
-        []
-
-
-parenthesizeFix : Range -> List Fix
-parenthesizeFix toSurround =
-    [ Fix.insertAt toSurround.start "("
-    , Fix.insertAt toSurround.end ")"
-    ]
-
-
-rangeBetweenExclusive : ( Range, Range ) -> Range
-rangeBetweenExclusive ( aRange, bRange ) =
-    case locationsCompare ( aRange.start, bRange.start ) of
-        GT ->
-            { start = bRange.end, end = aRange.start }
-
-        -- EQ | LT
-        _ ->
-            { start = aRange.end, end = bRange.start }
-
-
-locationsCompare : ( Location, Location ) -> Order
-locationsCompare ( aEnd, bEnd ) =
-    if aEnd.column == bEnd.column then
-        compare aEnd.row bEnd.row
-
-    else
-        compare aEnd.column bEnd.column
-
-
 getBeforeLastCons : Node Expression -> List (Node Expression)
 getBeforeLastCons expressionNode =
     case Node.value expressionNode of
@@ -6528,6 +6492,42 @@ lastElementRange nodes =
 
 
 -- FIX HELPERS
+
+
+parenthesizeIfNeededFix : Node Expression -> List Fix
+parenthesizeIfNeededFix expressionNode =
+    if needsParens (Node.value expressionNode) then
+        parenthesizeFix (Node.range expressionNode)
+
+    else
+        []
+
+
+parenthesizeFix : Range -> List Fix
+parenthesizeFix toSurround =
+    [ Fix.insertAt toSurround.start "("
+    , Fix.insertAt toSurround.end ")"
+    ]
+
+
+rangeBetweenExclusive : ( Range, Range ) -> Range
+rangeBetweenExclusive ( aRange, bRange ) =
+    case locationsCompare ( aRange.start, bRange.start ) of
+        GT ->
+            { start = bRange.end, end = aRange.start }
+
+        -- EQ | LT
+        _ ->
+            { start = aRange.end, end = bRange.start }
+
+
+locationsCompare : ( Location, Location ) -> Order
+locationsCompare ( aEnd, bEnd ) =
+    if aEnd.column == bEnd.column then
+        compare aEnd.row bEnd.row
+
+    else
+        compare aEnd.column bEnd.column
 
 
 removeFunctionFromFunctionCall : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Fix
