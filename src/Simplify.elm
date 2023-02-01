@@ -4061,10 +4061,6 @@ listMemberChecks checkInfo =
         needleArg =
             checkInfo.firstArg
 
-        needleRange : Range
-        needleRange =
-            Node.range needleArg
-
         needleArgNormalized : Node Expression
         needleArgNormalized =
             Normalize.normalize checkInfo needleArg
@@ -4079,6 +4075,10 @@ listMemberChecks checkInfo =
     case secondArg checkInfo of
         Just listArg ->
             let
+                needleRange : Range
+                needleRange =
+                    Node.range needleArg
+
                 listMemberExistsError : List (Error {})
                 listMemberExistsError =
                     [ Rule.errorWithFix
