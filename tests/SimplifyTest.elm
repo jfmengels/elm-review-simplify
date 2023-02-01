@@ -6532,13 +6532,22 @@ a = List.member b (List.singleton b)
 a = True
 """
                         ]
-        , test "should not report List.member b (List.singleton a)" <|
+        , test "should replace List.member b (List.singleton a) by b == a" <|
             \() ->
                 """module A exposing (..)
 a = List.member c (List.singleton b)
 """
                     |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = c == b
+"""
+                        ]
         , test "should replace List.member a [ a ] by True" <|
             \() ->
                 """module A exposing (..)
@@ -6553,6 +6562,70 @@ a = List.member b [ b ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = True
+"""
+                        ]
+        , test "should replace List.member b [ a ] by b == a" <|
+            \() ->
+                """module A exposing (..)
+a = List.member c [ b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = c == b
+"""
+                        ]
+        , test "should replace List.member b <| [ a ] by b == a" <|
+            \() ->
+                """module A exposing (..)
+a = List.member c <| [ b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = c == b
+"""
+                        ]
+        , test "should replace List.member b [ f a ] by b == (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.member c [ f b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = c == (f b)
+"""
+                        ]
+        , test "should replace [ a ] |> List.member b by a == b" <|
+            \() ->
+                """module A exposing (..)
+a = [ b ] |> List.member c
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b == c
 """
                         ]
         , test "should replace List.member c [ a, b, c ] by True" <|
