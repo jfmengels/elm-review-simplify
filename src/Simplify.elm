@@ -434,6 +434,9 @@ Destructuring using case expressions
     List.member a [ a, b, c ]
     --> True
 
+    List.member a [ b ]
+    --> a == b
+
     List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -4054,9 +4057,17 @@ listTailChecks checkInfo =
 listMemberChecks : CheckInfo -> List (Error {})
 listMemberChecks checkInfo =
     let
+        needleArg : Node Expression
+        needleArg =
+            checkInfo.firstArg
+
+        needleRange : Range
+        needleRange =
+            Node.range needleArg
+
         needleArgNormalized : Node Expression
         needleArgNormalized =
-            Normalize.normalize checkInfo checkInfo.firstArg
+            Normalize.normalize checkInfo needleArg
 
         isNeedle : Node Expression -> Bool
         isNeedle element =
@@ -4077,6 +4088,32 @@ listMemberChecks checkInfo =
                         checkInfo.fnRange
                         [ Fix.replaceRangeBy checkInfo.parentRange "True" ]
                     ]
+
+                singleNonNormalizedEqualElementError : Node Expression -> List (Error {})
+                singleNonNormalizedEqualElementError element =
+                    let
+                        elementRange : Range
+                        elementRange =
+                            Node.range element
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                        , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                        }
+                        checkInfo.fnRange
+                        (List.concat
+                            [ keepOnlyFix
+                                { parentRange = checkInfo.parentRange
+                                , keep = Range.combine [ needleRange, elementRange ]
+                                }
+                            , [ Fix.replaceRangeBy
+                                    (rangeBetweenExclusive ( needleRange, elementRange ))
+                                    " == "
+                              ]
+                            , parenthesizeIfNeededFix element
+                            ]
+                        )
+                    ]
             in
             case Node.value (AstHelpers.removeParens listArg) of
                 Expression.ListExpr listLiteral ->
@@ -4095,7 +4132,12 @@ listMemberChecks checkInfo =
                                 listMemberExistsError
 
                             else
-                                []
+                                case tail of
+                                    [] ->
+                                        singleNonNormalizedEqualElementError head
+
+                                    _ :: _ ->
+                                        []
 
                 Expression.OperatorApplication "::" _ head tail ->
                     if List.any isNeedle (head :: getBeforeLastCons tail) then
@@ -4111,13 +4153,49 @@ listMemberChecks checkInfo =
                                 listMemberExistsError
 
                             else
-                                []
+                                singleNonNormalizedEqualElementError single.element
 
                         Nothing ->
                             []
 
         Nothing ->
             []
+
+
+parenthesizeIfNeededFix : Node Expression -> List Fix
+parenthesizeIfNeededFix expressionNode =
+    if needsParens (Node.value expressionNode) then
+        parenthesizeFix (Node.range expressionNode)
+
+    else
+        []
+
+
+parenthesizeFix : Range -> List Fix
+parenthesizeFix toSurround =
+    [ Fix.insertAt toSurround.start "("
+    , Fix.insertAt toSurround.end ")"
+    ]
+
+
+rangeBetweenExclusive : ( Range, Range ) -> Range
+rangeBetweenExclusive ( aRange, bRange ) =
+    case locationsCompare ( aRange.start, bRange.start ) of
+        GT ->
+            { start = bRange.end, end = aRange.start }
+
+        -- EQ | LT
+        _ ->
+            { start = aRange.end, end = bRange.start }
+
+
+locationsCompare : ( Location, Location ) -> Order
+locationsCompare ( aEnd, bEnd ) =
+    if aEnd.column == bEnd.column then
+        compare aEnd.row bEnd.row
+
+    else
+        compare aEnd.column bEnd.column
 
 
 getBeforeLastCons : Node Expression -> List (Node Expression)
