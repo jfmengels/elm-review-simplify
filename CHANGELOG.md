@@ -1,12 +1,37 @@
 # Changelog
 
+## [2.0.25] - 2023-01-20
+
+The rule now simplifies:
+- `String.fromList []` to `""`
+- `String.fromList [ a ]` to `String.fromChar a`
+- `List.append [] list` to `list`
+- `List.head []` to `Nothing`
+- `List.head (a :: bToZ)` to `a`
+- `List.tail []` to `Nothing`
+- `List.tail (a :: bToZ)` to `bToZ`
+- `List.sum []` to `0`
+- `List.sum [ a ]` to `a`
+- `List.product []` to `1`
+- `List.product [ a ]` to `a`
+- `List.minimum []` to `Nothing`
+- `List.minimum [ a ]` to `Just a`
+- `List.maximum []` to `Nothing`
+- `List.maximum [ a ]` to `Just a`
+- `List.map2 fn xs []` to `[]` (same for up to `List.map5`)
+- `List.map2 fn [] ys` to `[]` (same for up to `List.map5`)
+- `List.unzip []` to `( [], [] )`
+- `List.foldl f x (Set.toList set)` to `Set.foldl f x set`
+
+All the changes in this release were contributed by [@lue-bird](https://github.com/lue-bird).
+
 ## [2.0.24] - 2023-01-20
 
 All the changes in this release were contributed by [@lue-bird](https://github.com/lue-bird).
 
 The rule now simplifies:
 - `String.slice n n str` to `""`
-- `String.slice 0 n str ` to `String.left n str`
+- `String.slice 0 n str` to `String.left n str`
 - `String.slice n 0 str` to `""`
 - `String.slice a z ""` to `""`
 - `String.left 0 str` to `""`
