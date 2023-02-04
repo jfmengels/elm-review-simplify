@@ -1960,21 +1960,6 @@ divisionChecks { leftRange, rightRange, right } =
         []
 
 
-findMap : (a -> Maybe b) -> List a -> Maybe b
-findMap mapper nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        node :: rest ->
-            case mapper node of
-                Just value ->
-                    Just value
-
-                Nothing ->
-                    findMap mapper rest
-
-
 plusplusChecks : OperatorCheckInfo -> List (Error {})
 plusplusChecks { parentRange, leftRange, rightRange, left, right, isOnTheRightSideOfPlusPlus } =
     case ( Node.value left, Node.value right ) of
@@ -5279,61 +5264,6 @@ htmlAttributesClassListChecks checkInfo =
                             []
 
 
-getListLiteral : Node Expression -> Maybe (List (Node Expression))
-getListLiteral expressionNode =
-    case Node.value expressionNode of
-        Expression.ListExpr list ->
-            Just list
-
-        _ ->
-            Nothing
-
-
-getCollapsedCons : Node Expression -> Maybe { consed : List (Node Expression), tail : Node Expression }
-getCollapsedCons expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.OperatorApplication "::" _ head tail ->
-            let
-                tailCollapsed : Maybe { consed : List (Node Expression), tail : Node Expression }
-                tailCollapsed =
-                    getCollapsedCons tail
-            in
-            case tailCollapsed of
-                Nothing ->
-                    Just { consed = [ head ], tail = tail }
-
-                Just tailCollapsedList ->
-                    Just { consed = head :: tailCollapsedList.consed, tail = tailCollapsedList.tail }
-
-        _ ->
-            Nothing
-
-
-getBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
-getBool bool lookupTable expressionNode =
-    isSpecificValueOrFunction [ "Basics" ] (boolToString bool) lookupTable expressionNode
-
-
-findMapSurrounding : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
-findMapSurrounding tryMap list =
-    findMapSurroundingAfter Nothing tryMap list
-
-
-findMapSurroundingAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
-findMapSurroundingAfter before tryMap list =
-    case list of
-        [] ->
-            Nothing
-
-        now :: after ->
-            case tryMap now of
-                Just found ->
-                    Just { before = before, found = found, after = after |> List.head }
-
-                Nothing ->
-                    findMapSurroundingAfter (Just now) tryMap after
-
-
 
 -- PARSER
 
@@ -6932,6 +6862,41 @@ isListLiteral node =
             False
 
 
+getListLiteral : Node Expression -> Maybe (List (Node Expression))
+getListLiteral expressionNode =
+    case Node.value expressionNode of
+        Expression.ListExpr list ->
+            Just list
+
+        _ ->
+            Nothing
+
+
+getCollapsedCons : Node Expression -> Maybe { consed : List (Node Expression), tail : Node Expression }
+getCollapsedCons expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.OperatorApplication "::" _ head tail ->
+            let
+                tailCollapsed : Maybe { consed : List (Node Expression), tail : Node Expression }
+                tailCollapsed =
+                    getCollapsedCons tail
+            in
+            case tailCollapsed of
+                Nothing ->
+                    Just { consed = [ head ], tail = tail }
+
+                Just tailCollapsedList ->
+                    Just { consed = head :: tailCollapsedList.consed, tail = tailCollapsedList.tail }
+
+        _ ->
+            Nothing
+
+
+getBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
+getBool bool lookupTable expressionNode =
+    isSpecificValueOrFunction [ "Basics" ] (boolToString bool) lookupTable expressionNode
+
+
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
 getBooleanPattern lookupTable node =
     case Node.value node of
@@ -7388,3 +7353,42 @@ isBinaryOperation symbol checkInfo expression =
         -- not a known simple operator function
         _ ->
             False
+
+
+
+-- LIST HELPERS
+
+
+findMap : (a -> Maybe b) -> List a -> Maybe b
+findMap mapper nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        node :: rest ->
+            case mapper node of
+                Just value ->
+                    Just value
+
+                Nothing ->
+                    findMap mapper rest
+
+
+findMapSurrounding : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapSurrounding tryMap list =
+    findMapSurroundingAfter Nothing tryMap list
+
+
+findMapSurroundingAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapSurroundingAfter before tryMap list =
+    case list of
+        [] ->
+            Nothing
+
+        now :: after ->
+            case tryMap now of
+                Just found ->
+                    Just { before = before, found = found, after = after |> List.head }
+
+                Nothing ->
+                    findMapSurroundingAfter (Just now) tryMap after
