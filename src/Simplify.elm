@@ -5187,7 +5187,7 @@ htmlAttributesClassListChecks checkInfo =
             singleElementListChecks { element = single }
 
         Just nonSingletonList ->
-            case findMapSurrounding (getTupleWithSecond False) nonSingletonList of
+            case findMapNeighboring (getTupleWithSecond False) nonSingletonList of
                 Just classPart ->
                     let
                         fix : List Fix
@@ -5221,7 +5221,7 @@ htmlAttributesClassListChecks checkInfo =
         Nothing ->
             case getCollapsedCons listArg of
                 Just classParts ->
-                    case findMapSurrounding (getTupleWithSecond False) classParts.consed of
+                    case findMapNeighboring (getTupleWithSecond False) classParts.consed of
                         Just classPart ->
                             let
                                 fix : List Fix
@@ -7374,13 +7374,13 @@ findMap mapper nodes =
                     findMap mapper rest
 
 
-findMapSurrounding : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
-findMapSurrounding tryMap list =
-    findMapSurroundingAfter Nothing tryMap list
+findMapNeighboring : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapNeighboring tryMap list =
+    findMapNeighboringAfter Nothing tryMap list
 
 
-findMapSurroundingAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
-findMapSurroundingAfter before tryMap list =
+findMapNeighboringAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapNeighboringAfter before tryMap list =
     case list of
         [] ->
             Nothing
@@ -7391,4 +7391,4 @@ findMapSurroundingAfter before tryMap list =
                     Just { before = before, found = found, after = after |> List.head }
 
                 Nothing ->
-                    findMapSurroundingAfter (Just now) tryMap after
+                    findMapNeighboringAfter (Just now) tryMap after
