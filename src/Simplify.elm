@@ -717,6 +717,15 @@ All of these also apply for `Sub`.
     --> a
 
 
+### Html.Attributes
+
+    Html.Attributes.classList [ x, y, ( z, False ) ]
+    --> Html.Attributes.classList [ x, y ]
+
+    Html.Attributes.classList [ ( onlyOneThing, True ) ]
+    --> Html.Attributes.class onlyOneThing
+
+
 ### Parser
 
     Parser.oneOf [ a ]
@@ -1680,6 +1689,7 @@ functionCallChecks =
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
         , ( ( [ "Platform", "Sub" ], "map" ), collectionMapChecks subCollection )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
+        , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Parser", "Advanced" ], "oneOf" ), oneOfChecks )
         ]
@@ -5124,6 +5134,204 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
 
         _ ->
             []
+
+
+
+-- HTML.ATTRIBUTES
+
+
+htmlAttributesClassListFalseElementError : { message : String, details : List String }
+htmlAttributesClassListFalseElementError =
+    { message = "In a Html.Attributes.classList, a tuple paired with False can be removed"
+    , details = [ "You can remove the tuple list element where the second part is False." ]
+    }
+
+
+htmlAttributesClassListChecks : CheckInfo -> List (Error {})
+htmlAttributesClassListChecks checkInfo =
+    let
+        listArg : Node Expression
+        listArg =
+            checkInfo.firstArg
+
+        getTupleWithSecond : Bool -> Node Expression -> Maybe { first : Node Expression, range : Range }
+        getTupleWithSecond bool expression =
+            case Node.value expression of
+                Expression.TupledExpression (first :: second :: []) ->
+                    if getBool bool checkInfo.lookupTable second then
+                        Just { range = Node.range expression, first = first }
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+
+        singleElementListChecks : { a | element : Node Expression } -> List (Error {})
+        singleElementListChecks single =
+            case getTupleWithSecond True single.element of
+                Just tuple ->
+                    singleTrueChecks tuple
+
+                Nothing ->
+                    case getTupleWithSecond False single.element of
+                        Just _ ->
+                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy (Node.range listArg) listCollection.emptyAsString ]
+                            ]
+
+                        Nothing ->
+                            []
+
+        singleTrueChecks : { a | first : Node Expression } -> List (Error {})
+        singleTrueChecks { first } =
+            [ Rule.errorWithFix
+                { message = "Html.Attributes.classList with a single tuple paired with True can be replaced with Html.Attributes.class"
+                , details = [ "You can replace this call by Html.Attributes.class with the String from the single tuple list element." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = Node.range listArg, keep = Node.range first }
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Html.Attributes.class"
+                       ]
+                )
+            ]
+    in
+    case getListLiteral listArg of
+        Just (single :: []) ->
+            singleElementListChecks { element = single }
+
+        Just nonSingletonList ->
+            case findMapSurrounding (getTupleWithSecond False) nonSingletonList of
+                Just classPart ->
+                    let
+                        fix : List Fix
+                        fix =
+                            case ( classPart.before, classPart.after ) of
+                                -- found the only element
+                                ( Nothing, Nothing ) ->
+                                    [ Fix.replaceRangeBy (Node.range listArg) listCollection.emptyAsString ]
+
+                                -- found first element
+                                ( Nothing, Just after ) ->
+                                    [ Fix.removeRange
+                                        { start = classPart.found.range.start
+                                        , end = (Node.range after).start
+                                        }
+                                    ]
+
+                                -- found after first element
+                                ( Just before, _ ) ->
+                                    [ Fix.removeRange
+                                        { start = (Node.range before).end
+                                        , end = classPart.found.range.end
+                                        }
+                                    ]
+                    in
+                    [ Rule.errorWithFix htmlAttributesClassListFalseElementError checkInfo.fnRange fix ]
+
+                Nothing ->
+                    []
+
+        Nothing ->
+            case getCollapsedCons listArg of
+                Just classParts ->
+                    case findMapSurrounding (getTupleWithSecond False) classParts.consed of
+                        Just classPart ->
+                            let
+                                fix : List Fix
+                                fix =
+                                    case ( classPart.before, classPart.after ) of
+                                        -- found the only consed element
+                                        ( Nothing, Nothing ) ->
+                                            keepOnlyFix
+                                                { parentRange = Node.range listArg
+                                                , keep = Node.range classParts.tail
+                                                }
+
+                                        -- found first consed element
+                                        ( Nothing, Just after ) ->
+                                            [ Fix.removeRange
+                                                { start = classPart.found.range.start
+                                                , end = (Node.range after).start
+                                                }
+                                            ]
+
+                                        -- found after first consed element
+                                        ( Just before, _ ) ->
+                                            [ Fix.removeRange
+                                                { start = (Node.range before).end
+                                                , end = classPart.found.range.end
+                                                }
+                                            ]
+                            in
+                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError checkInfo.fnRange fix ]
+
+                        Nothing ->
+                            []
+
+                Nothing ->
+                    case getListSingletonCall checkInfo.lookupTable listArg of
+                        Just single ->
+                            singleElementListChecks single
+
+                        Nothing ->
+                            []
+
+
+getListLiteral : Node Expression -> Maybe (List (Node Expression))
+getListLiteral expressionNode =
+    case Node.value expressionNode of
+        Expression.ListExpr list ->
+            Just list
+
+        _ ->
+            Nothing
+
+
+getCollapsedCons : Node Expression -> Maybe { consed : List (Node Expression), tail : Node Expression }
+getCollapsedCons expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.OperatorApplication "::" _ head tail ->
+            let
+                tailCollapsed : Maybe { consed : List (Node Expression), tail : Node Expression }
+                tailCollapsed =
+                    getCollapsedCons tail
+            in
+            case tailCollapsed of
+                Nothing ->
+                    Just { consed = [ head ], tail = tail }
+
+                Just tailCollapsedList ->
+                    Just { consed = head :: tailCollapsedList.consed, tail = tailCollapsedList.tail }
+
+        _ ->
+            Nothing
+
+
+getBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
+getBool bool lookupTable expressionNode =
+    isSpecificValueOrFunction [ "Basics" ] (boolToString bool) lookupTable expressionNode
+
+
+findMapSurrounding : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapSurrounding tryMap list =
+    findMapSurroundingAfter Nothing tryMap list
+
+
+findMapSurroundingAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapSurroundingAfter before tryMap list =
+    case list of
+        [] ->
+            Nothing
+
+        now :: after ->
+            case tryMap now of
+                Just found ->
+                    Just { before = before, found = found, after = after |> List.head }
+
+                Nothing ->
+                    findMapSurroundingAfter (Just now) tryMap after
 
 
 
