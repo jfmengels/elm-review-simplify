@@ -5139,35 +5139,35 @@ htmlAttributesClassListChecks checkInfo =
         listArg =
             checkInfo.firstArg
 
-        getTupleWithSecond : Bool -> Node Expression -> Maybe { first : Node Expression, range : Range }
-        getTupleWithSecond bool expression =
-            case Node.value expression of
+        getTupleWithSecond : Node Expression -> Maybe { first : Node Expression, range : Range, second : Bool }
+        getTupleWithSecond expressionNode =
+            case Node.value expressionNode of
                 Expression.TupledExpression (first :: second :: []) ->
-                    if getBool bool checkInfo.lookupTable second then
-                        Just { range = Node.range expression, first = first }
+                    case getBool checkInfo.lookupTable second of
+                        Just bool ->
+                            Just { range = Node.range expressionNode, first = first, second = bool }
 
-                    else
-                        Nothing
+                        Nothing ->
+                            Nothing
 
                 _ ->
                     Nothing
 
         singleElementListChecks : { a | element : Node Expression } -> List (Error {})
         singleElementListChecks single =
-            case getTupleWithSecond True single.element of
+            case getTupleWithSecond single.element of
                 Just tuple ->
-                    singleTrueChecks tuple
+                    if tuple.second then
+                        singleTrueChecks tuple
+
+                    else
+                        [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy (Node.range listArg) listCollection.emptyAsString ]
+                        ]
 
                 Nothing ->
-                    case getTupleWithSecond False single.element of
-                        Just _ ->
-                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy (Node.range listArg) listCollection.emptyAsString ]
-                            ]
-
-                        Nothing ->
-                            []
+                    []
 
         singleTrueChecks : { a | first : Node Expression } -> List (Error {})
         singleTrueChecks { first } =
@@ -5181,13 +5181,30 @@ htmlAttributesClassListChecks checkInfo =
                        ]
                 )
             ]
+
+        findTupleWithSpecificSecond : Bool -> List (Node Expression) -> Maybe { before : Maybe (Node Expression), found : { range : Range, first : Node Expression }, after : Maybe (Node Expression) }
+        findTupleWithSpecificSecond bool list =
+            findMapNeighboring
+                (\element ->
+                    case getTupleWithSecond element of
+                        Just tuple ->
+                            if tuple.second == bool then
+                                Just { range = tuple.range, first = tuple.first }
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+                )
+                list
     in
     case getListLiteral listArg of
         Just (single :: []) ->
             singleElementListChecks { element = single }
 
         Just nonSingletonList ->
-            case findMapNeighboring (getTupleWithSecond False) nonSingletonList of
+            case findTupleWithSpecificSecond False nonSingletonList of
                 Just classPart ->
                     let
                         fix : List Fix
@@ -5221,7 +5238,7 @@ htmlAttributesClassListChecks checkInfo =
         Nothing ->
             case getCollapsedCons listArg of
                 Just classParts ->
-                    case findMapNeighboring (getTupleWithSecond False) classParts.consed of
+                    case findTupleWithSpecificSecond False classParts.consed of
                         Just classPart ->
                             let
                                 fix : List Fix
@@ -6892,9 +6909,16 @@ getCollapsedCons expressionNode =
             Nothing
 
 
-getBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
-getBool bool lookupTable expressionNode =
-    isSpecificValueOrFunction [ "Basics" ] (boolToString bool) lookupTable expressionNode
+getBool : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+getBool lookupTable expressionNode =
+    if isSpecificValueOrFunction [ "Basics" ] "True" lookupTable expressionNode then
+        Just True
+
+    else if isSpecificValueOrFunction [ "Basics" ] "False" lookupTable expressionNode then
+        Just False
+
+    else
+        Nothing
 
 
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
