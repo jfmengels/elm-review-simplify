@@ -5139,18 +5139,31 @@ htmlAttributesClassListChecks checkInfo =
         listArg =
             checkInfo.firstArg
 
-        getTupleWithSecond : Node Expression -> Maybe { first : Node Expression, range : Range, second : Bool }
+        getTupleWithSecond : Node Expression -> Maybe { range : Range, first : Node Expression, second : Bool }
         getTupleWithSecond expressionNode =
-            case Node.value expressionNode of
-                Expression.TupledExpression (first :: second :: []) ->
-                    case getBool checkInfo.lookupTable second of
+            case getTuple expressionNode of
+                Just tuple ->
+                    case getBool checkInfo.lookupTable tuple.second of
                         Just bool ->
-                            Just { range = Node.range expressionNode, first = first, second = bool }
+                            Just { range = tuple.range, first = tuple.first, second = bool }
 
                         Nothing ->
                             Nothing
 
-                _ ->
+                Nothing ->
+                    Nothing
+
+        getTupleWithSpecificSecond : Bool -> Node Expression -> Maybe { range : Range, first : Node Expression }
+        getTupleWithSpecificSecond specificBool expressionNode =
+            case getTuple expressionNode of
+                Just tuple ->
+                    if isSpecificBool specificBool checkInfo.lookupTable tuple.second then
+                        Just { range = tuple.range, first = tuple.first }
+
+                    else
+                        Nothing
+
+                Nothing ->
                     Nothing
 
         singleElementListChecks : { a | element : Node Expression } -> List (Error {})
@@ -5177,60 +5190,23 @@ htmlAttributesClassListChecks checkInfo =
                 }
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = Node.range listArg, keep = Node.range first }
+                    ++ parenthesizeIfNeededFix first
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange "Html.Attributes.class"
                        ]
                 )
             ]
-
-        findTupleWithSpecificSecond : Bool -> List (Node Expression) -> Maybe { before : Maybe (Node Expression), found : { range : Range, first : Node Expression }, after : Maybe (Node Expression) }
-        findTupleWithSpecificSecond bool list =
-            findMapNeighboring
-                (\element ->
-                    case getTupleWithSecond element of
-                        Just tuple ->
-                            if tuple.second == bool then
-                                Just { range = tuple.range, first = tuple.first }
-
-                            else
-                                Nothing
-
-                        Nothing ->
-                            Nothing
-                )
-                list
     in
     case getListLiteral listArg of
         Just (single :: []) ->
             singleElementListChecks { element = single }
 
         Just nonSingletonList ->
-            case findTupleWithSpecificSecond False nonSingletonList of
+            case findMapNeighboring (getTupleWithSpecificSecond False) nonSingletonList of
                 Just classPart ->
-                    let
-                        fix : List Fix
-                        fix =
-                            case ( classPart.before, classPart.after ) of
-                                -- found the only element
-                                ( Nothing, Nothing ) ->
-                                    [ Fix.replaceRangeBy (Node.range listArg) listCollection.emptyAsString ]
-
-                                -- found first element
-                                ( Nothing, Just after ) ->
-                                    [ Fix.removeRange
-                                        { start = classPart.found.range.start
-                                        , end = (Node.range after).start
-                                        }
-                                    ]
-
-                                -- found after first element
-                                ( Just before, _ ) ->
-                                    [ Fix.removeRange
-                                        { start = (Node.range before).end
-                                        , end = classPart.found.range.end
-                                        }
-                                    ]
-                    in
-                    [ Rule.errorWithFix htmlAttributesClassListFalseElementError checkInfo.fnRange fix ]
+                    [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                        checkInfo.fnRange
+                        (listLiteralElementRemoveFix classPart)
+                    ]
 
                 Nothing ->
                     []
@@ -5238,36 +5214,16 @@ htmlAttributesClassListChecks checkInfo =
         Nothing ->
             case getCollapsedCons listArg of
                 Just classParts ->
-                    case findTupleWithSpecificSecond False classParts.consed of
+                    case findMapNeighboring (getTupleWithSpecificSecond False) classParts.consed of
                         Just classPart ->
-                            let
-                                fix : List Fix
-                                fix =
-                                    case ( classPart.before, classPart.after ) of
-                                        -- found the only consed element
-                                        ( Nothing, Nothing ) ->
-                                            keepOnlyFix
-                                                { parentRange = Node.range listArg
-                                                , keep = Node.range classParts.tail
-                                                }
-
-                                        -- found first consed element
-                                        ( Nothing, Just after ) ->
-                                            [ Fix.removeRange
-                                                { start = classPart.found.range.start
-                                                , end = (Node.range after).start
-                                                }
-                                            ]
-
-                                        -- found after first consed element
-                                        ( Just before, _ ) ->
-                                            [ Fix.removeRange
-                                                { start = (Node.range before).end
-                                                , end = classPart.found.range.end
-                                                }
-                                            ]
-                            in
-                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError checkInfo.fnRange fix ]
+                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                checkInfo.fnRange
+                                (collapsedConsRemoveElementFix
+                                    { toRemove = classPart
+                                    , tailRange = Node.range classParts.tail
+                                    }
+                                )
+                            ]
 
                         Nothing ->
                             []
@@ -6791,6 +6747,72 @@ toIdentityFix config =
             keepOnlyFix { parentRange = config.parentRange, keep = lastArgRange }
 
 
+{-| Use in combination with
+`findMapNeighboring` where finding returns a record containing the element's Range
+
+Works for patterns and expressions.
+
+-}
+listLiteralElementRemoveFix : { before : Maybe (Node element), found : { found | range : Range }, after : Maybe (Node element) } -> List Fix
+listLiteralElementRemoveFix toRemove =
+    case ( toRemove.before, toRemove.after ) of
+        -- found the only element
+        ( Nothing, Nothing ) ->
+            [ Fix.removeRange toRemove.found.range ]
+
+        -- found first element
+        ( Nothing, Just after ) ->
+            [ Fix.removeRange
+                { start = toRemove.found.range.start
+                , end = (Node.range after).start
+                }
+            ]
+
+        -- found after first element
+        ( Just before, _ ) ->
+            [ Fix.removeRange
+                { start = (Node.range before).end
+                , end = toRemove.found.range.end
+                }
+            ]
+
+
+{-| Use in combination with
+`findMapNeighboring` where finding returns a record containing the element's Range
+
+Works for patterns and expressions.
+
+-}
+collapsedConsRemoveElementFix :
+    { toRemove : { before : Maybe (Node element), after : Maybe (Node element), found : { found | range : Range } }
+    , tailRange : Range
+    }
+    -> List Fix
+collapsedConsRemoveElementFix { toRemove, tailRange } =
+    case ( toRemove.before, toRemove.after ) of
+        -- found the only consed element
+        ( Nothing, Nothing ) ->
+            [ Fix.removeRange
+                { start = toRemove.found.range.start, end = tailRange.start }
+            ]
+
+        -- found first consed element
+        ( Nothing, Just after ) ->
+            [ Fix.removeRange
+                { start = toRemove.found.range.start
+                , end = (Node.range after).start
+                }
+            ]
+
+        -- found after first consed element
+        ( Just before, _ ) ->
+            [ Fix.removeRange
+                { start = (Node.range before).end
+                , end = toRemove.found.range.end
+                }
+            ]
+
+
 boolToString : Bool -> String
 boolToString bool =
     if bool then
@@ -6911,14 +6933,29 @@ getCollapsedCons expressionNode =
 
 getBool : ModuleNameLookupTable -> Node Expression -> Maybe Bool
 getBool lookupTable expressionNode =
-    if isSpecificValueOrFunction [ "Basics" ] "True" lookupTable expressionNode then
+    if isSpecificBool True lookupTable expressionNode then
         Just True
 
-    else if isSpecificValueOrFunction [ "Basics" ] "False" lookupTable expressionNode then
+    else if isSpecificBool False lookupTable expressionNode then
         Just False
 
     else
         Nothing
+
+
+isSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificBool specificBool lookupTable expressionNode =
+    isSpecificValueOrFunction [ "Basics" ] (boolToString specificBool) lookupTable expressionNode
+
+
+getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
+getTuple expressionNode =
+    case Node.value expressionNode of
+        Expression.TupledExpression (first :: second :: []) ->
+            Just { range = Node.range expressionNode, first = first, second = second }
+
+        _ ->
+            Nothing
 
 
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
