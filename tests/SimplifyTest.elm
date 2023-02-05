@@ -14509,6 +14509,24 @@ import Html.Attributes
 a = Html.Attributes.class x
 """
                         ]
+        , test "should replace Html.Attributes.classList [ ( x, True ) ] by Html.Attributes.class (f x)" <|
+            \() ->
+                """module A exposing (..)
+import Html.Attributes
+a = Html.Attributes.classList [ ( f x, True ) ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Html.Attributes.classList with a single tuple paired with True can be replaced with Html.Attributes.class"
+                            , details = [ "You can replace this call by Html.Attributes.class with the String from the single tuple list element." ]
+                            , under = "Html.Attributes.classList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Html.Attributes
+a = Html.Attributes.class (f x)
+"""
+                        ]
         , test "should replace Html.Attributes.classList (List.singleton ( x, True )) by Html.Attributes.class x" <|
             \() ->
                 """module A exposing (..)
@@ -14525,6 +14543,24 @@ a = Html.Attributes.classList (List.singleton ( x, True ))
                             |> Review.Test.whenFixed """module A exposing (..)
 import Html.Attributes
 a = Html.Attributes.class x
+"""
+                        ]
+        , test "should replace Html.Attributes.classList (List.singleton ( f x, True )) by Html.Attributes.class (f x)" <|
+            \() ->
+                """module A exposing (..)
+import Html.Attributes
+a = Html.Attributes.classList (List.singleton ( f x, True ))
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Html.Attributes.classList with a single tuple paired with True can be replaced with Html.Attributes.class"
+                            , details = [ "You can replace this call by Html.Attributes.class with the String from the single tuple list element." ]
+                            , under = "Html.Attributes.classList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Html.Attributes
+a = Html.Attributes.class (f x)
 """
                         ]
         , test "should replace Html.Attributes.classList (List.singleton ( x, False )) by Html.Attributes.classList []" <|
@@ -14599,11 +14635,11 @@ import Html.Attributes
 a = Html.Attributes.classList [ y ]
 """
                         ]
-        , test "should replace Html.Attributes.classList [ ( x, False ) ] by Html.Attributes.classList []" <|
+        , test "should replace Html.Attributes.classList [( x, False )] by Html.Attributes.classList []" <|
             \() ->
                 """module A exposing (..)
 import Html.Attributes
-a = Html.Attributes.classList [ ( x, False ) ]
+a = Html.Attributes.classList [( x, False )]
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
@@ -14617,7 +14653,7 @@ import Html.Attributes
 a = Html.Attributes.classList []
 """
                         ]
-        , test "should replace Html.Attributes.classList (( x, False ) :: tail) by Html.Attributes.classList tail" <|
+        , test "should replace Html.Attributes.classList (( x, False ) :: tail) by Html.Attributes.classList (tail)" <|
             \() ->
                 """module A exposing (..)
 import Html.Attributes
@@ -14632,7 +14668,25 @@ a = Html.Attributes.classList (( x, False ) :: tail)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Html.Attributes
-a = Html.Attributes.classList tail
+a = Html.Attributes.classList (tail)
+"""
+                        ]
+        , test "should replace Html.Attributes.classList (( x, False ) :: f tail) by Html.Attributes.classList (f tail)" <|
+            \() ->
+                """module A exposing (..)
+import Html.Attributes
+a = Html.Attributes.classList (( x, False ) :: f tail)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "In a Html.Attributes.classList, a tuple paired with False can be removed"
+                            , details = [ "You can remove the tuple list element where the second part is False." ]
+                            , under = "Html.Attributes.classList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Html.Attributes
+a = Html.Attributes.classList (f tail)
 """
                         ]
         , test "should replace Html.Attributes.classList (x :: ( y, False ) :: tail) by Html.Attributes.classList (x :: tail)" <|
