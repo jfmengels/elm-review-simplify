@@ -14509,7 +14509,7 @@ import Html.Attributes
 a = Html.Attributes.class x
 """
                         ]
-        , test "should replace Html.Attributes.classList [ ( x, True ) ] by Html.Attributes.class (f x)" <|
+        , test "should replace Html.Attributes.classList [ ( f x, True ) ] by Html.Attributes.class (f x)" <|
             \() ->
                 """module A exposing (..)
 import Html.Attributes
