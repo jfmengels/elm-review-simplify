@@ -299,9 +299,6 @@ Destructuring using case expressions
     String.slice n n str
     --> ""
 
-    String.slice 0 n str
-    --> String.left n str
-
     String.slice n 0 str
     --> ""
 
@@ -3176,18 +3173,6 @@ stringSliceChecks checkInfo =
                 }
                 checkInfo.fnRange
                 (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo))
-            ]
-
-        ( Node startArgumentRange (Expression.Integer 0), _, _ ) ->
-            [ Rule.errorWithFix
-                { message = "Use String.left instead"
-                , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    { start = checkInfo.fnRange.start, end = startArgumentRange.end }
-                    "String.left"
-                ]
             ]
 
         ( start, Just end, _ ) ->
