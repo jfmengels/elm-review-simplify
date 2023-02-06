@@ -5235,10 +5235,11 @@ a = String.slice b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
-        , test "should not report String.slice 0" <|
+        , test "should not report String.slice 0 n" <|
             \() ->
                 """module A exposing (..)
 a = String.slice 0
+b = String.slice 0 n
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
