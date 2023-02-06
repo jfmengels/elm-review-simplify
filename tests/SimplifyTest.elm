@@ -5235,6 +5235,14 @@ a = String.slice b c
 """
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectNoErrors
+        , test "should not report String.slice 0 n" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice 0
+b = String.slice 0 n
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectNoErrors
         , test "should replace String.slice b 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -5313,22 +5321,6 @@ a = String.slice a z ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ""
-"""
-                        ]
-        , test "should replace String.slice 0 by String.left" <|
-            \() ->
-                """module A exposing (..)
-a = String.slice 0
-"""
-                    |> Review.Test.run (rule defaults)
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Use String.left instead"
-                            , details = [ "Using String.slice with start index 0 is the same as using String.left." ]
-                            , under = "String.slice"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = String.left
 """
                         ]
         , test "should replace String.slice 0 0 by always \"\"" <|

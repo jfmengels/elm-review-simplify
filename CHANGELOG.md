@@ -1,6 +1,15 @@
 # Changelog
 
-## [2.0.25] - 2023-01-20
+## [2.0.26] - 2023-02-06
+
+The simplification `String.slice 0 n str` -> `String.left n str` has been removed because they were not necessarily equivalent. In the case where `n` is negative, then the behavior of the 2 functions differ.
+
+The rule now simplifies:
+- `List.member a []` to `False`
+- `List.member a [ a, b, c ]` to `True`
+
+
+## [2.0.25] - 2023-02-02
 
 The rule now simplifies:
 - `String.fromList []` to `""`
@@ -265,6 +274,9 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.26]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.26
+[2.0.25]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.25
+[2.0.24]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.24
 [2.0.23]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.23
 [2.0.22]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.22
 [2.0.21]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.21
