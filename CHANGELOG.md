@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.27] - 2023-02-21
+
+- Fixed an issue where `String.fromList [ f x ]` would incorrectly be changed to `String.fromChar f x` (#85)
+
 ## [2.0.26] - 2023-02-06
 
 The simplification `String.slice 0 n str` -> `String.left n str` has been removed because they were not necessarily equivalent. In the case where `n` is negative, then the behavior of the 2 functions differ.
@@ -296,5 +300,6 @@ Help would be appreciated to fill the blanks!
 [#40]: https://github.com/jfmengels/elm-review-simplify/pull/40
 [#48]: https://github.com/jfmengels/elm-review-simplify/pull/48
 [#52]: https://github.com/jfmengels/elm-review-simplify/pull/52
+[#85]: https://github.com/jfmengels/elm-review-simplify/issues/85
 
 [@miniBill]: https://github.com/miniBill
