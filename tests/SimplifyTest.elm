@@ -5176,6 +5176,22 @@ a = String.fromList [ a ]
 a = String.fromChar a
 """
                         ]
+        , test "should replace String.fromList [ f a ] by String.fromChar (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList [ f b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
+                            , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromChar (f b)
+"""
+                        ]
         ]
 
 

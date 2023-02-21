@@ -3051,13 +3051,14 @@ stringFromListChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
             ]
 
-        Expression.ListExpr ((Node keep _) :: []) ->
+        Expression.ListExpr (onlyChar :: []) ->
             [ Rule.errorWithFix
                 { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
                 , details = [ "You can replace this call by String.fromChar with the contained char." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = keep }
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range onlyChar }
+                    ++ parenthesizeIfNeededFix onlyChar
                     ++ [ Fix.insertAt checkInfo.parentRange.start "String.fromChar " ]
                 )
             ]
