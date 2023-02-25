@@ -4333,7 +4333,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             if initialNumber == Just (Basics.toFloat operation.identity) then
                                 fixWith
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start
+                                        { start = checkInfo.fnRange.start
                                         , end = (Node.range initialArgument).end
                                         }
                                         ("List." ++ operation.list)
@@ -4366,7 +4366,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                                 , Fix.insertAt (Node.range initialArgument).end
                                                     (" " ++ operation.two ++ " (List." ++ operation.list)
                                                 , Fix.removeRange
-                                                    { start = checkInfo.parentRange.start
+                                                    { start = checkInfo.fnRange.start
                                                     , end = (Node.range initialArgument).start
                                                     }
                                                 ]
@@ -4390,7 +4390,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
+                                        { start = checkInfo.fnRange.start, end = (Node.range initialArgument).end }
                                         ("List." ++ operation.list ++ " identity")
                                     ]
                                 ]
@@ -4401,11 +4401,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             , details = [ "You can replace this call by the initial accumulator." ]
                             }
                             checkInfo.fnRange
-                            [ Fix.removeRange
-                                { start = checkInfo.parentRange.start, end = (Node.range initialArgument).start }
-                            , Fix.removeRange
-                                { start = (Node.range initialArgument).end, end = checkInfo.parentRange.end }
-                            ]
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument })
                         ]
 
                     else if Maybe.withDefault False (Maybe.map (isIdentity checkInfo.lookupTable) (getAlwaysResult checkInfo checkInfo.firstArg)) then
@@ -4417,22 +4413,14 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             (case listArg of
                                 Nothing ->
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start
+                                        { start = checkInfo.fnRange.start
                                         , end = (Node.range checkInfo.firstArg).end
                                         }
                                         "always"
                                     ]
 
                                 Just _ ->
-                                    [ Fix.removeRange
-                                        { start = (Node.range initialArgument).end
-                                        , end = checkInfo.parentRange.end
-                                        }
-                                    , Fix.removeRange
-                                        { start = checkInfo.parentRange.start
-                                        , end = (Node.range initialArgument).start
-                                        }
-                                    ]
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument }
                             )
                         ]
 
