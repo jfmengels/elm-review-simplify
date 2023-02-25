@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.28] - 2023-02-25
+
+- Fixed an issue where errors for `List.foldl` operations would be incorrectly fixed (#86)
+
 ## [2.0.27] - 2023-02-21
 
 - Fixed an issue where `String.fromList [ f x ]` would incorrectly be changed to `String.fromChar f x` (#85)
@@ -278,6 +282,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.28]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.28
+[2.0.27]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.27
 [2.0.26]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.26
 [2.0.25]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.25
 [2.0.24]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.24
@@ -301,5 +307,6 @@ Help would be appreciated to fill the blanks!
 [#48]: https://github.com/jfmengels/elm-review-simplify/pull/48
 [#52]: https://github.com/jfmengels/elm-review-simplify/pull/52
 [#85]: https://github.com/jfmengels/elm-review-simplify/issues/85
+[#86]: https://github.com/jfmengels/elm-review-simplify/issues/86
 
 [@miniBill]: https://github.com/miniBill
