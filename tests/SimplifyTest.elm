@@ -171,7 +171,23 @@ a = 1
 importLookupTests : Test
 importLookupTests =
     Test.describe "ImportLookup"
-        [ test "should fully qualify if import missing" <|
+        [ test "should respect implicit imports" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always identity) x
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to List.foldl will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always x
+"""
+                        ]
+    , test "should fully qualify if import missing" <|
             \() ->
                 """module A exposing (..)
 a = List.foldl f x << Set.toList
