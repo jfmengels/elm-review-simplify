@@ -851,7 +851,12 @@ type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
     , exposedAll : Bool
-    , imports : ImportLookup
+    , imports :
+        Dict
+            ModuleName
+            { alias : Maybe ModuleName
+            , exposed : Exposed
+            }
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
