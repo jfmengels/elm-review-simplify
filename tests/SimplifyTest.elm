@@ -187,7 +187,7 @@ a = List.foldl (always identity) x
 a = always x
 """
                         ]
-    , test "should fully qualify if import missing" <|
+        , test "should fully qualify if import missing" <|
             \() ->
                 """module A exposing (..)
 a = List.foldl f x << Set.toList
