@@ -3257,7 +3257,9 @@ stringFromListChecks checkInfo =
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range onlyChar }
                     ++ parenthesizeIfNeededFix onlyChar
-                    ++ [ Fix.insertAt checkInfo.parentRange.start "String.fromChar " ]
+                    ++ [ Fix.insertAt checkInfo.parentRange.start
+                            (qualifiedToString (qualify ( [ "String" ], "fromChar" ) checkInfo.importLookup) ++ " ")
+                       ]
                 )
             ]
 
