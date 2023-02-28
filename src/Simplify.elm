@@ -1772,6 +1772,9 @@ qualify ( moduleName, name ) importLookup =
             ( moduleName, name )
 
 
+{-| Put a `ModuleName` and thing name together as a string.
+If desired, call in combination with `qualify`
+-}
 qualifiedToString : ( ModuleName, String ) -> String
 qualifiedToString ( moduleName, name ) =
     case moduleName of
@@ -1779,7 +1782,12 @@ qualifiedToString ( moduleName, name ) =
             name
 
         moduleNameHead :: moduleNameTail ->
-            String.join "." (moduleNameHead :: moduleNameTail) ++ "." ++ name
+            moduleNameToString (moduleNameHead :: moduleNameTail) ++ "." ++ name
+
+
+moduleNameToString : ModuleName -> String
+moduleNameToString moduleName =
+    String.join "." moduleName
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
@@ -3402,7 +3410,7 @@ reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
         case secondArg checkInfo of
             Just (Node _ (Expression.ListExpr [])) ->
                 [ Rule.errorWithFix
-                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in an empty list"
+                    { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
                     , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
@@ -3421,7 +3429,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
         case checkInfo.firstArg of
             Node _ (Expression.ListExpr []) ->
                 [ Rule.errorWithFix
-                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in an empty list"
+                    { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
                     , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
