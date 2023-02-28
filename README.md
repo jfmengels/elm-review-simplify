@@ -4,7 +4,7 @@ Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-revi
 
 ## Provided rules
 
-- [🔧 `Simplify`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/2.0.26/Simplify/ "Provides automatic fixes") - Reports when an expression can be simplified.
+- [🔧 `Simplify`](https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/2.0.28/Simplify/ "Provides automatic fixes") - Reports when an expression can be simplified.
 
 ## Configuration
 

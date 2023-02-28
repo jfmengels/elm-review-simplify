@@ -3249,13 +3249,14 @@ stringFromListChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
             ]
 
-        Expression.ListExpr ((Node keep _) :: []) ->
+        Expression.ListExpr (onlyChar :: []) ->
             [ Rule.errorWithFix
                 { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
                 , details = [ "You can replace this call by String.fromChar with the contained char." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = keep }
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range onlyChar }
+                    ++ parenthesizeIfNeededFix onlyChar
                     ++ [ Fix.insertAt checkInfo.parentRange.start "String.fromChar " ]
                 )
             ]
@@ -4543,7 +4544,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             if initialNumber == Just (Basics.toFloat operation.identity) then
                                 fixWith
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start
+                                        { start = checkInfo.fnRange.start
                                         , end = (Node.range initialArgument).end
                                         }
                                         (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup))
@@ -4580,7 +4581,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                                         ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup)
                                                     )
                                                 , Fix.removeRange
-                                                    { start = checkInfo.parentRange.start
+                                                    { start = checkInfo.fnRange.start
                                                     , end = (Node.range initialArgument).start
                                                     }
                                                 ]
@@ -4604,7 +4605,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start, end = (Node.range initialArgument).end }
+                                        { start = checkInfo.fnRange.start, end = (Node.range initialArgument).end }
                                         (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup)
                                             ++ " "
                                             ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo.importLookup)
@@ -4618,11 +4619,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             , details = [ "You can replace this call by the initial accumulator." ]
                             }
                             checkInfo.fnRange
-                            [ Fix.removeRange
-                                { start = checkInfo.parentRange.start, end = (Node.range initialArgument).start }
-                            , Fix.removeRange
-                                { start = (Node.range initialArgument).end, end = checkInfo.parentRange.end }
-                            ]
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument })
                         ]
 
                     else if Maybe.withDefault False (Maybe.map (isIdentity checkInfo.lookupTable) (getAlwaysResult checkInfo checkInfo.firstArg)) then
@@ -4634,22 +4631,14 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             (case listArg of
                                 Nothing ->
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start
+                                        { start = checkInfo.fnRange.start
                                         , end = (Node.range checkInfo.firstArg).end
                                         }
                                         (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo.importLookup))
                                     ]
 
                                 Just _ ->
-                                    [ Fix.removeRange
-                                        { start = (Node.range initialArgument).end
-                                        , end = checkInfo.parentRange.end
-                                        }
-                                    , Fix.removeRange
-                                        { start = checkInfo.parentRange.start
-                                        , end = (Node.range initialArgument).start
-                                        }
-                                    ]
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument }
                             )
                         ]
 

@@ -5176,6 +5176,22 @@ a = String.fromList [ a ]
 a = String.fromChar a
 """
                         ]
+        , test "should replace String.fromList [ f a ] by String.fromChar (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList [ f b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
+                            , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromChar (f b)
+"""
+                        ]
         ]
 
 
@@ -8146,6 +8162,40 @@ a = List.foldl (||) False list
 a = List.any identity list
 """
                         ]
+        , test "should replace List.foldl (||) False <| list by List.any identity <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (||) False <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.any identity instead"
+                            , details =
+                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity <| list
+"""
+                        ]
+        , test "should replace list |> List.foldl (||) False by list |> List.any identity" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldl (||) False
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.any identity instead"
+                            , details =
+                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.any identity
+"""
+                        ]
         , test "should replace List.foldl (\\x -> (||) x) False by List.any identity" <|
             \() ->
                 """module A exposing (..)
@@ -8284,6 +8334,40 @@ a = List.foldl (&&) True
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.all identity
+"""
+                        ]
+        , test "should replace List.foldl (&&) True <| list by List.all identity <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (&&) True <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.all identity instead"
+                            , details =
+                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity <| list
+"""
+                        ]
+        , test "should replace list |> List.foldl (&&) True by list |> List.all identity" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldl (&&) True
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.all identity instead"
+                            , details =
+                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.all identity
 """
                         ]
         , test "should replace List.foldl (&&) True list by List.all identity list" <|
@@ -8426,6 +8510,40 @@ a = List.foldl (+) 0 list
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.sum list
+"""
+                        ]
+        , test "should replace List.foldl (+) 0 <| list by List.sum <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (+) 0 <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.sum instead"
+                            , details =
+                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum <| list
+"""
+                        ]
+        , test "should replace list |> List.foldl (+) 0 by list |> List.sum" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldl (+) 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.sum instead"
+                            , details =
+                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.sum
 """
                         ]
         , test "should replace List.foldl (\\x -> (+) x) 0 by List.sum" <|
@@ -8602,6 +8720,40 @@ a = List.foldl (*) 1 list
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.product list
+"""
+                        ]
+        , test "should replace List.foldl (*) 1 <| list by List.product <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (*) 1 <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.product instead"
+                            , details =
+                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product <| list
+"""
+                        ]
+        , test "should replace list |> List.foldl (*) 1 by list |> List.product" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldl (*) 1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.product instead"
+                            , details =
+                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.product
 """
                         ]
         , test "should replace List.foldl (\\x -> (*) x) 1 by List.product" <|
@@ -8983,6 +9135,40 @@ a = List.foldr (||) False list
 a = List.any identity list
 """
                         ]
+        , test "should replace List.foldr (||) False <| list by List.any identity <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (||) False <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.any identity instead"
+                            , details =
+                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity <| list
+"""
+                        ]
+        , test "should replace list |> List.foldr (||) False by list |> List.any identity" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldr (||) False
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.any identity instead"
+                            , details =
+                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.any identity
+"""
+                        ]
         , test "should replace List.foldr (\\x -> (||) x) False by List.any identity" <|
             \() ->
                 """module A exposing (..)
@@ -9123,7 +9309,7 @@ a = List.foldr (&&) True
 a = List.all identity
 """
                         ]
-        , test "should replace List.foldr (&&) True list by List.all identity" <|
+        , test "should replace List.foldr (&&) True list by List.all identity list" <|
             \() ->
                 """module A exposing (..)
 a = List.foldr (&&) True list
@@ -9138,6 +9324,40 @@ a = List.foldr (&&) True list
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.all identity list
+"""
+                        ]
+        , test "should replace List.foldr (&&) True <| list by List.all identity <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (&&) True <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.all identity instead"
+                            , details =
+                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity <| list
+"""
+                        ]
+        , test "should replace list |> List.foldr (&&) True by list |> List.all identity" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldr (&&) True
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.all identity instead"
+                            , details =
+                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.all identity
 """
                         ]
         , test "should replace List.foldr (\\x -> (&&) x) True by List.all identity" <|
@@ -9263,6 +9483,40 @@ a = List.foldr (+) 0 list
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.sum list
+"""
+                        ]
+        , test "should replace List.foldr (+) 0 <| list by List.sum <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (+) 0 <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.sum instead"
+                            , details =
+                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum <| list
+"""
+                        ]
+        , test "should replace list |> List.foldr (+) 0 by list |> List.sum" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldr (+) 0
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.sum instead"
+                            , details =
+                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.sum
 """
                         ]
         , test "should replace List.foldr (\\x -> (+) x) 0 by List.sum" <|
@@ -9439,6 +9693,40 @@ a = List.foldr (*) 1 list
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.product list
+"""
+                        ]
+        , test "should replace List.foldr (*) 1 <| list by List.product <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (*) 1 <| list
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.product instead"
+                            , details =
+                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product <| list
+"""
+                        ]
+        , test "should replace list |> List.foldr (*) 1 by list |> List.product" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldr (*) 1
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.product instead"
+                            , details =
+                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.product
 """
                         ]
         , test "should replace List.foldr (\\x -> (*) x) 1 by List.product" <|
