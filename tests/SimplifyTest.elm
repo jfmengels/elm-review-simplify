@@ -9,6 +9,7 @@ all : Test
 all =
     describe "Simplify"
         [ configurationTests
+        , importLookupTests
         , identityTests
         , alwaysTests
         , booleanTests
@@ -160,6 +161,140 @@ a = 1
 """
                     |> Review.Test.run (rule <| ignoreCaseOfForTypes [ "Maybe.Maybe" ] defaults)
                     |> Review.Test.expectNoErrors
+        ]
+
+
+
+-- IMPORT LOOKUP
+
+
+importLookupTests : Test
+importLookupTests =
+    Test.describe "ImportLookup"
+        [ test "should fully qualify if import missing" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.foldl f x
+"""
+                        ]
+        , test "should qualify if not exposed" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (toList)
+a = List.foldl f x << toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (toList)
+a = Set.foldl f x
+"""
+                        ]
+        , test "should not qualify if directly imported (exposed) explicitly" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a = List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a = foldl f x
+"""
+                        ]
+        , test "should not qualify if directly imported (exposed) explicitly even if an alias exists" <|
+            \() ->
+                """module A exposing (..)
+import Set as UniqueList exposing (foldl)
+a = List.foldl f x << UniqueList.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set as UniqueList exposing (foldl)
+a = foldl f x
+"""
+                        ]
+        , test "should not qualify if directly imported from (..)" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (..)
+a = List.foldl f x << toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (..)
+a = foldl f x
+"""
+                        ]
+        , test "should not qualify if directly imported from (..) even if an alias exists" <|
+            \() ->
+                """module A exposing (..)
+import Set as UniqueList exposing (..)
+a = List.foldl f x << toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set as UniqueList exposing (..)
+a = foldl f x
+"""
+                        ]
+        , test "should qualify using alias" <|
+            \() ->
+                """module A exposing (..)
+import Set as UniqueList
+a = List.foldl f x << UniqueList.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set as UniqueList
+a = UniqueList.foldl f x
+"""
+                        ]
         ]
 
 
