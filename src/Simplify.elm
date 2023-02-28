@@ -723,9 +723,12 @@ All of these also apply for `Sub`.
 
 import Dict exposing (Dict)
 import Elm.Docs
-import Elm.Syntax.Exposing as Exposing
+import Elm.Project exposing (Exposed)
+import Elm.Syntax.Declaration as Declaration exposing (Declaration)
+import Elm.Syntax.Exposing as Exposing exposing (Exposing)
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.Import exposing (Import)
+import Elm.Syntax.Module
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
@@ -750,10 +753,11 @@ rule (Configuration config) =
     Rule.newProjectRuleSchema "Simplify" initialContext
         |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
         |> Rule.withModuleVisitor moduleVisitor
+        |> Rule.withContextFromImportedModules
         |> Rule.withModuleContextUsingContextCreator
             { fromProjectToModule = fromProjectToModule
             , fromModuleToProject = fromModuleToProject
-            , foldProjectContexts = \_ previous -> previous
+            , foldProjectContexts = foldProjectContexts
             }
         |> Rule.providesFixesForProjectRule
         |> Rule.fromProjectRuleSchema
@@ -762,6 +766,7 @@ rule (Configuration config) =
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor schema =
     schema
+        |> Rule.withModuleDefinitionVisitor (\header context -> ( [], moduleDefinitionVisitor header context ))
         |> Rule.withImportVisitor (\importNode context -> ( [], importVisitor importNode context ))
         |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
@@ -833,12 +838,19 @@ ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
 
 type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+    , exposedVariants :
+        Dict
+            ModuleName
+            (-- names of found variants
+             Set String
+            )
     }
 
 
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
+    , exposedAll : Bool
     , imports : ImportLookup
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
@@ -848,16 +860,33 @@ type alias ModuleContext =
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , extractSourceCode : Range -> String
+    , importedExposedVariants :
+        Dict
+            ModuleName
+            (-- names of found variants
+             Set String
+            )
+    , exposedVariants :
+        Dict
+            -- by tagged union `type` name
+            String
+            -- names of found variants,
+            -- Set.empty if none have been found, yet
+            (Set String)
     }
 
 
 type alias ImportLookup =
-    Dict ModuleName { alias : Maybe ModuleName, exposed : Exposed }
+    Dict
+        ModuleName
+        { alias : Maybe ModuleName
+        , exposed : Exposed
+        }
 
 
 type Exposed
     = ExposedAll
-    | ExposedSome (Set String)
+    | ExposedSome (Set String) -- includes names of found variants
 
 
 type alias ConstructorName =
@@ -874,12 +903,22 @@ type alias Constructor =
 initialContext : ProjectContext
 initialContext =
     { customTypesToReportInCases = Set.empty
+    , exposedVariants = Dict.empty
     }
 
 
 fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
-    Rule.initContextCreator (\_ -> initialContext)
+    Rule.initContextCreator
+        (\moduleContext ->
+            { initialContext
+                | exposedVariants =
+                    Dict.singleton moduleContext.moduleName
+                        (moduleContext.exposedVariants
+                            |> Dict.foldl (\_ -> Set.union) Set.empty
+                        )
+            }
+        )
 
 
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
@@ -888,6 +927,7 @@ fromProjectToModule =
         (\lookupTable metadata extractSourceCode projectContext ->
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
+            , exposedAll = True -- dummy
             , imports = implicitImports
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
@@ -897,6 +937,8 @@ fromProjectToModule =
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             , extractSourceCode = extractSourceCode
+            , importedExposedVariants = projectContext.exposedVariants
+            , exposedVariants = Dict.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -904,12 +946,20 @@ fromProjectToModule =
         |> Rule.withSourceCodeExtractor
 
 
+foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
+foldProjectContexts =
+    \a b ->
+        { initialContext
+            | exposedVariants = Dict.union a.exposedVariants b.exposedVariants
+        }
+
+
 
 -- DEPENDENCIES VISITOR
 
 
 dependenciesVisitor : Set String -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
-dependenciesVisitor typeNamesAsStrings dict _ =
+dependenciesVisitor typeNamesAsStrings dict context =
     let
         modules : List Elm.Docs.Module
         modules =
@@ -935,7 +985,7 @@ dependenciesVisitor typeNamesAsStrings dict _ =
                         let
                             moduleName : ModuleName
                             moduleName =
-                                String.split "." mod.name
+                                moduleNameFromString mod.name
                         in
                         mod.unions
                             |> List.filter (\union -> not (Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings))
@@ -943,14 +993,38 @@ dependenciesVisitor typeNamesAsStrings dict _ =
                             |> List.map (\( tagName, _ ) -> ( moduleName, tagName ))
                     )
                 |> Set.fromList
+
+        dependencyExposedVariants : Dict ModuleName (Set String)
+        dependencyExposedVariants =
+            modules
+                |> List.map
+                    (\moduleDoc ->
+                        ( moduleNameFromString moduleDoc.name
+                        , moduleDoc.unions
+                            |> List.concatMap
+                                (\union ->
+                                    union.tags
+                                        |> List.map (\( variantName, _ ) -> variantName)
+                                )
+                            |> Set.fromList
+                        )
+                    )
+                |> Dict.fromList
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
 
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
-    , { customTypesToReportInCases = customTypesToReportInCases }
+    , { customTypesToReportInCases = customTypesToReportInCases
+      , exposedVariants = Dict.union context.exposedVariants dependencyExposedVariants
+      }
     )
+
+
+moduleNameFromString : String -> ModuleName
+moduleNameFromString string =
+    String.split "." string
 
 
 errorForUnknownIgnoredConstructor : List String -> Error scope
@@ -974,6 +1048,57 @@ wrapInBackticks s =
 
 
 -- IMPORT VISITOR
+
+
+moduleDefinitionVisitor : Node Elm.Syntax.Module.Module -> ModuleContext -> ModuleContext
+moduleDefinitionVisitor moduleHeader context =
+    let
+        exposingNode : Node Exposing
+        exposingNode =
+            case Node.value moduleHeader of
+                Elm.Syntax.Module.NormalModule info ->
+                    info.exposingList
+
+                Elm.Syntax.Module.PortModule info ->
+                    info.exposingList
+
+                Elm.Syntax.Module.EffectModule info ->
+                    info.exposingList
+
+        exposeToIncludingVariants : Exposing.TopLevelExpose -> Maybe String
+        exposeToIncludingVariants expose =
+            case expose of
+                Exposing.InfixExpose _ ->
+                    Nothing
+
+                Exposing.FunctionExpose _ ->
+                    Nothing
+
+                Exposing.TypeOrAliasExpose _ ->
+                    Nothing
+
+                Exposing.TypeExpose variantType ->
+                    case variantType.open of
+                        Nothing ->
+                            Nothing
+
+                        Just _ ->
+                            Just variantType.name
+    in
+    case Node.value exposingNode of
+        Exposing.All _ ->
+            { context
+                | exposedAll = True
+            }
+
+        Exposing.Explicit some ->
+            { context
+                | exposedVariants =
+                    some
+                        |> List.filterMap (\(Node _ expose) -> exposeToIncludingVariants expose)
+                        |> List.map (\typeName -> ( typeName, Set.empty ))
+                        |> Dict.fromList
+            }
 
 
 importVisitor : Node Import -> ModuleContext -> ModuleContext
@@ -1028,13 +1153,50 @@ nameOfExpose topLevelExpose =
 -- DECLARATION VISITOR
 
 
-declarationVisitor : Node a -> ModuleContext -> ModuleContext
-declarationVisitor _ context =
-    { context
-        | rangesToIgnore = []
-        , rightSidesOfPlusPlus = []
-        , inferredConstantsDict = RangeDict.empty
-    }
+declarationVisitor : Node Declaration -> ModuleContext -> ModuleContext
+declarationVisitor declarationNode context =
+    let
+        contextReset : ModuleContext
+        contextReset =
+            { context
+                | rangesToIgnore = []
+                , rightSidesOfPlusPlus = []
+                , inferredConstantsDict = RangeDict.empty
+            }
+    in
+    case Node.value declarationNode of
+        Declaration.CustomTypeDeclaration variantType ->
+            let
+                variantNames : Set String
+                variantNames =
+                    variantType.constructors
+                        |> List.map (\(Node _ variant) -> Node.value variant.name)
+                        |> Set.fromList
+
+                variantTypeName : String
+                variantTypeName =
+                    Node.value variantType.name
+            in
+            { contextReset
+                | exposedVariants =
+                    if context.exposedAll then
+                        context.exposedVariants
+                            |> Dict.insert variantTypeName
+                                variantNames
+
+                    else
+                        context.exposedVariants
+                            |> Dict.update variantTypeName
+                                (Maybe.map
+                                    (\_ ->
+                                        variantNames
+                                    )
+                                )
+            }
+
+        _ ->
+            -- no change
+            contextReset
 
 
 
@@ -1107,9 +1269,42 @@ onlyErrors errors =
     }
 
 
+moduleContextToImportLookup : ModuleContext -> ImportLookup
+moduleContextToImportLookup context =
+    context.imports
+        |> Dict.map
+            (\moduleName import_ ->
+                case import_.exposed of
+                    ExposedAll ->
+                        import_
+
+                    ExposedSome some ->
+                        case Dict.get moduleName context.importedExposedVariants of
+                            Nothing ->
+                                import_
+
+                            Just importExposedVariants ->
+                                { import_
+                                    | exposed =
+                                        ExposedSome
+                                            (Set.union some importExposedVariants)
+                                }
+            )
+        |> Dict.insert context.moduleName
+            { alias = Nothing
+            , exposed =
+                ExposedSome
+                    (context.exposedVariants |> Dict.foldl (\_ -> Set.union) Set.empty)
+            }
+
+
 expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp node context =
     let
+        importLookup : ImportLookup
+        importLookup =
+            moduleContextToImportLookup context
+
         toCheckInfo :
             { fnRange : Range
             , firstArg : Node Expression
@@ -1119,7 +1314,7 @@ expressionVisitorHelp node context =
             -> CheckInfo
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
-            , importLookup = context.imports
+            , importLookup = importLookup
             , inferredConstants = context.inferredConstants
             , parentRange = Node.range node
             , fnRange = checkInfo.fnRange
@@ -1346,7 +1541,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = context.imports
+                    , importLookup = importLookup
                     , fromLeftToRight = True
                     , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                     , left = left
@@ -1360,7 +1555,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = context.imports
+                    , importLookup = importLookup
                     , fromLeftToRight = True
                     , parentRange = Node.range node
                     , left = left
@@ -1374,7 +1569,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = context.imports
+                    , importLookup = importLookup
                     , fromLeftToRight = False
                     , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                     , left = left
@@ -1388,7 +1583,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = context.imports
+                    , importLookup = importLookup
                     , fromLeftToRight = False
                     , parentRange = Node.range node
                     , left = left
@@ -1404,7 +1599,7 @@ expressionVisitorHelp node context =
                     { errors =
                         checkFn
                             { lookupTable = context.lookupTable
-                            , importLookup = context.imports
+                            , importLookup = importLookup
                             , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , operator = operator
