@@ -1027,11 +1027,6 @@ dependenciesVisitor typeNamesAsStrings dict context =
     )
 
 
-moduleNameFromString : String -> ModuleName
-moduleNameFromString string =
-    String.split "." string
-
-
 errorForUnknownIgnoredConstructor : List String -> Error scope
 errorForUnknownIgnoredConstructor list =
     Rule.globalError
@@ -1770,24 +1765,6 @@ qualify ( moduleName, name ) importLookup =
 
         Nothing ->
             ( moduleName, name )
-
-
-{-| Put a `ModuleName` and thing name together as a string.
-If desired, call in combination with `qualify`
--}
-qualifiedToString : ( ModuleName, String ) -> String
-qualifiedToString ( moduleName, name ) =
-    case moduleName of
-        [] ->
-            name
-
-        moduleNameHead :: moduleNameTail ->
-            moduleNameToString (moduleNameHead :: moduleNameTail) ++ "." ++ name
-
-
-moduleNameToString : ModuleName -> String
-moduleNameToString moduleName =
-    String.join "." moduleName
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
@@ -6905,61 +6882,8 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
             []
 
 
-isSimpleDestructurePattern : Node Pattern -> Bool
-isSimpleDestructurePattern pattern =
-    case Node.value pattern of
-        Pattern.TuplePattern _ ->
-            True
 
-        Pattern.RecordPattern _ ->
-            True
-
-        Pattern.VarPattern _ ->
-            True
-
-        _ ->
-            False
-
-
-isSpecificValueOrFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificValueOrFunction moduleName fnName lookupTable node =
-    case AstHelpers.removeParens node of
-        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
-            (foundFnName == fnName)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
-
-        _ ->
-            False
-
-
-isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificCall moduleName fnName lookupTable node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
-            (foundFnName == fnName)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
-
-        _ ->
-            False
-
-
-getUncomputedNumberValue : Node Expression -> Maybe Float
-getUncomputedNumberValue node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Integer n ->
-            Just (toFloat n)
-
-        Expression.Hex n ->
-            Just (toFloat n)
-
-        Expression.Floatable n ->
-            Just n
-
-        Expression.Negation expr ->
-            Maybe.map negate (getUncomputedNumberValue expr)
-
-        _ ->
-            Nothing
+--
 
 
 letInChecks : Expression.LetBlock -> List (Error {})
@@ -6996,19 +6920,6 @@ letKeyWordRange range =
     }
 
 
-lastElementRange : List (Node a) -> Maybe Range
-lastElementRange nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        last :: [] ->
-            Just (Node.range last)
-
-        _ :: rest ->
-            lastElementRange rest
-
-
 
 -- FIX HELPERS
 
@@ -7027,6 +6938,19 @@ parenthesizeFix toSurround =
     [ Fix.insertAt toSurround.start "("
     , Fix.insertAt toSurround.end ")"
     ]
+
+
+lastElementRange : List (Node a) -> Maybe Range
+lastElementRange nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        last :: [] ->
+            Just (Node.range last)
+
+        _ :: rest ->
+            lastElementRange rest
 
 
 rangeBetweenExclusive : ( Range, Range ) -> Range
@@ -7112,11 +7036,6 @@ replaceByEmptyFix empty parentRange lastArg importLookup =
     ]
 
 
-emptyStringAsString : String
-emptyStringAsString =
-    "\"\""
-
-
 replaceByBoolFix : Range -> Maybe a -> Bool -> ImportLookup -> List Fix
 replaceByBoolFix parentRange lastArg replacementValue importLookup =
     [ case lastArg of
@@ -7167,6 +7086,15 @@ toIdentityFix config =
             keepOnlyFix { parentRange = config.parentRange, keep = lastArgRange }
 
 
+
+-- STRING
+
+
+emptyStringAsString : String
+emptyStringAsString =
+    "\"\""
+
+
 boolToString : Bool -> String
 boolToString bool =
     if bool then
@@ -7189,8 +7117,88 @@ orderToString order =
             "GT"
 
 
+{-| Put a `ModuleName` and thing name together as a string.
+If desired, call in combination with `qualify`
+-}
+qualifiedToString : ( ModuleName, String ) -> String
+qualifiedToString ( moduleName, name ) =
+    case moduleName of
+        [] ->
+            name
 
--- MATCHERS
+        moduleNameHead :: moduleNameTail ->
+            moduleNameToString (moduleNameHead :: moduleNameTail) ++ "." ++ name
+
+
+moduleNameToString : ModuleName -> String
+moduleNameToString moduleName =
+    String.join "." moduleName
+
+
+moduleNameFromString : String -> ModuleName
+moduleNameFromString string =
+    String.split "." string
+
+
+
+-- MATCHERS AND PARSERS
+
+
+isSimpleDestructurePattern : Node Pattern -> Bool
+isSimpleDestructurePattern pattern =
+    case Node.value pattern of
+        Pattern.TuplePattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.VarPattern _ ->
+            True
+
+        _ ->
+            False
+
+
+isSpecificValueOrFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificValueOrFunction moduleName fnName lookupTable node =
+    case AstHelpers.removeParens node of
+        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
+            (foundFnName == fnName)
+                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+
+        _ ->
+            False
+
+
+isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificCall moduleName fnName lookupTable node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
+            (foundFnName == fnName)
+                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+
+        _ ->
+            False
+
+
+getUncomputedNumberValue : Node Expression -> Maybe Float
+getUncomputedNumberValue node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.Integer n ->
+            Just (toFloat n)
+
+        Expression.Hex n ->
+            Just (toFloat n)
+
+        Expression.Floatable n ->
+            Just n
+
+        Expression.Negation expr ->
+            Maybe.map negate (getUncomputedNumberValue expr)
+
+        _ ->
+            Nothing
 
 
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
