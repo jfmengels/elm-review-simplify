@@ -725,7 +725,7 @@ import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Project exposing (Exposed)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
-import Elm.Syntax.Exposing as Exposing exposing (Exposing)
+import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Module
