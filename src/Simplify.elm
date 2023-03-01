@@ -838,12 +838,7 @@ ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
 
 type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
-    , exposedVariants :
-        Dict
-            ModuleName
-            (-- names of found variants
-             Set String
-            )
+    , exposedVariants : Dict ModuleName (Set String)
     }
 
 
