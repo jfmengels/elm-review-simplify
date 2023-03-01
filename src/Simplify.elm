@@ -1047,40 +1047,7 @@ wrapInBackticks s =
 
 moduleDefinitionVisitor : Node Elm.Syntax.Module.Module -> ModuleContext -> ModuleContext
 moduleDefinitionVisitor moduleHeader context =
-    let
-        exposingNode : Node Exposing
-        exposingNode =
-            case Node.value moduleHeader of
-                Elm.Syntax.Module.NormalModule info ->
-                    info.exposingList
-
-                Elm.Syntax.Module.PortModule info ->
-                    info.exposingList
-
-                Elm.Syntax.Module.EffectModule info ->
-                    info.exposingList
-
-        exposeToIncludingVariants : Exposing.TopLevelExpose -> Maybe String
-        exposeToIncludingVariants expose =
-            case expose of
-                Exposing.InfixExpose _ ->
-                    Nothing
-
-                Exposing.FunctionExpose _ ->
-                    Nothing
-
-                Exposing.TypeOrAliasExpose _ ->
-                    Nothing
-
-                Exposing.TypeExpose variantType ->
-                    case variantType.open of
-                        Nothing ->
-                            Nothing
-
-                        Just _ ->
-                            Just variantType.name
-    in
-    case Node.value exposingNode of
+    case Node.value (AstHelpers.moduleHeaderExposing (Node.value moduleHeader)) of
         Exposing.All _ ->
             { context
                 | exposedAll = True
@@ -1090,7 +1057,7 @@ moduleDefinitionVisitor moduleHeader context =
             { context
                 | exposedVariants =
                     some
-                        |> List.filterMap (\(Node _ expose) -> exposeToIncludingVariants expose)
+                        |> List.filterMap (\(Node _ expose) -> getTypeExposeIncludingVariants expose)
                         |> List.map (\typeName -> ( typeName, Set.empty ))
                         |> Dict.fromList
             }
@@ -7714,3 +7681,24 @@ isBinaryOperation symbol checkInfo expression =
         -- not a known simple operator function
         _ ->
             False
+
+
+getTypeExposeIncludingVariants : Exposing.TopLevelExpose -> Maybe String
+getTypeExposeIncludingVariants expose =
+    case expose of
+        Exposing.InfixExpose _ ->
+            Nothing
+
+        Exposing.FunctionExpose _ ->
+            Nothing
+
+        Exposing.TypeOrAliasExpose _ ->
+            Nothing
+
+        Exposing.TypeExpose variantType ->
+            case variantType.open of
+                Nothing ->
+                    Nothing
+
+                Just _ ->
+                    Just variantType.name
