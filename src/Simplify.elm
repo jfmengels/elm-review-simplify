@@ -1047,7 +1047,7 @@ wrapInBackticks s =
 
 moduleDefinitionVisitor : Node Elm.Syntax.Module.Module -> ModuleContext -> ModuleContext
 moduleDefinitionVisitor moduleHeader context =
-    case Node.value (AstHelpers.moduleHeaderExposing (Node.value moduleHeader)) of
+    case Elm.Syntax.Module.exposingList (Node.value moduleHeader) of
         Exposing.All _ ->
             { context
                 | exposedAll = True

@@ -1,4 +1,4 @@
-module Simplify.AstHelpers exposing (moduleHeaderExposing, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing (removeParens, removeParensFromPattern)
 
 import Elm.Syntax.Exposing exposing (Exposing)
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -25,16 +25,3 @@ removeParensFromPattern node =
 
         _ ->
             node
-
-
-moduleHeaderExposing : Elm.Syntax.Module.Module -> Node Exposing
-moduleHeaderExposing moduleHeader =
-    case moduleHeader of
-        Elm.Syntax.Module.NormalModule info ->
-            info.exposingList
-
-        Elm.Syntax.Module.PortModule info ->
-            info.exposingList
-
-        Elm.Syntax.Module.EffectModule info ->
-            info.exposingList
