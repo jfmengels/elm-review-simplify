@@ -1154,9 +1154,11 @@ declarationVisitor declarationNode context =
                                 )
             }
 
-        _ ->
-            -- no change
+        Declaration.FunctionDeclaration _ ->
             contextReset
+
+        _ ->
+            context
 
 
 
