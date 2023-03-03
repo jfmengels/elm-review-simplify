@@ -766,7 +766,6 @@ rule (Configuration config) =
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor schema =
     schema
-        |> Rule.withModuleDefinitionVisitor (\header context -> ( [], moduleDefinitionVisitor header context ))
         |> Rule.withImportVisitor (\importNode context -> ( [], importVisitor importNode context ))
         |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
@@ -924,10 +923,15 @@ fromModuleToProject =
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
 fromProjectToModule =
     Rule.initContextCreator
-        (\lookupTable metadata extractSourceCode projectContext ->
+        (\lookupTable metadata extractSourceCode fullAst projectContext ->
+            let
+                moduleExposing : { exposedAll : Bool, exposedVariants : Dict String (Set String) }
+                moduleExposing =
+                    moduleExposingContext fullAst.moduleDefinition
+            in
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
-            , exposedAll = True -- dummy
+            , exposedAll = moduleExposing.exposedAll
             , imports = implicitImports
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
@@ -938,12 +942,36 @@ fromProjectToModule =
             , inferredConstants = ( Infer.empty, [] )
             , extractSourceCode = extractSourceCode
             , importedExposedVariants = projectContext.exposedVariants
-            , exposedVariants = Dict.empty
+            , exposedVariants = moduleExposing.exposedVariants
             }
         )
         |> Rule.withModuleNameLookupTable
         |> Rule.withMetadata
         |> Rule.withSourceCodeExtractor
+        |> Rule.withFullAst
+
+
+moduleExposingContext :
+    Node Elm.Syntax.Module.Module
+    -> { exposedAll : Bool, exposedVariants : Dict String (Set String) }
+moduleExposingContext moduleHeader =
+    case Elm.Syntax.Module.exposingList (Node.value moduleHeader) of
+        Exposing.All _ ->
+            { exposedAll = True
+            , exposedVariants = Dict.empty
+            }
+
+        Exposing.Explicit some ->
+            { exposedAll = False
+            , exposedVariants =
+                some
+                    |> List.filterMap
+                        (\(Node _ expose) ->
+                            AstHelpers.getTypeExposeIncludingVariants expose
+                        )
+                    |> List.map (\typeName -> ( typeName, Set.empty ))
+                    |> Dict.fromList
+            }
 
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
@@ -1038,27 +1066,6 @@ errorForUnknownIgnoredConstructor list =
 
 
 -- IMPORT VISITOR
-
-
-moduleDefinitionVisitor : Node Elm.Syntax.Module.Module -> ModuleContext -> ModuleContext
-moduleDefinitionVisitor moduleHeader context =
-    case Elm.Syntax.Module.exposingList (Node.value moduleHeader) of
-        Exposing.All _ ->
-            { context
-                | exposedAll = True
-            }
-
-        Exposing.Explicit some ->
-            { context
-                | exposedVariants =
-                    some
-                        |> List.filterMap
-                            (\(Node _ expose) ->
-                                AstHelpers.getTypeExposeIncludingVariants expose
-                            )
-                        |> List.map (\typeName -> ( typeName, Set.empty ))
-                        |> Dict.fromList
-            }
 
 
 importVisitor : Node Import -> ModuleContext -> ModuleContext
