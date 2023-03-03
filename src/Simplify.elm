@@ -1669,7 +1669,7 @@ implicitImports =
 This is strongly preferred over Dict.insert since the implicit default imports can be overridden
 -}
 insertImport : ModuleName -> { alias : Maybe ModuleName, exposed : Exposed } -> ImportLookup -> ImportLookup
-insertImport moduleName importInfoToAdd =
+insertImport moduleName importInfoToAdd importLookup =
     Dict.update moduleName
         (\existingImport ->
             let
@@ -1686,6 +1686,7 @@ insertImport moduleName importInfoToAdd =
             in
             Just newImportInfo
         )
+        importLookup
 
 
 exposedMerge : ( Exposed, Exposed ) -> Exposed
