@@ -911,12 +911,12 @@ fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
     Rule.initContextCreator
         (\moduleContext ->
-            { initialContext
-                | exposedVariants =
-                    Dict.singleton moduleContext.moduleName
-                        (moduleContext.exposedVariants
-                            |> Dict.foldl (\_ -> Set.union) Set.empty
-                        )
+            { customTypesToReportInCases = initialContext.customTypesToReportInCases
+            , exposedVariants =
+                Dict.singleton moduleContext.moduleName
+                    (moduleContext.exposedVariants
+                        |> Dict.foldl (\_ -> Set.union) Set.empty
+                    )
             }
         )
 
@@ -949,8 +949,8 @@ fromProjectToModule =
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts =
     \a b ->
-        { initialContext
-            | exposedVariants = Dict.union a.exposedVariants b.exposedVariants
+        { customTypesToReportInCases = initialContext.customTypesToReportInCases
+        , exposedVariants = Dict.union a.exposedVariants b.exposedVariants
         }
 
 
