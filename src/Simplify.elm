@@ -1157,6 +1157,7 @@ expressionVisitor node context =
 
                 Nothing ->
                     let
+                        importLookupCreated : ImportLookup
                         importLookupCreated =
                             moduleContextToImportLookup context
                     in
