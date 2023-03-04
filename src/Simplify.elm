@@ -7067,12 +7067,11 @@ If desired, call in combination with `qualify`
 -}
 qualifiedToString : ( ModuleName, String ) -> String
 qualifiedToString ( moduleName, name ) =
-    case moduleName of
-        [] ->
-            name
+    if List.isEmpty moduleName then
+        name
 
-        moduleNameHead :: moduleNameTail ->
-            moduleNameToString (moduleNameHead :: moduleNameTail) ++ "." ++ name
+    else
+        moduleNameToString moduleName ++ "." ++ name
 
 
 moduleNameToString : ModuleName -> String
