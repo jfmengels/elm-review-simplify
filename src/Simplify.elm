@@ -1121,19 +1121,21 @@ declarationVisitor declarationNode context =
     case Node.value declarationNode of
         Declaration.CustomTypeDeclaration variantType ->
             let
-                variantNames : () -> Set String
-                variantNames () =
-                    variantType.constructors
-                        |> List.map (\(Node _ variant) -> Node.value variant.name)
-                        |> Set.fromList
-
                 variantTypeName : String
                 variantTypeName =
                     Node.value variantType.name
             in
             if isExposedFrom context.exposedVariantTypes variantTypeName then
+                let
+                    variantNames : Set String
+                    variantNames =
+                        variantType.constructors
+                            |> List.map (\(Node _ variant) -> Node.value variant.name)
+                            |> Set.fromList
+                in
                 { context
-                    | exposedVariants = Set.union context.exposedVariants (variantNames ())
+                    | exposedVariants =
+                        Set.union context.exposedVariants variantNames
                 }
 
             else
