@@ -1134,8 +1134,8 @@ declarationVisitor declarationNode context =
     case Node.value declarationNode of
         Declaration.CustomTypeDeclaration variantType ->
             let
-                variantNames : Set String
-                variantNames =
+                variantNames : () -> Set String
+                variantNames () =
                     variantType.constructors
                         |> List.map (\(Node _ variant) -> Node.value variant.name)
                         |> Set.fromList
@@ -1147,18 +1147,16 @@ declarationVisitor declarationNode context =
             { contextReset
                 | exposedVariants =
                     if context.exposedAll then
-                        context.exposedVariants
-                            |> Dict.insert variantTypeName
-                                variantNames
+                        Dict.insert variantTypeName
+                            (variantNames ())
+                            context.exposedVariants
 
                     else
-                        context.exposedVariants
-                            |> Dict.update variantTypeName
-                                (Maybe.map
-                                    (\_ ->
-                                        variantNames
-                                    )
-                                )
+                        Dict.update variantTypeName
+                            (Maybe.map
+                                (\_ -> variantNames ())
+                            )
+                            context.exposedVariants
             }
 
         Declaration.FunctionDeclaration _ ->
