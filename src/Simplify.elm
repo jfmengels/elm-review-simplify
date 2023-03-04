@@ -1087,29 +1087,16 @@ importVisitor importNode context =
                                     Exposing.All _ ->
                                         ExposedAll
 
-                                    Exposing.Explicit list ->
+                                    Exposing.Explicit exposes ->
                                         ExposedSome
                                             (Set.fromList
-                                                (List.map (\(Node _ expose) -> nameOfExpose expose) list)
+                                                (List.map
+                                                    (\(Node _ expose) -> AstHelpers.nameOfExpose expose)
+                                                    exposes
+                                                )
                                             )
                     }
     }
-
-
-nameOfExpose : Exposing.TopLevelExpose -> String
-nameOfExpose topLevelExpose =
-    case topLevelExpose of
-        Exposing.FunctionExpose name ->
-            name
-
-        Exposing.TypeOrAliasExpose name ->
-            name
-
-        Exposing.InfixExpose name ->
-            name
-
-        Exposing.TypeExpose { name } ->
-            name
 
 
 
@@ -1245,7 +1232,9 @@ moduleContextToImportLookup context =
             )
         |> Dict.insert context.moduleName
             { alias = Nothing
-            , exposed = ExposedSome context.exposedVariants
+            , exposed =
+                -- TODO: every locally-defined name that could shadow imports
+                ExposedSome context.exposedVariants
             }
 
 

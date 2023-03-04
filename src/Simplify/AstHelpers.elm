@@ -1,4 +1,4 @@
-module Simplify.AstHelpers exposing (getBooleanPattern, getOrder, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificCall, isSpecificValueOrFunction, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing (getBooleanPattern, getOrder, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificCall, isSpecificValueOrFunction, nameOfExpose, removeParens, removeParensFromPattern)
 
 import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -254,3 +254,19 @@ getTypeExposeIncludingVariants expose =
 
                 Just _ ->
                     Just variantType.name
+
+
+nameOfExpose : Exposing.TopLevelExpose -> String
+nameOfExpose topLevelExpose =
+    case topLevelExpose of
+        Exposing.FunctionExpose name ->
+            name
+
+        Exposing.TypeOrAliasExpose name ->
+            name
+
+        Exposing.InfixExpose name ->
+            name
+
+        Exposing.TypeExpose { name } ->
+            name
