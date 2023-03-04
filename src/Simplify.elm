@@ -844,7 +844,7 @@ type alias ProjectContext =
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
-    , exposedAll : Bool
+    , exposedVariantTypes : Exposed
     , imports :
         Dict
             ModuleName
@@ -865,13 +865,7 @@ type alias ModuleContext =
             (-- names of found variants
              Set String
             )
-    , exposedVariants :
-        Dict
-            -- by tagged union `type` name
-            String
-            -- names of found variants,
-            -- Set.empty if none have been found, yet
-            (Set String)
+    , exposedVariants : Set String
     }
 
 
@@ -879,13 +873,23 @@ type alias ImportLookup =
     Dict
         ModuleName
         { alias : Maybe ModuleName
-        , exposed : Exposed
+        , exposed : Exposed -- includes names of found variants
         }
 
 
 type Exposed
     = ExposedAll
-    | ExposedSome (Set String) -- includes names of found variants
+    | ExposedSome (Set String)
+
+
+isExposedFrom : Exposed -> String -> Bool
+isExposedFrom exposed name =
+    case exposed of
+        ExposedAll ->
+            True
+
+        ExposedSome some ->
+            Set.member name some
 
 
 type alias ConstructorName =
@@ -913,9 +917,7 @@ fromModuleToProject =
             { customTypesToReportInCases = Set.empty
             , exposedVariants =
                 Dict.singleton moduleContext.moduleName
-                    (moduleContext.exposedVariants
-                        |> Dict.foldl (\_ -> Set.union) Set.empty
-                    )
+                    moduleContext.exposedVariants
             }
         )
 
@@ -925,13 +927,13 @@ fromProjectToModule =
     Rule.initContextCreator
         (\lookupTable metadata extractSourceCode fullAst projectContext ->
             let
-                moduleExposing : { exposedAll : Bool, exposedVariants : Dict String (Set String) }
-                moduleExposing =
+                moduleExposedVariantTypes : Exposed
+                moduleExposedVariantTypes =
                     moduleExposingContext fullAst.moduleDefinition
             in
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
-            , exposedAll = moduleExposing.exposedAll
+            , exposedVariantTypes = moduleExposedVariantTypes
             , imports = implicitImports
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
@@ -942,7 +944,7 @@ fromProjectToModule =
             , inferredConstants = ( Infer.empty, [] )
             , extractSourceCode = extractSourceCode
             , importedExposedVariants = projectContext.exposedVariants
-            , exposedVariants = moduleExposing.exposedVariants
+            , exposedVariants = Set.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -951,27 +953,21 @@ fromProjectToModule =
         |> Rule.withFullAst
 
 
-moduleExposingContext :
-    Node Elm.Syntax.Module.Module
-    -> { exposedAll : Bool, exposedVariants : Dict String (Set String) }
+moduleExposingContext : Node Elm.Syntax.Module.Module -> Exposed
 moduleExposingContext moduleHeader =
     case Elm.Syntax.Module.exposingList (Node.value moduleHeader) of
         Exposing.All _ ->
-            { exposedAll = True
-            , exposedVariants = Dict.empty
-            }
+            ExposedAll
 
         Exposing.Explicit some ->
-            { exposedAll = False
-            , exposedVariants =
-                some
+            ExposedSome
+                (some
                     |> List.filterMap
                         (\(Node _ expose) ->
                             AstHelpers.getTypeExposeIncludingVariants expose
                         )
-                    |> List.map (\typeName -> ( typeName, Set.empty ))
-                    |> Dict.fromList
-            }
+                    |> Set.fromList
+                )
 
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
@@ -1122,15 +1118,6 @@ nameOfExpose topLevelExpose =
 
 declarationVisitor : Node Declaration -> ModuleContext -> ModuleContext
 declarationVisitor declarationNode context =
-    let
-        contextReset : ModuleContext
-        contextReset =
-            { context
-                | rangesToIgnore = []
-                , rightSidesOfPlusPlus = []
-                , inferredConstantsDict = RangeDict.empty
-            }
-    in
     case Node.value declarationNode of
         Declaration.CustomTypeDeclaration variantType ->
             let
@@ -1144,23 +1131,20 @@ declarationVisitor declarationNode context =
                 variantTypeName =
                     Node.value variantType.name
             in
-            { contextReset
-                | exposedVariants =
-                    if context.exposedAll then
-                        Dict.insert variantTypeName
-                            (variantNames ())
-                            context.exposedVariants
+            if isExposedFrom context.exposedVariantTypes variantTypeName then
+                { context
+                    | exposedVariants = Set.union context.exposedVariants (variantNames ())
+                }
 
-                    else
-                        Dict.update variantTypeName
-                            (Maybe.map
-                                (\_ -> variantNames ())
-                            )
-                            context.exposedVariants
-            }
+            else
+                context
 
         Declaration.FunctionDeclaration _ ->
-            contextReset
+            { context
+                | rangesToIgnore = []
+                , rightSidesOfPlusPlus = []
+                , inferredConstantsDict = RangeDict.empty
+            }
 
         _ ->
             context
@@ -1259,9 +1243,7 @@ moduleContextToImportLookup context =
             )
         |> Dict.insert context.moduleName
             { alias = Nothing
-            , exposed =
-                ExposedSome
-                    (context.exposedVariants |> Dict.foldl (\_ -> Set.union) Set.empty)
+            , exposed = ExposedSome context.exposedVariants
             }
 
 
