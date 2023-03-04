@@ -866,6 +866,7 @@ type alias ModuleContext =
              Set String
             )
     , exposedVariants : Set String
+    , cashedImportLookup : Maybe ImportLookup
     }
 
 
@@ -945,6 +946,7 @@ fromProjectToModule =
             , extractSourceCode = extractSourceCode
             , importedExposedVariants = projectContext.exposedVariants
             , exposedVariants = Set.empty
+            , cashedImportLookup = Nothing
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -1146,6 +1148,24 @@ declarationVisitor declarationNode context =
 expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node context =
     let
+        { importLookupCashedContext, importLookup } =
+            case context.cashedImportLookup of
+                Just importLookupCashed ->
+                    { importLookupCashedContext = context
+                    , importLookup = importLookupCashed
+                    }
+
+                Nothing ->
+                    let
+                        importLookupCreated =
+                            moduleContextToImportLookup context
+                    in
+                    { importLookupCashedContext =
+                        { context | cashedImportLookup = Just importLookupCreated }
+                    , importLookup =
+                        importLookupCreated
+                    }
+
         newContext : ModuleContext
         newContext =
             case RangeDict.get (Node.range node) context.inferredConstantsDict of
@@ -1154,10 +1174,12 @@ expressionVisitor node context =
                         ( previous, previousStack ) =
                             context.inferredConstants
                     in
-                    { context | inferredConstants = ( inferredConstants, previous :: previousStack ) }
+                    { importLookupCashedContext
+                        | inferredConstants = ( inferredConstants, previous :: previousStack )
+                    }
 
                 Nothing ->
-                    context
+                    importLookupCashedContext
     in
     if List.member (Node.range node) newContext.rangesToIgnore then
         ( [], newContext )
@@ -1165,7 +1187,7 @@ expressionVisitor node context =
     else
         let
             { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
-                expressionVisitorHelp node newContext
+                expressionVisitorHelp node newContext importLookup
         in
         ( errors
         , { newContext
@@ -1238,13 +1260,9 @@ moduleContextToImportLookup context =
             }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
-expressionVisitorHelp node context =
+expressionVisitorHelp : Node Expression -> ModuleContext -> ImportLookup -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp node context importLookup =
     let
-        importLookup : ImportLookup
-        importLookup =
-            moduleContextToImportLookup context
-
         toCheckInfo :
             { fnRange : Range
             , firstArg : Node Expression
