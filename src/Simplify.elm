@@ -852,6 +852,8 @@ type alias ModuleContext =
             { alias : Maybe ModuleName
             , exposed : Exposed
             }
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
@@ -877,6 +879,14 @@ type alias ImportLookup =
         { alias : Maybe ModuleName
         , exposed : Exposed -- includes names of found variants
         }
+
+
+type alias QualifyResources a =
+    { a
+        | importLookup : ImportLookup
+        , moduleBindings : Set String
+        , localBindings : RangeDict (Set String)
+    }
 
 
 type Exposed
@@ -937,6 +947,8 @@ fromProjectToModule =
             , moduleName = Rule.moduleNameFromMetadata metadata
             , exposedVariantTypes = moduleExposedVariantTypes
             , imports = implicitImports
+            , moduleBindings = Set.empty
+            , localBindings = RangeDict.empty
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
@@ -1259,6 +1271,8 @@ expressionVisitorHelp node context importLookup =
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
             , importLookup = importLookup
+            , moduleBindings = context.moduleBindings
+            , localBindings = context.localBindings
             , inferredConstants = context.inferredConstants
             , parentRange = Node.range node
             , fnRange = checkInfo.fnRange
@@ -1486,6 +1500,8 @@ expressionVisitorHelp node context importLookup =
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
                     , importLookup = importLookup
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
                     , fromLeftToRight = True
                     , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                     , left = left
@@ -1500,6 +1516,8 @@ expressionVisitorHelp node context importLookup =
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
                     , importLookup = importLookup
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
                     , fromLeftToRight = True
                     , parentRange = Node.range node
                     , left = left
@@ -1514,6 +1532,8 @@ expressionVisitorHelp node context importLookup =
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
                     , importLookup = importLookup
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
                     , fromLeftToRight = False
                     , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                     , left = left
@@ -1528,6 +1548,8 @@ expressionVisitorHelp node context importLookup =
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
                     , importLookup = importLookup
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
                     , fromLeftToRight = False
                     , parentRange = Node.range node
                     , left = left
@@ -1881,6 +1903,8 @@ needsParens expr =
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
@@ -2032,6 +2056,8 @@ operatorChecks =
 type alias CompositionCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
     , fromLeftToRight : Bool
     , parentRange : Range
     , left : Node Expression
