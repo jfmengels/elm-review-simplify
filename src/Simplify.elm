@@ -723,7 +723,12 @@ All of these also apply for `Sub`.
 
 import Dict exposing (Dict)
 import Elm.Docs
+import Elm.Project exposing (Exposed)
+import Elm.Syntax.Declaration as Declaration exposing (Declaration)
+import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
+import Elm.Syntax.Import exposing (Import)
+import Elm.Syntax.Module
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
@@ -748,10 +753,11 @@ rule (Configuration config) =
     Rule.newProjectRuleSchema "Simplify" initialContext
         |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
         |> Rule.withModuleVisitor moduleVisitor
+        |> Rule.withContextFromImportedModules
         |> Rule.withModuleContextUsingContextCreator
             { fromProjectToModule = fromProjectToModule
             , fromModuleToProject = fromModuleToProject
-            , foldProjectContexts = \_ previous -> previous
+            , foldProjectContexts = foldProjectContexts
             }
         |> Rule.providesFixesForProjectRule
         |> Rule.fromProjectRuleSchema
@@ -760,6 +766,7 @@ rule (Configuration config) =
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor schema =
     schema
+        |> Rule.withImportVisitor (\importNode context -> ( [], importVisitor importNode context ))
         |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
@@ -830,12 +837,20 @@ ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
 
 type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+    , exposedVariants : Dict ModuleName (Set String)
     }
 
 
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
+    , exposedAll : Bool
+    , imports :
+        Dict
+            ModuleName
+            { alias : Maybe ModuleName
+            , exposed : Exposed
+            }
     , rangesToIgnore : List Range
     , rightSidesOfPlusPlus : List Range
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
@@ -844,7 +859,33 @@ type alias ModuleContext =
     , inferredConstantsDict : RangeDict Infer.Inferred
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , extractSourceCode : Range -> String
+    , importedExposedVariants :
+        Dict
+            ModuleName
+            (-- names of found variants
+             Set String
+            )
+    , exposedVariants :
+        Dict
+            -- by tagged union `type` name
+            String
+            -- names of found variants,
+            -- Set.empty if none have been found, yet
+            (Set String)
     }
+
+
+type alias ImportLookup =
+    Dict
+        ModuleName
+        { alias : Maybe ModuleName
+        , exposed : Exposed
+        }
+
+
+type Exposed
+    = ExposedAll
+    | ExposedSome (Set String) -- includes names of found variants
 
 
 type alias ConstructorName =
@@ -861,20 +902,37 @@ type alias Constructor =
 initialContext : ProjectContext
 initialContext =
     { customTypesToReportInCases = Set.empty
+    , exposedVariants = Dict.empty
     }
 
 
 fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
-    Rule.initContextCreator (\_ -> initialContext)
+    Rule.initContextCreator
+        (\moduleContext ->
+            { customTypesToReportInCases = initialContext.customTypesToReportInCases
+            , exposedVariants =
+                Dict.singleton moduleContext.moduleName
+                    (moduleContext.exposedVariants
+                        |> Dict.foldl (\_ -> Set.union) Set.empty
+                    )
+            }
+        )
 
 
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
 fromProjectToModule =
     Rule.initContextCreator
-        (\lookupTable metadata extractSourceCode projectContext ->
+        (\lookupTable metadata extractSourceCode fullAst projectContext ->
+            let
+                moduleExposing : { exposedAll : Bool, exposedVariants : Dict String (Set String) }
+                moduleExposing =
+                    moduleExposingContext fullAst.moduleDefinition
+            in
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
+            , exposedAll = moduleExposing.exposedAll
+            , imports = implicitImports
             , rangesToIgnore = []
             , rightSidesOfPlusPlus = []
             , localIgnoredCustomTypes = []
@@ -883,11 +941,45 @@ fromProjectToModule =
             , inferredConstantsDict = RangeDict.empty
             , inferredConstants = ( Infer.empty, [] )
             , extractSourceCode = extractSourceCode
+            , importedExposedVariants = projectContext.exposedVariants
+            , exposedVariants = moduleExposing.exposedVariants
             }
         )
         |> Rule.withModuleNameLookupTable
         |> Rule.withMetadata
         |> Rule.withSourceCodeExtractor
+        |> Rule.withFullAst
+
+
+moduleExposingContext :
+    Node Elm.Syntax.Module.Module
+    -> { exposedAll : Bool, exposedVariants : Dict String (Set String) }
+moduleExposingContext moduleHeader =
+    case Elm.Syntax.Module.exposingList (Node.value moduleHeader) of
+        Exposing.All _ ->
+            { exposedAll = True
+            , exposedVariants = Dict.empty
+            }
+
+        Exposing.Explicit some ->
+            { exposedAll = False
+            , exposedVariants =
+                some
+                    |> List.filterMap
+                        (\(Node _ expose) ->
+                            AstHelpers.getTypeExposeIncludingVariants expose
+                        )
+                    |> List.map (\typeName -> ( typeName, Set.empty ))
+                    |> Dict.fromList
+            }
+
+
+foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
+foldProjectContexts =
+    \a b ->
+        { customTypesToReportInCases = initialContext.customTypesToReportInCases
+        , exposedVariants = Dict.union a.exposedVariants b.exposedVariants
+        }
 
 
 
@@ -895,7 +987,7 @@ fromProjectToModule =
 
 
 dependenciesVisitor : Set String -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
-dependenciesVisitor typeNamesAsStrings dict _ =
+dependenciesVisitor typeNamesAsStrings dict context =
     let
         modules : List Elm.Docs.Module
         modules =
@@ -921,7 +1013,7 @@ dependenciesVisitor typeNamesAsStrings dict _ =
                         let
                             moduleName : ModuleName
                             moduleName =
-                                String.split "." mod.name
+                                moduleNameFromString mod.name
                         in
                         mod.unions
                             |> List.filter (\union -> not (Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings))
@@ -929,13 +1021,32 @@ dependenciesVisitor typeNamesAsStrings dict _ =
                             |> List.map (\( tagName, _ ) -> ( moduleName, tagName ))
                     )
                 |> Set.fromList
+
+        dependencyExposedVariants : Dict ModuleName (Set String)
+        dependencyExposedVariants =
+            modules
+                |> List.map
+                    (\moduleDoc ->
+                        ( moduleNameFromString moduleDoc.name
+                        , moduleDoc.unions
+                            |> List.concatMap
+                                (\union ->
+                                    union.tags
+                                        |> List.map (\( variantName, _ ) -> variantName)
+                                )
+                            |> Set.fromList
+                        )
+                    )
+                |> Dict.fromList
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
 
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
-    , { customTypesToReportInCases = customTypesToReportInCases }
+    , { customTypesToReportInCases = customTypesToReportInCases
+      , exposedVariants = Dict.union context.exposedVariants dependencyExposedVariants
+      }
     )
 
 
@@ -953,22 +1064,108 @@ errorForUnknownIgnoredConstructor list =
         }
 
 
-wrapInBackticks : String -> String
-wrapInBackticks s =
-    "`" ++ s ++ "`"
+
+-- IMPORT VISITOR
+
+
+importVisitor : Node Import -> ModuleContext -> ModuleContext
+importVisitor importNode context =
+    let
+        import_ : Import
+        import_ =
+            Node.value importNode
+    in
+    { context
+        | imports =
+            context.imports
+                |> insertImport (import_.moduleName |> Node.value)
+                    { alias =
+                        import_.moduleAlias |> Maybe.map Node.value
+                    , exposed =
+                        case import_.exposingList of
+                            Nothing ->
+                                ExposedSome Set.empty
+
+                            Just (Node _ existingExposing) ->
+                                case existingExposing of
+                                    Exposing.All _ ->
+                                        ExposedAll
+
+                                    Exposing.Explicit list ->
+                                        ExposedSome
+                                            (Set.fromList
+                                                (List.map (\(Node _ expose) -> nameOfExpose expose) list)
+                                            )
+                    }
+    }
+
+
+nameOfExpose : Exposing.TopLevelExpose -> String
+nameOfExpose topLevelExpose =
+    case topLevelExpose of
+        Exposing.FunctionExpose name ->
+            name
+
+        Exposing.TypeOrAliasExpose name ->
+            name
+
+        Exposing.InfixExpose name ->
+            name
+
+        Exposing.TypeExpose { name } ->
+            name
 
 
 
 -- DECLARATION VISITOR
 
 
-declarationVisitor : Node a -> ModuleContext -> ModuleContext
-declarationVisitor _ context =
-    { context
-        | rangesToIgnore = []
-        , rightSidesOfPlusPlus = []
-        , inferredConstantsDict = RangeDict.empty
-    }
+declarationVisitor : Node Declaration -> ModuleContext -> ModuleContext
+declarationVisitor declarationNode context =
+    let
+        contextReset : ModuleContext
+        contextReset =
+            { context
+                | rangesToIgnore = []
+                , rightSidesOfPlusPlus = []
+                , inferredConstantsDict = RangeDict.empty
+            }
+    in
+    case Node.value declarationNode of
+        Declaration.CustomTypeDeclaration variantType ->
+            let
+                variantNames : Set String
+                variantNames =
+                    variantType.constructors
+                        |> List.map (\(Node _ variant) -> Node.value variant.name)
+                        |> Set.fromList
+
+                variantTypeName : String
+                variantTypeName =
+                    Node.value variantType.name
+            in
+            { contextReset
+                | exposedVariants =
+                    if context.exposedAll then
+                        context.exposedVariants
+                            |> Dict.insert variantTypeName
+                                variantNames
+
+                    else
+                        context.exposedVariants
+                            |> Dict.update variantTypeName
+                                (Maybe.map
+                                    (\_ ->
+                                        variantNames
+                                    )
+                                )
+            }
+
+        Declaration.FunctionDeclaration _ ->
+            contextReset
+
+        _ ->
+            context
 
 
 
@@ -1041,9 +1238,42 @@ onlyErrors errors =
     }
 
 
+moduleContextToImportLookup : ModuleContext -> ImportLookup
+moduleContextToImportLookup context =
+    context.imports
+        |> Dict.map
+            (\moduleName import_ ->
+                case import_.exposed of
+                    ExposedAll ->
+                        import_
+
+                    ExposedSome some ->
+                        case Dict.get moduleName context.importedExposedVariants of
+                            Nothing ->
+                                import_
+
+                            Just importExposedVariants ->
+                                { import_
+                                    | exposed =
+                                        ExposedSome
+                                            (Set.union some importExposedVariants)
+                                }
+            )
+        |> Dict.insert context.moduleName
+            { alias = Nothing
+            , exposed =
+                ExposedSome
+                    (context.exposedVariants |> Dict.foldl (\_ -> Set.union) Set.empty)
+            }
+
+
 expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp node context =
     let
+        importLookup : ImportLookup
+        importLookup =
+            moduleContextToImportLookup context
+
         toCheckInfo :
             { fnRange : Range
             , firstArg : Node Expression
@@ -1053,6 +1283,7 @@ expressionVisitorHelp node context =
             -> CheckInfo
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
+            , importLookup = importLookup
             , inferredConstants = context.inferredConstants
             , parentRange = Node.range node
             , fnRange = checkInfo.fnRange
@@ -1093,6 +1324,7 @@ expressionVisitorHelp node context =
         Expression.IfBlock condition trueBranch falseBranch ->
             ifChecks
                 context
+                context.imports
                 (Node.range node)
                 { condition = condition
                 , trueBranch = trueBranch
@@ -1278,6 +1510,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
+                    , importLookup = importLookup
                     , fromLeftToRight = True
                     , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                     , left = left
@@ -1291,6 +1524,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
+                    , importLookup = importLookup
                     , fromLeftToRight = True
                     , parentRange = Node.range node
                     , left = left
@@ -1304,6 +1538,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
+                    , importLookup = importLookup
                     , fromLeftToRight = False
                     , parentRange = { start = (Node.range left).start, end = (Node.range right).end }
                     , left = left
@@ -1317,6 +1552,7 @@ expressionVisitorHelp node context =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
+                    , importLookup = importLookup
                     , fromLeftToRight = False
                     , parentRange = Node.range node
                     , left = left
@@ -1332,6 +1568,7 @@ expressionVisitorHelp node context =
                     { errors =
                         checkFn
                             { lookupTable = context.lookupTable
+                            , importLookup = importLookup
                             , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , operator = operator
@@ -1398,6 +1635,106 @@ expressionVisitorHelp node context =
 
         _ ->
             onlyErrors []
+
+
+{-| From the `elm/core` readme:
+
+>
+> ### Default Imports
+
+> The modules in this package are so common, that some of them are imported by default in all Elm files. So it is as if every Elm file starts with these imports:
+>
+>     import Basics exposing (..)
+>     import List exposing (List, (::))
+>     import Maybe exposing (Maybe(..))
+>     import Result exposing (Result(..))
+>     import String exposing (String)
+>     import Char exposing (Char)
+>     import Tuple
+>     import Debug
+>     import Platform exposing (Program)
+>     import Platform.Cmd as Cmd exposing (Cmd)
+>     import Platform.Sub as Sub exposing (Sub)
+
+-}
+implicitImports : ImportLookup
+implicitImports =
+    [ ( [ "Basics" ], { alias = Nothing, exposed = ExposedAll } )
+    , ( [ "List" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "List", "(::)" ]) } )
+    , ( [ "Maybe" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Maybe", "Just", "Nothing" ]) } )
+    , ( [ "Result" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Result", "Ok", "Err" ]) } )
+    , ( [ "String" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "String" ]) } )
+    , ( [ "Char" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Char" ]) } )
+    , ( [ "Tuple" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
+    , ( [ "Debug" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
+    , ( [ "Platform" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Program" ]) } )
+    , ( [ "Platform", "Cmd" ], { alias = Just [ "Cmd" ], exposed = ExposedSome (Set.fromList [ "Cmd" ]) } )
+    , ( [ "Platform", "Sub" ], { alias = Just [ "Sub" ], exposed = ExposedSome (Set.fromList [ "Sub" ]) } )
+    ]
+        |> Dict.fromList
+
+
+{-| Merge a given new import with an existing import lookup.
+This is strongly preferred over Dict.insert since the implicit default imports can be overridden
+-}
+insertImport : ModuleName -> { alias : Maybe ModuleName, exposed : Exposed } -> ImportLookup -> ImportLookup
+insertImport moduleName importInfoToAdd importLookup =
+    Dict.update moduleName
+        (\existingImport ->
+            let
+                newImportInfo : { alias : Maybe ModuleName, exposed : Exposed }
+                newImportInfo =
+                    case existingImport of
+                        Nothing ->
+                            importInfoToAdd
+
+                        Just import_ ->
+                            { alias = findMap .alias [ import_, importInfoToAdd ]
+                            , exposed = exposedMerge ( import_.exposed, importInfoToAdd.exposed )
+                            }
+            in
+            Just newImportInfo
+        )
+        importLookup
+
+
+exposedMerge : ( Exposed, Exposed ) -> Exposed
+exposedMerge exposedTuple =
+    case exposedTuple of
+        ( ExposedAll, _ ) ->
+            ExposedAll
+
+        ( ExposedSome _, ExposedAll ) ->
+            ExposedAll
+
+        ( ExposedSome aSet, ExposedSome bSet ) ->
+            ExposedSome (Set.union aSet bSet)
+
+
+qualify : ( ModuleName, String ) -> ImportLookup -> ( ModuleName, String )
+qualify ( moduleName, name ) importLookup =
+    case importLookup |> Dict.get moduleName of
+        Just import_ ->
+            case import_.exposed of
+                ExposedAll ->
+                    ( [], name )
+
+                ExposedSome exposedSet ->
+                    if exposedSet |> Set.member name then
+                        ( [], name )
+
+                    else
+                        ( case import_.alias of
+                            Just hasAlias ->
+                                hasAlias
+
+                            Nothing ->
+                                moduleName
+                        , name
+                        )
+
+        Nothing ->
+            ( moduleName, name )
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
@@ -1568,6 +1905,7 @@ needsParens expr =
 
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , importLookup : ImportLookup
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
@@ -1684,6 +2022,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , importLookup : ImportLookup
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , operator : String
@@ -1717,6 +2056,7 @@ operatorChecks =
 
 type alias CompositionCheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , importLookup : ImportLookup
     , fromLeftToRight : Bool
     , parentRange : Range
     , left : Node Expression
@@ -1825,7 +2165,7 @@ plusChecks : OperatorCheckInfo -> List (Error {})
 plusChecks { leftRange, rightRange, left, right } =
     findMap
         (\( node, getRange ) ->
-            if getUncomputedNumberValue node == Just 0 then
+            if AstHelpers.getUncomputedNumberValue node == Just 0 then
                 Just
                     [ Rule.errorWithFix
                         { message = "Unnecessary addition with 0"
@@ -1846,7 +2186,7 @@ plusChecks { leftRange, rightRange, left, right } =
 
 minusChecks : OperatorCheckInfo -> List (Error {})
 minusChecks { leftRange, rightRange, left, right } =
-    if getUncomputedNumberValue right == Just 0 then
+    if AstHelpers.getUncomputedNumberValue right == Just 0 then
         let
             range : Range
             range =
@@ -1860,7 +2200,7 @@ minusChecks { leftRange, rightRange, left, right } =
             [ Fix.removeRange range ]
         ]
 
-    else if getUncomputedNumberValue left == Just 0 then
+    else if AstHelpers.getUncomputedNumberValue left == Just 0 then
         let
             range : Range
             range =
@@ -1887,7 +2227,7 @@ multiplyChecks : OperatorCheckInfo -> List (Error {})
 multiplyChecks { leftRange, rightRange, left, right } =
     findMap
         (\( node, getRange ) ->
-            case getUncomputedNumberValue node of
+            case AstHelpers.getUncomputedNumberValue node of
                 Just number ->
                     if number == 1 then
                         Just
@@ -1929,7 +2269,7 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
 
 divisionChecks : OperatorCheckInfo -> List (Error {})
 divisionChecks { leftRange, rightRange, right } =
-    if getUncomputedNumberValue right == Just 1 then
+    if AstHelpers.getUncomputedNumberValue right == Just 1 then
         let
             range : Range
             range =
@@ -2099,13 +2439,15 @@ negateNegateCompositionErrorMessage =
 
 
 negateCompositionCheck : CompositionCheckInfo -> List (Error {})
-negateCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange } =
+negateCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange, importLookup } =
     case Maybe.map2 Tuple.pair (getNegateFunction lookupTable left) (getNegateFunction lookupTable right) of
         Just _ ->
             [ Rule.errorWithFix
                 negateNegateCompositionErrorMessage
                 parentRange
-                [ Fix.replaceRangeBy parentRange "identity" ]
+                [ Fix.replaceRangeBy parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) importLookup))
+                ]
             ]
 
         _ ->
@@ -2202,7 +2544,9 @@ basicsNotChecks checkInfo =
                 , details = [ "You can replace the call to `not` by the boolean value directly." ]
                 }
                 checkInfo.parentRange
-                [ Fix.replaceRangeBy checkInfo.parentRange (boolToString (not bool)) ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], boolToString (not bool) ) checkInfo.importLookup))
+                ]
             ]
 
         Undetermined ->
@@ -2210,7 +2554,7 @@ basicsNotChecks checkInfo =
 
 
 notNotCompositionCheck : CompositionCheckInfo -> List (Error {})
-notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange } =
+notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right, leftRange, rightRange, importLookup } =
     let
         notOnLeft : Maybe Range
         notOnLeft =
@@ -2225,7 +2569,9 @@ notNotCompositionCheck { lookupTable, fromLeftToRight, parentRange, left, right,
             [ Rule.errorWithFix
                 notNotCompositionErrorMessage
                 parentRange
-                [ Fix.replaceRangeBy parentRange "identity" ]
+                [ Fix.replaceRangeBy parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) importLookup))
+                ]
             ]
 
         ( Just leftNotRange, _ ) ->
@@ -2335,11 +2681,16 @@ findSimilarConditionsError operatorCheckInfo =
         |> List.concatMap (Tuple.second >> errorsForNode)
 
 
-areSimilarConditionsError : Infer.Resources a -> String -> Node Expression -> ( RedundantConditionResolution, Node Expression ) -> List (Error {})
+areSimilarConditionsError :
+    Infer.Resources { a | importLookup : ImportLookup }
+    -> String
+    -> Node Expression
+    -> ( RedundantConditionResolution, Node Expression )
+    -> List (Error {})
 areSimilarConditionsError resources operator nodeToCompareTo ( redundantConditionResolution, nodeToLookAt ) =
     case Normalize.compare resources nodeToCompareTo nodeToLookAt of
         Normalize.ConfirmedEquality ->
-            errorForRedundantCondition operator redundantConditionResolution nodeToLookAt
+            errorForRedundantCondition operator redundantConditionResolution nodeToLookAt resources.importLookup
 
         Normalize.ConfirmedInequality ->
             []
@@ -2348,11 +2699,11 @@ areSimilarConditionsError resources operator nodeToCompareTo ( redundantConditio
             []
 
 
-errorForRedundantCondition : String -> RedundantConditionResolution -> Node a -> List (Error {})
-errorForRedundantCondition operator redundantConditionResolution node =
+errorForRedundantCondition : String -> RedundantConditionResolution -> Node a -> ImportLookup -> List (Error {})
+errorForRedundantCondition operator redundantConditionResolution node importLookup =
     let
         ( range, fix ) =
-            rangeAndFixForRedundantCondition redundantConditionResolution node
+            rangeAndFixForRedundantCondition redundantConditionResolution node importLookup
     in
     [ Rule.errorWithFix
         { message = "Condition is redundant"
@@ -2365,8 +2716,8 @@ errorForRedundantCondition operator redundantConditionResolution node =
     ]
 
 
-rangeAndFixForRedundantCondition : RedundantConditionResolution -> Node a -> ( Range, List Fix )
-rangeAndFixForRedundantCondition redundantConditionResolution node =
+rangeAndFixForRedundantCondition : RedundantConditionResolution -> Node a -> ImportLookup -> ( Range, List Fix )
+rangeAndFixForRedundantCondition redundantConditionResolution node importLookup =
     case redundantConditionResolution of
         RemoveFrom locationOfPrevElement ->
             let
@@ -2387,7 +2738,9 @@ rangeAndFixForRedundantCondition redundantConditionResolution node =
                     Node.range node
             in
             ( range
-            , [ Fix.replaceRangeBy range (boolToString noopValue) ]
+            , [ Fix.replaceRangeBy range
+                    (qualifiedToString (qualify ( [ "Basics" ], boolToString noopValue ) importLookup))
+              ]
             )
 
 
@@ -2875,7 +3228,7 @@ identityCompositionErrorMessage =
 
 identityCompositionCheck : CompositionCheckInfo -> List (Error {})
 identityCompositionCheck { lookupTable, left, right } =
-    if isIdentity lookupTable right then
+    if AstHelpers.isIdentity lookupTable right then
         [ Rule.errorWithFix
             identityCompositionErrorMessage
             (Node.range right)
@@ -2883,7 +3236,7 @@ identityCompositionCheck { lookupTable, left, right } =
             ]
         ]
 
-    else if isIdentity lookupTable left then
+    else if AstHelpers.isIdentity lookupTable left then
         [ Rule.errorWithFix
             identityCompositionErrorMessage
             (Node.range left)
@@ -3004,7 +3357,7 @@ reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
         case secondArg checkInfo of
             Just (Node _ (Expression.ListExpr [])) ->
                 [ Rule.errorWithFix
-                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in an empty list"
+                    { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
                     , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
@@ -3023,7 +3376,7 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
         case checkInfo.firstArg of
             Node _ (Expression.ListExpr []) ->
                 [ Rule.errorWithFix
-                    { message = "Using " ++ String.join "." moduleName ++ "." ++ name ++ " on an empty list will result in an empty list"
+                    { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
                     , details = [ "You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
@@ -3059,7 +3412,9 @@ stringFromListChecks checkInfo =
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range onlyChar }
                     ++ parenthesizeIfNeededFix onlyChar
-                    ++ [ Fix.insertAt checkInfo.parentRange.start "String.fromChar " ]
+                    ++ [ Fix.insertAt checkInfo.parentRange.start
+                            (qualifiedToString (qualify ( [ "String" ], "fromChar" ) checkInfo.importLookup) ++ " ")
+                       ]
                 )
             ]
 
@@ -3164,7 +3519,7 @@ stringSliceChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo))
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo.importLookup)
             ]
 
         ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
@@ -3173,7 +3528,7 @@ stringSliceChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo))
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo.importLookup)
             ]
 
         ( start, Just end, _ ) ->
@@ -3191,7 +3546,7 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this slice operation by \"\"." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo))
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo.importLookup)
                         ]
                             |> Just
 
@@ -3208,7 +3563,7 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this call by an empty string." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo))
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo.importLookup)
                         ]
                             |> Just
 
@@ -3239,7 +3594,7 @@ stringLeftChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo))
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
             ]
 
         ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
@@ -3248,7 +3603,7 @@ stringLeftChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo))
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
             ]
 
         _ ->
@@ -3273,7 +3628,7 @@ stringRightChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo))
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
             ]
 
         ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
@@ -3282,7 +3637,7 @@ stringRightChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo))
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
             ]
 
         _ ->
@@ -3317,7 +3672,7 @@ stringJoinChecks checkInfo =
                         }
                         checkInfo.fnRange
                         [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                            "String.concat"
+                            (qualifiedToString (qualify ( [ "String" ], "concat" ) checkInfo.importLookup))
                         ]
                     ]
 
@@ -3371,7 +3726,7 @@ stringRepeatChecks checkInfo =
                             , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo))
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
                         ]
 
                     else
@@ -3405,7 +3760,7 @@ stringReplaceChecks checkInfo =
                                     { start = checkInfo.fnRange.start
                                     , end = (Node.range secondArg_).end
                                     }
-                                    "identity"
+                                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo.importLookup))
                                 ]
                         )
                     ]
@@ -3467,12 +3822,15 @@ maybeMapChecks checkInfo =
                         checkInfo.fnRange
                         (if checkInfo.usingRightPizza then
                             [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            , Fix.insertAt (Node.range checkInfo.firstArg).end " |> Just"
+                            , Fix.insertAt (Node.range checkInfo.firstArg).end
+                                (" |> " ++ qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
                             ]
                                 ++ List.map Fix.removeRange justRanges
 
                          else
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start } "Just ("
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup) ++ " (")
                             , Fix.insertAt checkInfo.parentRange.end ")"
                             ]
                                 ++ List.map Fix.removeRange justRanges
@@ -3486,7 +3844,7 @@ maybeMapChecks checkInfo =
 
 
 maybeMapCompositionChecks : CompositionCheckInfo -> List (Error {})
-maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, right } =
+maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, right, importLookup } =
     if fromLeftToRight then
         case ( AstHelpers.removeParens left, Node.value (AstHelpers.removeParens right) ) of
             ( Node justRange (Expression.FunctionOrValue _ "Just"), Expression.Application ((Node maybeMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []) ) ->
@@ -3519,7 +3877,8 @@ maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, rig
                         , details = [ "The function can be called without Maybe.map." ]
                         }
                         maybeMapRange
-                        [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range mapperFunction).start } "Just << "
+                        [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range mapperFunction).start }
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) importLookup) ++ " << ")
                         , Fix.removeRange { start = (Node.range mapperFunction).end, end = parentRange.end }
                         ]
                     ]
@@ -3532,7 +3891,7 @@ maybeMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, rig
 
 
 resultMapCompositionChecks : CompositionCheckInfo -> List (Error {})
-resultMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, right } =
+resultMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, right, importLookup } =
     if fromLeftToRight then
         case ( AstHelpers.removeParens left, Node.value (AstHelpers.removeParens right) ) of
             ( Node justRange (Expression.FunctionOrValue _ "Ok"), Expression.Application ((Node resultMapRange (Expression.FunctionOrValue _ "map")) :: mapperFunction :: []) ) ->
@@ -3546,7 +3905,8 @@ resultMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, ri
                         }
                         resultMapRange
                         [ Fix.removeRange { start = parentRange.start, end = (Node.range mapperFunction).start }
-                        , Fix.insertAt (Node.range mapperFunction).end " >> Ok"
+                        , Fix.insertAt (Node.range mapperFunction).end
+                            (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Ok" ) importLookup))
                         ]
                     ]
 
@@ -3565,7 +3925,9 @@ resultMapCompositionChecks { lookupTable, fromLeftToRight, parentRange, left, ri
                         , details = [ "The function can be called without Result.map." ]
                         }
                         resultMapRange
-                        [ Fix.replaceRangeBy { start = parentRange.start, end = (Node.range mapperFunction).start } "Ok << "
+                        [ Fix.replaceRangeBy
+                            { start = parentRange.start, end = (Node.range mapperFunction).start }
+                            (qualifiedToString (qualify ( [ "Result" ], "Ok" ) importLookup) ++ " << ")
                         , Fix.removeRange { start = (Node.range mapperFunction).end, end = parentRange.end }
                         ]
                     ]
@@ -3600,7 +3962,9 @@ resultMapChecks checkInfo =
                                 ++ List.map Fix.removeRange okRanges
 
                          else
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start } "Ok ("
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                (qualifiedToString (qualify ( [ "Result" ], "Ok" ) checkInfo.importLookup) ++ " (")
                             , Fix.insertAt checkInfo.parentRange.end ")"
                             ]
                                 ++ List.map Fix.removeRange okRanges
@@ -3634,7 +3998,7 @@ listConcatChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) 
                     ]
 
                 (firstListElement :: restOfListElements) as args ->
-                    if List.all isListLiteral list then
+                    if List.all AstHelpers.isListLiteral list then
                         [ Rule.errorWithFix
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
@@ -3671,7 +4035,8 @@ listConcatChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) 
                         }
                         fnRange
                         [ removeFunctionFromFunctionCall checkInfo
-                        , Fix.replaceRangeBy match.fnRange "List.concatMap"
+                        , Fix.replaceRangeBy match.fnRange
+                            (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo.importLookup))
                         ]
                     ]
 
@@ -3699,7 +4064,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 listConcatMapChecks : CheckInfo -> List (Error {})
 listConcatMapChecks checkInfo =
-    if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         [ Rule.errorWithFix
             { message = "Using List.concatMap with an identity function is the same as using List.concat"
             , details = [ "You can replace this call by List.concat." ]
@@ -3707,7 +4072,7 @@ listConcatMapChecks checkInfo =
             checkInfo.fnRange
             [ Fix.replaceRangeBy
                 { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                "List.concat"
+                (qualifiedToString (qualify ( [ "List" ], "concat" ) checkInfo.importLookup))
             ]
         ]
 
@@ -3717,11 +4082,11 @@ listConcatMapChecks checkInfo =
             , details = [ "You can replace this call by an empty list." ]
             }
             checkInfo.fnRange
-            (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo))
+            (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
         ]
 
     else
-        case replaceSingleElementListBySingleValue_RENAME checkInfo.lookupTable checkInfo.fnRange checkInfo.firstArg of
+        case replaceSingleElementListBySingleValue_RENAME checkInfo.lookupTable checkInfo.importLookup checkInfo.fnRange checkInfo.firstArg of
             Just errors ->
                 errors
 
@@ -3743,19 +4108,20 @@ listConcatMapChecks checkInfo =
 
 
 concatAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
-concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
+concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right, importLookup } =
     if fromLeftToRight then
-        if isSpecificValueOrFunction [ "List" ] "concat" lookupTable right then
+        if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" lookupTable right then
             case Node.value (AstHelpers.removeParens left) of
                 Expression.Application [ leftFunction, _ ] ->
-                    if isSpecificValueOrFunction [ "List" ] "map" lookupTable leftFunction then
+                    if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" lookupTable leftFunction then
                         [ Rule.errorWithFix
                             { message = "List.map and List.concat can be combined using List.concatMap"
                             , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
                             }
                             (Node.range right)
                             [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
-                            , Fix.replaceRangeBy (Node.range leftFunction) "List.concatMap"
+                            , Fix.replaceRangeBy (Node.range leftFunction)
+                                (qualifiedToString (qualify ( [ "List" ], "concatMap" ) importLookup))
                             ]
                         ]
 
@@ -3768,17 +4134,18 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
         else
             []
 
-    else if isSpecificValueOrFunction [ "List" ] "concat" lookupTable left then
+    else if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" lookupTable left then
         case Node.value (AstHelpers.removeParens right) of
             Expression.Application [ rightFunction, _ ] ->
-                if isSpecificValueOrFunction [ "List" ] "map" lookupTable rightFunction then
+                if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" lookupTable rightFunction then
                     [ Rule.errorWithFix
                         { message = "List.map and List.concat can be combined using List.concatMap"
                         , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
                         }
                         (Node.range left)
                         [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
-                        , Fix.replaceRangeBy (Node.range rightFunction) "List.concatMap"
+                        , Fix.replaceRangeBy (Node.range rightFunction)
+                            (qualifiedToString (qualify ( [ "List" ], "concatMap" ) importLookup))
                         ]
                     ]
 
@@ -3793,7 +4160,7 @@ concatAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
 
 
 listIndexedMapChecks : CheckInfo -> List (Error {})
-listIndexedMapChecks { lookupTable, fnRange, firstArg } =
+listIndexedMapChecks { lookupTable, fnRange, firstArg, importLookup } =
     case AstHelpers.removeParens firstArg of
         Node lambdaRange (Expression.LambdaExpression { args, expression }) ->
             case Maybe.map AstHelpers.removeParensFromPattern (List.head args) of
@@ -3817,7 +4184,8 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
                         , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
                         }
                         patternRange
-                        [ Fix.replaceRangeBy fnRange "List.map"
+                        [ Fix.replaceRangeBy fnRange
+                            (qualifiedToString (qualify ( [ "List" ], "map" ) importLookup))
                         , Fix.removeRange rangeToRemove
                         ]
                     ]
@@ -3833,7 +4201,8 @@ listIndexedMapChecks { lookupTable, fnRange, firstArg } =
                         , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
                         }
                         alwaysRange
-                        [ Fix.replaceRangeBy fnRange "List.map"
+                        [ Fix.replaceRangeBy fnRange
+                            (qualifiedToString (qualify ( [ "List" ], "map" ) importLookup))
                         , Fix.removeRange rangeToRemove
                         ]
                     ]
@@ -3860,7 +4229,9 @@ listAppendChecks checkInfo =
                             | details = [ "You can replace this call by identity." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange "identity" ]
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo.importLookup))
+                        ]
                     ]
 
                 Just (Node secondListRange _) ->
@@ -3915,7 +4286,9 @@ listHeadChecks checkInfo =
                 listHeadExistsError
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = Node.range listArg, keep = keep }
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
+                       ]
                 )
             ]
 
@@ -3941,7 +4314,8 @@ listHeadChecks checkInfo =
                     (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
                         ++ [ Fix.insertAt headRange.start "("
                            , Fix.insertAt headRange.end ")"
-                           , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                           , Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
                            ]
                     )
                 ]
@@ -4002,8 +4376,9 @@ listTailChecks checkInfo =
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy listArgRange listCollection.emptyAsString
-                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        [ Fix.replaceRangeBy listArgRange "[]"
+                        , Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
                         ]
                     ]
 
@@ -4012,7 +4387,8 @@ listTailChecks checkInfo =
                         listTailExistsError
                         checkInfo.fnRange
                         [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
-                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        , Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
                         ]
                     ]
 
@@ -4021,7 +4397,9 @@ listTailChecks checkInfo =
                 listTailExistsError
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = listArgRange, keep = Node.range tail }
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Just" ]
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
+                       ]
                 )
             ]
 
@@ -4031,8 +4409,9 @@ listTailChecks checkInfo =
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) listCollection.emptyAsString
-                        , Fix.replaceRangeBy checkInfo.fnRange "Just"
+                        [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) "[]"
+                        , Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup))
                         ]
                     ]
 
@@ -4072,7 +4451,9 @@ listMemberChecks checkInfo =
                         , details = [ "You can replace this call by True." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange "True" ]
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo.importLookup))
+                        ]
                     ]
 
                 singleNonNormalizedEqualElementError : Node Expression -> List (Error {})
@@ -4110,7 +4491,9 @@ listMemberChecks checkInfo =
                                 , details = [ "You can replace this call by False." ]
                                 }
                                 checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange "False" ]
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo.importLookup))
+                                ]
                             ]
 
                         head :: tail ->
@@ -4238,7 +4621,9 @@ listMinimumChecks checkInfo =
                     { parentRange = checkInfo.parentRange
                     , keep = elementRange
                     }
-                    ++ [ Fix.insertAt checkInfo.parentRange.start "Just " ]
+                    ++ [ Fix.insertAt checkInfo.parentRange.start
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup) ++ " ")
+                       ]
                 )
             ]
 
@@ -4268,7 +4653,9 @@ listMaximumChecks checkInfo =
                     { parentRange = checkInfo.parentRange
                     , keep = elementRange
                     }
-                    ++ [ Fix.insertAt checkInfo.parentRange.start "Just " ]
+                    ++ [ Fix.insertAt checkInfo.parentRange.start
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo.importLookup) ++ " ")
+                       ]
                 )
             ]
 
@@ -4306,7 +4693,9 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         }
                         checkInfo.fnRange
                         (keepOnlyFix { parentRange = setToListCall.nodeRange, keep = Node.range setToListCall.firstArg }
-                            ++ [ Fix.replaceRangeBy checkInfo.fnRange ("Set." ++ foldOperationName) ]
+                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo.importLookup))
+                               ]
                         )
                     ]
 
@@ -4314,7 +4703,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                     let
                         initialNumber : Maybe Float
                         initialNumber =
-                            getUncomputedNumberValue initialArgument
+                            AstHelpers.getUncomputedNumberValue initialArgument
 
                         numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> List (Error {})
                         numberBinaryOperationChecks operation =
@@ -4336,7 +4725,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                         { start = checkInfo.fnRange.start
                                         , end = (Node.range initialArgument).end
                                         }
-                                        ("List." ++ operation.list)
+                                        (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup))
                                     ]
 
                             else
@@ -4354,7 +4743,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                                     { start = checkInfo.fnRange.start
                                                     , end = (Node.range checkInfo.firstArg).end
                                                     }
-                                                    ("List." ++ operation.list ++ ")")
+                                                    (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup) ++ ")")
                                                 , Fix.insertAt checkInfo.parentRange.start "(("
                                                 ]
 
@@ -4364,7 +4753,11 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                             fixWith
                                                 [ Fix.insertAt checkInfo.parentRange.end ")"
                                                 , Fix.insertAt (Node.range initialArgument).end
-                                                    (" " ++ operation.two ++ " (List." ++ operation.list)
+                                                    (" "
+                                                        ++ operation.two
+                                                        ++ " ("
+                                                        ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup)
+                                                    )
                                                 , Fix.removeRange
                                                     { start = checkInfo.fnRange.start
                                                     , end = (Node.range initialArgument).start
@@ -4379,7 +4772,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     , details = [ "You can replace this call by " ++ boolToString operation.determining ++ "." ]
                                     }
                                     checkInfo.fnRange
-                                    (replaceByEmptyFix (boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo))
+                                    (replaceByEmptyFix (boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo) checkInfo.importLookup)
                                 ]
 
                             else
@@ -4391,11 +4784,14 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy
                                         { start = checkInfo.fnRange.start, end = (Node.range initialArgument).end }
-                                        ("List." ++ operation.list ++ " identity")
+                                        (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo.importLookup)
+                                            ++ " "
+                                            ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo.importLookup)
+                                        )
                                     ]
                                 ]
                     in
-                    if Maybe.withDefault False (Maybe.map isEmptyList listArg) then
+                    if Maybe.withDefault False (Maybe.map AstHelpers.isEmptyList listArg) then
                         [ Rule.errorWithFix
                             { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
@@ -4404,7 +4800,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument })
                         ]
 
-                    else if Maybe.withDefault False (Maybe.map (isIdentity checkInfo.lookupTable) (getAlwaysResult checkInfo checkInfo.firstArg)) then
+                    else if Maybe.withDefault False (Maybe.map (AstHelpers.isIdentity checkInfo.lookupTable) (getAlwaysResult checkInfo checkInfo.firstArg)) then
                         [ Rule.errorWithFix
                             { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
@@ -4416,7 +4812,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                         { start = checkInfo.fnRange.start
                                         , end = (Node.range checkInfo.firstArg).end
                                         }
-                                        "always"
+                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo.importLookup))
                                     ]
 
                                 Just _ ->
@@ -4424,10 +4820,10 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             )
                         ]
 
-                    else if isBinaryOperation "*" checkInfo checkInfo.firstArg then
+                    else if AstHelpers.isBinaryOperation "*" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
-                    else if isBinaryOperation "+" checkInfo checkInfo.firstArg then
+                    else if AstHelpers.isBinaryOperation "+" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                     else
@@ -4436,10 +4832,10 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 []
 
                             Determined initialBool ->
-                                if isBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                                if AstHelpers.isBinaryOperation "&&" checkInfo checkInfo.firstArg then
                                     boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool
 
-                                else if isBinaryOperation "||" checkInfo checkInfo.firstArg then
+                                else if AstHelpers.isBinaryOperation "||" checkInfo checkInfo.firstArg then
                                     boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool
 
                                 else
@@ -4461,14 +4857,16 @@ foldAndSetToListCompositionChecks foldOperationName checkInfo =
             case listFoldCall.argsAfterFirst of
                 -- initial and reduce arguments are present
                 _ :: [] ->
-                    if isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable earlier then
+                    if AstHelpers.isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable earlier then
                         [ Rule.errorWithFix
                             { message = "To fold a set, you don't need to convert to a List"
                             , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
                             }
                             listFoldCall.fnRange
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range later }
-                                ++ [ Fix.replaceRangeBy listFoldCall.fnRange ("Set." ++ foldOperationName) ]
+                                ++ [ Fix.replaceRangeBy listFoldCall.fnRange
+                                        (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo.importLookup))
+                                   ]
                             )
                         ]
 
@@ -4496,7 +4894,9 @@ listAllChecks checkInfo =
                 , details = [ "You can replace this call by True." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "True" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo.importLookup))
+                ]
             ]
 
         _ ->
@@ -4507,7 +4907,7 @@ listAllChecks checkInfo =
                         , details = [ "You can replace this call by True." ]
                         }
                         checkInfo.fnRange
-                        (replaceByBoolFix checkInfo.parentRange (secondArg checkInfo) True)
+                        (replaceByBoolFix checkInfo.parentRange (secondArg checkInfo) True checkInfo.importLookup)
                     ]
 
                 _ ->
@@ -4523,7 +4923,9 @@ listAnyChecks checkInfo =
                 , details = [ "You can replace this call by False." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "False" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo.importLookup))
+                ]
             ]
 
         listArg ->
@@ -4534,7 +4936,7 @@ listAnyChecks checkInfo =
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
-                        (replaceByBoolFix checkInfo.parentRange listArg False)
+                        (replaceByBoolFix checkInfo.parentRange listArg False checkInfo.importLookup)
                     ]
 
                 _ ->
@@ -4542,7 +4944,7 @@ listAnyChecks checkInfo =
 
 
 listFilterMapChecks : CheckInfo -> List (Error {})
-listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInfo) =
+listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg, importLookup } as checkInfo) =
     case isAlwaysMaybe lookupTable firstArg of
         Determined (Just { ranges, throughLambdaFunction }) ->
             if throughLambdaFunction then
@@ -4551,7 +4953,8 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInf
                     , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                     }
                     fnRange
-                    (Fix.replaceRangeBy fnRange "List.map"
+                    (Fix.replaceRangeBy fnRange
+                        (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo.importLookup))
                         :: List.map Fix.removeRange ranges
                     )
                 ]
@@ -4571,11 +4974,11 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInf
                 , details = [ "You can remove this call and replace it by an empty list." ]
                 }
                 fnRange
-                (replaceByEmptyFix "[]" parentRange (secondArg checkInfo))
+                (replaceByEmptyFix "[]" parentRange (secondArg checkInfo) checkInfo.importLookup)
             ]
 
         Undetermined ->
-            if isIdentity lookupTable firstArg then
+            if AstHelpers.isIdentity lookupTable firstArg then
                 case Maybe.andThen (getSpecificFunctionCall ( [ "List" ], "map" ) lookupTable) (secondArg checkInfo) of
                     Just listArg ->
                         [ Rule.errorWithFix
@@ -4584,7 +4987,8 @@ listFilterMapChecks ({ lookupTable, parentRange, fnRange, firstArg } as checkInf
                             }
                             { start = fnRange.start, end = (Node.range firstArg).end }
                             [ removeFunctionAndFirstArg checkInfo listArg.nodeRange
-                            , Fix.replaceRangeBy listArg.fnRange "List.filterMap"
+                            , Fix.replaceRangeBy listArg.fnRange
+                                (qualifiedToString (qualify ( [ "List" ], "filterMap" ) importLookup))
                             ]
                         ]
 
@@ -4639,21 +5043,22 @@ collectJusts lookupTable list acc =
 
 
 filterAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
-filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
+filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right, importLookup } =
     if fromLeftToRight then
         case Node.value (AstHelpers.removeParens right) of
             Expression.Application [ rightFunction, arg ] ->
-                if isSpecificValueOrFunction [ "List" ] "filterMap" lookupTable rightFunction && isIdentity lookupTable arg then
+                if AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" lookupTable rightFunction && AstHelpers.isIdentity lookupTable arg then
                     case Node.value (AstHelpers.removeParens left) of
                         Expression.Application [ leftFunction, _ ] ->
-                            if isSpecificValueOrFunction [ "List" ] "map" lookupTable leftFunction then
+                            if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" lookupTable leftFunction then
                                 [ Rule.errorWithFix
                                     { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                                     , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
                                     }
                                     (Node.range right)
                                     [ Fix.removeRange { start = (Node.range left).end, end = (Node.range right).end }
-                                    , Fix.replaceRangeBy (Node.range leftFunction) "List.filterMap"
+                                    , Fix.replaceRangeBy (Node.range leftFunction)
+                                        (qualifiedToString (qualify ( [ "List" ], "filterMap" ) importLookup))
                                     ]
                                 ]
 
@@ -4672,17 +5077,18 @@ filterAndMapCompositionCheck { lookupTable, fromLeftToRight, left, right } =
     else
         case Node.value (AstHelpers.removeParens left) of
             Expression.Application [ leftFunction, arg ] ->
-                if isSpecificValueOrFunction [ "List" ] "filterMap" lookupTable leftFunction && isIdentity lookupTable arg then
+                if AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" lookupTable leftFunction && AstHelpers.isIdentity lookupTable arg then
                     case Node.value (AstHelpers.removeParens right) of
                         Expression.Application [ rightFunction, _ ] ->
-                            if isSpecificValueOrFunction [ "List" ] "map" lookupTable rightFunction then
+                            if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" lookupTable rightFunction then
                                 [ Rule.errorWithFix
                                     { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                                     , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
                                     }
                                     (Node.range left)
                                     [ Fix.removeRange { start = (Node.range left).start, end = (Node.range right).start }
-                                    , Fix.replaceRangeBy (Node.range rightFunction) "List.filterMap"
+                                    , Fix.replaceRangeBy (Node.range rightFunction)
+                                        (qualifiedToString (qualify ( [ "List" ], "filterMap" ) importLookup))
                                     ]
                                 ]
 
@@ -4711,7 +5117,7 @@ listRangeChecks checkInfo =
                             , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix "[]" checkInfo.parentRange (Just second))
+                            (replaceByEmptyFix "[]" checkInfo.parentRange (Just second) checkInfo.importLookup)
                         ]
 
                     else
@@ -4734,7 +5140,7 @@ listRepeatChecks checkInfo =
                     , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
-                    (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo))
+                    (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
                 ]
 
             else
@@ -4823,11 +5229,16 @@ listSortByChecks checkInfo =
                     [ Rule.errorWithFix
                         (toIdentityErrorInfo { toFix = "List.sortBy (always a)", lastArgName = "list" })
                         checkInfo.fnRange
-                        (toIdentityFix { lastArg = secondArg checkInfo, parentRange = checkInfo.parentRange })
+                        (toIdentityFix
+                            { lastArg = secondArg checkInfo
+                            , parentRange = checkInfo.parentRange
+                            , importLookup = checkInfo.importLookup
+                            }
+                        )
                     ]
 
                 Nothing ->
-                    if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                         [ Rule.errorWithFix
                             { message = "Using List.sortBy identity is the same as using List.sort"
                             , details = [ "You can replace this call by List.sort." ]
@@ -4837,7 +5248,7 @@ listSortByChecks checkInfo =
                                 { start = checkInfo.fnRange.start
                                 , end = (Node.range checkInfo.firstArg).end
                                 }
-                                "List.sort"
+                                (qualifiedToString (qualify ( [ "List" ], "sort" ) checkInfo.importLookup))
                             ]
                         ]
 
@@ -4875,7 +5286,7 @@ listSortWithChecks checkInfo =
             let
                 alwaysAlwaysOrder : Maybe Order
                 alwaysAlwaysOrder =
-                    Maybe.andThen (getOrder checkInfo.lookupTable)
+                    Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
                         (Maybe.andThen (getAlwaysResult checkInfo)
                             (getAlwaysResult checkInfo checkInfo.firstArg)
                         )
@@ -4891,7 +5302,12 @@ listSortWithChecks checkInfo =
                             [ Rule.errorWithFix
                                 (toIdentityErrorInfo { toFix = "List.sortWith (\\_ _ -> " ++ orderToString order ++ ")", lastArgName = "list" })
                                 checkInfo.fnRange
-                                (toIdentityFix { lastArg = secondArg checkInfo, parentRange = checkInfo.parentRange })
+                                (toIdentityFix
+                                    { lastArg = secondArg checkInfo
+                                    , parentRange = checkInfo.parentRange
+                                    , importLookup = checkInfo.importLookup
+                                    }
+                                )
                             ]
                     in
                     case order of
@@ -4905,7 +5321,7 @@ listSortWithChecks checkInfo =
                                     { start = checkInfo.fnRange.start
                                     , end = (Node.range checkInfo.firstArg).end
                                     }
-                                    "List.reverse"
+                                    (qualifiedToString (qualify ( [ "List" ], "reverse" ) checkInfo.importLookup))
                                 ]
                             ]
 
@@ -4923,13 +5339,13 @@ listTakeChecks checkInfo =
         listArg =
             secondArg checkInfo
     in
-    if getUncomputedNumberValue checkInfo.firstArg == Just 0 then
+    if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
         [ Rule.errorWithFix
             { message = "Taking 0 items from a list will result in []"
             , details = [ "You can replace this call by []." ]
             }
             checkInfo.fnRange
-            (replaceByEmptyFix "[]" checkInfo.parentRange listArg)
+            (replaceByEmptyFix "[]" checkInfo.parentRange listArg checkInfo.importLookup)
         ]
 
     else
@@ -4949,7 +5365,7 @@ listTakeChecks checkInfo =
 
 listDropChecks : CheckInfo -> List (Error {})
 listDropChecks checkInfo =
-    if getUncomputedNumberValue checkInfo.firstArg == Just 0 then
+    if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
         case secondArg checkInfo of
             Just (Node secondArgRange _) ->
                 [ Rule.errorWithFix
@@ -4971,7 +5387,9 @@ listDropChecks checkInfo =
                     , details = [ "You can replace this function by identity." ]
                     }
                     checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "identity" ]
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo.importLookup))
+                    ]
                 ]
 
     else
@@ -4995,7 +5413,7 @@ listMapNChecks { n } checkInfo =
         let
             callReplacement : String
             callReplacement =
-                multiAlways (n - List.length checkInfo.argsAfterFirst) "[]"
+                multiAlways (n - List.length checkInfo.argsAfterFirst) "[]" checkInfo.importLookup
         in
         [ Rule.errorWithFix
             { message = "Using List.map" ++ String.fromInt n ++ " with any list being [] will result in []"
@@ -5009,14 +5427,16 @@ listMapNChecks { n } checkInfo =
         []
 
 
-multiAlways : Int -> String -> String
-multiAlways alwaysCount alwaysResultExpressionAsString =
+multiAlways : Int -> String -> ImportLookup -> String
+multiAlways alwaysCount alwaysResultExpressionAsString importLookup =
     case alwaysCount of
         0 ->
             alwaysResultExpressionAsString
 
         1 ->
-            "always " ++ alwaysResultExpressionAsString
+            qualifiedToString (qualify ( [ "Basics" ], "always" ) importLookup)
+                ++ " "
+                ++ alwaysResultExpressionAsString
 
         alwaysCountPositive ->
             "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
@@ -5039,7 +5459,7 @@ listUnzipChecks checkInfo =
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})
-subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } =
+subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg, importLookup } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
@@ -5047,7 +5467,9 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                 , details = [ moduleName ++ ".batch [] and " ++ moduleName ++ ".none are equivalent but the latter is more idiomatic in Elm code" ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
+                [ Fix.replaceRangeBy parentRange
+                    (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) importLookup))
+                ]
             ]
 
         Expression.ListExpr [ listElement ] ->
@@ -5085,7 +5507,9 @@ subAndCmdBatchChecks moduleName { lookupTable, parentRange, fnRange, firstArg } 
                                                             [ Fix.removeRange { start = (Node.range arg).start, end = nextRange.start } ]
 
                                                         Nothing ->
-                                                            [ Fix.replaceRangeBy parentRange (moduleName ++ ".none") ]
+                                                            [ Fix.replaceRangeBy parentRange
+                                                                (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) importLookup))
+                                                            ]
                                             )
                                         )
 
@@ -5123,7 +5547,7 @@ oneOfChecks { parentRange, fnRange, firstArg } =
 type alias Collection =
     { moduleName : String
     , represents : String
-    , emptyAsString : String
+    , emptyAsString : ImportLookup -> String
     , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     , nameForSize : String
@@ -5135,9 +5559,9 @@ listCollection : Collection
 listCollection =
     { moduleName = "List"
     , represents = "list"
-    , emptyAsString = "[]"
+    , emptyAsString = \_ -> "[]"
     , emptyDescription = "[]"
-    , isEmpty = \_ -> isEmptyList
+    , isEmpty = \_ -> AstHelpers.isEmptyList
     , nameForSize = "length"
     , determineSize = determineListLength
     }
@@ -5147,9 +5571,11 @@ setCollection : Collection
 setCollection =
     { moduleName = "Set"
     , represents = "set"
-    , emptyAsString = "Set.empty"
+    , emptyAsString =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Set" ], "empty" ) importLookup)
     , emptyDescription = "Set.empty"
-    , isEmpty = isSpecificValueOrFunction [ "Set" ] "empty"
+    , isEmpty = AstHelpers.isSpecificValueOrFunction [ "Set" ] "empty"
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Set" ] 1
     }
@@ -5159,9 +5585,11 @@ dictCollection : Collection
 dictCollection =
     { moduleName = "Dict"
     , represents = "Dict"
-    , emptyAsString = "Dict.empty"
+    , emptyAsString =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Dict" ], "empty" ) importLookup)
     , emptyDescription = "Dict.empty"
-    , isEmpty = isSpecificValueOrFunction [ "Dict" ] "empty"
+    , isEmpty = AstHelpers.isSpecificValueOrFunction [ "Dict" ] "empty"
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Dict" ] 2
     }
@@ -5170,7 +5598,7 @@ dictCollection =
 type alias Mappable =
     { moduleName : String
     , represents : String
-    , emptyAsString : String
+    , emptyAsString : ImportLookup -> String
     , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
@@ -5179,10 +5607,10 @@ type alias Mappable =
 type alias Defaultable =
     { moduleName : String
     , represents : String
-    , emptyAsString : String
+    , emptyAsString : ImportLookup -> String
     , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    , isSomethingConstructor : String
+    , isSomethingConstructor : ImportLookup -> String
     }
 
 
@@ -5190,10 +5618,14 @@ maybeCollection : Defaultable
 maybeCollection =
     { moduleName = "Maybe"
     , represents = "maybe"
-    , emptyAsString = "Nothing"
+    , emptyAsString =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) importLookup)
     , emptyDescription = "Nothing"
-    , isEmpty = isSpecificValueOrFunction [ "Maybe" ] "Nothing"
-    , isSomethingConstructor = "Just"
+    , isEmpty = AstHelpers.isSpecificValueOrFunction [ "Maybe" ] "Nothing"
+    , isSomethingConstructor =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Maybe" ], "Just" ) importLookup)
     }
 
 
@@ -5201,10 +5633,14 @@ resultCollection : Defaultable
 resultCollection =
     { moduleName = "Result"
     , represents = "result"
-    , emptyAsString = "Nothing"
+    , emptyAsString =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) importLookup)
     , emptyDescription = "an error"
-    , isEmpty = isSpecificCall [ "Result" ] "Err"
-    , isSomethingConstructor = "Ok"
+    , isEmpty = AstHelpers.isSpecificCall [ "Result" ] "Err"
+    , isSomethingConstructor =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Result" ], "Ok" ) importLookup)
     }
 
 
@@ -5212,9 +5648,11 @@ cmdCollection : Mappable
 cmdCollection =
     { moduleName = "Cmd"
     , represents = "command"
-    , emptyAsString = "Cmd.none"
+    , emptyAsString =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) importLookup)
     , emptyDescription = "Cmd.none"
-    , isEmpty = isSpecificValueOrFunction [ "Platform", "Cmd" ] "none"
+    , isEmpty = AstHelpers.isSpecificValueOrFunction [ "Platform", "Cmd" ] "none"
     }
 
 
@@ -5222,9 +5660,11 @@ subCollection : Mappable
 subCollection =
     { moduleName = "Sub"
     , represents = "subscription"
-    , emptyAsString = "Sub.none"
+    , emptyAsString =
+        \importLookup ->
+            qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) importLookup)
     , emptyDescription = "Sub.none"
-    , isEmpty = isSpecificValueOrFunction [ "Platform", "Sub" ] "none"
+    , isEmpty = AstHelpers.isSpecificValueOrFunction [ "Platform", "Sub" ] "none"
     }
 
 
@@ -5233,7 +5673,7 @@ collectionMapChecks :
         | moduleName : String
         , represents : String
         , emptyDescription : String
-        , emptyAsString : String
+        , emptyAsString : ImportLookup -> String
         , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
     -> CheckInfo
@@ -5250,7 +5690,7 @@ collectionMapChecks collection checkInfo =
             ]
 
         _ ->
-            if isIdentity checkInfo.lookupTable checkInfo.firstArg then
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
                     { message = "Using " ++ collection.moduleName ++ ".map with an identity function is the same as not using " ++ collection.moduleName ++ ".map"
                     , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
@@ -5265,6 +5705,11 @@ collectionMapChecks collection checkInfo =
 
 maybeAndThenChecks : CheckInfo -> List (Error {})
 maybeAndThenChecks checkInfo =
+    let
+        emptyAsString : String
+        emptyAsString =
+            maybeCollection.emptyAsString checkInfo.importLookup
+    in
     firstThatReportsError
         [ \() ->
             case Match.maybeAndThen (getMaybeValues checkInfo.lookupTable) (secondArg checkInfo) of
@@ -5281,8 +5726,8 @@ maybeAndThenChecks checkInfo =
 
                 Determined Nothing ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ maybeCollection.moduleName ++ ".andThen on " ++ maybeCollection.emptyAsString ++ " will result in " ++ maybeCollection.emptyAsString
-                        , details = [ "You can replace this call by " ++ maybeCollection.emptyAsString ++ "." ]
+                        { message = "Using " ++ maybeCollection.moduleName ++ ".andThen on " ++ emptyAsString ++ " will result in " ++ emptyAsString
+                        , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
                         (noopFix checkInfo)
@@ -5299,7 +5744,8 @@ maybeAndThenChecks checkInfo =
                             , details = [ "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
                             }
                             checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange (maybeCollection.moduleName ++ ".map")
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ maybeCollection.moduleName ], "map" ) checkInfo.importLookup))
                                 :: List.map Fix.removeRange ranges
                             )
                         ]
@@ -5319,7 +5765,7 @@ maybeAndThenChecks checkInfo =
                         , details = [ "You can remove this call and replace it by Nothing." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix maybeCollection.emptyAsString checkInfo.parentRange (secondArg checkInfo))
+                        (replaceByEmptyFix emptyAsString checkInfo.parentRange (secondArg checkInfo) checkInfo.importLookup)
                     ]
 
                 Undetermined ->
@@ -5364,7 +5810,8 @@ resultAndThenChecks checkInfo =
                             , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
                             }
                             checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange (resultCollection.moduleName ++ ".map")
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ resultCollection.moduleName ], "map" ) checkInfo.importLookup))
                                 :: List.map Fix.removeRange ranges
                             )
                         ]
@@ -5417,12 +5864,16 @@ collectionFilterChecks collection checkInfo =
         collectionArg : Maybe (Node Expression)
         collectionArg =
             secondArg checkInfo
+
+        emptyAsString : String
+        emptyAsString =
+            collection.emptyAsString checkInfo.importLookup
     in
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".filter on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                { message = "Using " ++ collection.moduleName ++ ".filter on " ++ emptyAsString ++ " will result in " ++ emptyAsString
+                , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
@@ -5441,11 +5892,11 @@ collectionFilterChecks collection checkInfo =
 
                 Determined False ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collection.emptyAsString
-                        , details = [ "You can remove this call and replace it by " ++ collection.emptyAsString ++ "." ]
+                        { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ emptyAsString
+                        , details = [ "You can remove this call and replace it by " ++ emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange collectionArg)
+                        (replaceByEmptyFix emptyAsString checkInfo.parentRange collectionArg checkInfo.importLookup)
                     ]
 
                 Undetermined ->
@@ -5456,9 +5907,14 @@ collectionRemoveChecks : Collection -> CheckInfo -> List (Error {})
 collectionRemoveChecks collection checkInfo =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
         Just (Exactly 0) ->
+            let
+                emptyAsString : String
+                emptyAsString =
+                    collection.emptyAsString checkInfo.importLookup
+            in
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                { message = "Using " ++ collection.moduleName ++ ".remove on " ++ emptyAsString ++ " will result in " ++ emptyAsString
+                , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
                 (noopFix checkInfo)
@@ -5474,17 +5930,21 @@ collectionIntersectChecks collection checkInfo =
         collectionArg : Maybe (Node Expression)
         collectionArg =
             secondArg checkInfo
+
+        emptyAsString : String
+        emptyAsString =
+            collection.emptyAsString checkInfo.importLookup
     in
     firstThatReportsError
         [ \() ->
             case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                        { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ emptyAsString ++ " will result in " ++ emptyAsString
+                        , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange collectionArg)
+                        (replaceByEmptyFix emptyAsString checkInfo.parentRange collectionArg checkInfo.importLookup)
                     ]
 
                 _ ->
@@ -5493,11 +5953,11 @@ collectionIntersectChecks collection checkInfo =
             case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                        { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ emptyAsString ++ " will result in " ++ emptyAsString
+                        , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange collectionArg)
+                        (replaceByEmptyFix emptyAsString checkInfo.parentRange collectionArg checkInfo.importLookup)
                     ]
 
                 _ ->
@@ -5512,17 +5972,21 @@ collectionDiffChecks collection checkInfo =
         collectionArg : Maybe (Node Expression)
         collectionArg =
             secondArg checkInfo
+
+        emptyAsString : String
+        emptyAsString =
+            collection.emptyAsString checkInfo.importLookup
     in
     firstThatReportsError
         [ \() ->
             case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Diffing " ++ collection.emptyAsString ++ " will result in " ++ collection.emptyAsString
-                        , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                        { message = "Diffing " ++ emptyAsString ++ " will result in " ++ emptyAsString
+                        , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collection.emptyAsString checkInfo.parentRange collectionArg)
+                        (replaceByEmptyFix emptyAsString checkInfo.parentRange collectionArg checkInfo.importLookup)
                     ]
 
                 _ ->
@@ -5531,7 +5995,7 @@ collectionDiffChecks collection checkInfo =
             case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Diffing a " ++ collection.represents ++ " with " ++ collection.emptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
+                        { message = "Diffing a " ++ collection.represents ++ " with " ++ emptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
                         , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                         }
                         checkInfo.fnRange
@@ -5586,11 +6050,12 @@ collectionInsertChecks collection checkInfo =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "Use " ++ collection.moduleName ++ ".singleton instead of inserting in " ++ collection.emptyAsString
+                { message = "Use " ++ collection.moduleName ++ ".singleton instead of inserting in " ++ collection.emptyAsString checkInfo.importLookup
                 , details = [ "You can replace this call by " ++ collection.moduleName ++ ".singleton." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.fnRange (collection.moduleName ++ ".singleton")
+                [ Fix.replaceRangeBy checkInfo.fnRange
+                    (qualifiedToString (qualify ( [ collection.moduleName ], "singleton" ) checkInfo.importLookup))
                 , if checkInfo.usingRightPizza then
                     Fix.removeRange { start = checkInfo.parentRange.start, end = checkInfo.fnRange.start }
 
@@ -5613,11 +6078,11 @@ collectionMemberChecks collection checkInfo =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyAsString ++ " will result in False"
+                { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyDescription ++ " will result in False"
                 , details = [ "You can replace this call by False." ]
                 }
                 checkInfo.fnRange
-                (replaceByBoolFix checkInfo.parentRange collectionArg False)
+                (replaceByBoolFix checkInfo.parentRange collectionArg False checkInfo.importLookup)
             ]
 
         _ ->
@@ -5625,7 +6090,7 @@ collectionMemberChecks collection checkInfo =
 
 
 collectionIsEmptyChecks : Collection -> CheckInfo -> List (Error {})
-collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg } =
+collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg, importLookup } =
     case collection.determineSize lookupTable firstArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
@@ -5633,7 +6098,9 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
                 , details = [ "You can replace this call by True." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy parentRange "True" ]
+                [ Fix.replaceRangeBy parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) importLookup))
+                ]
             ]
 
         Just _ ->
@@ -5642,7 +6109,9 @@ collectionIsEmptyChecks collection { lookupTable, parentRange, fnRange, firstArg
                 , details = [ "You can replace this call by False." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy parentRange "False" ]
+                [ Fix.replaceRangeBy parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "False" ) importLookup))
+                ]
             ]
 
         Nothing ->
@@ -5666,15 +6135,20 @@ collectionSizeChecks collection { lookupTable, parentRange, fnRange, firstArg } 
 
 
 collectionFromListChecks : Collection -> CheckInfo -> List (Error {})
-collectionFromListChecks collection { parentRange, fnRange, firstArg } =
+collectionFromListChecks collection { parentRange, fnRange, firstArg, importLookup } =
     case Node.value firstArg of
         Expression.ListExpr [] ->
+            let
+                emptyAsString : String
+                emptyAsString =
+                    collection.emptyAsString importLookup
+            in
             [ Rule.errorWithFix
-                { message = "The call to " ++ collection.moduleName ++ ".fromList will result in " ++ collection.emptyAsString
-                , details = [ "You can replace this call by " ++ collection.emptyAsString ++ "." ]
+                { message = "The call to " ++ collection.moduleName ++ ".fromList will result in " ++ emptyAsString
+                , details = [ "You can replace this call by " ++ emptyAsString ++ "." ]
                 }
                 fnRange
-                [ Fix.replaceRangeBy parentRange collection.emptyAsString ]
+                [ Fix.replaceRangeBy parentRange emptyAsString ]
             ]
 
         _ ->
@@ -5699,14 +6173,19 @@ collectionToListChecks collection { lookupTable, parentRange, fnRange, firstArg 
 
 collectionPartitionChecks : Collection -> CheckInfo -> List (Error {})
 collectionPartitionChecks collection checkInfo =
+    let
+        emptyAsString : String
+        emptyAsString =
+            collection.emptyAsString checkInfo.importLookup
+    in
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".partition on " ++ collection.emptyAsString ++ " will result in ( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )"
-                , details = [ "You can replace this call by ( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )." ]
+                { message = "Using " ++ collection.moduleName ++ ".partition on " ++ collection.emptyDescription ++ " will result in ( " ++ emptyAsString ++ ", " ++ emptyAsString ++ " )"
+                , details = [ "You can replace this call by ( " ++ emptyAsString ++ ", " ++ emptyAsString ++ " )." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collection.emptyAsString ++ ", " ++ collection.emptyAsString ++ " )") ]
+                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ emptyAsString ++ ", " ++ emptyAsString ++ " )") ]
             ]
 
         _ ->
@@ -5716,11 +6195,11 @@ collectionPartitionChecks collection checkInfo =
                         Just listArg ->
                             [ Rule.errorWithFix
                                 { message = "All elements will go to the first " ++ collection.represents
-                                , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.emptyAsString ++ "." ]
+                                , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.emptyDescription ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } "( "
-                                , Fix.insertAt (Node.range listArg).end (", " ++ collection.emptyAsString ++ " )")
+                                , Fix.insertAt (Node.range listArg).end (", " ++ emptyAsString ++ " )")
                                 ]
                             ]
 
@@ -5730,17 +6209,24 @@ collectionPartitionChecks collection checkInfo =
                 Determined False ->
                     [ Rule.errorWithFix
                         { message = "All elements will go to the second " ++ collection.represents
-                        , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.emptyAsString ++ "." ]
+                        , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.emptyDescription ++ "." ]
                         }
                         checkInfo.fnRange
                         (case secondArg checkInfo of
                             Just listArg ->
-                                [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ collection.emptyAsString ++ ", ")
+                                [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ emptyAsString ++ ", ")
                                 , Fix.insertAt (Node.range listArg).end " )"
                                 ]
 
                             Nothing ->
-                                [ Fix.replaceRangeBy checkInfo.parentRange ("(Tuple.pair " ++ collection.emptyAsString ++ ")") ]
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    ("("
+                                        ++ qualifiedToString (qualify ( [ "Tuple" ], "pair" ) checkInfo.importLookup)
+                                        ++ " "
+                                        ++ emptyAsString
+                                        ++ ")"
+                                    )
+                                ]
                         )
                     ]
 
@@ -5805,8 +6291,8 @@ determineListLength lookupTable node =
             Nothing
 
 
-replaceSingleElementListBySingleValue_RENAME : ModuleNameLookupTable -> Range -> Node Expression -> Maybe (List (Error {}))
-replaceSingleElementListBySingleValue_RENAME lookupTable fnRange node =
+replaceSingleElementListBySingleValue_RENAME : ModuleNameLookupTable -> ImportLookup -> Range -> Node Expression -> Maybe (List (Error {}))
+replaceSingleElementListBySingleValue_RENAME lookupTable importLookup fnRange node =
     case Node.value (AstHelpers.removeParens node) of
         Expression.LambdaExpression { expression } ->
             case replaceSingleElementListBySingleValue lookupTable expression of
@@ -5817,7 +6303,10 @@ replaceSingleElementListBySingleValue_RENAME lookupTable fnRange node =
                             , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
                             }
                             fnRange
-                            (Fix.replaceRangeBy fnRange "List.map" :: fixes)
+                            (Fix.replaceRangeBy fnRange
+                                (qualifiedToString (qualify ( [ "List" ], "map" ) importLookup))
+                                :: fixes
+                            )
                         ]
 
                 Nothing ->
@@ -5867,7 +6356,7 @@ combineSingleElementFixes lookupTable nodes soFar =
 
 determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
 determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
-    if isSpecificValueOrFunction moduleName "empty" lookupTable node then
+    if AstHelpers.isSpecificValueOrFunction moduleName "empty" lookupTable node then
         Just (Exactly 0)
 
     else
@@ -6067,6 +6556,7 @@ isUnnecessaryRecordUpdateSetter variable field value =
 
 ifChecks :
     ModuleContext
+    -> ImportLookup
     -> Range
     ->
         { condition : Node Expression
@@ -6074,7 +6564,7 @@ ifChecks :
         , falseBranch : Node Expression
         }
     -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
-ifChecks context nodeRange { condition, trueBranch, falseBranch } =
+ifChecks context importLookup nodeRange { condition, trueBranch, falseBranch } =
     case Evaluate.getBoolean context condition of
         Determined True ->
             errorsAndRangesToIgnore
@@ -6141,7 +6631,9 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                 { start = nodeRange.start
                                 , end = (Node.range condition).start
                                 }
-                                "not ("
+                                (qualifiedToString (qualify ( [ "Basics" ], "not" ) importLookup)
+                                    ++ " ("
+                                )
                             , Fix.replaceRangeBy
                                 { start = (Node.range condition).end
                                 , end = nodeRange.end
@@ -6289,7 +6781,7 @@ booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> 
 booleanCaseOfChecks lookupTable parentRange { expression, cases } =
     case cases of
         [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
-            case getBooleanPattern lookupTable firstPattern of
+            case AstHelpers.getBooleanPattern lookupTable firstPattern of
                 Just isTrueFirst ->
                     [ Rule.errorWithFix
                         { message = "Replace `case..of` by an `if` condition"
@@ -6360,61 +6852,8 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
             []
 
 
-isSimpleDestructurePattern : Node Pattern -> Bool
-isSimpleDestructurePattern pattern =
-    case Node.value pattern of
-        Pattern.TuplePattern _ ->
-            True
 
-        Pattern.RecordPattern _ ->
-            True
-
-        Pattern.VarPattern _ ->
-            True
-
-        _ ->
-            False
-
-
-isSpecificValueOrFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificValueOrFunction moduleName fnName lookupTable node =
-    case AstHelpers.removeParens node of
-        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
-            (foundFnName == fnName)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
-
-        _ ->
-            False
-
-
-isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificCall moduleName fnName lookupTable node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
-            (foundFnName == fnName)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
-
-        _ ->
-            False
-
-
-getUncomputedNumberValue : Node Expression -> Maybe Float
-getUncomputedNumberValue node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Integer n ->
-            Just (toFloat n)
-
-        Expression.Hex n ->
-            Just (toFloat n)
-
-        Expression.Floatable n ->
-            Just n
-
-        Expression.Negation expr ->
-            Maybe.map negate (getUncomputedNumberValue expr)
-
-        _ ->
-            Nothing
+--
 
 
 letInChecks : Expression.LetBlock -> List (Error {})
@@ -6451,19 +6890,6 @@ letKeyWordRange range =
     }
 
 
-lastElementRange : List (Node a) -> Maybe Range
-lastElementRange nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        last :: [] ->
-            Just (Node.range last)
-
-        _ :: rest ->
-            lastElementRange rest
-
-
 
 -- FIX HELPERS
 
@@ -6482,6 +6908,19 @@ parenthesizeFix toSurround =
     [ Fix.insertAt toSurround.start "("
     , Fix.insertAt toSurround.end ")"
     ]
+
+
+lastElementRange : List (Node a) -> Maybe Range
+lastElementRange nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        last :: [] ->
+            Just (Node.range last)
+
+        _ :: rest ->
+            lastElementRange rest
 
 
 rangeBetweenExclusive : ( Range, Range ) -> Range
@@ -6552,30 +6991,35 @@ removeBoundariesFix node =
     ]
 
 
-replaceByEmptyFix : String -> Range -> Maybe a -> List Fix
-replaceByEmptyFix empty parentRange lastArg =
+replaceByEmptyFix : String -> Range -> Maybe a -> ImportLookup -> List Fix
+replaceByEmptyFix empty parentRange lastArg importLookup =
     [ case lastArg of
         Just _ ->
             Fix.replaceRangeBy parentRange empty
 
         Nothing ->
-            Fix.replaceRangeBy parentRange ("always " ++ empty)
+            Fix.replaceRangeBy parentRange
+                (qualifiedToString (qualify ( [ "Basics" ], "always" ) importLookup)
+                    ++ " "
+                    ++ empty
+                )
     ]
 
 
-emptyStringAsString : String
-emptyStringAsString =
-    "\"\""
-
-
-replaceByBoolFix : Range -> Maybe a -> Bool -> List Fix
-replaceByBoolFix parentRange lastArg replacementValue =
+replaceByBoolFix : Range -> Maybe a -> Bool -> ImportLookup -> List Fix
+replaceByBoolFix parentRange lastArg replacementValue importLookup =
     [ case lastArg of
         Just _ ->
             Fix.replaceRangeBy parentRange (boolToString replacementValue)
 
         Nothing ->
-            Fix.replaceRangeBy parentRange ("(always " ++ boolToString replacementValue ++ ")")
+            Fix.replaceRangeBy parentRange
+                ("("
+                    ++ qualifiedToString (qualify ( [ "Basics" ], "always" ) importLookup)
+                    ++ " "
+                    ++ qualifiedToString (qualify ( [ "Basics" ], boolToString replacementValue ) importLookup)
+                    ++ ")"
+                )
     ]
 
 
@@ -6596,18 +7040,29 @@ noopFix checkInfo =
     toIdentityFix
         { lastArg = secondArg checkInfo
         , parentRange = checkInfo.parentRange
+        , importLookup = checkInfo.importLookup
         }
 
 
-toIdentityFix : { lastArg : Maybe (Node lastArgument), parentRange : Range } -> List Fix
+toIdentityFix : { lastArg : Maybe (Node lastArgument), parentRange : Range, importLookup : ImportLookup } -> List Fix
 toIdentityFix config =
     case config.lastArg of
         Nothing ->
-            [ Fix.replaceRangeBy config.parentRange "identity"
+            [ Fix.replaceRangeBy config.parentRange
+                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) config.importLookup))
             ]
 
         Just (Node lastArgRange _) ->
             keepOnlyFix { parentRange = config.parentRange, keep = lastArgRange }
+
+
+
+-- STRING
+
+
+emptyStringAsString : String
+emptyStringAsString =
+    "\"\""
 
 
 boolToString : Bool -> String
@@ -6632,99 +7087,103 @@ orderToString order =
             "GT"
 
 
+{-| Put a `ModuleName` and thing name together as a string.
+If desired, call in combination with `qualify`
+-}
+qualifiedToString : ( ModuleName, String ) -> String
+qualifiedToString ( moduleName, name ) =
+    case moduleName of
+        [] ->
+            name
 
--- MATCHERS
-
-
-isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
-isIdentity lookupTable baseNode =
-    let
-        node : Node Expression
-        node =
-            AstHelpers.removeParens baseNode
-    in
-    case Node.value node of
-        Expression.FunctionOrValue _ "identity" ->
-            ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ]
-
-        Expression.LambdaExpression { args, expression } ->
-            case args of
-                arg :: [] ->
-                    case getVarPattern arg of
-                        Just patternName ->
-                            getExpressionName expression
-                                == Just patternName
-
-                        _ ->
-                            False
-
-                _ ->
-                    False
-
-        _ ->
-            False
+        moduleNameHead :: moduleNameTail ->
+            moduleNameToString (moduleNameHead :: moduleNameTail) ++ "." ++ name
 
 
-getVarPattern : Node Pattern -> Maybe String
-getVarPattern node =
-    case Node.value node of
-        Pattern.VarPattern name ->
-            Just name
-
-        Pattern.ParenthesizedPattern pattern ->
-            getVarPattern pattern
-
-        _ ->
-            Nothing
+moduleNameToString : ModuleName -> String
+moduleNameToString moduleName =
+    String.join "." moduleName
 
 
-getExpressionName : Node Expression -> Maybe String
-getExpressionName node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.FunctionOrValue [] name ->
-            Just name
-
-        _ ->
-            Nothing
+moduleNameFromString : String -> ModuleName
+moduleNameFromString string =
+    String.split "." string
 
 
-isListLiteral : Node Expression -> Bool
-isListLiteral node =
-    case Node.value node of
-        Expression.ListExpr _ ->
+wrapInBackticks : String -> String
+wrapInBackticks s =
+    "`" ++ s ++ "`"
+
+
+
+-- MATCHERS AND PARSERS
+
+
+isSimpleDestructurePattern : Node Pattern -> Bool
+isSimpleDestructurePattern pattern =
+    case Node.value pattern of
+        Pattern.TuplePattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.VarPattern _ ->
             True
 
         _ ->
             False
 
 
-getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
-getBooleanPattern lookupTable node =
+isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { ranges : List Range, throughLambdaFunction : Bool })
+isAlwaysMaybe lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            AstHelpers.removeParens baseNode
+    in
     case Node.value node of
-        Pattern.NamedPattern { name } _ ->
-            case name of
-                "True" ->
-                    if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
-                        Just True
-
-                    else
-                        Nothing
-
-                "False" ->
-                    if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
-                        Just False
-
-                    else
-                        Nothing
+        Expression.FunctionOrValue _ "Just" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Maybe" ] ->
+                    Determined (Just { ranges = [ Node.range node ], throughLambdaFunction = False })
 
                 _ ->
-                    Nothing
+                    Undetermined
 
-        Pattern.ParenthesizedPattern pattern ->
-            getBooleanPattern lookupTable pattern
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    getMaybeValues lookupTable value
+                        |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
+
+                _ ->
+                    Undetermined
+
+        Expression.LambdaExpression { expression } ->
+            getMaybeValues lookupTable expression
+                |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
 
         _ ->
-            Nothing
+            Undetermined
+
+
+isAlwaysEmptyList : ModuleNameLookupTable -> Node Expression -> Bool
+isAlwaysEmptyList lookupTable node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: alwaysValue :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    AstHelpers.isEmptyList alwaysValue
+
+                _ ->
+                    False
+
+        Expression.LambdaExpression { expression } ->
+            AstHelpers.isEmptyList expression
+
+        _ ->
+            False
 
 
 getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
@@ -6781,52 +7240,45 @@ getAlwaysResult inferResources expressionNode =
             Nothing
 
 
-getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
-getOrder lookupTable expression =
-    if isSpecificValueOrFunction [ "Basics" ] "LT" lookupTable expression then
-        Just LT
-
-    else if isSpecificValueOrFunction [ "Basics" ] "EQ" lookupTable expression then
-        Just EQ
-
-    else if isSpecificValueOrFunction [ "Basics" ] "GT" lookupTable expression then
-        Just GT
-
-    else
-        Nothing
-
-
-isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { ranges : List Range, throughLambdaFunction : Bool })
-isAlwaysMaybe lookupTable baseNode =
+isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range { ranges : List Range, throughLambdaFunction : Bool })
+isAlwaysResult lookupTable baseNode =
     let
         node : Node Expression
         node =
             AstHelpers.removeParens baseNode
     in
     case Node.value node of
-        Expression.FunctionOrValue _ "Just" ->
+        Expression.FunctionOrValue _ "Ok" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable node of
-                Just [ "Maybe" ] ->
-                    Determined (Just { ranges = [ Node.range node ], throughLambdaFunction = False })
+                Just [ "Result" ] ->
+                    Just (Ok { ranges = [ Node.range node ], throughLambdaFunction = False })
 
                 _ ->
-                    Undetermined
+                    Nothing
+
+        Expression.FunctionOrValue _ "Err" ->
+            case ModuleNameLookupTable.moduleNameFor lookupTable node of
+                Just [ "Result" ] ->
+                    Just (Err (Node.range node))
+
+                _ ->
+                    Nothing
 
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getMaybeValues lookupTable value
-                        |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
+                    getResultValues lookupTable value
+                        |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
 
                 _ ->
-                    Undetermined
+                    Nothing
 
         Expression.LambdaExpression { expression } ->
-            getMaybeValues lookupTable expression
-                |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
+            getResultValues lookupTable expression
+                |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
 
         _ ->
-            Undetermined
+            Nothing
 
 
 getMaybeValues : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Range))
@@ -6924,47 +7376,6 @@ combineMaybeValuesHelp lookupTable nodes soFar =
 
         [] ->
             Determined soFar
-
-
-isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range { ranges : List Range, throughLambdaFunction : Bool })
-isAlwaysResult lookupTable baseNode =
-    let
-        node : Node Expression
-        node =
-            AstHelpers.removeParens baseNode
-    in
-    case Node.value node of
-        Expression.FunctionOrValue _ "Ok" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable node of
-                Just [ "Result" ] ->
-                    Just (Ok { ranges = [ Node.range node ], throughLambdaFunction = False })
-
-                _ ->
-                    Nothing
-
-        Expression.FunctionOrValue _ "Err" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable node of
-                Just [ "Result" ] ->
-                    Just (Err (Node.range node))
-
-                _ ->
-                    Nothing
-
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    getResultValues lookupTable value
-                        |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
-
-                _ ->
-                    Nothing
-
-        Expression.LambdaExpression { expression } ->
-            getResultValues lookupTable expression
-                |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
-
-        _ ->
-            Nothing
 
 
 getResultValues : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range (List Range))
@@ -7078,79 +7489,3 @@ combineResultValuesHelp lookupTable nodes soFar =
 
         [] ->
             Just soFar
-
-
-isAlwaysEmptyList : ModuleNameLookupTable -> Node Expression -> Bool
-isAlwaysEmptyList lookupTable node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: alwaysValue :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    isEmptyList alwaysValue
-
-                _ ->
-                    False
-
-        Expression.LambdaExpression { expression } ->
-            isEmptyList expression
-
-        _ ->
-            False
-
-
-isEmptyList : Node Expression -> Bool
-isEmptyList node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.ListExpr [] ->
-            True
-
-        _ ->
-            False
-
-
-isBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool
-isBinaryOperation symbol checkInfo expression =
-    case expression |> Normalize.normalize checkInfo |> Node.value of
-        Expression.PrefixOperator operatorSymbol ->
-            operatorSymbol == symbol
-
-        Expression.LambdaExpression lambda ->
-            case lambda.args of
-                -- invalid syntax
-                [] ->
-                    False
-
-                [ Node _ (Pattern.VarPattern element) ] ->
-                    case Node.value lambda.expression of
-                        Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] argument) ] ->
-                            (operatorSymbol == symbol)
-                                && (argument == element)
-
-                        -- no simple application
-                        _ ->
-                            False
-
-                [ Node _ (Pattern.VarPattern element), Node _ (Pattern.VarPattern soFar) ] ->
-                    case Node.value lambda.expression of
-                        Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] left), Node _ (Expression.FunctionOrValue [] right) ] ->
-                            (operatorSymbol == symbol)
-                                && ((left == element && right == soFar)
-                                        || (left == soFar && right == element)
-                                   )
-
-                        Expression.OperatorApplication operatorSymbol _ (Node _ (Expression.FunctionOrValue [] left)) (Node _ (Expression.FunctionOrValue [] right)) ->
-                            (operatorSymbol == symbol)
-                                && ((left == element && right == soFar)
-                                        || (left == soFar && right == element)
-                                   )
-
-                        _ ->
-                            False
-
-                -- too many/unsimplified patterns
-                _ ->
-                    False
-
-        -- not a known simple operator function
-        _ ->
-            False
