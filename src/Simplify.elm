@@ -867,7 +867,7 @@ type alias ModuleContext =
              Set String
             )
     , exposedVariants : Set String
-    , cashedImportLookup : ImportLookup
+    , importLookup : ImportLookup
     }
 
 
@@ -947,7 +947,7 @@ fromProjectToModule =
             , extractSourceCode = extractSourceCode
             , importedExposedVariants = projectContext.exposedVariants
             , exposedVariants = Set.empty
-            , cashedImportLookup = Dict.empty
+            , importLookup = Dict.empty
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -1104,7 +1104,7 @@ importVisitor importNode context =
 
 afterImportsVisitor : ModuleContext -> ModuleContext
 afterImportsVisitor context =
-    { context | cashedImportLookup = moduleContextToImportLookup context }
+    { context | importLookup = moduleContextToImportLookup context }
 
 
 
@@ -1173,7 +1173,7 @@ expressionVisitor node context =
     else
         let
             { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
-                expressionVisitorHelp node newContext context.cashedImportLookup
+                expressionVisitorHelp node newContext context.importLookup
         in
         ( errors
         , { newContext
