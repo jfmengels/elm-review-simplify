@@ -1251,13 +1251,12 @@ expressionSurfaceRangesAfterPatterns expression =
 
 
 {-| Whenever you add ranges on expression enter, the same ranges should be removed on expression exit.
+Having one function finding unique ranges and a function for extracting bindings there ensures said consistency.
 
-Having one function presenting ranges and a function for extracting bindings ensures this works.
-
-An alternative idea would be to use some kind of tree structure
+An alternative approach would be to use some kind of tree structure
 with parent and sub ranges and bindings as leaves (maybe a "trie", tho I've not seen one as an elm package).
 
-Removing all bindings for an expression's range an leave would then be trivial
+Removing all bindings for an expression's range on leave would then be trivial
 
 -}
 expressionSurfaceBindingIntroductions : Node Expression -> RangeDict (() -> Set String)
