@@ -1198,42 +1198,42 @@ declarationVisitor declarationNode context =
 expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node context =
     let
-        contextWithLocalBindings : ModuleContext
-        contextWithLocalBindings =
-            { context
-                | localBindings =
-                    RangeDict.union context.localBindings
-                        (expressionSurfaceBindings node)
-            }
-
-        newContext : ModuleContext
-        newContext =
+        contextWithInferredConstants : ModuleContext
+        contextWithInferredConstants =
             case RangeDict.get (Node.range node) context.inferredConstantsDict of
+                Nothing ->
+                    context
+
                 Just inferredConstants ->
                     let
                         ( previous, previousStack ) =
                             context.inferredConstants
                     in
-                    { contextWithLocalBindings
+                    { context
                         | inferredConstants = ( inferredConstants, previous :: previousStack )
                     }
-
-                Nothing ->
-                    contextWithLocalBindings
     in
-    if List.member (Node.range node) newContext.rangesToIgnore then
-        ( [], newContext )
+    if List.member (Node.range node) context.rangesToIgnore then
+        ( [], contextWithInferredConstants )
 
     else
         let
+            contextWithInferredConstantsAndLocalBindings : ModuleContext
+            contextWithInferredConstantsAndLocalBindings =
+                { contextWithInferredConstants
+                    | localBindings =
+                        RangeDict.union context.localBindings (expressionSurfaceBindings node)
+                }
+
             { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
-                expressionVisitorHelp node newContext
+                expressionVisitorHelp node contextWithInferredConstantsAndLocalBindings
         in
         ( errors
-        , { newContext
-            | rangesToIgnore = rangesToIgnore ++ newContext.rangesToIgnore
-            , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext.rightSidesOfPlusPlus
-            , inferredConstantsDict = RangeDict.union (RangeDict.fromList inferredConstants) newContext.inferredConstantsDict
+        , { contextWithInferredConstantsAndLocalBindings
+            | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore
+            , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ context.rightSidesOfPlusPlus
+            , inferredConstantsDict =
+                RangeDict.union context.inferredConstantsDict (RangeDict.fromList inferredConstants)
           }
         )
 
@@ -1307,11 +1307,15 @@ expressionExitVisitor node context =
     let
         contextWithUpdatedLocalBindings : ModuleContext
         contextWithUpdatedLocalBindings =
-            { context
-                | localBindings =
-                    RangeDict.diff context.localBindings
-                        (expressionSurfaceRangesAfterPatterns node)
-            }
+            if List.member (Node.range node) context.rangesToIgnore then
+                context
+
+            else
+                { context
+                    | localBindings =
+                        RangeDict.diff context.localBindings
+                            (expressionSurfaceRangesAfterPatterns node)
+                }
     in
     if RangeDict.member (Node.range node) context.inferredConstantsDict then
         case Tuple.second context.inferredConstants of
