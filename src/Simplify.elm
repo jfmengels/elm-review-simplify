@@ -1801,32 +1801,43 @@ qualify ( moduleName, name ) qualifyResources =
         qualification : ModuleName
         qualification =
             case qualifyResources.importLookup |> Dict.get moduleName of
+                Nothing ->
+                    moduleName
+
                 Just import_ ->
                     let
                         moduleImportedName : ModuleName
                         moduleImportedName =
                             import_.alias |> Maybe.withDefault moduleName
                     in
-                    if isExposedFrom import_.exposed name then
+                    if not (isExposedFrom import_.exposed name) then
+                        moduleImportedName
+
+                    else
                         let
                             isShadowed : Bool
                             isShadowed =
-                                Set.member name qualifyResources.moduleBindings
-                                    || RangeDict.any (\bindings -> Set.member name bindings) qualifyResources.localBindings
+                                isBindingInScope qualifyResources name
                         in
                         if isShadowed then
                             moduleImportedName
 
                         else
                             []
-
-                    else
-                        moduleImportedName
-
-                Nothing ->
-                    moduleName
     in
     ( qualification, name )
+
+
+isBindingInScope :
+    { a
+        | moduleBindings : Set String
+        , localBindings : RangeDict (Set String)
+    }
+    -> String
+    -> Bool
+isBindingInScope resources name =
+    Set.member name resources.moduleBindings
+        || RangeDict.any (\bindings -> Set.member name bindings) resources.localBindings
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
