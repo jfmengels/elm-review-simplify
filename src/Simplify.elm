@@ -726,7 +726,7 @@ import Elm.Docs
 import Elm.Project exposing (Exposed)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
-import Elm.Syntax.Expression as Expression exposing (Expression, FunctionImplementation, RecordSetter)
+import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
 import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Module
 import Elm.Syntax.ModuleName exposing (ModuleName)
@@ -1238,85 +1238,69 @@ expressionVisitor node context =
         )
 
 
-{-| Whenever you change Ranges, make sure to add them in `expressionSurfaceRangesAfterPatterns`
+expressionSurfaceBindings : Node Expression -> RangeDict (Set String)
+expressionSurfaceBindings expression =
+    RangeDict.map (\collectBindings -> collectBindings ())
+        (expressionSurfaceBindingIntroductions expression)
 
-Because of this, the current binding tracking might not be ideal.
-An alternative is some kind of tree structure
+
+expressionSurfaceRangesAfterPatterns : Node Expression -> RangeDict ()
+expressionSurfaceRangesAfterPatterns expression =
+    RangeDict.map (\_ -> ())
+        (expressionSurfaceBindingIntroductions expression)
+
+
+{-| Whenever you add ranges on expression enter, the same ranges should be removed on expression exit.
+
+Having one function presenting ranges and a function for extracting bindings ensures this works.
+
+An alternative idea would be to use some kind of tree structure
 with parent and sub ranges and bindings as leaves (maybe a "trie", tho I've not seen one as an elm package).
 
 Removing all bindings for an expression's range an leave would then be trivial
 
 -}
-expressionSurfaceBindings : Node Expression -> RangeDict (Set String)
-expressionSurfaceBindings expression =
+expressionSurfaceBindingIntroductions : Node Expression -> RangeDict (() -> Set String)
+expressionSurfaceBindingIntroductions expression =
     case Node.value expression of
         Expression.LambdaExpression lambda ->
             RangeDict.singleton (Node.range expression)
-                (AstHelpers.patternListBindings lambda.args)
+                (\() -> AstHelpers.patternListBindings lambda.args)
 
         Expression.CaseExpression caseBlock ->
             RangeDict.mapFromList
                 (\( Node patternRange pattern, Node resultRange _ ) ->
                     ( { start = patternRange.start, end = resultRange.end }
-                    , AstHelpers.patternBindings pattern
+                    , \() -> AstHelpers.patternBindings pattern
                     )
                 )
                 caseBlock.cases
 
         Expression.LetExpression letBlock ->
             let
-                letDeclarationBindingsForImplementation : Expression.LetDeclaration -> ( Range, Set String )
+                letDeclarationBindingsForImplementation : Expression.LetDeclaration -> ( Range, () -> Set String )
                 letDeclarationBindingsForImplementation letDeclaration =
                     case letDeclaration of
                         Expression.LetFunction letFunctionOrValueDeclaration ->
                             ( Node.range letFunctionOrValueDeclaration.declaration
-                            , AstHelpers.patternListBindings
-                                (Node.value letFunctionOrValueDeclaration.declaration).arguments
+                            , \() ->
+                                AstHelpers.patternListBindings
+                                    (Node.value letFunctionOrValueDeclaration.declaration).arguments
                             )
 
                         Expression.LetDestructuring (Node _ pattern) (Node implementationRange _) ->
-                            ( implementationRange, AstHelpers.patternBindings pattern )
+                            ( implementationRange
+                            , \() -> AstHelpers.patternBindings pattern
+                            )
             in
             RangeDict.insert (Node.range expression)
-                (AstHelpers.letDeclarationListBindings letBlock.declarations)
+                (\() -> AstHelpers.letDeclarationListBindings letBlock.declarations)
                 (RangeDict.mapFromList
                     (\(Node _ letDeclaration) ->
                         letDeclarationBindingsForImplementation letDeclaration
                     )
                     letBlock.declarations
                 )
-
-        _ ->
-            RangeDict.empty
-
-
-expressionSurfaceRangesAfterPatterns : Node Expression -> RangeDict ()
-expressionSurfaceRangesAfterPatterns expression =
-    case Node.value expression of
-        Expression.LetExpression letBlock ->
-            RangeDict.insert (Node.range expression)
-                ()
-                (RangeDict.mapFromList
-                    (\(Node _ declaration) ->
-                        case declaration of
-                            Expression.LetFunction letFunctionOrValueDeclaration ->
-                                ( Node.range letFunctionOrValueDeclaration.declaration, () )
-
-                            Expression.LetDestructuring _ (Node implementationRange _) ->
-                                ( implementationRange, () )
-                    )
-                    letBlock.declarations
-                )
-
-        Expression.CaseExpression caseBlock ->
-            RangeDict.mapFromList
-                (\( Node patternRange _, Node resultRange _ ) ->
-                    ( { start = patternRange.start, end = resultRange.end }, () )
-                )
-                caseBlock.cases
-
-        Expression.LambdaExpression _ ->
-            RangeDict.singleton (Node.range expression) ()
 
         _ ->
             RangeDict.empty

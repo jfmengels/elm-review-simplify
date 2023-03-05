@@ -1,4 +1,4 @@
-module Simplify.RangeDict exposing (RangeDict, any, diff, empty, fromList, get, insert, mapFromList, member, singleton, union)
+module Simplify.RangeDict exposing (RangeDict, any, diff, empty, fromList, get, insert, map, mapFromList, member, singleton, union)
 
 import Dict exposing (Dict)
 import Elm.Syntax.Range exposing (Range)
@@ -62,6 +62,11 @@ get range rangeDict =
 member : Range -> RangeDict v -> Bool
 member range rangeDict =
     Dict.member (rangeAsString range) rangeDict
+
+
+map : (a -> b) -> RangeDict a -> RangeDict b
+map valueChange rangeDict =
+    Dict.map (\_ -> valueChange) rangeDict
 
 
 foldl : (v -> folded -> folded) -> folded -> RangeDict v -> folded
