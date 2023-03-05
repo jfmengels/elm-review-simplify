@@ -1,11 +1,13 @@
-module Simplify.AstHelpers exposing (getBooleanPattern, getOrder, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificCall, isSpecificValueOrFunction, nameOfExpose, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing (declarationListBindings, getBooleanPattern, getOrder, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, nameOfExpose, patternBindings, patternListBindings, removeParens, removeParensFromPattern)
 
+import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
+import Set exposing (Set)
 import Simplify.Infer as Infer
 import Simplify.Normalize as Normalize
 
@@ -111,6 +113,107 @@ getVarPattern node =
 
         _ ->
             Nothing
+
+
+patternListBindings : List (Node Pattern) -> Set String
+patternListBindings patterns =
+    patterns
+        |> List.map
+            (\(Node _ pattern_) -> pattern_ |> patternBindings)
+        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
+
+
+{-| Recursively find all bindings in a pattern.
+-}
+patternBindings : Pattern -> Set String
+patternBindings pattern =
+    case pattern of
+        Pattern.ListPattern patterns ->
+            patternListBindings patterns
+
+        Pattern.TuplePattern patterns ->
+            patternListBindings patterns
+
+        Pattern.RecordPattern patterns ->
+            Set.fromList (List.map Node.value patterns)
+
+        Pattern.NamedPattern _ patterns ->
+            patternListBindings patterns
+
+        Pattern.UnConsPattern (Node _ headPattern) (Node _ tailPattern) ->
+            Set.union (patternBindings tailPattern) (patternBindings headPattern)
+
+        Pattern.VarPattern name ->
+            Set.singleton name
+
+        Pattern.AsPattern (Node _ pattern_) (Node _ name) ->
+            Set.insert name (patternBindings pattern_)
+
+        Pattern.ParenthesizedPattern (Node _ inParens) ->
+            patternBindings inParens
+
+        Pattern.AllPattern ->
+            Set.empty
+
+        Pattern.UnitPattern ->
+            Set.empty
+
+        Pattern.CharPattern _ ->
+            Set.empty
+
+        Pattern.StringPattern _ ->
+            Set.empty
+
+        Pattern.IntPattern _ ->
+            Set.empty
+
+        Pattern.HexPattern _ ->
+            Set.empty
+
+        Pattern.FloatPattern _ ->
+            Set.empty
+
+
+declarationListBindings : List (Node Declaration) -> Set String
+declarationListBindings declarationList =
+    declarationList
+        |> List.map (\(Node _ declaration) -> declarationBindings declaration)
+        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
+
+
+declarationBindings : Declaration -> Set String
+declarationBindings declaration =
+    case declaration of
+        Declaration.CustomTypeDeclaration variantType ->
+            variantType.constructors
+                |> List.map (\(Node _ variant) -> Node.value variant.name)
+                |> Set.fromList
+
+        Declaration.FunctionDeclaration functionDeclaration ->
+            Set.singleton
+                (Node.value (Node.value functionDeclaration.declaration).name)
+
+        _ ->
+            Set.empty
+
+
+letDeclarationBindings : Expression.LetDeclaration -> Set String
+letDeclarationBindings letDeclaration =
+    case letDeclaration of
+        Expression.LetFunction fun ->
+            Set.singleton
+                (fun.declaration |> Node.value |> .name |> Node.value)
+
+        Expression.LetDestructuring (Node _ pattern) _ ->
+            patternBindings pattern
+
+
+letDeclarationListBindings : List (Node Expression.LetDeclaration) -> Set String
+letDeclarationListBindings letDeclarationList =
+    letDeclarationList
+        |> List.map
+            (\(Node _ declaration) -> letDeclarationBindings declaration)
+        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
 
 
 getExpressionName : Node Expression -> Maybe String
