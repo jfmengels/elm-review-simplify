@@ -4419,7 +4419,9 @@ listHeadChecks checkInfo =
                 , details = [ "You can replace this call by Nothing." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                ]
             ]
 
         Expression.ListExpr ((Node headRange head) :: _) ->
@@ -4485,7 +4487,9 @@ listTailChecks checkInfo =
                         , details = [ "You can replace this call by Nothing." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                        ]
                     ]
 
                 _ :: [] ->
@@ -4724,7 +4728,9 @@ listMinimumChecks checkInfo =
                 , details = [ "You can replace this call by Nothing." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                ]
             ]
 
         Expression.ListExpr ((Node elementRange _) :: []) ->
@@ -4756,7 +4762,9 @@ listMaximumChecks checkInfo =
                 , details = [ "You can replace this call by Nothing." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "Nothing" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                ]
             ]
 
         Expression.ListExpr ((Node elementRange _) :: []) ->
