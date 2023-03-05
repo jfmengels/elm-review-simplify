@@ -1203,6 +1203,13 @@ declarationVisitor declarationNode context =
 expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node context =
     let
+        contextWithLocalBindings : ModuleContext
+        contextWithLocalBindings =
+            { context
+                | localBindings =
+                    RangeDict.union context.localBindings (expressionSurfaceBindings node)
+            }
+
         newContext : ModuleContext
         newContext =
             case RangeDict.get (Node.range node) context.inferredConstantsDict of
@@ -1211,12 +1218,12 @@ expressionVisitor node context =
                         ( previous, previousStack ) =
                             context.inferredConstants
                     in
-                    { context
+                    { contextWithLocalBindings
                         | inferredConstants = ( inferredConstants, previous :: previousStack )
                     }
 
                 Nothing ->
-                    context
+                    contextWithLocalBindings
     in
     if List.member (Node.range node) newContext.rangesToIgnore then
         ( [], newContext )
@@ -1231,8 +1238,6 @@ expressionVisitor node context =
             | rangesToIgnore = rangesToIgnore ++ newContext.rangesToIgnore
             , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext.rightSidesOfPlusPlus
             , inferredConstantsDict = RangeDict.union (RangeDict.fromList inferredConstants) newContext.inferredConstantsDict
-            , localBindings =
-                RangeDict.union context.localBindings (expressionSurfaceBindings node)
           }
         )
 
