@@ -1182,14 +1182,9 @@ declarationVisitor declarationNode context =
                 , rightSidesOfPlusPlus = []
                 , inferredConstantsDict = RangeDict.empty
                 , localBindings =
-                    let
-                        declaration : FunctionImplementation
-                        declaration =
-                            Node.value functionDeclaration.declaration
-                    in
                     RangeDict.singleton
-                        (Node.range declaration.expression)
-                        (AstHelpers.patternListBindings declaration.arguments)
+                        (Node.range functionDeclaration.declaration)
+                        (AstHelpers.patternListBindings (Node.value functionDeclaration.declaration).arguments)
             }
 
         _ ->
@@ -1207,7 +1202,8 @@ expressionVisitor node context =
         contextWithLocalBindings =
             { context
                 | localBindings =
-                    RangeDict.union context.localBindings (expressionSurfaceBindings node)
+                    RangeDict.union context.localBindings
+                        (expressionSurfaceBindings node)
             }
 
         newContext : ModuleContext
@@ -1255,7 +1251,7 @@ expressionSurfaceBindings : Node Expression -> RangeDict (Set String)
 expressionSurfaceBindings expression =
     case Node.value expression of
         Expression.LambdaExpression lambda ->
-            RangeDict.singleton (Node.range lambda.expression)
+            RangeDict.singleton (Node.range expression)
                 (AstHelpers.patternListBindings lambda.args)
 
         Expression.CaseExpression caseBlock ->
@@ -1284,7 +1280,7 @@ expressionSurfaceBindings expression =
                             ( implementationRange, AstHelpers.patternBindings pattern )
             in
             RangeDict.insert (Node.range expression)
-                (Debug.log ("let bindings in " ++ Debug.toString (Node.range expression)) (AstHelpers.letDeclarationListBindings letBlock.declarations))
+                (AstHelpers.letDeclarationListBindings letBlock.declarations)
                 (RangeDict.mapFromList
                     (\(Node _ letDeclaration) ->
                         letDeclarationBindingsForImplementation letDeclaration
@@ -1319,8 +1315,8 @@ expressionSurfaceRangesAfterPatterns expression =
                 (\( _, Node resultRange _ ) -> ( resultRange, () ))
                 caseBlock.cases
 
-        Expression.LambdaExpression lambda ->
-            RangeDict.singleton (Node.range lambda.expression) ()
+        Expression.LambdaExpression _ ->
+            RangeDict.singleton (Node.range expression) ()
 
         _ ->
             RangeDict.empty
@@ -1333,7 +1329,8 @@ expressionExitVisitor node context =
         contextWithUpdatedLocalBindings =
             { context
                 | localBindings =
-                    RangeDict.diff context.localBindings (expressionSurfaceRangesAfterPatterns node)
+                    RangeDict.diff context.localBindings
+                        (expressionSurfaceRangesAfterPatterns node)
             }
     in
     if RangeDict.member (Node.range node) context.inferredConstantsDict then
