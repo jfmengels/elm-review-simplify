@@ -1231,7 +1231,7 @@ expressionVisitor node context =
     else
         let
             { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
-                expressionVisitorHelp node newContext context.importLookup
+                expressionVisitorHelp node newContext
         in
         ( errors
         , { newContext
@@ -1284,7 +1284,7 @@ expressionSurfaceBindings expression =
                             ( implementationRange, AstHelpers.patternBindings pattern )
             in
             RangeDict.insert (Node.range expression)
-                (AstHelpers.letDeclarationListBindings letBlock.declarations)
+                (Debug.log ("let bindings in " ++ Debug.toString (Node.range expression)) (AstHelpers.letDeclarationListBindings letBlock.declarations))
                 (RangeDict.mapFromList
                     (\(Node _ letDeclaration) ->
                         letDeclarationBindingsForImplementation letDeclaration
@@ -1367,8 +1367,8 @@ onlyErrors errors =
     }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> ImportLookup -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
-expressionVisitorHelp node context importLookup =
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp node context =
     let
         toCheckInfo :
             { fnRange : Range
@@ -1379,7 +1379,7 @@ expressionVisitorHelp node context importLookup =
             -> CheckInfo
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
-            , importLookup = importLookup
+            , importLookup = context.importLookup
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
             , inferredConstants = context.inferredConstants
@@ -1607,7 +1607,7 @@ expressionVisitorHelp node context importLookup =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = importLookup
+                    , importLookup = context.importLookup
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     , fromLeftToRight = True
@@ -1623,7 +1623,7 @@ expressionVisitorHelp node context importLookup =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = importLookup
+                    , importLookup = context.importLookup
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     , fromLeftToRight = True
@@ -1639,7 +1639,7 @@ expressionVisitorHelp node context importLookup =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = importLookup
+                    , importLookup = context.importLookup
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     , fromLeftToRight = False
@@ -1655,7 +1655,7 @@ expressionVisitorHelp node context importLookup =
             onlyErrors
                 (firstThatReportsError compositionChecks
                     { lookupTable = context.lookupTable
-                    , importLookup = importLookup
+                    , importLookup = context.importLookup
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     , fromLeftToRight = False
@@ -1673,7 +1673,7 @@ expressionVisitorHelp node context importLookup =
                     { errors =
                         checkFn
                             { lookupTable = context.lookupTable
-                            , importLookup = importLookup
+                            , importLookup = context.importLookup
                             , moduleBindings = context.moduleBindings
                             , localBindings = context.localBindings
                             , inferredConstants = context.inferredConstants
