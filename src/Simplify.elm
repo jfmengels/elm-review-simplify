@@ -726,7 +726,7 @@ import Elm.Docs
 import Elm.Project exposing (Exposed)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
-import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
+import Elm.Syntax.Expression as Expression exposing (Expression, FunctionImplementation, RecordSetter)
 import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Module
 import Elm.Syntax.ModuleName exposing (ModuleName)
@@ -766,6 +766,7 @@ rule (Configuration config) =
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor schema =
     schema
+        |> Rule.withDeclarationListVisitor (\decls context -> ( [], declarationListVisitor decls context ))
         |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
         |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
@@ -1136,6 +1137,17 @@ errorForUnknownIgnoredConstructor list =
 
 
 
+-- DECLARATION LIST VISITOR
+
+
+declarationListVisitor : List (Node Declaration) -> ModuleContext -> ModuleContext
+declarationListVisitor declarationList context =
+    { context
+        | moduleBindings = AstHelpers.declarationListBindings declarationList
+    }
+
+
+
 -- DECLARATION VISITOR
 
 
@@ -1164,11 +1176,20 @@ declarationVisitor declarationNode context =
             else
                 context
 
-        Declaration.FunctionDeclaration _ ->
+        Declaration.FunctionDeclaration functionDeclaration ->
             { context
                 | rangesToIgnore = []
                 , rightSidesOfPlusPlus = []
                 , inferredConstantsDict = RangeDict.empty
+                , localBindings =
+                    let
+                        declaration : FunctionImplementation
+                        declaration =
+                            Node.value functionDeclaration.declaration
+                    in
+                    RangeDict.singleton
+                        (Node.range declaration.expression)
+                        (AstHelpers.patternListBindings declaration.arguments)
             }
 
         _ ->
@@ -1190,7 +1211,9 @@ expressionVisitor node context =
                         ( previous, previousStack ) =
                             context.inferredConstants
                     in
-                    { context | inferredConstants = ( inferredConstants, previous :: previousStack ) }
+                    { context
+                        | inferredConstants = ( inferredConstants, previous :: previousStack )
+                    }
 
                 Nothing ->
                     context
@@ -1207,24 +1230,118 @@ expressionVisitor node context =
         , { newContext
             | rangesToIgnore = rangesToIgnore ++ newContext.rangesToIgnore
             , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ newContext.rightSidesOfPlusPlus
-            , inferredConstantsDict = List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc) newContext.inferredConstantsDict inferredConstants
+            , inferredConstantsDict = RangeDict.union (RangeDict.fromList inferredConstants) newContext.inferredConstantsDict
+            , localBindings =
+                RangeDict.union context.localBindings (expressionSurfaceBindings node)
           }
         )
 
 
+{-| Whenever you change Ranges, make sure to add them in `expressionSurfaceRangesAfterPatterns`
+
+Because of this, the current binding tracking might not be ideal.
+An alternative is some kind of tree structure
+with parent and sub ranges and bindings as leaves (maybe a "trie", tho I've not seen one as an elm package).
+
+Removing all bindings for an expression's range an leave would then be trivial
+
+-}
+expressionSurfaceBindings : Node Expression -> RangeDict (Set String)
+expressionSurfaceBindings expression =
+    case Node.value expression of
+        Expression.LambdaExpression lambda ->
+            RangeDict.singleton (Node.range lambda.expression)
+                (AstHelpers.patternListBindings lambda.args)
+
+        Expression.CaseExpression caseBlock ->
+            RangeDict.mapFromList
+                (\( Node _ pattern, Node resultRange _ ) ->
+                    ( resultRange, AstHelpers.patternBindings pattern )
+                )
+                caseBlock.cases
+
+        Expression.LetExpression letBlock ->
+            let
+                letDeclarationBindingsForImplementation : Expression.LetDeclaration -> ( Range, Set String )
+                letDeclarationBindingsForImplementation letDeclaration =
+                    case letDeclaration of
+                        Expression.LetFunction fun ->
+                            let
+                                funDeclaration : FunctionImplementation
+                                funDeclaration =
+                                    fun.declaration |> Node.value
+                            in
+                            ( Node.range funDeclaration.expression
+                            , AstHelpers.patternListBindings funDeclaration.arguments
+                            )
+
+                        Expression.LetDestructuring (Node _ pattern) (Node implementationRange _) ->
+                            ( implementationRange, AstHelpers.patternBindings pattern )
+            in
+            RangeDict.insert (Node.range expression)
+                (AstHelpers.letDeclarationListBindings letBlock.declarations)
+                (RangeDict.mapFromList
+                    (\(Node _ letDeclaration) ->
+                        letDeclarationBindingsForImplementation letDeclaration
+                    )
+                    letBlock.declarations
+                )
+
+        _ ->
+            RangeDict.empty
+
+
+expressionSurfaceRangesAfterPatterns : Node Expression -> RangeDict ()
+expressionSurfaceRangesAfterPatterns expression =
+    case Node.value expression of
+        Expression.LetExpression letBlock ->
+            RangeDict.insert (Node.range expression)
+                ()
+                (RangeDict.mapFromList
+                    (\(Node _ declaration) ->
+                        case declaration of
+                            Expression.LetFunction fun ->
+                                ( Node.range (Node.value fun.declaration).expression, () )
+
+                            Expression.LetDestructuring _ (Node implementationRange _) ->
+                                ( implementationRange, () )
+                    )
+                    letBlock.declarations
+                )
+
+        Expression.CaseExpression caseBlock ->
+            RangeDict.mapFromList
+                (\( _, Node resultRange _ ) -> ( resultRange, () ))
+                caseBlock.cases
+
+        Expression.LambdaExpression lambda ->
+            RangeDict.singleton (Node.range lambda.expression) ()
+
+        _ ->
+            RangeDict.empty
+
+
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
 expressionExitVisitor node context =
+    let
+        contextWithUpdatedLocalBindings : ModuleContext
+        contextWithUpdatedLocalBindings =
+            { context
+                | localBindings =
+                    RangeDict.diff context.localBindings (expressionSurfaceRangesAfterPatterns node)
+            }
+    in
     if RangeDict.member (Node.range node) context.inferredConstantsDict then
         case Tuple.second context.inferredConstants of
             topOfStack :: restOfStack ->
-                { context | inferredConstants = ( topOfStack, restOfStack ) }
+                { contextWithUpdatedLocalBindings | inferredConstants = ( topOfStack, restOfStack ) }
 
             [] ->
                 -- should never be empty
-                context
+                contextWithUpdatedLocalBindings
 
     else
-        context
+        contextWithUpdatedLocalBindings
 
 
 errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
@@ -1706,7 +1823,7 @@ qualify ( moduleName, name ) qualifyResources =
                         isShadowed : Bool
                         isShadowed =
                             Set.member name qualifyResources.moduleBindings
-                                || dictAny (\_ bindings -> Set.member name bindings) qualifyResources.localBindings
+                                || RangeDict.any (\bindings -> Set.member name bindings) qualifyResources.localBindings
                     in
                     if isShadowed then
                         import_.alias |> Maybe.withDefault moduleName
@@ -1730,13 +1847,6 @@ qualify ( moduleName, name ) qualifyResources =
             moduleName
     , name
     )
-
-
-dictAny : (k -> v -> Bool) -> Dict k v -> Bool
-dictAny isFound dict =
-    Dict.foldl (\key value soFar -> soFar || isFound key value)
-        False
-        dict
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
