@@ -1256,8 +1256,10 @@ expressionSurfaceBindings expression =
 
         Expression.CaseExpression caseBlock ->
             RangeDict.mapFromList
-                (\( Node _ pattern, Node resultRange _ ) ->
-                    ( resultRange, AstHelpers.patternBindings pattern )
+                (\( Node patternRange pattern, Node resultRange _ ) ->
+                    ( { start = patternRange.start, end = resultRange.end }
+                    , AstHelpers.patternBindings pattern
+                    )
                 )
                 caseBlock.cases
 
@@ -1266,14 +1268,10 @@ expressionSurfaceBindings expression =
                 letDeclarationBindingsForImplementation : Expression.LetDeclaration -> ( Range, Set String )
                 letDeclarationBindingsForImplementation letDeclaration =
                     case letDeclaration of
-                        Expression.LetFunction fun ->
-                            let
-                                funDeclaration : FunctionImplementation
-                                funDeclaration =
-                                    fun.declaration |> Node.value
-                            in
-                            ( Node.range funDeclaration.expression
-                            , AstHelpers.patternListBindings funDeclaration.arguments
+                        Expression.LetFunction letFunctionOrValueDeclaration ->
+                            ( Node.range letFunctionOrValueDeclaration.declaration
+                            , AstHelpers.patternListBindings
+                                (Node.value letFunctionOrValueDeclaration.declaration).arguments
                             )
 
                         Expression.LetDestructuring (Node _ pattern) (Node implementationRange _) ->
@@ -1301,8 +1299,8 @@ expressionSurfaceRangesAfterPatterns expression =
                 (RangeDict.mapFromList
                     (\(Node _ declaration) ->
                         case declaration of
-                            Expression.LetFunction fun ->
-                                ( Node.range (Node.value fun.declaration).expression, () )
+                            Expression.LetFunction letFunctionOrValueDeclaration ->
+                                ( Node.range letFunctionOrValueDeclaration.declaration, () )
 
                             Expression.LetDestructuring _ (Node implementationRange _) ->
                                 ( implementationRange, () )
@@ -1312,7 +1310,9 @@ expressionSurfaceRangesAfterPatterns expression =
 
         Expression.CaseExpression caseBlock ->
             RangeDict.mapFromList
-                (\( _, Node resultRange _ ) -> ( resultRange, () ))
+                (\( Node patternRange _, Node resultRange _ ) ->
+                    ( { start = patternRange.start, end = resultRange.end }, () )
+                )
                 caseBlock.cases
 
         Expression.LambdaExpression _ ->
