@@ -602,6 +602,36 @@ a =
     Set.foldl f x
 """
                         ]
+        , test "should not qualify if imported and exposed and same binding in a different branches" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    if condition then
+        \\foldl -> doIt
+    else
+        [ \\foldl -> doIt
+        , (\\foldl -> doIt) >> (\\x -> List.foldl f x << Set.toList)
+        ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    if condition then
+        \\foldl -> doIt
+    else
+        [ \\foldl -> doIt
+        , (\\foldl -> doIt) >> (\\x -> foldl f x)
+        ]
+"""
+                        ]
         ]
 
 
