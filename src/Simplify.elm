@@ -1277,26 +1277,23 @@ expressionSurfaceBindingIntroductions expression =
 
         Expression.LetExpression letBlock ->
             let
-                letDeclarationBindingsForImplementation : Expression.LetDeclaration -> ( Range, () -> Set String )
+                letDeclarationBindingsForImplementation : Expression.LetDeclaration -> Set String
                 letDeclarationBindingsForImplementation letDeclaration =
                     case letDeclaration of
                         Expression.LetFunction letFunctionOrValueDeclaration ->
-                            ( Node.range letFunctionOrValueDeclaration.declaration
-                            , \() ->
-                                AstHelpers.patternListBindings
-                                    (Node.value letFunctionOrValueDeclaration.declaration).arguments
-                            )
+                            AstHelpers.patternListBindings
+                                (Node.value letFunctionOrValueDeclaration.declaration).arguments
 
-                        Expression.LetDestructuring (Node _ pattern) (Node implementationRange _) ->
-                            ( implementationRange
-                            , \() -> AstHelpers.patternBindings pattern
-                            )
+                        Expression.LetDestructuring (Node _ pattern) _ ->
+                            AstHelpers.patternBindings pattern
             in
             RangeDict.insert (Node.range expression)
                 (\() -> AstHelpers.letDeclarationListBindings letBlock.declarations)
                 (RangeDict.mapFromList
-                    (\(Node _ letDeclaration) ->
-                        letDeclarationBindingsForImplementation letDeclaration
+                    (\(Node letDeclarationRange letDeclaration) ->
+                        ( letDeclarationRange
+                        , \() -> letDeclarationBindingsForImplementation letDeclaration
+                        )
                     )
                     letBlock.declarations
                 )
