@@ -9,7 +9,7 @@ all : Test
 all =
     describe "Simplify"
         [ configurationTests
-        , importLookupTests
+        , qualifyTests
         , identityTests
         , alwaysTests
         , booleanTests
@@ -165,12 +165,12 @@ a = 1
 
 
 
--- IMPORT LOOKUP
+-- QUALIFY
 
 
-importLookupTests : Test
-importLookupTests =
-    Test.describe "ImportLookup"
+qualifyTests : Test
+qualifyTests =
+    Test.describe "qualify"
         [ test "should respect implicit imports" <|
             \() ->
                 """module A exposing (..)
@@ -309,6 +309,297 @@ a = List.foldl f x << UniqueList.toList
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set as UniqueList
 a = UniqueList.foldl f x
+"""
+                        ]
+        , qualifyShadowingTests
+        ]
+
+
+qualifyShadowingTests : Test
+qualifyShadowingTests =
+    Test.describe "qualify shadowing"
+        [ test "should qualify if imported and exposed but shadowed by module function/value declaration" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a = List.foldl f x << Set.toList
+foldl = ()
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a = Set.foldl f x
+foldl = ()
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by module variant" <|
+            \() ->
+                """module A exposing (..)
+a = List.head []
+type MaybeExists
+    = Nothing
+    | Just ()
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.head on an empty list will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Maybe.Nothing
+type MaybeExists
+    = Nothing
+    | Just ()
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by declaration argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a foldl = List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a foldl = Set.foldl f x
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by lambda argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a = \\( _, Node _ ({ foldl } :: _) ) -> List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a = \\( _, Node _ ({ foldl } :: _) ) -> Set.foldl f x
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by case pattern argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    case info of
+        ( _, Node [] _ ) ->
+            []
+
+        ( _, Node _ ({ foldl } :: _) ) ->
+            List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    case info of
+        ( _, Node [] _ ) ->
+            []
+
+        ( _, Node _ ({ foldl } :: _) ) ->
+            Set.foldl f x
+"""
+                        ]
+        , test "should not qualify if imported and exposed and same binding only in different case pattern argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    case info of
+        ( _, Node [] _ ) ->
+            List.foldl f x << Set.toList
+
+        ( _, Node _ ({ foldl } :: _) ) ->
+            []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    case info of
+        ( _, Node [] _ ) ->
+            Set.foldl f x
+
+        ( _, Node _ ({ foldl } :: _) ) ->
+            []
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by let declaration argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        doIt ( _, Node _ ({ foldl } :: _) ) =
+            List.foldl f x << Set.toList
+    in
+    doIt
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        doIt ( _, Node _ ({ foldl } :: _) ) =
+            Set.foldl f x
+    in
+    doIt
+"""
+                        ]
+        , test "should not qualify if imported and exposed and same binding in argument of different let declaration" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        doIt ( _, Node _ ({ foldl } :: _) ) =
+            ()
+        
+        doItBetter x =
+            List.foldl f x << Set.toList
+    in
+    doItBetter
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        doIt ( _, Node _ ({ foldl } :: _) ) =
+            ()
+        
+        doItBetter x =
+            Set.foldl f x
+    in
+    doItBetter
+"""
+                        ]
+        , test "should not qualify if imported and exposed and same binding in let declaration argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        doIt ( _, Node _ ({ foldl } :: _) ) =
+            ()
+    in
+    List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        doIt ( _, Node _ ({ foldl } :: _) ) =
+            ()
+    in
+    Set.foldl f x
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by let destructured binding" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        ( _, Node _ ({ foldl } :: _) ) =
+            something
+    in
+    List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        ( _, Node _ ({ foldl } :: _) ) =
+            something
+    in
+    Set.foldl f x
+"""
+                        ]
+        , test "should qualify if imported and exposed but shadowed by let declaration name" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        foldl init =
+            FoldingMachine.foldl init
+    in
+    List.foldl f x << Set.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    let
+        foldl init =
+            FoldingMachine.foldl init
+    in
+    Set.foldl f x
 """
                         ]
         ]
