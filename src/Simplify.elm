@@ -847,8 +847,8 @@ type alias ModuleContext =
     , exposedVariantTypes : Exposed
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
-    , rangesToIgnore : List Range
-    , rightSidesOfPlusPlus : List Range
+    , rangesToIgnore : RangeDict ()
+    , rightSidesOfPlusPlus : RangeDict ()
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     , localIgnoredCustomTypes : List Constructor
     , constructorsToIgnore : Set ( ModuleName, String )
@@ -954,8 +954,8 @@ fromProjectToModule =
                     }
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
-            , rangesToIgnore = []
-            , rightSidesOfPlusPlus = []
+            , rangesToIgnore = RangeDict.empty
+            , rightSidesOfPlusPlus = RangeDict.empty
             , localIgnoredCustomTypes = []
             , customTypesToReportInCases = projectContext.customTypesToReportInCases
             , constructorsToIgnore = Set.empty
@@ -1178,8 +1178,8 @@ declarationVisitor declarationNode context =
 
         Declaration.FunctionDeclaration functionDeclaration ->
             { context
-                | rangesToIgnore = []
-                , rightSidesOfPlusPlus = []
+                | rangesToIgnore = RangeDict.empty
+                , rightSidesOfPlusPlus = RangeDict.empty
                 , inferredConstantsDict = RangeDict.empty
                 , localBindings =
                     RangeDict.singleton
@@ -1213,7 +1213,7 @@ expressionVisitor node context =
                         | inferredConstants = ( inferredConstants, previous :: previousStack )
                     }
     in
-    if List.member (Node.range node) context.rangesToIgnore then
+    if RangeDict.member (Node.range node) context.rangesToIgnore then
         ( [], contextWithInferredConstants )
 
     else
@@ -1230,8 +1230,8 @@ expressionVisitor node context =
         in
         ( errors
         , { contextWithInferredConstantsAndLocalBindings
-            | rangesToIgnore = rangesToIgnore ++ context.rangesToIgnore
-            , rightSidesOfPlusPlus = rightSidesOfPlusPlus ++ context.rightSidesOfPlusPlus
+            | rangesToIgnore = RangeDict.union context.rangesToIgnore rangesToIgnore
+            , rightSidesOfPlusPlus = RangeDict.union rightSidesOfPlusPlus context.rightSidesOfPlusPlus
             , inferredConstantsDict =
                 RangeDict.union context.inferredConstantsDict (RangeDict.fromList inferredConstants)
           }
@@ -1307,7 +1307,7 @@ expressionExitVisitor node context =
     let
         contextWithUpdatedLocalBindings : ModuleContext
         contextWithUpdatedLocalBindings =
-            if List.member (Node.range node) context.rangesToIgnore then
+            if RangeDict.member (Node.range node) context.rangesToIgnore then
                 context
 
             else
@@ -1330,25 +1330,25 @@ expressionExitVisitor node context =
         contextWithUpdatedLocalBindings
 
 
-errorsAndRangesToIgnore : List (Error {}) -> List Range -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+errorsAndRangesToIgnore : List (Error {}) -> RangeDict () -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 errorsAndRangesToIgnore errors rangesToIgnore =
     { errors = errors
     , rangesToIgnore = rangesToIgnore
-    , rightSidesOfPlusPlus = []
+    , rightSidesOfPlusPlus = RangeDict.empty
     , inferredConstants = []
     }
 
 
-onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+onlyErrors : List (Error {}) -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 onlyErrors errors =
     { errors = errors
-    , rangesToIgnore = []
-    , rightSidesOfPlusPlus = []
+    , rangesToIgnore = RangeDict.empty
+    , rightSidesOfPlusPlus = RangeDict.empty
     , inferredConstants = []
     }
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp node context =
     let
         toCheckInfo :
@@ -1535,7 +1535,7 @@ expressionVisitorHelp node context =
                                 }
                             )
                         )
-                        [ applicationRange ]
+                        (RangeDict.singleton applicationRange ())
 
                 Nothing ->
                     onlyErrors []
@@ -1579,7 +1579,7 @@ expressionVisitorHelp node context =
                                 }
                             )
                         )
-                        [ applicationRange ]
+                        (RangeDict.singleton applicationRange ())
 
                 _ ->
                     onlyErrors []
@@ -1664,15 +1664,15 @@ expressionVisitorHelp node context =
                             , leftRange = Node.range left
                             , right = right
                             , rightRange = Node.range right
-                            , isOnTheRightSideOfPlusPlus = List.member (Node.range node) context.rightSidesOfPlusPlus
+                            , isOnTheRightSideOfPlusPlus = RangeDict.member (Node.range node) context.rightSidesOfPlusPlus
                             }
-                    , rangesToIgnore = []
+                    , rangesToIgnore = RangeDict.empty
                     , rightSidesOfPlusPlus =
                         if operator == "++" then
-                            [ Node.range <| AstHelpers.removeParens right ]
+                            RangeDict.singleton (Node.range (AstHelpers.removeParens right)) ()
 
                         else
-                            []
+                            RangeDict.empty
                     , inferredConstants = []
                     }
 
@@ -6696,7 +6696,7 @@ ifChecks :
         , trueBranch : Node Expression
         , falseBranch : Node Expression
         }
-    -> { errors : List (Error {}), rangesToIgnore : List Range, rightSidesOfPlusPlus : List Range, inferredConstants : List ( Range, Infer.Inferred ) }
+    -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
     case Evaluate.getBoolean context condition of
         Determined True ->
@@ -6716,7 +6716,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                         }
                     ]
                 ]
-                [ Node.range condition ]
+                (RangeDict.singleton (Node.range condition) ())
 
         Determined False ->
             errorsAndRangesToIgnore
@@ -6731,7 +6731,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                         }
                     ]
                 ]
-                [ Node.range condition ]
+                (RangeDict.singleton (Node.range condition) ())
 
         Undetermined ->
             case ( Evaluate.getBoolean context trueBranch, Evaluate.getBoolean context falseBranch ) of
@@ -6797,8 +6797,8 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
 
                         _ ->
                             { errors = []
-                            , rangesToIgnore = []
-                            , rightSidesOfPlusPlus = []
+                            , rangesToIgnore = RangeDict.empty
+                            , rightSidesOfPlusPlus = RangeDict.empty
                             , inferredConstants =
                                 Infer.inferForIfCondition
                                     (Node.value (Normalize.normalize context condition))
