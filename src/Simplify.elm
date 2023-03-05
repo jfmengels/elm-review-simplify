@@ -1815,38 +1815,36 @@ exposedMerge exposedTuple =
 
 qualify : ( ModuleName, String ) -> QualifyResources a -> ( ModuleName, String )
 qualify ( moduleName, name ) qualifyResources =
-    ( case qualifyResources.importLookup |> Dict.get moduleName of
-        Just import_ ->
-            case import_.exposed of
-                ExposedAll ->
+    let
+        qualification : ModuleName
+        qualification =
+            case qualifyResources.importLookup |> Dict.get moduleName of
+                Just import_ ->
                     let
-                        isShadowed : Bool
-                        isShadowed =
-                            Set.member name qualifyResources.moduleBindings
-                                || RangeDict.any (\bindings -> Set.member name bindings) qualifyResources.localBindings
+                        moduleImportedName : ModuleName
+                        moduleImportedName =
+                            import_.alias |> Maybe.withDefault moduleName
                     in
-                    if isShadowed then
-                        import_.alias |> Maybe.withDefault moduleName
+                    if isExposedFrom import_.exposed name then
+                        let
+                            isShadowed : Bool
+                            isShadowed =
+                                Set.member name qualifyResources.moduleBindings
+                                    || RangeDict.any (\bindings -> Set.member name bindings) qualifyResources.localBindings
+                        in
+                        if isShadowed then
+                            moduleImportedName
+
+                        else
+                            []
 
                     else
-                        []
+                        moduleImportedName
 
-                ExposedSome exposedSet ->
-                    if exposedSet |> Set.member name then
-                        []
-
-                    else
-                        case import_.alias of
-                            Just hasAlias ->
-                                hasAlias
-
-                            Nothing ->
-                                moduleName
-
-        Nothing ->
-            moduleName
-    , name
-    )
+                Nothing ->
+                    moduleName
+    in
+    ( qualification, name )
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
