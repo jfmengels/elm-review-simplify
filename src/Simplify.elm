@@ -5730,7 +5730,8 @@ htmlAttributesClassListChecks checkInfo =
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = Node.range listArg, keep = Node.range first }
                     ++ parenthesizeIfNeededFix first
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Html.Attributes.class"
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Html", "Attributes" ], "class" ) checkInfo))
                        ]
                 )
             ]
