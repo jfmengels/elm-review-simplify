@@ -747,7 +747,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers
+import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
@@ -1096,7 +1096,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
                         let
                             moduleName : ModuleName
                             moduleName =
-                                moduleNameFromString mod.name
+                                AstHelpers.moduleNameFromString mod.name
                         in
                         mod.unions
                             |> List.filter (\union -> not (Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings))
@@ -1110,7 +1110,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
             modules
                 |> List.map
                     (\moduleDoc ->
-                        ( moduleNameFromString moduleDoc.name
+                        ( AstHelpers.moduleNameFromString moduleDoc.name
                         , moduleDoc.unions
                             |> List.concatMap
                                 (\union ->
@@ -5436,7 +5436,7 @@ listSortWithChecks checkInfo =
                         fixToIdentity : List (Error {})
                         fixToIdentity =
                             [ Rule.errorWithFix
-                                (toIdentityErrorInfo { toFix = "List.sortWith (\\_ _ -> " ++ orderToString order ++ ")", lastArgName = "list" })
+                                (toIdentityErrorInfo { toFix = "List.sortWith (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")", lastArgName = "list" })
                                 checkInfo.fnRange
                                 (toIdentityFix
                                     { lastArg = secondArg checkInfo
@@ -7385,46 +7385,6 @@ collapsedConsRemoveElementFix { toRemove, tailRange } =
 
 
 -- STRING
-
-
-emptyStringAsString : String
-emptyStringAsString =
-    "\"\""
-
-
-orderToString : Order -> String
-orderToString order =
-    case order of
-        LT ->
-            "LT"
-
-        EQ ->
-            "EQ"
-
-        GT ->
-            "GT"
-
-
-{-| Put a `ModuleName` and thing name together as a string.
-If desired, call in combination with `qualify`
--}
-qualifiedToString : ( ModuleName, String ) -> String
-qualifiedToString ( moduleName, name ) =
-    if List.isEmpty moduleName then
-        name
-
-    else
-        moduleNameToString moduleName ++ "." ++ name
-
-
-moduleNameToString : ModuleName -> String
-moduleNameToString moduleName =
-    String.join "." moduleName
-
-
-moduleNameFromString : String -> ModuleName
-moduleNameFromString string =
-    String.split "." string
 
 
 wrapInBackticks : String -> String
