@@ -481,7 +481,7 @@ a =
     case foldl f x of
         ( _, Node [] _ ) ->
             []
-
+    
         ( _, Node _ ({ foldl } :: _) ) ->
             []
 """
