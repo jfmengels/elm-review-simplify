@@ -450,7 +450,37 @@ import Set exposing (foldl)
 a =
     case info of
         ( _, Node [] _ ) ->
-            Set.foldl f x
+            foldl f x
+
+        ( _, Node _ ({ foldl } :: _) ) ->
+            []
+"""
+                        ]
+        , test "should not qualify if imported and exposed and same binding only in case pattern argument" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (foldl)
+a =
+    case List.foldl f x << Set.toList of
+        ( _, Node [] _ ) ->
+            []
+    
+        ( _, Node _ ({ foldl } :: _) ) ->
+            []
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a set, you don't need to convert to a List"
+                            , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (foldl)
+a =
+    case foldl f x of
+        ( _, Node [] _ ) ->
+            []
 
         ( _, Node _ ({ foldl } :: _) ) ->
             []
