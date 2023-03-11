@@ -1233,7 +1233,9 @@ expressionVisitor node context =
             | rangesToIgnore = RangeDict.union context.rangesToIgnore rangesToIgnore
             , rightSidesOfPlusPlus = RangeDict.union rightSidesOfPlusPlus context.rightSidesOfPlusPlus
             , inferredConstantsDict =
-                RangeDict.union context.inferredConstantsDict (RangeDict.fromList inferredConstants)
+                List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc)
+                    contextWithInferredConstants.inferredConstantsDict
+                    inferredConstants
           }
         )
 
