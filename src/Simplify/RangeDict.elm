@@ -1,4 +1,4 @@
-module Simplify.RangeDict exposing (RangeDict, any, diff, empty, get, insert, map, mapFromList, member, singleton, union)
+module Simplify.RangeDict exposing (RangeDict, any, diff, empty, get, insert, map, mapFromList, member, remove, singleton, union)
 
 import Dict exposing (Dict)
 import Elm.Syntax.Range exposing (Range)
@@ -37,8 +37,13 @@ mapFromList toAssociation list =
 
 
 insert : Range -> v -> RangeDict v -> RangeDict v
-insert range rangeDict =
-    Dict.insert (rangeAsString range) rangeDict
+insert range value rangeDict =
+    Dict.insert (rangeAsString range) value rangeDict
+
+
+remove : Range -> RangeDict v -> RangeDict v
+remove range rangeDict =
+    Dict.remove (rangeAsString range) rangeDict
 
 
 get : Range -> RangeDict v -> Maybe v
