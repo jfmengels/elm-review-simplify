@@ -513,7 +513,7 @@ a =
             ()
         
         doItBetter x =
-            Set.foldl f x
+            foldl f x
     in
     doItBetter
 """
