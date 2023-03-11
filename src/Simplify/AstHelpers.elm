@@ -1,4 +1,4 @@
-module Simplify.AstHelpers exposing (boolToString, declarationListBindings, getBool, getBooleanPattern, getCollapsedCons, getListLiteral, getOrder, getTuple, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificBool, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, nameOfExpose, patternBindings, patternListBindings, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing (boolToString, declarationListBindings, emptyStringAsString, getBool, getBooleanPattern, getCollapsedCons, getListLiteral, getOrder, getTuple, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificBool, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, moduleNameFromString, nameOfExpose, orderToString, patternBindings, patternListBindings, qualifiedToString, removeParens, removeParensFromPattern)
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
@@ -284,15 +284,6 @@ isSpecificBool specificBool lookupTable expressionNode =
     isSpecificValueOrFunction [ "Basics" ] (boolToString specificBool) lookupTable expressionNode
 
 
-boolToString : Bool -> String
-boolToString bool =
-    if bool then
-        "True"
-
-    else
-        "False"
-
-
 getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
 getTuple expressionNode =
     case Node.value expressionNode of
@@ -440,3 +431,56 @@ nameOfExpose topLevelExpose =
 
         Exposing.TypeExpose { name } ->
             name
+
+
+
+-- STRING
+
+
+emptyStringAsString : String
+emptyStringAsString =
+    "\"\""
+
+
+boolToString : Bool -> String
+boolToString bool =
+    if bool then
+        "True"
+
+    else
+        "False"
+
+
+orderToString : Order -> String
+orderToString order =
+    case order of
+        LT ->
+            "LT"
+
+        EQ ->
+            "EQ"
+
+        GT ->
+            "GT"
+
+
+{-| Put a `ModuleName` and thing name together as a string.
+If desired, call in combination with `qualify`
+-}
+qualifiedToString : ( ModuleName, String ) -> String
+qualifiedToString ( moduleName, name ) =
+    if List.isEmpty moduleName then
+        name
+
+    else
+        moduleNameToString moduleName ++ "." ++ name
+
+
+moduleNameToString : ModuleName -> String
+moduleNameToString moduleName =
+    String.join "." moduleName
+
+
+moduleNameFromString : String -> ModuleName
+moduleNameFromString string =
+    String.split "." string
