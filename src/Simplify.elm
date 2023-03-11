@@ -1179,17 +1179,14 @@ declarationVisitor declarationNode context =
             in
             if isExposedFrom context.exposedVariantTypes variantTypeName then
                 let
-                    variantNames : Set String
-                    variantNames =
+                    exposedVariants : Set String
+                    exposedVariants =
                         List.foldl
                             (\(Node _ variant) acc -> Set.insert (Node.value variant.name) acc)
-                            Set.empty
+                            context.exposedVariants
                             variantType.constructors
                 in
-                { context
-                    | exposedVariants =
-                        Set.union variantNames context.exposedVariants
-                }
+                { context | exposedVariants = exposedVariants }
 
             else
                 context
