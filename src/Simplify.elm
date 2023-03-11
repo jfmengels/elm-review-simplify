@@ -1050,7 +1050,7 @@ foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts =
     \a b ->
         { customTypesToReportInCases = Set.empty
-        , exposedVariants = Dict.union a.exposedVariants b.exposedVariants
+        , exposedVariants = Dict.union b.exposedVariants a.exposedVariants
         }
 
 
@@ -1117,7 +1117,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
     , { customTypesToReportInCases = customTypesToReportInCases
-      , exposedVariants = Dict.union context.exposedVariants dependencyExposedVariants
+      , exposedVariants = Dict.union  dependencyExposedVariants context.exposedVariants
       }
     )
 
@@ -1170,7 +1170,7 @@ declarationVisitor declarationNode context =
                 in
                 { context
                     | exposedVariants =
-                        Set.union context.exposedVariants variantNames
+                        Set.union  variantNames context.exposedVariants
                 }
 
             else
@@ -1222,7 +1222,7 @@ expressionVisitor node context =
             contextWithInferredConstantsAndLocalBindings =
                 { contextWithInferredConstants
                     | localBindings =
-                        RangeDict.union context.localBindings (expressionSurfaceBindings node)
+                        RangeDict.union (expressionSurfaceBindings node) context.localBindings
                 }
 
             { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
@@ -1230,7 +1230,7 @@ expressionVisitor node context =
         in
         ( errors
         , { contextWithInferredConstantsAndLocalBindings
-            | rangesToIgnore = RangeDict.union context.rangesToIgnore rangesToIgnore
+            | rangesToIgnore = RangeDict.union rangesToIgnore context.rangesToIgnore
             , rightSidesOfPlusPlus = RangeDict.union rightSidesOfPlusPlus context.rightSidesOfPlusPlus
             , inferredConstantsDict =
                 List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc)
