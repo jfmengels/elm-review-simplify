@@ -543,7 +543,7 @@ a =
         doIt ( _, Node _ ({ foldl } :: _) ) =
             ()
     in
-    Set.foldl f x
+    foldl f x
 """
                         ]
         , test "should qualify if imported and exposed but shadowed by let destructured binding" <|
