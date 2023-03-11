@@ -22,19 +22,17 @@ singleton range value =
 -}
 mapFromList : (a -> ( Range, v )) -> List a -> RangeDict v
 mapFromList toAssociation list =
-    RangeDict
-        (Dict.fromList
-            (List.map
-                (\element ->
-                    let
-                        ( range, v ) =
-                            toAssociation element
-                    in
-                    ( rangeAsString range, v )
-                )
-                list
-            )
+    List.foldl
+        (\element acc ->
+            let
+                ( range, v ) =
+                    toAssociation element
+            in
+            Dict.insert (rangeAsString range) v acc
         )
+        Dict.empty
+        list
+        |> RangeDict
 
 
 insert : Range -> v -> RangeDict v -> RangeDict v
