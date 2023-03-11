@@ -1063,11 +1063,10 @@ moduleExposingContext moduleHeader =
 
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
-foldProjectContexts =
-    \a b ->
-        { customTypesToReportInCases = Set.empty
-        , exposedVariants = Dict.union b.exposedVariants a.exposedVariants
-        }
+foldProjectContexts newContext previousContext =
+    { customTypesToReportInCases = Set.empty
+    , exposedVariants = Dict.union newContext.exposedVariants previousContext.exposedVariants
+    }
 
 
 
