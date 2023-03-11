@@ -118,10 +118,10 @@ getVarPattern node =
 
 patternListBindings : List (Node Pattern) -> Set String
 patternListBindings patterns =
-    patterns
-        |> List.map
-            (\(Node _ pattern_) -> pattern_ |> patternBindings)
-        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
+    List.foldl
+        (\(Node _ pattern) soFar -> Set.union soFar (patternBindings pattern))
+        Set.empty
+        patterns
 
 
 {-| Recursively find all bindings in a pattern.
