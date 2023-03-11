@@ -1311,19 +1311,18 @@ expressionBranchLocalBindings expression =
 
         Expression.LetExpression letBlock ->
             List.foldl
-                (\(Node _ letDeclaration) ->
+                (\(Node _ letDeclaration) acc ->
                     case letDeclaration of
                         Expression.LetFunction letFunctionOrValueDeclaration ->
-                            \soFar ->
-                                RangeDict.insert
-                                    (Node.range (Node.value letFunctionOrValueDeclaration.declaration).expression)
-                                    (AstHelpers.patternListBindings
-                                        (Node.value letFunctionOrValueDeclaration.declaration).arguments
-                                    )
-                                    soFar
+                            RangeDict.insert
+                                (Node.range (Node.value letFunctionOrValueDeclaration.declaration).expression)
+                                (AstHelpers.patternListBindings
+                                    (Node.value letFunctionOrValueDeclaration.declaration).arguments
+                                )
+                                acc
 
                         _ ->
-                            identity
+                            acc
                 )
                 RangeDict.empty
                 letBlock.declarations
