@@ -1,4 +1,4 @@
-module Simplify.RangeDict exposing (RangeDict, any, diff, empty, fromList, get, insert, map, mapFromList, member, singleton, union)
+module Simplify.RangeDict exposing (RangeDict, any, diff, empty, get, insert, map, mapFromList, member, singleton, union)
 
 import Dict exposing (Dict)
 import Elm.Syntax.Range exposing (Range)
@@ -19,7 +19,7 @@ singleton range value =
     Dict.singleton (rangeAsString range) value
 
 
-{-| Indirect [`fromList`](#fromList) to avoid successive List.map calls.
+{-| Indirect conversion from a list to key-value pairs to avoid successive List.map calls.
 -}
 mapFromList : (a -> ( Range, v )) -> List a -> RangeDict v
 mapFromList toAssociation list =
@@ -33,19 +33,6 @@ mapFromList toAssociation list =
                 ( rangeAsString range, v )
             )
             list
-        )
-
-
-{-| Use [`mapFromList`](#mapFromList) if you use List.map before.
--}
-fromList : List ( Range, v ) -> RangeDict v
-fromList associations =
-    Dict.fromList
-        (List.map
-            (\( range, v ) ->
-                ( rangeAsString range, v )
-            )
-            associations
         )
 
 
