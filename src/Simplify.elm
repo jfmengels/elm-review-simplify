@@ -847,6 +847,7 @@ type alias ModuleContext =
     , exposedVariantTypes : Exposed
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
+    , branchLocalBindings : RangeDict (Set String)
     , rangesToIgnore : RangeDict ()
     , rightSidesOfPlusPlus : RangeDict ()
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
@@ -954,6 +955,7 @@ fromProjectToModule =
                     }
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
+            , branchLocalBindings = RangeDict.empty
             , rangesToIgnore = RangeDict.empty
             , rightSidesOfPlusPlus = RangeDict.empty
             , localIgnoredCustomTypes = []
@@ -1117,7 +1119,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
     , { customTypesToReportInCases = customTypesToReportInCases
-      , exposedVariants = Dict.union  dependencyExposedVariants context.exposedVariants
+      , exposedVariants = Dict.union dependencyExposedVariants context.exposedVariants
       }
     )
 
@@ -1170,7 +1172,7 @@ declarationVisitor declarationNode context =
                 in
                 { context
                     | exposedVariants =
-                        Set.union  variantNames context.exposedVariants
+                        Set.union variantNames context.exposedVariants
                 }
 
             else
@@ -1198,9 +1200,13 @@ declarationVisitor declarationNode context =
 expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node context =
     let
+        expressionRange : Range
+        expressionRange =
+            Node.range node
+
         contextWithInferredConstants : ModuleContext
         contextWithInferredConstants =
-            case RangeDict.get (Node.range node) context.inferredConstantsDict of
+            case RangeDict.get expressionRange context.inferredConstantsDict of
                 Nothing ->
                     context
 
@@ -1213,17 +1219,37 @@ expressionVisitor node context =
                         | inferredConstants = ( inferredConstants, previous :: previousStack )
                     }
     in
-    if RangeDict.member (Node.range node) context.rangesToIgnore then
+    if RangeDict.member expressionRange context.rangesToIgnore then
         ( [], contextWithInferredConstants )
 
     else
         let
+            withExpressionSurfaceBindings : RangeDict (Set String)
+            withExpressionSurfaceBindings =
+                RangeDict.insert expressionRange (expressionSurfaceBindings (Node.value node)) context.localBindings
+
+            withNewBranchLocalBindings : RangeDict (Set String)
+            withNewBranchLocalBindings =
+                RangeDict.union (expressionBranchLocalBindings (Node.value node))
+                    context.branchLocalBindings
+
             contextWithInferredConstantsAndLocalBindings : ModuleContext
             contextWithInferredConstantsAndLocalBindings =
-                { contextWithInferredConstants
-                    | localBindings =
-                        RangeDict.union (expressionSurfaceBindings node) context.localBindings
-                }
+                case RangeDict.get expressionRange context.branchLocalBindings of
+                    Nothing ->
+                        { contextWithInferredConstants
+                            | localBindings = withExpressionSurfaceBindings
+                            , branchLocalBindings =
+                                withNewBranchLocalBindings
+                        }
+
+                    Just currentBranchLocalBindings ->
+                        { contextWithInferredConstants
+                            | localBindings =
+                                RangeDict.insert expressionRange currentBranchLocalBindings withExpressionSurfaceBindings
+                            , branchLocalBindings =
+                                RangeDict.remove expressionRange withNewBranchLocalBindings
+                        }
 
             { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
                 expressionVisitorHelp node contextWithInferredConstantsAndLocalBindings
@@ -1240,18 +1266,6 @@ expressionVisitor node context =
         )
 
 
-expressionSurfaceBindings : Node Expression -> RangeDict (Set String)
-expressionSurfaceBindings expression =
-    RangeDict.map (\collectBindings -> collectBindings ())
-        (expressionSurfaceBindingIntroductions expression)
-
-
-expressionSurfaceRangesAfterPatterns : Node Expression -> RangeDict ()
-expressionSurfaceRangesAfterPatterns expression =
-    RangeDict.map (\_ -> ())
-        (expressionSurfaceBindingIntroductions expression)
-
-
 {-| Whenever you add ranges on expression enter, the same ranges should be removed on expression exit.
 Having one function finding unique ranges and a function for extracting bindings there ensures said consistency.
 
@@ -1261,44 +1275,49 @@ with parent and sub ranges and bindings as leaves (maybe a "trie", tho I've not 
 Removing all bindings for an expression's range on leave would then be trivial
 
 -}
-expressionSurfaceBindingIntroductions : Node Expression -> RangeDict (() -> Set String)
-expressionSurfaceBindingIntroductions expression =
-    case Node.value expression of
+expressionSurfaceBindings : Expression -> Set String
+expressionSurfaceBindings expression =
+    case expression of
         Expression.LambdaExpression lambda ->
-            RangeDict.singleton (Node.range expression)
-                (\() -> AstHelpers.patternListBindings lambda.args)
+            AstHelpers.patternListBindings lambda.args
 
+        Expression.LetExpression letBlock ->
+            AstHelpers.letDeclarationListBindings letBlock.declarations
+
+        _ ->
+            Set.empty
+
+
+expressionBranchLocalBindings : Expression -> RangeDict (Set String)
+expressionBranchLocalBindings expression =
+    case expression of
         Expression.CaseExpression caseBlock ->
             RangeDict.mapFromList
-                (\( Node patternRange pattern, Node resultRange _ ) ->
-                    ( { start = patternRange.start, end = resultRange.end }
-                    , \() -> AstHelpers.patternBindings pattern
+                (\( Node _ pattern, Node resultRange _ ) ->
+                    ( resultRange
+                    , AstHelpers.patternBindings pattern
                     )
                 )
                 caseBlock.cases
 
         Expression.LetExpression letBlock ->
-            let
-                letDeclarationBindingsForImplementation : Expression.LetDeclaration -> Set String
-                letDeclarationBindingsForImplementation letDeclaration =
+            List.foldl
+                (\(Node _ letDeclaration) ->
                     case letDeclaration of
                         Expression.LetFunction letFunctionOrValueDeclaration ->
-                            AstHelpers.patternListBindings
-                                (Node.value letFunctionOrValueDeclaration.declaration).arguments
+                            \soFar ->
+                                RangeDict.insert
+                                    (Node.range (Node.value letFunctionOrValueDeclaration.declaration).expression)
+                                    (AstHelpers.patternListBindings
+                                        (Node.value letFunctionOrValueDeclaration.declaration).arguments
+                                    )
+                                    soFar
 
-                        Expression.LetDestructuring (Node _ pattern) _ ->
-                            AstHelpers.patternBindings pattern
-            in
-            RangeDict.insert (Node.range expression)
-                (\() -> AstHelpers.letDeclarationListBindings letBlock.declarations)
-                (RangeDict.mapFromList
-                    (\(Node letDeclarationRange letDeclaration) ->
-                        ( letDeclarationRange
-                        , \() -> letDeclarationBindingsForImplementation letDeclaration
-                        )
-                    )
-                    letBlock.declarations
+                        _ ->
+                            identity
                 )
+                RangeDict.empty
+                letBlock.declarations
 
         _ ->
             RangeDict.empty
@@ -1315,8 +1334,7 @@ expressionExitVisitor node context =
             else
                 { context
                     | localBindings =
-                        RangeDict.diff context.localBindings
-                            (expressionSurfaceRangesAfterPatterns node)
+                        RangeDict.remove (Node.range node) context.localBindings
                 }
     in
     if RangeDict.member (Node.range node) context.inferredConstantsDict then
