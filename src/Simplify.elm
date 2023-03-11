@@ -1107,11 +1107,11 @@ dependenciesVisitor typeNamesAsStrings dict context =
 
         dependencyExposedVariants : Dict ModuleName (Set String)
         dependencyExposedVariants =
-            modules
-                |> List.map
-                    (\moduleDoc ->
-                        ( AstHelpers.moduleNameFromString moduleDoc.name
-                        , moduleDoc.unions
+            List.foldl
+                (\moduleDoc acc ->
+                    Dict.insert
+                        (AstHelpers.moduleNameFromString moduleDoc.name)
+                        (moduleDoc.unions
                             |> List.concatMap
                                 (\union ->
                                     union.tags
@@ -1119,8 +1119,10 @@ dependenciesVisitor typeNamesAsStrings dict context =
                                 )
                             |> Set.fromList
                         )
-                    )
-                |> Dict.fromList
+                        acc
+                )
+                Dict.empty
+                modules
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
