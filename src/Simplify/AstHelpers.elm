@@ -1,4 +1,4 @@
-module Simplify.AstHelpers exposing (declarationListBindings, getBooleanPattern, getOrder, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, nameOfExpose, patternBindings, patternListBindings, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing (boolToString, declarationListBindings, getBool, getBooleanPattern, getCollapsedCons, getListLiteral, getOrder, getTuple, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificBool, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, nameOfExpose, patternBindings, patternListBindings, removeParens, removeParensFromPattern)
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
@@ -6,6 +6,7 @@ import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
+import Elm.Syntax.Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Set exposing (Set)
 import Simplify.Infer as Infer
@@ -234,6 +235,72 @@ isListLiteral node =
 
         _ ->
             False
+
+
+getListLiteral : Node Expression -> Maybe (List (Node Expression))
+getListLiteral expressionNode =
+    case Node.value expressionNode of
+        Expression.ListExpr list ->
+            Just list
+
+        _ ->
+            Nothing
+
+
+getCollapsedCons : Node Expression -> Maybe { consed : List (Node Expression), tail : Node Expression }
+getCollapsedCons expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.OperatorApplication "::" _ head tail ->
+            let
+                tailCollapsed : Maybe { consed : List (Node Expression), tail : Node Expression }
+                tailCollapsed =
+                    getCollapsedCons tail
+            in
+            case tailCollapsed of
+                Nothing ->
+                    Just { consed = [ head ], tail = tail }
+
+                Just tailCollapsedList ->
+                    Just { consed = head :: tailCollapsedList.consed, tail = tailCollapsedList.tail }
+
+        _ ->
+            Nothing
+
+
+getBool : ModuleNameLookupTable -> Node Expression -> Maybe Bool
+getBool lookupTable expressionNode =
+    if isSpecificBool True lookupTable expressionNode then
+        Just True
+
+    else if isSpecificBool False lookupTable expressionNode then
+        Just False
+
+    else
+        Nothing
+
+
+isSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificBool specificBool lookupTable expressionNode =
+    isSpecificValueOrFunction [ "Basics" ] (boolToString specificBool) lookupTable expressionNode
+
+
+boolToString : Bool -> String
+boolToString bool =
+    if bool then
+        "True"
+
+    else
+        "False"
+
+
+getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
+getTuple expressionNode =
+    case Node.value expressionNode of
+        Expression.TupledExpression (first :: second :: []) ->
+            Just { range = Node.range expressionNode, first = first, second = second }
+
+        _ ->
+            Nothing
 
 
 getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool

@@ -708,6 +708,15 @@ All of these also apply for `Sub`.
     --> Cmd.none
 
 
+### Html.Attributes
+
+    Html.Attributes.classList [ x, y, ( z, False ) ]
+    --> Html.Attributes.classList [ x, y ]
+
+    Html.Attributes.classList [ ( onlyOneThing, True ) ]
+    --> Html.Attributes.class onlyOneThing
+
+
 ### Json.Decode
 
     Json.Decode.oneOf [ a ]
@@ -2144,6 +2153,7 @@ functionCallChecks =
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
         , ( ( [ "Platform", "Sub" ], "map" ), collectionMapChecks subCollection )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
+        , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Parser", "Advanced" ], "oneOf" ), oneOfChecks )
         ]
@@ -2420,21 +2430,6 @@ divisionChecks checkInfo =
         []
 
 
-findMap : (a -> Maybe b) -> List a -> Maybe b
-findMap mapper nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        node :: rest ->
-            case mapper node of
-                Just value ->
-                    Just value
-
-                Nothing ->
-                    findMap mapper rest
-
-
 plusplusChecks : OperatorCheckInfo -> List (Error {})
 plusplusChecks checkInfo =
     case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
@@ -2673,12 +2668,12 @@ basicsNotChecks checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
             [ Rule.errorWithFix
-                { message = "Expression is equal to " ++ boolToString (not bool)
+                { message = "Expression is equal to " ++ AstHelpers.boolToString (not bool)
                 , details = [ "You can replace the call to `not` by the boolean value directly." ]
                 }
                 checkInfo.parentRange
                 [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], boolToString (not bool) ) checkInfo))
+                    (qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString (not bool) ) checkInfo))
                 ]
             ]
 
@@ -2872,7 +2867,7 @@ rangeAndFixForRedundantCondition redundantConditionResolution node qualifyResour
             in
             ( range
             , [ Fix.replaceRangeBy range
-                    (qualifiedToString (qualify ( [ "Basics" ], boolToString noopValue ) qualifyResources))
+                    (qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString noopValue ) qualifyResources))
               ]
             )
 
@@ -3313,7 +3308,7 @@ comparisonError bool range =
     let
         boolAsString : String
         boolAsString =
-            boolToString bool
+            AstHelpers.boolToString bool
     in
     Rule.errorWithFix
         { message = "Comparison is always " ++ boolAsString
@@ -3562,7 +3557,7 @@ stringIsEmptyChecks checkInfo =
             let
                 replacementValue : String
                 replacementValue =
-                    boolToString (str == "")
+                    AstHelpers.boolToString (str == "")
             in
             [ Rule.errorWithFix
                 { message = "The call to String.isEmpty will result in " ++ replacementValue
@@ -4909,18 +4904,18 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         boolBinaryOperationChecks operation initialIsDetermining =
                             if initialIsDetermining == operation.determining then
                                 [ Rule.errorWithFix
-                                    { message = "The call to List." ++ foldOperationName ++ " will result in " ++ boolToString operation.determining
-                                    , details = [ "You can replace this call by " ++ boolToString operation.determining ++ "." ]
+                                    { message = "The call to List." ++ foldOperationName ++ " will result in " ++ AstHelpers.boolToString operation.determining
+                                    , details = [ "You can replace this call by " ++ AstHelpers.boolToString operation.determining ++ "." ]
                                     }
                                     checkInfo.fnRange
-                                    (replaceByEmptyFix (boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                                    (replaceByEmptyFix (AstHelpers.boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo) checkInfo)
                                 ]
 
                             else
                                 -- initialIsTrue /= operation.determining
                                 [ Rule.errorWithFix
                                     { message = "Use List." ++ operation.list ++ " identity instead"
-                                    , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ boolToString (not operation.determining) ++ " is the same as using List." ++ operation.list ++ " identity." ]
+                                    , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using List." ++ operation.list ++ " identity." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy
@@ -5663,6 +5658,122 @@ subAndCmdBatchChecks moduleName checkInfo =
 
         _ ->
             []
+
+
+
+-- HTML.ATTRIBUTES
+
+
+htmlAttributesClassListFalseElementError : { message : String, details : List String }
+htmlAttributesClassListFalseElementError =
+    { message = "In a Html.Attributes.classList, a tuple paired with False can be removed"
+    , details = [ "You can remove the tuple list element where the second part is False." ]
+    }
+
+
+htmlAttributesClassListChecks : CheckInfo -> List (Error {})
+htmlAttributesClassListChecks checkInfo =
+    let
+        listArg : Node Expression
+        listArg =
+            checkInfo.firstArg
+
+        getTupleWithSecond : Node Expression -> Maybe { range : Range, first : Node Expression, second : Bool }
+        getTupleWithSecond expressionNode =
+            case AstHelpers.getTuple expressionNode of
+                Just tuple ->
+                    case AstHelpers.getBool checkInfo.lookupTable tuple.second of
+                        Just bool ->
+                            Just { range = tuple.range, first = tuple.first, second = bool }
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+        getTupleWithSpecificSecond : Bool -> Node Expression -> Maybe { range : Range, first : Node Expression }
+        getTupleWithSpecificSecond specificBool expressionNode =
+            case AstHelpers.getTuple expressionNode of
+                Just tuple ->
+                    if AstHelpers.isSpecificBool specificBool checkInfo.lookupTable tuple.second then
+                        Just { range = tuple.range, first = tuple.first }
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+
+        singleElementListChecks : { a | element : Node Expression } -> List (Error {})
+        singleElementListChecks single =
+            case getTupleWithSecond single.element of
+                Just tuple ->
+                    if tuple.second then
+                        singleTrueChecks tuple
+
+                    else
+                        [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy (Node.range listArg) "[]" ]
+                        ]
+
+                Nothing ->
+                    []
+
+        singleTrueChecks : { a | first : Node Expression } -> List (Error {})
+        singleTrueChecks { first } =
+            [ Rule.errorWithFix
+                { message = "Html.Attributes.classList with a single tuple paired with True can be replaced with Html.Attributes.class"
+                , details = [ "You can replace this call by Html.Attributes.class with the String from the single tuple list element." ]
+                }
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = Node.range listArg, keep = Node.range first }
+                    ++ parenthesizeIfNeededFix first
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange "Html.Attributes.class"
+                       ]
+                )
+            ]
+    in
+    case AstHelpers.getListLiteral listArg of
+        Just (single :: []) ->
+            singleElementListChecks { element = single }
+
+        Just nonSingletonList ->
+            case findMapNeighboring (getTupleWithSpecificSecond False) nonSingletonList of
+                Just classPart ->
+                    [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                        checkInfo.fnRange
+                        (listLiteralElementRemoveFix classPart)
+                    ]
+
+                Nothing ->
+                    []
+
+        Nothing ->
+            case AstHelpers.getCollapsedCons listArg of
+                Just classParts ->
+                    case findMapNeighboring (getTupleWithSpecificSecond False) classParts.consed of
+                        Just classPart ->
+                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                checkInfo.fnRange
+                                (collapsedConsRemoveElementFix
+                                    { toRemove = classPart
+                                    , tailRange = Node.range classParts.tail
+                                    }
+                                )
+                            ]
+
+                        Nothing ->
+                            []
+
+                Nothing ->
+                    case getListSingletonCall checkInfo.lookupTable listArg of
+                        Just single ->
+                            singleElementListChecks single
+
+                        Nothing ->
+                            []
 
 
 
@@ -7163,14 +7274,14 @@ replaceByBoolFix : Range -> Maybe a -> Bool -> QualifyResources b -> List Fix
 replaceByBoolFix parentRange lastArg replacementValue qualifyResources =
     [ case lastArg of
         Just _ ->
-            Fix.replaceRangeBy parentRange (boolToString replacementValue)
+            Fix.replaceRangeBy parentRange (AstHelpers.boolToString replacementValue)
 
         Nothing ->
             Fix.replaceRangeBy parentRange
                 ("("
                     ++ qualifiedToString (qualify ( [ "Basics" ], "always" ) qualifyResources)
                     ++ " "
-                    ++ qualifiedToString (qualify ( [ "Basics" ], boolToString replacementValue ) qualifyResources)
+                    ++ qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString replacementValue ) qualifyResources)
                     ++ ")"
                 )
     ]
@@ -7209,6 +7320,68 @@ toIdentityFix config =
             keepOnlyFix { parentRange = config.parentRange, keep = lastArgRange }
 
 
+{-| Use in combination with
+`findMapNeighboring` where finding returns a record containing the element's Range
+Works for patterns and expressions.
+-}
+listLiteralElementRemoveFix : { before : Maybe (Node element), found : { found | range : Range }, after : Maybe (Node element) } -> List Fix
+listLiteralElementRemoveFix toRemove =
+    case ( toRemove.before, toRemove.after ) of
+        -- found the only element
+        ( Nothing, Nothing ) ->
+            [ Fix.removeRange toRemove.found.range ]
+
+        -- found first element
+        ( Nothing, Just after ) ->
+            [ Fix.removeRange
+                { start = toRemove.found.range.start
+                , end = (Node.range after).start
+                }
+            ]
+
+        -- found after first element
+        ( Just before, _ ) ->
+            [ Fix.removeRange
+                { start = (Node.range before).end
+                , end = toRemove.found.range.end
+                }
+            ]
+
+
+{-| Use in combination with
+`findMapNeighboring` where finding returns a record containing the element's Range
+Works for patterns and expressions.
+-}
+collapsedConsRemoveElementFix :
+    { toRemove : { before : Maybe (Node element), after : Maybe (Node element), found : { found | range : Range } }
+    , tailRange : Range
+    }
+    -> List Fix
+collapsedConsRemoveElementFix { toRemove, tailRange } =
+    case ( toRemove.before, toRemove.after ) of
+        -- found the only consed element
+        ( Nothing, Nothing ) ->
+            [ Fix.removeRange
+                { start = toRemove.found.range.start, end = tailRange.start }
+            ]
+
+        -- found first consed element
+        ( Nothing, Just after ) ->
+            [ Fix.removeRange
+                { start = toRemove.found.range.start
+                , end = (Node.range after).start
+                }
+            ]
+
+        -- found after first consed element
+        ( Just before, _ ) ->
+            [ Fix.removeRange
+                { start = (Node.range before).end
+                , end = toRemove.found.range.end
+                }
+            ]
+
+
 
 -- STRING
 
@@ -7216,15 +7389,6 @@ toIdentityFix config =
 emptyStringAsString : String
 emptyStringAsString =
     "\"\""
-
-
-boolToString : Bool -> String
-boolToString bool =
-    if bool then
-        "True"
-
-    else
-        "False"
 
 
 orderToString : Order -> String
@@ -7641,3 +7805,42 @@ combineResultValuesHelp lookupTable nodes soFar =
 
         [] ->
             Just soFar
+
+
+
+-- LIST HELPERS
+
+
+findMap : (a -> Maybe b) -> List a -> Maybe b
+findMap mapper nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        node :: rest ->
+            case mapper node of
+                Just value ->
+                    Just value
+
+                Nothing ->
+                    findMap mapper rest
+
+
+findMapNeighboring : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapNeighboring tryMap list =
+    findMapNeighboringAfter Nothing tryMap list
+
+
+findMapNeighboringAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapNeighboringAfter before tryMap list =
+    case list of
+        [] ->
+            Nothing
+
+        now :: after ->
+            case tryMap now of
+                Just found ->
+                    Just { before = before, found = found, after = after |> List.head }
+
+                Nothing ->
+                    findMapNeighboringAfter (Just now) tryMap after
