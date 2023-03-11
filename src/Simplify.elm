@@ -1048,12 +1048,17 @@ moduleExposingContext moduleHeader =
 
         Exposing.Explicit some ->
             ExposedSome
-                (some
-                    |> List.filterMap
-                        (\(Node _ expose) ->
-                            AstHelpers.getTypeExposeIncludingVariants expose
-                        )
-                    |> Set.fromList
+                (List.foldl
+                    (\(Node _ expose) acc ->
+                        case AstHelpers.getTypeExposeIncludingVariants expose of
+                            Just name ->
+                                Set.insert name acc
+
+                            Nothing ->
+                                acc
+                    )
+                    Set.empty
+                    some
                 )
 
 
