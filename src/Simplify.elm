@@ -1121,7 +1121,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
                         )
                         acc
                 )
-                Dict.empty
+                context.exposedVariants
                 modules
     in
     ( if List.isEmpty unknownTypesToIgnore then
@@ -1130,7 +1130,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
       else
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
     , { customTypesToReportInCases = customTypesToReportInCases
-      , exposedVariants = Dict.union dependencyExposedVariants context.exposedVariants
+      , exposedVariants = dependencyExposedVariants
       }
     )
 
