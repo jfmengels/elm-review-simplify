@@ -941,7 +941,7 @@ fromProjectToModule =
                             in
                             insertImport importInfo.moduleName { alias = importInfo.alias, exposed = importInfo.exposed } importLookup
                         )
-                        Dict.empty
+                        implicitImports
                         fullAst.imports
             in
             { lookupTable = lookupTable
@@ -949,7 +949,7 @@ fromProjectToModule =
             , exposedVariantTypes = moduleExposedVariantTypes
             , importLookup =
                 createImportLookup
-                    { imports = Dict.union imports implicitImports
+                    { imports = imports
                     , importExposedVariants = projectContext.exposedVariants
                     }
             , moduleBindings = Set.empty
