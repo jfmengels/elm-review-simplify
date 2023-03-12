@@ -1,4 +1,36 @@
-module Simplify.AstHelpers exposing (boolToString, declarationListBindings, emptyStringAsString, getBool, getBooleanPattern, getCollapsedCons, getListLiteral, getOrder, getTuple, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificBool, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, moduleNameFromString, nameOfExpose, orderToString, patternBindings, patternListBindings, qualifiedToString, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing
+    ( boolToString
+    , declarationListBindings
+    , emptyStringAsString
+    , getBool
+    , getBooleanPattern
+    , getCollapsedCons
+    , getListLiteral
+    , getListSingletonCall
+    , getNotFunction
+    , getOrder
+    , getSpecificFunction
+    , getSpecificFunctionCall
+    , getTuple
+    , getTypeExposeIncludingVariants
+    , getUncomputedNumberValue
+    , isBinaryOperation
+    , isEmptyList
+    , isIdentity
+    , isListLiteral
+    , isSpecificBool
+    , isSpecificCall
+    , isSpecificValueOrFunction
+    , letDeclarationListBindings
+    , moduleNameFromString
+    , nameOfExpose
+    , orderToString
+    , patternBindings
+    , patternListBindings
+    , qualifiedToString
+    , removeParens
+    , removeParensFromPattern
+    )
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
@@ -53,6 +85,145 @@ isSpecificCall moduleName fnName lookupTable node =
 
         _ ->
             False
+
+
+getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
+getListSingletonCall lookupTable expressionNode =
+    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+        Just singletonCall ->
+            case singletonCall.argsAfterFirst of
+                [] ->
+                    Just { element = singletonCall.firstArg }
+
+                _ :: _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificFunction ( moduleName, name ) lookupTable baseNode =
+    case removeParens baseNode of
+        Node fnRange (Expression.FunctionOrValue _ foundName) ->
+            if
+                (foundName == name)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
+            then
+                Just fnRange
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+getSpecificFunctionCall :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    -> Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            }
+getSpecificFunctionCall ( moduleName, name ) lookupTable baseNode =
+    getFunctionCall baseNode
+        |> Maybe.andThen
+            (\call ->
+                if
+                    (call.fnName /= name)
+                        || (ModuleNameLookupTable.moduleNameAt lookupTable call.fnRange /= Just moduleName)
+                then
+                    Nothing
+
+                else
+                    Just
+                        { nodeRange = call.nodeRange
+                        , fnRange = call.fnRange
+                        , firstArg = call.firstArg
+                        , argsAfterFirst = call.argsAfterFirst
+                        }
+            )
+
+
+getFunctionCall :
+    Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnName : String
+            , fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            }
+getFunctionCall baseNode =
+    case Node.value (removeParens baseNode) of
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsAfterFirst) ->
+            Just
+                { nodeRange = Node.range baseNode
+                , fnRange = fnRange
+                , fnName = fnName
+                , firstArg = firstArg
+                , argsAfterFirst = argsAfterFirst
+                }
+
+        Expression.OperatorApplication "|>" _ firstArg fedFunction ->
+            case fedFunction of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = []
+                        }
+
+                Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst)) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = argsAfterFirst
+                        }
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "<|" _ fedFunction firstArg ->
+            case fedFunction of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = []
+                        }
+
+                Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst)) ->
+                    Just
+                        { nodeRange = Node.range baseNode
+                        , fnRange = fnRange
+                        , fnName = fnName
+                        , firstArg = firstArg
+                        , argsAfterFirst = argsAfterFirst
+                        }
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getNotFunction lookupTable baseNode =
+    getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
