@@ -11,6 +11,7 @@ module Simplify.AstHelpers exposing
     , getOrder
     , getSpecificFunction
     , getSpecificFunctionCall
+    , getSpecificValueOrFunction
     , getTuple
     , getTypeExposeIncludingVariants
     , getUncomputedNumberValue
@@ -74,6 +75,23 @@ isSpecificValueOrFunction moduleName fnName lookupTable node =
 
         _ ->
             False
+
+
+getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe { fnRange : Range }
+getSpecificValueOrFunction ( moduleName, fnName ) lookupTable node =
+    case removeParens node of
+        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
+            if
+                (foundFnName == fnName)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+            then
+                Just { fnRange = noneRange }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
