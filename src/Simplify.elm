@@ -690,7 +690,7 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
-    Dict.partition fn Dict.empty
+    Dict.partition f Dict.empty
     --> ( Dict.empty, Dict.empty )
 
     Dict.partition (always True) dict
