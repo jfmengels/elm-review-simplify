@@ -638,6 +638,9 @@ Destructuring using case expressions
     Set.fromList []
     --> Set.empty
 
+    Set.fromList [ a ]
+    --> Set.singleton a
+
     Set.toList Set.empty
     --> []
 
@@ -2126,7 +2129,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
         , ( ( [ "Set" ], "member" ), collectionMemberChecks setCollection )
-        , ( ( [ "Set" ], "fromList" ), collectionFromListChecks setCollection )
+        , ( ( [ "Set" ], "fromList" ), setFromListChecks )
         , ( ( [ "Set" ], "toList" ), collectionToListChecks setCollection )
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
@@ -2239,6 +2242,7 @@ compositionChecks =
     , concatAndMapCompositionCheck
     , foldAndSetToListCompositionChecks "foldl"
     , foldAndSetToListCompositionChecks "foldr"
+    , setFromListSingletonCompositionChecks
     ]
 
 
@@ -5455,6 +5459,67 @@ listUnzipChecks checkInfo =
             ]
 
         _ ->
+            []
+
+
+setFromListChecks : CheckInfo -> List (Error {})
+setFromListChecks checkInfo =
+    collectionFromListChecks setCollection checkInfo
+        ++ setFromListSingletonChecks checkInfo
+
+
+setFromListSingletonChecks : CheckInfo -> List (Rule.Error {})
+setFromListSingletonChecks checkInfo =
+    case AstHelpers.getListSingletonCall checkInfo.lookupTable checkInfo.firstArg of
+        Nothing ->
+            []
+
+        Just listSingleton ->
+            [ Rule.errorWithFix
+                setFromListSingletonError
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = Node.range checkInfo.firstArg
+                    , keep = Node.range listSingleton.element
+                    }
+                    ++ parenthesizeIfNeededFix listSingleton.element
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo)) ]
+                )
+            ]
+
+
+setFromListSingletonError : { message : String, details : List String }
+setFromListSingletonError =
+    { message = "Set.fromList with a single element can be replaced using Set.singleton"
+    , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+    }
+
+
+setFromListSingletonCompositionChecks : CompositionCheckInfo -> List (Error {})
+setFromListSingletonCompositionChecks checkInfo =
+    let
+        ( earlier, later ) =
+            if checkInfo.fromLeftToRight then
+                ( checkInfo.left, checkInfo.right )
+
+            else
+                ( checkInfo.right, checkInfo.left )
+    in
+    case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "fromList" ) checkInfo.lookupTable later of
+        Just listFoldCall ->
+            if AstHelpers.isSpecificValueOrFunction [ "List" ] "singleton" checkInfo.lookupTable earlier then
+                [ Rule.errorWithFix
+                    setFromListSingletonError
+                    listFoldCall.fnRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo))
+                    ]
+                ]
+
+            else
+                []
+
+        Nothing ->
             []
 
 
