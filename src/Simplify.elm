@@ -434,7 +434,7 @@ Destructuring using case expressions
     List.member a [ b ]
     --> a == b
 
-    List.map fn [] -- same for most List functions like List.filter, List.filterMap, ...
+    List.map f [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
     List.map identity list
@@ -473,8 +473,8 @@ Destructuring using case expressions
     List.concatMap (\a -> [ b ]) list
     --> List.map (\a -> b) list
 
-    List.concatMap fn [ x ]
-    --> fn x
+    List.concatMap f [ x ]
+    --> f x
 
     List.concatMap (always []) list
     --> []
@@ -519,7 +519,7 @@ Destructuring using case expressions
     --> Just a
 
     -- The following simplifications for List.foldl also work for List.foldr
-    List.foldl fn x []
+    List.foldl f x []
     --> x
 
     List.foldl (\_ soFar -> soFar) x list
@@ -552,13 +552,13 @@ Destructuring using case expressions
     List.foldl (||) True list
     --> True
 
-    List.all fn []
+    List.all f []
     --> True
 
     List.all (always True) list
     --> True
 
-    List.any fn []
+    List.any f []
     --> True
 
     List.any (always False) list
@@ -573,7 +573,7 @@ Destructuring using case expressions
     List.repeat 0 x
     --> []
 
-    List.partition fn []
+    List.partition f []
     --> ( [], [] )
 
     List.partition (always True) list
@@ -603,7 +603,7 @@ Destructuring using case expressions
     List.sortWith (\_ _ -> GT) list
     --> list
 
-    -- The following simplifications for List.sort also work for List.sortBy fn and List.sortWith fn
+    -- The following simplifications for List.sort also work for List.sortBy f and List.sortWith f
     List.sort []
     --> []
 
@@ -611,10 +611,10 @@ Destructuring using case expressions
     --> [ a ]
 
     -- same for up to List.map5 when any list is empty
-    List.map2 fn xs []
+    List.map2 f xs []
     --> []
 
-    List.map2 fn [] ys
+    List.map2 f [] ys
     --> []
 
     List.unzip []
@@ -623,7 +623,7 @@ Destructuring using case expressions
 
 ### Sets
 
-    Set.map fn Set.empty -- same for Set.filter, Set.remove...
+    Set.map f Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
 
     Set.map identity set
@@ -666,7 +666,7 @@ Destructuring using case expressions
     List.foldl f x (Set.toList set)
     --> Set.foldl f x set
 
-    Set.partition fn Set.empty
+    Set.partition f Set.empty
     --> ( Set.empty, Set.empty )
 
     Set.partition (always True) set
@@ -716,7 +716,7 @@ All of these also apply for `Sub`.
     Cmd.map identity cmd
     --> cmd
 
-    Cmd.map fn Cmd.none
+    Cmd.map f Cmd.none
     --> Cmd.none
 
 
