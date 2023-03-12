@@ -2088,6 +2088,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "map" ), resultMapChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
+        , ( ( [ "Result" ], "toMaybe" ), resultToMaybeChecks )
         , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "head" ), listHeadChecks )
         , ( ( [ "List" ], "tail" ), listTailChecks )
@@ -2243,6 +2244,7 @@ compositionChecks =
     , foldAndSetToListCompositionChecks "foldl"
     , foldAndSetToListCompositionChecks "foldr"
     , setFromListSingletonCompositionChecks
+    , resultToMaybeCompositionChecks
     ]
 
 
@@ -6051,6 +6053,81 @@ resultWithDefaultChecks checkInfo =
 
         Nothing ->
             []
+
+
+resultToMaybeChecks : CheckInfo -> List (Error {})
+resultToMaybeChecks checkInfo =
+    case getResultValues checkInfo.lookupTable checkInfo.firstArg of
+        Just (Ok okRanges) ->
+            [ Rule.errorWithFix
+                { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                , details = [ "You can replace this call by the value itself wrapped in Just." ]
+                }
+                checkInfo.fnRange
+                (List.map Fix.removeRange okRanges
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                       ]
+                )
+            ]
+
+        Just (Err _) ->
+            [ Rule.errorWithFix
+                { message = "Using Result.toMaybe on an error will result in Nothing"
+                , details = [ "You can replace this call by Nothing." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                ]
+            ]
+
+        Nothing ->
+            []
+
+
+resultToMaybeCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultToMaybeCompositionChecks checkInfo =
+    let
+        ( earlier, later ) =
+            if checkInfo.fromLeftToRight then
+                ( checkInfo.left, checkInfo.right )
+
+            else
+                ( checkInfo.right, checkInfo.left )
+    in
+    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "toMaybe" ) checkInfo.lookupTable later of
+        Nothing ->
+            []
+
+        Just resultToMaybeFunction ->
+            if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Err" checkInfo.lookupTable earlier then
+                [ Rule.errorWithFix
+                    { message = "Using Result.toMaybe on an error will result in Nothing"
+                    , details = [ "You can replace this call by always Nothing." ]
+                    }
+                    resultToMaybeFunction.fnRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                            ++ " "
+                            ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
+                        )
+                    ]
+                ]
+
+            else if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Ok" checkInfo.lookupTable earlier then
+                [ Rule.errorWithFix
+                    { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                    , details = [ "You can replace this call by Just." ]
+                    }
+                    resultToMaybeFunction.fnRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                    ]
+                ]
+
+            else
+                []
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
