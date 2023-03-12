@@ -13811,6 +13811,14 @@ a = Set.size (Set.fromList [a])
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 1
 """
+                        , Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.size (Set.singleton a)
+"""
                         ]
         , test "should replace Set.size (Set.fromList [1, 2, 3]) by 3" <|
             \() ->
@@ -14000,6 +14008,14 @@ a = Set.isEmpty (Set.fromList [x])
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
+"""
+                        , Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.isEmpty (Set.singleton x)
 """
                         ]
         , test "should replace Set.isEmpty (Set.fromList []) by False" <|
