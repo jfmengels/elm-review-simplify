@@ -7617,9 +7617,6 @@ getMaybeValues lookupTable baseNode =
         Expression.LetExpression { expression } ->
             getMaybeValues lookupTable expression
 
-        Expression.ParenthesizedExpression expression ->
-            getMaybeValues lookupTable expression
-
         Expression.IfBlock _ thenBranch elseBranch ->
             combineMaybeValues lookupTable [ thenBranch, elseBranch ]
 
@@ -7679,58 +7676,55 @@ getResultValues lookupTable baseNode =
             AstHelpers.removeParens baseNode
     in
     case Node.value node of
-        Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Ok")) :: arg :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+        Expression.Application ((Node okRange (Expression.FunctionOrValue _ "Ok")) :: arg :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable okRange of
                 Just [ "Result" ] ->
-                    Just (Ok [ { start = justRange.start, end = (Node.range arg).start } ])
+                    Just (Ok [ { start = okRange.start, end = (Node.range arg).start } ])
 
                 _ ->
                     Nothing
 
-        Expression.OperatorApplication "|>" _ arg (Node justRange (Expression.FunctionOrValue _ "Ok")) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+        Expression.OperatorApplication "|>" _ arg (Node okRange (Expression.FunctionOrValue _ "Ok")) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable okRange of
                 Just [ "Result" ] ->
-                    Just (Ok [ { start = (Node.range arg).end, end = justRange.end } ])
+                    Just (Ok [ { start = (Node.range arg).end, end = okRange.end } ])
 
                 _ ->
                     Nothing
 
-        Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Ok")) arg ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+        Expression.OperatorApplication "<|" _ (Node okRange (Expression.FunctionOrValue _ "Ok")) arg ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable okRange of
                 Just [ "Result" ] ->
-                    Just (Ok [ { start = justRange.start, end = (Node.range arg).start } ])
+                    Just (Ok [ { start = okRange.start, end = (Node.range arg).start } ])
 
                 _ ->
                     Nothing
 
-        Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Err")) :: arg :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+        Expression.Application ((Node errRange (Expression.FunctionOrValue _ "Err")) :: arg :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable errRange of
                 Just [ "Result" ] ->
-                    Just (Err { start = justRange.start, end = (Node.range arg).start })
+                    Just (Err { start = errRange.start, end = (Node.range arg).start })
 
                 _ ->
                     Nothing
 
-        Expression.OperatorApplication "|>" _ arg (Node justRange (Expression.FunctionOrValue _ "Err")) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+        Expression.OperatorApplication "|>" _ arg (Node errRange (Expression.FunctionOrValue _ "Err")) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable errRange of
                 Just [ "Result" ] ->
-                    Just (Err { start = (Node.range arg).end, end = justRange.end })
+                    Just (Err { start = (Node.range arg).end, end = errRange.end })
 
                 _ ->
                     Nothing
 
-        Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Err")) arg ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
+        Expression.OperatorApplication "<|" _ (Node errRange (Expression.FunctionOrValue _ "Err")) arg ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable errRange of
                 Just [ "Result" ] ->
-                    Just (Err { start = justRange.start, end = (Node.range arg).start })
+                    Just (Err { start = errRange.start, end = (Node.range arg).start })
 
                 _ ->
                     Nothing
 
         Expression.LetExpression { expression } ->
-            getResultValues lookupTable expression
-
-        Expression.ParenthesizedExpression expression ->
             getResultValues lookupTable expression
 
         Expression.IfBlock _ thenBranch elseBranch ->
