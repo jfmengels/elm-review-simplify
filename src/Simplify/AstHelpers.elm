@@ -6,6 +6,7 @@ module Simplify.AstHelpers exposing
     , getBooleanPattern
     , getCollapsedCons
     , getListLiteral
+    , getListSingleton
     , getListSingletonCall
     , getNotFunction
     , getOrder
@@ -103,6 +104,19 @@ isSpecificCall moduleName fnName lookupTable node =
 
         _ ->
             False
+
+
+getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
+getListSingleton lookupTable baseNode =
+    case Node.value (removeParens baseNode) of
+        Expression.ListExpr [ element ] ->
+            Just { element = element }
+
+        Expression.ListExpr _ ->
+            Nothing
+
+        _ ->
+            getListSingletonCall lookupTable baseNode
 
 
 getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }

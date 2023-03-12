@@ -5470,7 +5470,7 @@ setFromListChecks checkInfo =
 
 setFromListSingletonChecks : CheckInfo -> List (Rule.Error {})
 setFromListSingletonChecks checkInfo =
-    case AstHelpers.getListSingletonCall checkInfo.lookupTable checkInfo.firstArg of
+    case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
         Nothing ->
             []
 
