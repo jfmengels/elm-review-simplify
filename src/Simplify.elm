@@ -1786,13 +1786,13 @@ implicitImports =
     , ( [ "List" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "List", "(::)" ]) } )
     , ( [ "Maybe" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Maybe", "Just", "Nothing" ]) } )
     , ( [ "Result" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Result", "Ok", "Err" ]) } )
-    , ( [ "String" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "String" ]) } )
-    , ( [ "Char" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Char" ]) } )
+    , ( [ "String" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "String") } )
+    , ( [ "Char" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "Char") } )
     , ( [ "Tuple" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
     , ( [ "Debug" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
-    , ( [ "Platform" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Program" ]) } )
-    , ( [ "Platform", "Cmd" ], { alias = Just [ "Cmd" ], exposed = ExposedSome (Set.fromList [ "Cmd" ]) } )
-    , ( [ "Platform", "Sub" ], { alias = Just [ "Sub" ], exposed = ExposedSome (Set.fromList [ "Sub" ]) } )
+    , ( [ "Platform" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "Program") } )
+    , ( [ "Platform", "Cmd" ], { alias = Just [ "Cmd" ], exposed = ExposedSome (Set.singleton "Cmd") } )
+    , ( [ "Platform", "Sub" ], { alias = Just [ "Sub" ], exposed = ExposedSome (Set.singleton "Sub") } )
     ]
         |> Dict.fromList
 
