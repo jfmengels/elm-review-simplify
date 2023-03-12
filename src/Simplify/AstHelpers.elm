@@ -1,4 +1,4 @@
-module Simplify.AstHelpers exposing (boolToString, declarationListBindings, emptyStringAsString, getBool, getBooleanPattern, getCollapsedCons, getListLiteral, getOrder, getTuple, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificBool, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, moduleNameFromString, nameOfExpose, orderToString, patternBindings, patternListBindings, qualifiedToString, removeParens, removeParensFromPattern)
+module Simplify.AstHelpers exposing (boolToString, declarationListBindings, emptyStringAsString, getBool, getBooleanPattern, getCollapsedCons, getListLiteral, getListSingleton, getListSingletonCall, getOrder, getSpecificFunction, getSpecificFunctionCall, getSpecificValueOrFunction, getTuple, getTypeExposeIncludingVariants, getUncomputedNumberValue, isBinaryOperation, isEmptyList, isIdentity, isListLiteral, isSpecificBool, isSpecificCall, isSpecificValueOrFunction, letDeclarationListBindings, moduleNameFromString, nameOfExpose, orderToString, patternBindings, patternListBindings, qualifiedToString, removeParens, removeParensFromPattern)
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
@@ -33,6 +33,98 @@ removeParensFromPattern node =
             node
 
 
+getSpecificFunctionCall :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    -> Node Expression
+    ->
+        Maybe
+            { fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            , usingRightPizza : Bool
+            }
+getSpecificFunctionCall ( moduleName, name ) lookupTable expression =
+    Maybe.andThen
+        (\found ->
+            if
+                (ModuleNameLookupTable.moduleNameAt lookupTable found.fnRange == Just moduleName)
+                    && (found.fnName == name)
+            then
+                Just
+                    { fnRange = found.fnRange
+                    , firstArg = found.firstArg
+                    , argsAfterFirst = found.argsAfterFirst
+                    , usingRightPizza = found.usingRightPizza
+                    }
+
+            else
+                Nothing
+        )
+        (getFunctionCall expression)
+
+
+getFunctionCall :
+    Node Expression
+    ->
+        Maybe
+            { fnName : String
+            , fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            , usingRightPizza : Bool
+            }
+getFunctionCall expression =
+    case Node.value (removeParens expression) of
+        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
+            Just
+                { fnName = fnName
+                , fnRange = fnRange
+                , firstArg = firstArg
+                , argsAfterFirst = restOfArguments
+                , usingRightPizza = False
+                }
+
+        Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
+            Just
+                { fnName = fnName
+                , fnRange = fnRange
+                , firstArg = firstArg
+                , argsAfterFirst = []
+                , usingRightPizza = False
+                }
+
+        Expression.OperatorApplication "<|" _ (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast))) lastArg ->
+            Just
+                { fnName = fnName
+                , fnRange = fnRange
+                , firstArg = firstArg
+                , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
+                , usingRightPizza = False
+                }
+
+        Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
+            Just
+                { fnName = fnName
+                , fnRange = fnRange
+                , firstArg = firstArg
+                , argsAfterFirst = []
+                , usingRightPizza = True
+                }
+
+        Expression.OperatorApplication "|>" _ lastArg (Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast))) ->
+            Just
+                { fnName = fnName
+                , fnRange = fnRange
+                , firstArg = firstArg
+                , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
+                , usingRightPizza = True
+                }
+
+        _ ->
+            Nothing
+
+
 isSpecificValueOrFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
 isSpecificValueOrFunction moduleName fnName lookupTable node =
     case removeParens node of
@@ -44,6 +136,23 @@ isSpecificValueOrFunction moduleName fnName lookupTable node =
             False
 
 
+getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe { fnRange : Range }
+getSpecificValueOrFunction ( moduleName, fnName ) lookupTable node =
+    case removeParens node of
+        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
+            if
+                (foundFnName == fnName)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+            then
+                Just { fnRange = noneRange }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
 isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
 isSpecificCall moduleName fnName lookupTable node =
     case Node.value (removeParens node) of
@@ -53,6 +162,23 @@ isSpecificCall moduleName fnName lookupTable node =
 
         _ ->
             False
+
+
+getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificFunction ( moduleName, name ) lookupTable baseNode =
+    case removeParens baseNode of
+        Node fnRange (Expression.FunctionOrValue _ foundName) ->
+            if
+                (foundName == name)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
+            then
+                Just fnRange
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
@@ -265,6 +391,34 @@ getCollapsedCons expressionNode =
 
         _ ->
             Nothing
+
+
+getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { onlyElement : Node Expression }
+getListSingletonCall lookupTable expressionNode =
+    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+        Just singletonCall ->
+            case singletonCall.argsAfterFirst of
+                [] ->
+                    Just { onlyElement = singletonCall.firstArg }
+
+                _ :: _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+getListSingleton : Node Expression -> ModuleNameLookupTable -> Maybe { onlyElement : Node Expression }
+getListSingleton expressionNode lookupTable =
+    case getListLiteral expressionNode of
+        Just [ onlyElement ] ->
+            Just { onlyElement = onlyElement }
+
+        Just _ ->
+            Nothing
+
+        Nothing ->
+            getListSingletonCall lookupTable expressionNode
 
 
 getBool : ModuleNameLookupTable -> Node Expression -> Maybe Bool

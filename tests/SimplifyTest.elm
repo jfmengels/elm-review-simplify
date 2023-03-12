@@ -13805,6 +13805,14 @@ a = Set.size (Set.fromList [a])
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 1
 """
+                        , Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.size (Set.singleton a)
+"""
                         ]
         , test "should replace Set.size (Set.fromList [1, 2, 3]) by 3" <|
             \() ->
@@ -13995,6 +14003,14 @@ a = Set.isEmpty (Set.fromList [x])
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
 """
+                        , Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.isEmpty (Set.singleton x)
+"""
                         ]
         , test "should replace Set.isEmpty (Set.fromList []) by False" <|
             \() ->
@@ -14063,7 +14079,7 @@ setFromListTests =
                 """module A exposing (..)
 a = Set.fromList
 b = Set.fromList list
-c = Set.fromList [x]
+c = Set.fromList (x :: ys)
 d = Set.fromList [x, y]
 """
                     |> Review.Test.run (rule defaults)
@@ -14082,6 +14098,118 @@ a = Set.fromList []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Set.empty
+"""
+                        ]
+        , test "should replace Set.fromList [ a ] by Set.singleton a" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList [ b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton b
+"""
+                        ]
+        , test "should replace Set.fromList [ f a ] by Set.singleton (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList [ f b ]
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton (f b)
+"""
+                        ]
+        , test "should replace Set.fromList (List.singleton a) by Set.singleton a" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList (List.singleton b)
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton b
+"""
+                        ]
+        , test "should replace Set.fromList <| List.singleton a by Set.singleton <| a" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList <| List.singleton b
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton <| b
+"""
+                        ]
+        , test "should replace List.singleton a |> Set.fromList by a |> Set.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton b |> Set.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> Set.singleton
+"""
+                        ]
+        , test "should replace List.singleton >> Set.fromList by Set.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton >> Set.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton
+"""
+                        ]
+        , test "should replace Set.fromList << List.singleton by Set.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList << List.singleton
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
+                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.singleton
 """
                         ]
         ]
