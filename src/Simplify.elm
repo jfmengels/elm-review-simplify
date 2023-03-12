@@ -690,6 +690,15 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
+    Dict.partition fn Dict.empty
+    --> ( Dict.empty, Dict.empty )
+
+    Dict.partition (always True) dict
+    --> ( dict, Dict.empty )
+
+    Dict.partition (always False) dict
+    --> ( Dict.empty, dict )
+
 
 ### Cmd / Sub
 
@@ -2141,6 +2150,7 @@ functionCallChecks =
         , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
         , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
         , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
+        , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
         , ( ( [ "String" ], "fromList" ), stringFromListChecks )
         , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
