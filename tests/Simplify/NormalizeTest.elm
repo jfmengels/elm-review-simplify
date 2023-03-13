@@ -621,6 +621,12 @@ normalizeWithInferredAndExpect moduleNames inferredList expected source =
 
 normalizeBase : List ( Range, ModuleName ) -> Infer.Inferred -> Expression -> String -> Expect.Expectation
 normalizeBase moduleNames inferred expected source =
+    normalizeSourceCode moduleNames inferred source
+        |> Expect.equal expected
+
+
+normalizeSourceCode : List ( Range, ModuleName ) -> Infer.Inferred -> String -> Expression
+normalizeSourceCode moduleNames inferred source =
     ("module A exposing (..)\nvalue = " ++ source)
         |> parse
         |> getValue
@@ -629,7 +635,6 @@ normalizeBase moduleNames inferred expected source =
             , inferredConstants = ( inferred, [] )
             }
         |> Node.value
-        |> Expect.equal expected
 
 
 {-| Parse source code into a AST.
