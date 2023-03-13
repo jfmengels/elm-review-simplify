@@ -4094,35 +4094,36 @@ resultMapErrorCompositionChecks checkInfo =
             else
                 ( checkInfo.right, checkInfo.left )
     in
-    case getSpecificFunctionCall ( [ "Result" ], "mapError" ) checkInfo.lookupTable later of
+    case AstHelpers.getSpecificReducedFunctionCall ( [ "Result" ], "mapError" ) checkInfo.lookupTable later of
         Nothing ->
             []
 
         Just resultMapErrorCall ->
             firstThatReportsError
                 [ \() ->
-                    if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Err" checkInfo.lookupTable earlier then
-                        [ Rule.errorWithFix
-                            resultMapErrorOnErrErrorInfo
-                            resultMapErrorCall.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultMapErrorCall.firstArg }
-                                ++ [ if checkInfo.fromLeftToRight then
-                                        -- >>
-                                        Fix.insertAt checkInfo.parentRange.end
-                                            (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
+                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Err" ) checkInfo.lookupTable earlier of
+                        Nothing ->
+                            []
 
-                                     else
-                                        -- <<
-                                        Fix.insertAt checkInfo.parentRange.start
-                                            (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
-                                   ]
-                            )
-                        ]
+                        Just _ ->
+                            [ Rule.errorWithFix
+                                resultMapErrorOnErrErrorInfo
+                                resultMapErrorCall.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultMapErrorCall.firstArg }
+                                    ++ [ if checkInfo.fromLeftToRight then
+                                            -- >>
+                                            Fix.insertAt checkInfo.parentRange.end
+                                                (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
 
-                    else
-                        []
+                                         else
+                                            -- <<
+                                            Fix.insertAt checkInfo.parentRange.start
+                                                (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
+                                       ]
+                                )
+                            ]
                 , \() ->
-                    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable earlier of
+                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable earlier of
                         Nothing ->
                             []
 
