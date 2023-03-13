@@ -714,6 +714,12 @@ Destructuring using case expressions
     Dict.partition (always False) dict
     --> ( Dict.empty, dict )
 
+    List.map Tuple.first (Dict.toList dict)
+    --> Dict.keys x
+
+    List.map Tuple.second (Dict.toList dict)
+    --> Dict.values x
+
 
 ### Cmd / Sub
 
