@@ -3982,7 +3982,8 @@ resultMapChecks checkInfo =
                         checkInfo.fnRange
                         (if checkInfo.usingRightPizza then
                             [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            , Fix.insertAt (Node.range checkInfo.firstArg).end " |> Ok"
+                            , Fix.insertAt (Node.range checkInfo.firstArg).end
+                                (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Ok" ) checkInfo))
                             ]
                                 ++ List.map Fix.removeRange okRanges
 
