@@ -12751,6 +12751,7 @@ resultTests : Test
 resultTests =
     describe "Result"
         [ resultMapTests
+        , resultMapErrorTests
         , resultAndThenTests
         , resultWithDefaultTests
         , resultToMaybeTests
@@ -13069,6 +13070,325 @@ a = Ok >> Result.map f >> g
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = f >> Ok >> g
+"""
+                        ]
+        ]
+
+
+resultMapErrorTests : Test
+resultMapErrorTests =
+    describe "Result.mapError"
+        [ test "should not report Result.mapError used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError
+b = Result.mapError f
+c = Result.mapError f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Result.mapError f (Ok z) by (Ok z)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f (Ok z)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
+                            , details = [ "You can remove the Result.mapError call." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Ok z)
+"""
+                        ]
+        , test "should replace Result.mapError f <| Ok z by Ok z" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f <| Ok z
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
+                            , details = [ "You can remove the Result.mapError call." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok z
+"""
+                        ]
+        , test "should replace Ok z |> Result.mapError f by Ok z" <|
+            \() ->
+                """module A exposing (..)
+a = Ok z |> Result.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
+                            , details = [ "You can remove the Result.mapError call." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok z
+"""
+                        ]
+        , test "should replace Result.mapError identity x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError identity x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError identity will always return the same result"
+                            , details = [ "You can replace this call by the result itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Result.mapError identity <| x by x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError identity <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError identity will always return the same result"
+                            , details = [ "You can replace this call by the result itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace x |> Result.mapError identity by x" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Result.mapError identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError identity will always return the same result"
+                            , details = [ "You can replace this call by the result itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Result.mapError identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError identity will always return the same result"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Result.mapError <| identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError <| identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError identity will always return the same result"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace identity |> Result.mapError by identity" <|
+            \() ->
+                """module A exposing (..)
+a = identity |> Result.mapError
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError identity will always return the same result"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Result.mapError f (Err x) by Err (f x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f (Err x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err (f x)
+"""
+                        ]
+        , test "should replace Result.mapError f <| Err x by Err (f x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f <| Err x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err (f <| x)
+"""
+                        ]
+        , test "should replace Err x |> Result.mapError f by x |> f |> Err" <|
+            \() ->
+                """module A exposing (..)
+a = Err x |> Result.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> Err
+"""
+                        ]
+        , test "should replace x |> Err |> Result.mapError f by x |> f |> Err" <|
+            \() ->
+                """module A exposing (..)
+a = x |> Err |> Result.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> Err
+"""
+                        ]
+        , test "should replace Result.mapError f <| Err <| x by Err <| f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f <| Err <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err (f <| x)
+"""
+                        ]
+        , test "should replace Result.mapError f << Err by Err << f" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f << Err
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err << f
+"""
+                        ]
+        , test "should replace Err >> Result.mapError f by f >> Err" <|
+            \() ->
+                """module A exposing (..)
+a = Err >> Result.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f >> Err
+"""
+                        ]
+        , test "should replace Result.mapError f << Err << a by Err << f << a" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f << Err << a
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err << f << a
+"""
+                        ]
+        , test "should replace g << Result.mapError f << Err by g << Err << f" <|
+            \() ->
+                """module A exposing (..)
+a = g << Result.mapError f << Err
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = g << Err << f
+"""
+                        ]
+        , test "should replace Err >> Result.mapError f >> g by f >> Err >> g" <|
+            \() ->
+                """module A exposing (..)
+a = Err >> Result.mapError f >> g
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f >> Err >> g
 """
                         ]
         ]
