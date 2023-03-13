@@ -7458,7 +7458,7 @@ identityError :
     -> Error {}
 identityError config =
     Rule.errorWithFix
-        { message = "Using " ++ config.toFix ++ " will always return the same " ++ config.lastArgName
+        { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgName
         , details =
             case config.lastArg of
                 Nothing ->

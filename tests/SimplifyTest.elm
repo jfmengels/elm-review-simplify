@@ -10814,7 +10814,7 @@ a = List.sortBy (always b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same list"
+                            { message = "Using List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
@@ -10830,7 +10830,7 @@ a = List.sortBy (always b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same list"
+                            { message = "Using List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
@@ -10846,7 +10846,7 @@ a = List.sortBy (\\_ -> b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same list"
+                            { message = "Using List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
@@ -10862,7 +10862,7 @@ a = List.sortBy (\\_ -> b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same list"
+                            { message = "Using List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
@@ -10998,7 +10998,7 @@ a = List.sortWith (always (always GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11014,7 +11014,7 @@ a = List.sortWith (always (always GT)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
@@ -11030,7 +11030,7 @@ a = List.sortWith (\\_ -> (always GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11046,7 +11046,7 @@ a = List.sortWith (\\_ _ -> GT)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11062,7 +11062,7 @@ a = List.sortWith (always (\\_ -> GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11078,7 +11078,7 @@ a = List.sortWith (always (always EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11094,7 +11094,7 @@ a = List.sortWith (always (always EQ)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
@@ -11110,7 +11110,7 @@ a = List.sortWith (\\_ -> (always EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11126,7 +11126,7 @@ a = List.sortWith (\\_ _ -> EQ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -11142,7 +11142,7 @@ a = List.sortWith (always (\\_ -> EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
+                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -13143,7 +13143,7 @@ a = Result.mapError identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same result"
+                            { message = "Using Result.mapError identity will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -13159,7 +13159,7 @@ a = Result.mapError identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same result"
+                            { message = "Using Result.mapError identity will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -13175,7 +13175,7 @@ a = x |> Result.mapError identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same result"
+                            { message = "Using Result.mapError identity will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -13191,7 +13191,7 @@ a = Result.mapError identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same result"
+                            { message = "Using Result.mapError identity will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -13207,7 +13207,7 @@ a = Result.mapError <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same result"
+                            { message = "Using Result.mapError identity will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -13223,7 +13223,7 @@ a = identity |> Result.mapError
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same result"
+                            { message = "Using Result.mapError identity will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
