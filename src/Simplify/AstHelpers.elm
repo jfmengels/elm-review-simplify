@@ -324,10 +324,10 @@ getNotFunction lookupTable baseNode =
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleFirstAccess lookupTable expressionNode =
     case getSpecificReducedFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
-        Nothing ->
-            False
-
         Just _ ->
+            True
+
+        Nothing ->
             isTupleFirstPatternLambda expressionNode
 
 
@@ -335,10 +335,10 @@ isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
     case getSpecificReducedFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
         Nothing ->
-            False
+            isTupleSecondPatternLambda expressionNode
 
         Just _ ->
-            isTupleSecondPatternLambda expressionNode
+            True
 
 
 isTupleFirstPatternLambda : Node Expression -> Bool
