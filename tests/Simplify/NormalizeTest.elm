@@ -8,7 +8,7 @@ import Elm.Processing
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Expression exposing (Expression(..), LetDeclaration(..))
 import Elm.Syntax.File exposing (File)
-import Elm.Syntax.Infix as Infix
+import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern exposing (Pattern(..))
@@ -488,6 +488,31 @@ simpleNormalizationTests =
                             , expression = n (FunctionOrValue [] "x")
                             }
                         )
+        , test "should not change anything about >>" <|
+            \() ->
+                "a >> b >> c >> d"
+                    |> normalizeAndExpect
+                        (OperatorApplication ">>"
+                            Right
+                            (n (FunctionOrValue [] "a"))
+                            (n
+                                (OperatorApplication ">>"
+                                    Right
+                                    (n (FunctionOrValue [] "b"))
+                                    (n
+                                        (OperatorApplication ">>"
+                                            Right
+                                            (n (FunctionOrValue [] "c"))
+                                            (n (FunctionOrValue [] "d"))
+                                        )
+                                    )
+                                )
+                            )
+                        )
+        , test "should switch << to use >>" <|
+            \() ->
+                normalizeSourceCode [] Infer.empty "d << c << b << a"
+                    |> Expect.equal (normalizeSourceCode [] Infer.empty "a >> b >> c >> d")
         ]
 
 
