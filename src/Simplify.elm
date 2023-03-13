@@ -715,10 +715,10 @@ Destructuring using case expressions
     --> ( Dict.empty, dict )
 
     List.map Tuple.first (Dict.toList dict)
-    --> Dict.keys x
+    --> Dict.keys dict
 
     List.map Tuple.second (Dict.toList dict)
-    --> Dict.values x
+    --> Dict.values dict
 
 
 ### Cmd / Sub
