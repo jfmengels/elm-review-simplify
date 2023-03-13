@@ -7707,8 +7707,6 @@ import Dict
 a = Dict.keys <| dict
 """
                         ]
-
-        -- TODO
         , test "should replace Dict.toList dict |> List.map Tuple.first by dict |> Dict.keys" <|
             \() ->
                 """module A exposing (..)
