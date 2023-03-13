@@ -7491,6 +7491,242 @@ a = identity |> List.map
 a = identity
 """
                         ]
+        , test "should replace Dict.toList >> List.map Tuple.first by Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.toList >> List.map Tuple.first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys
+"""
+                        ]
+        , test "should replace Dict.toList >> List.map (\\( part0, _ ) -> part0) by Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.toList >> List.map (\\( part0, _ ) -> part0)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys
+"""
+                        ]
+        , test "should replace List.map Tuple.first << Dict.toList Tuple.first by Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys
+"""
+                        ]
+        , test "should replace Dict.toList >> List.map Tuple.second by Dict.values" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.toList >> List.map Tuple.second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.second is the same as using Dict.values"
+                            , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.values
+"""
+                        ]
+        , test "should replace Dict.toList >> List.map (\\( _, part1 ) -> part1) by Dict.values" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.toList >> List.map (\\( _, part1 ) -> part1)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.second is the same as using Dict.values"
+                            , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.values
+"""
+                        ]
+        , test "should replace List.map Tuple.second << Dict.toList Tuple.second by Dict.values" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.second << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.second is the same as using Dict.values"
+                            , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.values
+"""
+                        ]
+        , test "should replace List.map Tuple.first (Dict.toList dict) by Dict.keys dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first (Dict.toList dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys dict
+"""
+                        ]
+        , test "should replace List.map Tuple.first (Dict.toList <| dict) by Dict.keys dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first (Dict.toList <| dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys dict
+"""
+                        ]
+        , test "should replace List.map Tuple.first (dict |> Dict.toList) by Dict.keys dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first (dict |> Dict.toList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys dict
+"""
+                        ]
+        , test "should replace List.map Tuple.first <| Dict.toList dict by Dict.keys <| dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first <| Dict.toList dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys <| dict
+"""
+                        ]
+        , test "should replace List.map Tuple.first <| (Dict.toList <| dict) by Dict.keys <| dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first <| (Dict.toList <| dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys <| dict
+"""
+                        ]
+        , test "should replace List.map Tuple.first <| (dict |> Dict.toList) by Dict.keys <| dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.map Tuple.first <| (dict |> Dict.toList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys <| dict
+"""
+                        ]
+
+        -- TODO
+        , test "should replace Dict.toList dict |> List.map Tuple.first by dict |> Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.toList dict |> List.map Tuple.first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.keys
+"""
+                        ]
         ]
 
 
