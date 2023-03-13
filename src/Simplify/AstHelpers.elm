@@ -12,6 +12,8 @@ module Simplify.AstHelpers exposing
     , getOrder
     , getSpecificFunction
     , getSpecificFunctionCall
+    , getSpecificReducedFunction
+    , getSpecificReducedFunctionCall
     , getSpecificValueOrFunction
     , getTuple
     , getTypeExposeIncludingVariants
@@ -363,6 +365,124 @@ isIdentity lookupTable baseNode =
 
         _ ->
             False
+
+
+{-| Parses variables and lambdas that are reducible to a variable
+-}
+getSpecificReducedFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe { fnRange : Range }
+getSpecificReducedFunction ( moduleName, name ) lookupTable expressionNode =
+    Maybe.andThen
+        (\reducedFunction ->
+            if
+                (reducedFunction.fnName /= name)
+                    || (ModuleNameLookupTable.moduleNameAt lookupTable reducedFunction.fnRange /= Just moduleName)
+            then
+                Nothing
+
+            else
+                Just { fnRange = reducedFunction.fnRange }
+        )
+        (getReducedFunction expressionNode)
+
+
+{-| Parses variables and lambdas that are reducible to a variable
+-}
+getReducedFunction : Node Expression -> Maybe { fnRange : Range, fnName : String }
+getReducedFunction expressionNode =
+    case removeParens expressionNode of
+        Node fnRange (Expression.FunctionOrValue _ fnName) ->
+            Just { fnRange = fnRange, fnName = fnName }
+
+        _ ->
+            Maybe.andThen
+                (\reducedLambdaToCall ->
+                    case ( reducedLambdaToCall.lambdaPatterns, reducedLambdaToCall.callArguments ) of
+                        ( [], [] ) ->
+                            Just { fnRange = reducedLambdaToCall.fnRange, fnName = reducedLambdaToCall.fnName }
+
+                        ( _ :: _, [] ) ->
+                            Nothing
+
+                        ( [], _ :: _ ) ->
+                            Nothing
+
+                        ( _ :: _, _ :: _ ) ->
+                            Nothing
+                )
+                (getReducedLambdaToCall expressionNode)
+
+
+{-| Parses calls and lambdas that are reducible to a call
+-}
+getSpecificReducedFunctionCall :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    -> Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            }
+getSpecificReducedFunctionCall ( moduleName, name ) lookupTable expressionNode =
+    case getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode of
+        Just call ->
+            Just call
+
+        Nothing ->
+            Maybe.andThen
+                (\reducedLambdaToCall ->
+                    case ( reducedLambdaToCall.lambdaPatterns, reducedLambdaToCall.callArguments ) of
+                        ( [], [] ) ->
+                            Nothing
+
+                        ( _ :: _, [] ) ->
+                            Nothing
+
+                        ( _ :: _, _ :: _ ) ->
+                            Nothing
+
+                        ( [], firstArg :: argsAfterFirst ) ->
+                            Just
+                                { nodeRange = reducedLambdaToCall.nodeRange
+                                , fnRange = reducedLambdaToCall.fnRange
+                                , firstArg = firstArg
+                                , argsAfterFirst = argsAfterFirst
+                                }
+                )
+                (getSpecificReducedLambdaToCall ( moduleName, name ) lookupTable expressionNode)
+
+
+getSpecificReducedLambdaToCall :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    -> Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnRange : Range
+            , callArguments : List (Node Expression)
+            , lambdaPatterns : List (Node Pattern)
+            }
+getSpecificReducedLambdaToCall ( moduleName, name ) lookupTable expressionNode =
+    getReducedLambdaToCall expressionNode
+        |> Maybe.andThen
+            (\reducedLambdaToCall ->
+                if
+                    (reducedLambdaToCall.fnName /= name)
+                        || (ModuleNameLookupTable.moduleNameAt lookupTable reducedLambdaToCall.fnRange /= Just moduleName)
+                then
+                    Nothing
+
+                else
+                    Just
+                        { nodeRange = reducedLambdaToCall.nodeRange
+                        , fnRange = reducedLambdaToCall.fnRange
+                        , callArguments = reducedLambdaToCall.callArguments
+                        , lambdaPatterns = reducedLambdaToCall.lambdaPatterns
+                        }
+            )
 
 
 getReducedLambdaToCall :
