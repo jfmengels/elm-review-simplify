@@ -334,11 +334,11 @@ isTupleFirstAccess lookupTable expressionNode =
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
     case getSpecificReducedFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
-        Nothing ->
-            isTupleSecondPatternLambda expressionNode
-
         Just _ ->
             True
+
+        Nothing ->
+            isTupleSecondPatternLambda expressionNode
 
 
 isTupleFirstPatternLambda : Node Expression -> Bool
