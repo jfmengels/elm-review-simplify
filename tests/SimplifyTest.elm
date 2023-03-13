@@ -7343,7 +7343,15 @@ listMapTests =
         [ test "should not report List.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.map f x
+a = List.map
+b = List.map f
+c = List.map f x
+d = List.map f (Dict.fromList dict)
+e = List.map (\\( a, b ) -> a + b) (Dict.fromList dict)
+f = List.map (f >> Tuple.first) (Dict.fromList dict)
+d = List.map f << Dict.fromList
+e = List.map (\\( a, b ) -> a + b) << Dict.fromList
+f = List.map (f >> Tuple.first) << Dict.fromList
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
