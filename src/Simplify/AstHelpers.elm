@@ -25,6 +25,8 @@ module Simplify.AstHelpers exposing
     , isSpecificBool
     , isSpecificCall
     , isSpecificValueOrFunction
+    , isTupleFirstAccess
+    , isTupleSecondAccess
     , letDeclarationListBindings
     , moduleNameFromString
     , nameOfExpose
@@ -317,6 +319,66 @@ getCollapsedValueOrFunction baseNode =
 getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNotFunction lookupTable baseNode =
     getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
+
+
+isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
+isTupleFirstAccess lookupTable expressionNode =
+    case getSpecificReducedFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
+        Nothing ->
+            False
+
+        Just _ ->
+            isTupleFirstPatternLambda expressionNode
+
+
+isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
+isTupleSecondAccess lookupTable expressionNode =
+    case getSpecificReducedFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
+        Nothing ->
+            False
+
+        Just _ ->
+            isTupleSecondPatternLambda expressionNode
+
+
+isTupleFirstPatternLambda : Node Expression -> Bool
+isTupleFirstPatternLambda expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                [ Node _ (Pattern.TuplePattern [ Node _ (Pattern.VarPattern firstVariableName), Node _ Pattern.AllPattern ]) ] ->
+                    case Node.value lambda.expression of
+                        Expression.FunctionOrValue [] resultName ->
+                            resultName == firstVariableName
+
+                        _ ->
+                            False
+
+                _ ->
+                    False
+
+        _ ->
+            False
+
+
+isTupleSecondPatternLambda : Node Expression -> Bool
+isTupleSecondPatternLambda expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                [ Node _ (Pattern.TuplePattern [ Node _ Pattern.AllPattern, Node _ (Pattern.VarPattern firstVariableName) ]) ] ->
+                    case Node.value lambda.expression of
+                        Expression.FunctionOrValue [] resultName ->
+                            resultName == firstVariableName
+
+                        _ ->
+                            False
+
+                _ ->
+                    False
+
+        _ ->
+            False
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
