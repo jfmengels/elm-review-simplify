@@ -365,6 +365,89 @@ isIdentity lookupTable baseNode =
             False
 
 
+getReducedLambdaToCall :
+    Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnName : String
+            , fnRange : Range
+            , callArguments : List (Node Expression)
+            , lambdaPatterns : List (Node Pattern)
+            }
+getReducedLambdaToCall expressionNode =
+    -- maybe a version of this is better located in Normalize?
+    case getCollapsedLambda expressionNode of
+        Just lambda ->
+            case getCollapsedValueOrFunction lambda.expression of
+                Just call ->
+                    let
+                        ( reducedCallArguments, reducedLambdaPatterns ) =
+                            drop2EndingsWhile
+                                (\( argument, pattern ) ->
+                                    case Node.value (removeParens argument) of
+                                        Expression.FunctionOrValue [] argument0Name ->
+                                            case getVarPattern pattern of
+                                                Just pattern0Name ->
+                                                    pattern0Name == argument0Name
+
+                                                _ ->
+                                                    False
+
+                                        _ ->
+                                            False
+                                )
+                                ( call.args
+                                , lambda.patterns
+                                )
+                    in
+                    Just
+                        { nodeRange = Node.range expressionNode
+                        , fnName = call.fnName
+                        , fnRange = call.fnRange
+                        , callArguments = reducedCallArguments
+                        , lambdaPatterns = reducedLambdaPatterns
+                        }
+
+                Nothing ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+{-| Remove elements at the end of both given lists, then repeat for the previous elements until a given test returns False
+-}
+drop2EndingsWhile : (( a, b ) -> Bool) -> ( List a, List b ) -> ( List a, List b )
+drop2EndingsWhile shouldDrop ( aList, bList ) =
+    let
+        ( reducedArgumentsReverse, reducedPatternsReverse ) =
+            drop2BeginningsWhile
+                shouldDrop
+                ( List.reverse aList
+                , List.reverse bList
+                )
+    in
+    ( List.reverse reducedArgumentsReverse, List.reverse reducedPatternsReverse )
+
+
+drop2BeginningsWhile : (( a, b ) -> Bool) -> ( List a, List b ) -> ( List a, List b )
+drop2BeginningsWhile shouldDrop listPair =
+    case listPair of
+        ( [], bList ) ->
+            ( [], bList )
+
+        ( aList, [] ) ->
+            ( aList, [] )
+
+        ( aHead :: aTail, bHead :: bTail ) ->
+            if shouldDrop ( aHead, bHead ) then
+                drop2BeginningsWhile shouldDrop ( aTail, bTail )
+
+            else
+                ( aHead :: aTail, bHead :: bTail )
+
+
 getCollapsedLambda : Node Expression -> Maybe { patterns : List (Node Pattern), expression : Node Expression }
 getCollapsedLambda expressionNode =
     case Node.value (removeParens expressionNode) of
