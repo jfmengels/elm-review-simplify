@@ -374,6 +374,15 @@ Destructuring using case expressions
     Result.map f (Ok x)
     --> Ok (f x)
 
+    Result.mapError identity x
+    --> x
+
+    Result.mapError f (Ok x)
+    --> Ok x
+
+    Result.mapError f (Err x)
+    --> Err (f x)
+
     Result.andThen f (Err x)
     --> Err x
 
