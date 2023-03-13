@@ -2101,6 +2101,7 @@ functionCallChecks =
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
         , ( ( [ "Result" ], "map" ), resultMapChecks )
+        , ( ( [ "Result" ], "mapError" ), resultMapErrorChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
         , ( ( [ "List" ], "append" ), listAppendChecks )
@@ -2253,6 +2254,7 @@ compositionChecks =
     , alwaysCompositionCheck
     , maybeMapCompositionChecks
     , resultMapCompositionChecks
+    , resultMapErrorCompositionChecks
     , filterAndMapCompositionCheck
     , concatAndMapCompositionCheck
     , foldAndSetToListCompositionChecks "foldl"
@@ -3986,6 +3988,139 @@ resultMapChecks checkInfo =
                     []
         ]
         ()
+
+
+resultMapErrorOnErrErrorInfo : { message : String, details : List String }
+resultMapErrorOnErrErrorInfo =
+    { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+    , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+    }
+
+
+resultMapErrorOnOkErrorInfo : { message : String, details : List String }
+resultMapErrorOnOkErrorInfo =
+    { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
+    , details = [ "You can remove the Result.mapError call." ]
+    }
+
+
+resultMapErrorChecks : CheckInfo -> List (Error {})
+resultMapErrorChecks checkInfo =
+    let
+        maybeResultArg : Maybe (Node Expression)
+        maybeResultArg =
+            secondArg checkInfo
+    in
+    firstThatReportsError
+        [ \() ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                [ identityError
+                    { toFix = "Result.mapError identity"
+                    , lastArgName = "result"
+                    , lastArg = maybeResultArg
+                    , resources = checkInfo
+                    }
+                ]
+
+            else
+                []
+        , \() ->
+            case Maybe.andThen (getSpecificFunctionCall ( [ "Result" ], "Err" ) checkInfo.lookupTable) maybeResultArg of
+                Nothing ->
+                    []
+
+                Just errCall ->
+                    [ Rule.errorWithFix
+                        resultMapErrorOnErrErrorInfo
+                        checkInfo.fnRange
+                        (if checkInfo.usingRightPizza then
+                            -- |>
+                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                            , Fix.insertAt (Node.range checkInfo.firstArg).end
+                                (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
+                            ]
+                                ++ keepOnlyFix { parentRange = errCall.nodeRange, keep = Node.range errCall.firstArg }
+
+                         else
+                            -- application or <|
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " (")
+                            , Fix.insertAt checkInfo.parentRange.end ")"
+                            ]
+                                ++ keepOnlyFix { parentRange = errCall.nodeRange, keep = Node.range errCall.firstArg }
+                        )
+                    ]
+        , \() ->
+            case maybeResultArg of
+                Nothing ->
+                    []
+
+                Just resultArg ->
+                    case getResultValues checkInfo.lookupTable resultArg of
+                        Just (Ok _) ->
+                            [ Rule.errorWithFix
+                                resultMapErrorOnOkErrorInfo
+                                checkInfo.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
+                            ]
+
+                        _ ->
+                            []
+        ]
+        ()
+
+
+resultMapErrorCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultMapErrorCompositionChecks checkInfo =
+    let
+        ( earlier, later ) =
+            if checkInfo.fromLeftToRight then
+                ( checkInfo.left, checkInfo.right )
+
+            else
+                ( checkInfo.right, checkInfo.left )
+    in
+    case getSpecificFunctionCall ( [ "Result" ], "mapError" ) checkInfo.lookupTable later of
+        Nothing ->
+            []
+
+        Just resultMapErrorCall ->
+            firstThatReportsError
+                [ \() ->
+                    if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Err" checkInfo.lookupTable earlier then
+                        [ Rule.errorWithFix
+                            resultMapErrorOnErrErrorInfo
+                            resultMapErrorCall.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultMapErrorCall.firstArg }
+                                ++ [ if checkInfo.fromLeftToRight then
+                                        -- >>
+                                        Fix.insertAt checkInfo.parentRange.end
+                                            (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
+
+                                     else
+                                        -- <<
+                                        Fix.insertAt checkInfo.parentRange.start
+                                            (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
+                                   ]
+                            )
+                        ]
+
+                    else
+                        []
+                , \() ->
+                    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable earlier of
+                        Nothing ->
+                            []
+
+                        Just okFunction ->
+                            [ Rule.errorWithFix
+                                resultMapErrorOnOkErrorInfo
+                                resultMapErrorCall.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = okFunction.fnRange })
+                            ]
+                ]
+                ()
 
 
 
