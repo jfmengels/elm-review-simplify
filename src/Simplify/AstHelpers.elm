@@ -253,6 +253,65 @@ getFunctionCall baseNode =
             Nothing
 
 
+getCollapsedValueOrFunction :
+    Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnName : String
+            , fnRange : Range
+            , args : List (Node Expression)
+            }
+getCollapsedValueOrFunction baseNode =
+    let
+        step :
+            { firstArg : Node Expression, argsAfterFirst : List (Node Expression), fed : Node Expression }
+            -> Maybe { nodeRange : Range, fnRange : Range, fnName : String, args : List (Node Expression) }
+        step layer =
+            Maybe.map
+                (\fed ->
+                    { nodeRange = Node.range baseNode
+                    , fnRange = fed.fnRange
+                    , fnName = fed.fnName
+                    , args = fed.args ++ (layer.firstArg :: layer.argsAfterFirst)
+                    }
+                )
+                (getCollapsedValueOrFunction layer.fed)
+    in
+    case removeParens baseNode of
+        Node fnRange (Expression.FunctionOrValue _ fnName) ->
+            Just
+                { nodeRange = Node.range baseNode
+                , fnRange = fnRange
+                , fnName = fnName
+                , args = []
+                }
+
+        Node _ (Expression.Application (fed :: firstArg :: argsAfterFirst)) ->
+            step
+                { fed = fed
+                , firstArg = firstArg
+                , argsAfterFirst = argsAfterFirst
+                }
+
+        Node _ (Expression.OperatorApplication "|>" _ firstArg fed) ->
+            step
+                { fed = fed
+                , firstArg = firstArg
+                , argsAfterFirst = []
+                }
+
+        Node _ (Expression.OperatorApplication "<|" _ fed firstArg) ->
+            step
+                { fed = fed
+                , firstArg = firstArg
+                , argsAfterFirst = []
+                }
+
+        _ ->
+            Nothing
+
+
 getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNotFunction lookupTable baseNode =
     getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
