@@ -389,6 +389,12 @@ Destructuring using case expressions
     Result.withDefault x (Ok y)
     --> y
 
+    Result.toMaybe (Ok x)
+    --> Just x
+
+    Result.toMaybe (Err e)
+    --> Nothing
+
 
 ### Lists
 
