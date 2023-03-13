@@ -365,6 +365,27 @@ isIdentity lookupTable baseNode =
             False
 
 
+getCollapsedLambda : Node Expression -> Maybe { patterns : List (Node Pattern), expression : Node Expression }
+getCollapsedLambda expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.LambdaExpression lambda ->
+            case getCollapsedLambda lambda.expression of
+                Nothing ->
+                    Just
+                        { patterns = lambda.args
+                        , expression = lambda.expression
+                        }
+
+                Just innerCollapsedLambda ->
+                    Just
+                        { patterns = lambda.args ++ innerCollapsedLambda.patterns
+                        , expression = innerCollapsedLambda.expression
+                        }
+
+        _ ->
+            Nothing
+
+
 getVarPattern : Node Pattern -> Maybe String
 getVarPattern node =
     case Node.value node of
