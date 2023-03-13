@@ -10815,7 +10815,7 @@ a = List.sortBy (always b)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortBy (always a) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10847,7 +10847,7 @@ a = List.sortBy (\\_ -> b)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortBy (always a) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10999,7 +10999,7 @@ a = List.sortWith (always (always GT))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11031,7 +11031,7 @@ a = List.sortWith (\\_ -> (always GT))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11047,7 +11047,7 @@ a = List.sortWith (\\_ _ -> GT)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11063,7 +11063,7 @@ a = List.sortWith (always (\\_ -> GT))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> GT) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11079,7 +11079,7 @@ a = List.sortWith (always (always EQ))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11111,7 +11111,7 @@ a = List.sortWith (\\_ -> (always EQ))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11127,7 +11127,7 @@ a = List.sortWith (\\_ _ -> EQ)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11143,7 +11143,7 @@ a = List.sortWith (always (\\_ -> EQ))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same list"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

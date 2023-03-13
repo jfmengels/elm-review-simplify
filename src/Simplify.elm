@@ -5257,15 +5257,12 @@ listSortByChecks checkInfo =
         _ ->
             case getAlwaysResult checkInfo checkInfo.firstArg of
                 Just _ ->
-                    [ Rule.errorWithFix
-                        (toIdentityErrorInfo { toFix = "List.sortBy (always a)", lastArgName = "list" })
-                        checkInfo.fnRange
-                        (toIdentityFix
-                            { lastArg = secondArg checkInfo
-                            , parentRange = checkInfo.parentRange
-                            , qualifyResources = checkInfo
-                            }
-                        )
+                    [ identityError
+                        { toFix = "List.sortBy (always a)"
+                        , lastArgName = "list"
+                        , lastArg = secondArg checkInfo
+                        , resources = checkInfo
+                        }
                     ]
 
                 Nothing ->
@@ -5330,15 +5327,12 @@ listSortWithChecks checkInfo =
                     let
                         fixToIdentity : List (Error {})
                         fixToIdentity =
-                            [ Rule.errorWithFix
-                                (toIdentityErrorInfo { toFix = "List.sortWith (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")", lastArgName = "list" })
-                                checkInfo.fnRange
-                                (toIdentityFix
-                                    { lastArg = secondArg checkInfo
-                                    , parentRange = checkInfo.parentRange
-                                    , qualifyResources = checkInfo
-                                    }
-                                )
+                            [ identityError
+                                { toFix = "List.sortWith (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
+                                , lastArgName = "list"
+                                , lastArg = secondArg checkInfo
+                                , resources = checkInfo
+                                }
                             ]
                     in
                     case order of
@@ -7319,11 +7313,26 @@ replaceByBoolFix parentRange lastArg replacementValue qualifyResources =
     ]
 
 
-toIdentityErrorInfo : { toFix : String, lastArgName : String } -> { message : String, details : List String }
-toIdentityErrorInfo config =
-    { message = "Using " ++ config.toFix ++ " will always return the same " ++ config.lastArgName
-    , details = [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
+identityError :
+    { toFix : String
+    , lastArgName : String
+    , lastArg : Maybe (Node lastArgument)
+    , resources : QualifyResources { a | fnRange : Range, parentRange : Range }
     }
+    -> Error {}
+identityError config =
+    Rule.errorWithFix
+        { message = "Using " ++ config.toFix ++ " will always return the same " ++ config.lastArgName
+        , details =
+            case config.lastArg of
+                Nothing ->
+                    [ "You can replace this call by identity." ]
+
+                Just _ ->
+                    [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
+        }
+        config.resources.fnRange
+        (toIdentityFix { lastArg = config.lastArg, resources = config.resources })
 
 
 {-| identity if there's no second argument, else the second argument.
@@ -7335,21 +7344,24 @@ noopFix : CheckInfo -> List Fix
 noopFix checkInfo =
     toIdentityFix
         { lastArg = secondArg checkInfo
-        , parentRange = checkInfo.parentRange
-        , qualifyResources = checkInfo
+        , resources = checkInfo
         }
 
 
-toIdentityFix : { lastArg : Maybe (Node lastArgument), parentRange : Range, qualifyResources : QualifyResources a } -> List Fix
+toIdentityFix :
+    { lastArg : Maybe (Node lastArgument)
+    , resources : QualifyResources { a | parentRange : Range }
+    }
+    -> List Fix
 toIdentityFix config =
     case config.lastArg of
         Nothing ->
-            [ Fix.replaceRangeBy config.parentRange
-                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) config.qualifyResources))
+            [ Fix.replaceRangeBy config.resources.parentRange
+                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) config.resources))
             ]
 
         Just (Node lastArgRange _) ->
-            keepOnlyFix { parentRange = config.parentRange, keep = lastArgRange }
+            keepOnlyFix { parentRange = config.resources.parentRange, keep = lastArgRange }
 
 
 {-| Use in combination with
