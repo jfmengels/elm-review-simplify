@@ -346,7 +346,7 @@ isTupleFirstPatternLambda expressionNode =
     case Node.value (removeParens expressionNode) of
         Expression.LambdaExpression lambda ->
             case lambda.args of
-                [ Node _ (Pattern.TuplePattern [ Node _ (Pattern.VarPattern firstVariableName), Node _ Pattern.AllPattern ]) ] ->
+                [ Node _ (Pattern.TuplePattern [ Node _ (Pattern.VarPattern firstVariableName), _ ]) ] ->
                     case Node.value lambda.expression of
                         Expression.FunctionOrValue [] resultName ->
                             resultName == firstVariableName
@@ -366,7 +366,7 @@ isTupleSecondPatternLambda expressionNode =
     case Node.value (removeParens expressionNode) of
         Expression.LambdaExpression lambda ->
             case lambda.args of
-                [ Node _ (Pattern.TuplePattern [ Node _ Pattern.AllPattern, Node _ (Pattern.VarPattern firstVariableName) ]) ] ->
+                [ Node _ (Pattern.TuplePattern [ _, Node _ (Pattern.VarPattern firstVariableName) ]) ] ->
                     case Node.value lambda.expression of
                         Expression.FunctionOrValue [] resultName ->
                             resultName == firstVariableName
