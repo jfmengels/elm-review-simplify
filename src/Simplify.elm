@@ -4606,25 +4606,28 @@ dictToListMapErrorInfo info =
 
 
 dictToListMapChecks : CheckInfo -> List (Error {})
-dictToListMapChecks checkInfo =
-    case secondArg checkInfo of
-        Just dictArgument ->
-            case AstHelpers.getSpecificReducedFunctionCall ( [ "Dict" ], "toList" ) checkInfo.lookupTable dictArgument of
+dictToListMapChecks listMapCheckInfo =
+    case secondArg listMapCheckInfo of
+        Just listArgument ->
+            case AstHelpers.getSpecificReducedFunctionCall ( [ "Dict" ], "toList" ) listMapCheckInfo.lookupTable listArgument of
                 Just dictToListCall ->
                     let
                         error : { toEntryAspectList : String, tuplePart : String } -> Error {}
                         error info =
                             Rule.errorWithFix
                                 (dictToListMapErrorInfo info)
-                                checkInfo.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = dictToListCall.nodeRange }
-                                    ++ [ Fix.replaceRangeBy dictToListCall.fnRange (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) checkInfo)) ]
+                                listMapCheckInfo.fnRange
+                                (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range dictToListCall.firstArg }
+                                    ++ [ Fix.replaceRangeBy
+                                            (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
+                                            (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) listMapCheckInfo))
+                                       ]
                                 )
                     in
-                    if AstHelpers.isTupleFirstAccess checkInfo.lookupTable checkInfo.firstArg then
+                    if AstHelpers.isTupleFirstAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
                         [ error { tuplePart = "first", toEntryAspectList = "keys" } ]
 
-                    else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable checkInfo.firstArg then
+                    else if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
                         [ error { tuplePart = "second", toEntryAspectList = "values" } ]
 
                     else
