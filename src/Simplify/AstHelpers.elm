@@ -664,6 +664,24 @@ getVarPattern node =
             Nothing
 
 
+getCollapsedPatternList : Pattern -> Maybe { beginning : List (Node Pattern), tail : Maybe (Node Pattern) }
+getCollapsedPatternList pattern =
+    case pattern of
+        Pattern.ListPattern elements ->
+            Just { beginning = elements, tail = Nothing }
+
+        Pattern.UnConsPattern head tail ->
+            case getCollapsedPatternList (Node.value tail) of
+                Nothing ->
+                    Just { beginning = [ head ], tail = Just tail }
+
+                Just tailCollapsed ->
+                    Just { beginning = head :: tailCollapsed.beginning, tail = tailCollapsed.tail }
+
+        _ ->
+            Nothing
+
+
 patternListBindings : List (Node Pattern) -> Set String
 patternListBindings patterns =
     List.foldl
@@ -942,6 +960,402 @@ isBinaryOperation symbol checkInfo expression =
         -- not a known simple operator function
         _ ->
             False
+
+
+type Catch
+    = -- a pattern that always matches the cased expression:
+      -- - a required pattern (like case () of () -> or case 'a' of 'a' ->)
+      -- - a (partially required) pattern that catches all sub-patterns (like case a of _ -> or case Ok a of Ok b ->)
+      -- if other patterns exist later, they can be removed
+      -- if the pattern isn't (partially) required, there will be be a compiler error
+      CatchAll
+    | -- a pattern that matches only a narrower subset of possible values
+      -- (like case result of Ok value -> or case list of [] ->)
+      -- if only one CatchSub case exists, there will be be a compiler error
+      CatchSub
+    | -- a case that impossible:
+      -- - there is no pattern for this (like function, glsl, ...)
+      -- - impossible to match in practice (like case Nothing of Just ...)
+      -- impossible patterns can safely be removed.
+      -- if all patterns are impossible, there will be be a compiler error
+      CatchNone
+
+
+{-| See what a given pattern catches
+from a given expression.
+
+Make sure to normalize the expression for the best detection (what are calls, what are functions, ...)
+
+-}
+casePatternCatchFor : Expression -> Node Pattern -> Catch
+casePatternCatchFor casedExpression pattern =
+    case Node.value (removeParensFromPattern pattern) of
+        Pattern.AllPattern ->
+            CatchAll
+
+        Pattern.VarPattern _ ->
+            CatchAll
+
+        Pattern.AsPattern destructured _ ->
+            casePatternCatchFor casedExpression destructured
+
+        specificPattern ->
+            casePatternSpecificCatchFor casedExpression specificPattern
+
+
+{-| See what a given pattern catches
+from an expression that is fully unknown (like value/function variables).
+-}
+casePatternCatchForUnknown : Pattern -> Catch
+casePatternCatchForUnknown pattern =
+    case pattern of
+        Pattern.UnitPattern ->
+            CatchAll
+
+        Pattern.AllPattern ->
+            CatchAll
+
+        Pattern.VarPattern _ ->
+            CatchAll
+
+        Pattern.AsPattern (Node _ destructured) _ ->
+            casePatternCatchForUnknown destructured
+
+        Pattern.RecordPattern _ ->
+            CatchAll
+
+        -- doesn't exist
+        Pattern.FloatPattern _ ->
+            CatchSub
+
+        Pattern.HexPattern _ ->
+            CatchSub
+
+        Pattern.IntPattern _ ->
+            CatchSub
+
+        Pattern.CharPattern _ ->
+            CatchSub
+
+        Pattern.UnConsPattern _ _ ->
+            CatchSub
+
+        Pattern.ListPattern _ ->
+            CatchSub
+
+        Pattern.StringPattern _ ->
+            CatchSub
+
+        Pattern.ParenthesizedPattern (Node _ inParens) ->
+            casePatternCatchForUnknown inParens
+
+        Pattern.TuplePattern tupleParts ->
+            combineCatchBy (\(Node _ part) -> casePatternCatchForUnknown part) tupleParts
+
+        Pattern.NamedPattern _ arguments ->
+            combineCatchBy (\(Node _ arg) -> casePatternCatchForUnknown arg) arguments
+
+
+casePatternSpecificCatchFor : Expression -> Pattern -> Catch
+casePatternSpecificCatchFor casedExpression pattern =
+    case casedExpression of
+        Expression.UnitExpr ->
+            case pattern of
+                Pattern.UnitPattern ->
+                    CatchAll
+
+                _ ->
+                    CatchNone
+
+        Expression.FunctionOrValue qualification name ->
+            if startingStartsWithUpper name then
+                case pattern of
+                    Pattern.NamedPattern patternQualified [] ->
+                        required (patternQualified.moduleName == qualification && patternQualified.name == name)
+
+                    _ ->
+                        CatchNone
+
+            else
+                casePatternCatchForUnknown pattern
+
+        Expression.Hex int ->
+            casePatternSpecificCatchForInt int pattern
+
+        Expression.Integer int ->
+            casePatternSpecificCatchForInt int pattern
+
+        Expression.CharLiteral char ->
+            case pattern of
+                Pattern.CharPattern patternChar ->
+                    required (char == patternChar)
+
+                _ ->
+                    CatchNone
+
+        Expression.Floatable _ ->
+            CatchNone
+
+        Expression.Literal string ->
+            case pattern of
+                Pattern.StringPattern patternString ->
+                    required (string == patternString)
+
+                _ ->
+                    CatchNone
+
+        -- doesn't exist
+        Expression.Application [] ->
+            casePatternCatchForUnknown pattern
+
+        -- doesn't exist
+        Expression.Application (_ :: []) ->
+            casePatternCatchForUnknown pattern
+
+        Expression.Application ((Node _ fed) :: firstArg :: argsAfterFirst) ->
+            case fed of
+                Expression.FunctionOrValue qualification name ->
+                    if not (startingStartsWithUpper name) then
+                        casePatternCatchForUnknown pattern
+
+                    else
+                        -- expression could be variant
+                        case pattern of
+                            Pattern.NamedPattern patternQualified namedPatternArguments ->
+                                if ( patternQualified.moduleName, patternQualified.name ) /= ( qualification, name ) then
+                                    CatchNone
+
+                                else if List.length (firstArg :: argsAfterFirst) < List.length namedPatternArguments then
+                                    -- variant constructor is only partially applied
+                                    CatchNone
+
+                                else
+                                    -- pattern with same variant
+                                    List.map2 Tuple.pair (firstArg :: argsAfterFirst) namedPatternArguments
+                                        |> combineCatchBy
+                                            (\( Node _ tuplePart, patternPart ) ->
+                                                casePatternCatchFor tuplePart patternPart
+                                            )
+
+                            _ ->
+                                CatchNone
+
+                _ ->
+                    casePatternCatchForUnknown pattern
+
+        Expression.OperatorApplication operatorName _ left right ->
+            if List.member operatorName [ ">>", "<<", "|.", "|=", "<?>", "</>" ] then
+                CatchNone
+
+            else if operatorName == "::" then
+                case getCollapsedPatternList pattern of
+                    Nothing ->
+                        CatchNone
+
+                    Just collapsedPatternList ->
+                        let
+                            collapsedCons : { consed : List (Node Expression), tail : Node Expression }
+                            collapsedCons =
+                                case getCollapsedCons right of
+                                    Just tailConsCollapsed ->
+                                        { consed = left :: tailConsCollapsed.consed, tail = tailConsCollapsed.tail }
+
+                                    Nothing ->
+                                        { consed = [ left ], tail = right }
+
+                            beginningCatch : Catch
+                            beginningCatch =
+                                List.map2 Tuple.pair collapsedCons.consed collapsedPatternList.beginning
+                                    |> combineCatchBy
+                                        (\( Node _ tuplePart, patternPart ) ->
+                                            casePatternCatchFor tuplePart patternPart
+                                        )
+                        in
+                        if List.length collapsedPatternList.beginning <= List.length collapsedCons.consed then
+                            beginningCatch
+
+                        else
+                            -- length collapsedPatternList.beginning > length collapsedCons.consed
+                            case beginningCatch of
+                                CatchAll ->
+                                    CatchSub
+
+                                CatchSub ->
+                                    CatchSub
+
+                                CatchNone ->
+                                    CatchNone
+
+            else
+                casePatternCatchForUnknown pattern
+
+        Expression.IfBlock _ _ _ ->
+            -- simplify should clean the bool case up to a simple if
+            casePatternCatchForUnknown pattern
+
+        Expression.PrefixOperator _ ->
+            CatchNone
+
+        -- doesn't exist
+        Expression.Operator _ ->
+            CatchNone
+
+        Expression.Negation _ ->
+            CatchNone
+
+        Expression.TupledExpression tupleParts ->
+            case pattern of
+                Pattern.TuplePattern patternParts ->
+                    if List.length patternParts /= List.length tupleParts then
+                        -- compiler error
+                        CatchNone
+
+                    else
+                        -- length patternParts == length tupleParts
+                        List.map2 Tuple.pair tupleParts patternParts
+                            |> combineCatchBy
+                                (\( Node _ tuplePart, patternPart ) ->
+                                    casePatternCatchFor tuplePart patternPart
+                                )
+
+                _ ->
+                    CatchNone
+
+        Expression.LetExpression _ ->
+            casePatternCatchForUnknown pattern
+
+        Expression.CaseExpression _ ->
+            casePatternCatchForUnknown pattern
+
+        Expression.LambdaExpression _ ->
+            CatchNone
+
+        Expression.RecordExpr _ ->
+            casePatternCatchForRecord pattern
+
+        Expression.RecordUpdateExpression _ _ ->
+            casePatternCatchForRecord pattern
+
+        Expression.ListExpr elements ->
+            case getCollapsedPatternList pattern of
+                Just patternElements ->
+                    case patternElements.tail of
+                        Just _ ->
+                            if List.length patternElements.beginning > List.length elements then
+                                CatchNone
+
+                            else
+                                -- length patternElements.beginning <= List.length elements
+                                List.map2 Tuple.pair elements patternElements.beginning
+                                    |> combineCatchBy
+                                        (\( Node _ tuplePart, patternPart ) ->
+                                            casePatternCatchFor tuplePart patternPart
+                                        )
+
+                        Nothing ->
+                            if List.length patternElements.beginning /= List.length elements then
+                                -- compiler error
+                                CatchNone
+
+                            else
+                                -- length patternElements == length elements
+                                List.map2 Tuple.pair elements patternElements.beginning
+                                    |> combineCatchBy
+                                        (\( Node _ tuplePart, patternPart ) ->
+                                            casePatternCatchFor tuplePart patternPart
+                                        )
+
+                Nothing ->
+                    CatchNone
+
+        Expression.RecordAccess _ _ ->
+            casePatternCatchForUnknown pattern
+
+        Expression.RecordAccessFunction _ ->
+            CatchNone
+
+        Expression.GLSLExpression _ ->
+            CatchNone
+
+        Expression.ParenthesizedExpression (Node _ inParens) ->
+            casePatternSpecificCatchFor inParens pattern
+
+
+startingStartsWithUpper : String -> Bool
+startingStartsWithUpper string =
+    case String.uncons string of
+        Nothing ->
+            False
+
+        Just ( firstChar, _ ) ->
+            Char.isUpper firstChar
+
+
+required : Bool -> Catch
+required requiredCondition =
+    if requiredCondition then
+        CatchAll
+
+    else
+        CatchNone
+
+
+casePatternSpecificCatchForInt : Int -> (Pattern -> Catch)
+casePatternSpecificCatchForInt int pattern =
+    case pattern of
+        Pattern.HexPattern patternInt ->
+            required (patternInt == int)
+
+        Pattern.IntPattern patternInt ->
+            required (patternInt == int)
+
+        _ ->
+            CatchNone
+
+
+casePatternCatchForRecord : Pattern -> Catch
+casePatternCatchForRecord pattern =
+    case pattern of
+        Pattern.RecordPattern _ ->
+            CatchAll
+
+        _ ->
+            CatchNone
+
+
+{-| Find out what the sum of the given individual elements catch.
+
+CatchNone > CatchSub > CatchAll. That means
+
+  - if any is CatchNone → CatchNone
+  - otherwise if one is CatchSub → CatchSub,
+  - otherwise CatchAll
+
+-}
+combineCatchBy : (a -> Catch) -> List a -> Catch
+combineCatchBy elementCatch list =
+    case list of
+        [] ->
+            CatchAll
+
+        head :: tail ->
+            case elementCatch head of
+                CatchAll ->
+                    combineCatchBy elementCatch tail
+
+                CatchSub ->
+                    case combineCatchBy elementCatch tail of
+                        CatchNone ->
+                            CatchNone
+
+                        CatchSub ->
+                            CatchSub
+
+                        CatchAll ->
+                            CatchSub
+
+                CatchNone ->
+                    CatchNone
 
 
 getTypeExposeIncludingVariants : Exposing.TopLevelExpose -> Maybe String
