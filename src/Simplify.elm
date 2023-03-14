@@ -7225,92 +7225,199 @@ catchCaseOfChecks resources caseBlock =
         casedExpression =
             Node.value (Normalize.normalize resources caseBlock.expression)
 
-        checked : Result (List (Error {})) Int
+        checked :
+            { casesAfter : Expression.Cases
+            , status :
+                Result
+                    CaseOfError
+                    { matchingVariants : Dict AstHelpers.AstPath (List Range) }
+            }
         checked =
             List.foldl
-                (\case_ soFar ->
+                (\case_ checkedSoFar ->
                     let
                         ( Node patternRange casePattern, _ ) =
                             case_
                     in
-                    case soFar of
-                        Err errors ->
-                            Err errors
+                    { casesAfter = List.drop 1 checkedSoFar.casesAfter
+                    , status =
+                        case checkedSoFar.status of
+                            Err (HasPrematureCatchAllCase prematureCatchAllCase) ->
+                                Err (HasPrematureCatchAllCase prematureCatchAllCase)
 
-                        Ok casesBeforeCount ->
-                            case AstHelpers.casePatternCatchFor casedExpression casePattern of
-                                AstHelpers.CatchNone ->
-                                    Err
-                                        [ Rule.errorWithFix
-                                            { message = "This case will never be matched"
-                                            , details =
-                                                let
-                                                    recheckCasedExpressionHint : List String
-                                                    recheckCasedExpressionHint =
-                                                        case casesBeforeCount of
-                                                            0 ->
-                                                                [ "Hint: If this case looks like it should catch something, recheck the whole case..of for compiler errors. Maybe you're trying to match on a number/Float or (curried) function which is not possible in elm." ]
-
-                                                            _ ->
-                                                                []
-                                                in
-                                                [ "For the value you're matching, this case pattern is impossible to get in practice."
-                                                , "You can remove this case, or re-check if the value between case..of is correct."
-                                                ]
-                                                    ++ recheckCasedExpressionHint
-                                            }
-                                            patternRange
-                                            (case caseBlock.cases of
-                                                _ :: [] ->
-                                                    -- we can't remove a catch-none case that's the only case
-                                                    []
-
-                                                -- at least 2 cases
-                                                _ ->
-                                                    [ Fix.removeRange (caseRange case_) ]
+                            Err (HasCatchNoneCases catchNones) ->
+                                let
+                                    casePatternCatch : { catch : AstHelpers.Catch, matchingVariants : Dict AstHelpers.AstPath Range }
+                                    casePatternCatch =
+                                        AstHelpers.casePatternCatchFor casedExpression casePattern
+                                in
+                                case casePatternCatch.catch of
+                                    AstHelpers.CatchSub ->
+                                        Err
+                                            (HasCatchNoneCases
+                                                { catchNones
+                                                    | matchingVariants =
+                                                        dictIntersectCombine (\range catchNonesRanges -> range :: catchNonesRanges)
+                                                            casePatternCatch.matchingVariants
+                                                            catchNones.matchingVariants
+                                                }
                                             )
-                                        ]
 
-                                AstHelpers.CatchSub ->
-                                    Ok (casesBeforeCount + 1)
+                                    AstHelpers.CatchNone ->
+                                        Err
+                                            (HasCatchNoneCases
+                                                { catchNones
+                                                    | catchNoneCases = case_ :: catchNones.catchNoneCases
+                                                }
+                                            )
 
-                                AstHelpers.CatchAll ->
-                                    case List.drop (casesBeforeCount + 1) caseBlock.cases of
-                                        [] ->
-                                            Ok (casesBeforeCount + 1)
+                                    AstHelpers.CatchAll ->
+                                        case checkedSoFar.casesAfter of
+                                            [] ->
+                                                Err (HasCatchNoneCases catchNones)
 
-                                        firstCaseAfter :: casesAfterOneAfter ->
-                                            Err
-                                                [ Rule.errorWithFix
-                                                    { message = "Cases after this one will never be matched"
-                                                    , details =
-                                                        [ "For the value you're matching, this case pattern covers all possibilities. Therefore, later cases are impossible to get in practice."
-                                                        , "You can remove the cases after the marked one."
-                                                        ]
-                                                    }
-                                                    patternRange
-                                                    [ Fix.removeRange
-                                                        (case lastElement casesAfterOneAfter of
-                                                            Nothing ->
-                                                                caseRange firstCaseAfter
+                                            followingCase :: casesAfterFollowing ->
+                                                Err
+                                                    (HasPrematureCatchAllCase
+                                                        { patternRange = patternRange
+                                                        , followingCase = followingCase
+                                                        , casesAfterFollowing = casesAfterFollowing
+                                                        }
+                                                    )
 
-                                                            Just lastCaseAfter ->
-                                                                { start = (caseRange firstCaseAfter).start
-                                                                , end = (caseRange lastCaseAfter).end
-                                                                }
-                                                        )
-                                                    ]
-                                                ]
+                            Ok soFar ->
+                                let
+                                    casePatternCatch : { catch : AstHelpers.Catch, matchingVariants : Dict AstHelpers.AstPath Range }
+                                    casePatternCatch =
+                                        AstHelpers.casePatternCatchFor casedExpression casePattern
+                                in
+                                case casePatternCatch.catch of
+                                    AstHelpers.CatchSub ->
+                                        Ok
+                                            { matchingVariants =
+                                                dictIntersectCombine (\range soFarRanges -> range :: soFarRanges)
+                                                    casePatternCatch.matchingVariants
+                                                    soFar.matchingVariants
+                                            }
+
+                                    AstHelpers.CatchNone ->
+                                        Err
+                                            (HasCatchNoneCases
+                                                { patternRange = patternRange
+                                                , matchingVariants = soFar.matchingVariants
+                                                , catchNoneCases = [ case_ ]
+                                                }
+                                            )
+
+                                    AstHelpers.CatchAll ->
+                                        case checkedSoFar.casesAfter of
+                                            [] ->
+                                                Ok { matchingVariants = soFar.matchingVariants }
+
+                                            followingCase :: casesAfterFollowing ->
+                                                Err
+                                                    (HasPrematureCatchAllCase
+                                                        { patternRange = patternRange
+                                                        , followingCase = followingCase
+                                                        , casesAfterFollowing = casesAfterFollowing
+                                                        }
+                                                    )
+                    }
                 )
-                (Ok 0)
+                { casesAfter = List.drop 1 caseBlock.cases
+                , status = Ok { matchingVariants = Dict.empty }
+                }
                 caseBlock.cases
     in
-    case checked of
-        Err errors ->
-            errors
-
+    case checked.status of
         Ok _ ->
             []
+
+        Err caseOfError ->
+            catchCaseOfProduceErrors caseOfError caseBlock.cases
+
+
+catchCaseOfProduceErrors : CaseOfError -> Expression.Cases -> List (Rule.Error {})
+catchCaseOfProduceErrors caseOfError cases =
+    case caseOfError of
+        HasCatchNoneCases catchNones ->
+            let
+                removeCatchNoneCases : List Fix
+                removeCatchNoneCases =
+                    case cases of
+                        _ :: [] ->
+                            -- we can't remove a catch-none case that's the only case
+                            []
+
+                        -- at least 2 cases
+                        _ ->
+                            List.map (\case_ -> Fix.removeRange (caseRange case_)) catchNones.catchNoneCases
+
+                removeMatchingVariants : List Fix
+                removeMatchingVariants =
+                    List.concatMap
+                        (\variantRanges ->
+                            List.map Fix.removeRange variantRanges
+                        )
+                        (Dict.values catchNones.matchingVariants)
+            in
+            [ Rule.errorWithFix
+                { message = "This case will never be matched"
+                , details =
+                    let
+                        recheckCasedExpressionHint : List String
+                        recheckCasedExpressionHint =
+                            if List.length catchNones.catchNoneCases == List.length cases then
+                                [ "Hint: If this case looks like it should catch something, recheck the whole case..of for compiler errors. Maybe you're trying to match on a number/Float or (curried) function which is not possible in elm." ]
+
+                            else
+                                []
+                    in
+                    [ "For the value you're matching, this case pattern is impossible to get in practice."
+                    , "You can remove this case, or re-check if the value between case..of is correct."
+                    ]
+                        ++ recheckCasedExpressionHint
+                }
+                catchNones.patternRange
+                (removeCatchNoneCases
+                    ++ removeMatchingVariants
+                )
+            ]
+
+        HasPrematureCatchAllCase prematureCatchAll ->
+            [ Rule.errorWithFix
+                { message = "Cases after this one will never be matched"
+                , details =
+                    [ "For the value you're matching, this case pattern covers all possibilities. Therefore, later cases are impossible to get in practice."
+                    , "You can remove the cases after the marked one."
+                    ]
+                }
+                prematureCatchAll.patternRange
+                [ Fix.removeRange
+                    (case lastElement prematureCatchAll.casesAfterFollowing of
+                        Nothing ->
+                            caseRange prematureCatchAll.followingCase
+
+                        Just lastCaseAfter ->
+                            { start = (caseRange prematureCatchAll.followingCase).start
+                            , end = (caseRange lastCaseAfter).end
+                            }
+                    )
+                ]
+            ]
+
+
+type CaseOfError
+    = HasPrematureCatchAllCase
+        { patternRange : Range
+        , followingCase : Expression.Case
+        , casesAfterFollowing : List Expression.Case
+        }
+    | HasCatchNoneCases
+        { patternRange : Range
+        , matchingVariants : Dict AstHelpers.AstPath (List Range)
+        , catchNoneCases : List Expression.Case
+        }
 
 
 caseRange : Expression.Case -> { start : Location, end : { row : Int, column : Int } }
@@ -7318,7 +7425,7 @@ caseRange ( Node patternRange _, Node caseResultRange _ ) =
     { start = patternRange.start
     , end =
         -- until the next potential pattern on the next line
-        { row = caseResultRange.end.row, column = patternRange.start.column }
+        { row = caseResultRange.end.row + 1, column = patternRange.start.column }
     }
 
 
@@ -8189,3 +8296,29 @@ findMapNeighboringAfter before tryMap list =
 
                 Nothing ->
                     findMapNeighboringAfter (Just now) tryMap after
+
+
+
+-- DICT HELPERS
+
+
+{-| Keep a key-value pair when its key appears in the second dictionary.
+Both values at that key are then combined into one for the resulting intersection Dict.
+-}
+dictIntersectCombine :
+    (aValue -> bValue -> dedupValue)
+    -> Dict comparableKey aValue
+    -> Dict comparableKey bValue
+    -> Dict comparableKey dedupValue
+dictIntersectCombine abValueCombine aDict bDict =
+    Dict.foldl
+        (\key aValue soFar ->
+            case Dict.get key bDict of
+                Nothing ->
+                    soFar
+
+                Just bValue ->
+                    Dict.insert key (abValueCombine aValue bValue) soFar
+        )
+        Dict.empty
+        aDict
