@@ -16,7 +16,6 @@ all =
         , alwaysTests
         , booleanTests
         , caseOfTests
-        , booleanCaseOfTests
         , ifTests
         , duplicatedIfTests
         , recordUpdateTests
@@ -1897,6 +1896,7 @@ a =
             1
 """
                         ]
+        , booleanCaseOfTests
         ]
 
 
