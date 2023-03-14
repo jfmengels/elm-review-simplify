@@ -1,5 +1,6 @@
 module Simplify.AstHelpers exposing
-    ( Catch(..)
+    ( AstPath
+    , Catch(..)
     , boolToString
     , casePatternCatchFor
     , declarationListBindings
@@ -984,13 +985,20 @@ type Catch
       CatchNone
 
 
+type alias AstPath =
+    List Int
+
+
 {-| See what a given pattern catches
 from a given expression, including ranges of matching variants with at least one argument until their first argument.
 
 Make sure to normalize the expression for the best detection (what are calls, what are functions, ...)
 
 -}
-casePatternCatchFor : Expression -> Pattern -> { catch : Catch, matchingVariants : Dict ( ModuleName, String ) Range }
+casePatternCatchFor :
+    Expression
+    -> Pattern
+    -> { catch : Catch, matchingVariants : Dict AstPath Range }
 casePatternCatchFor casedExpression pattern =
     case pattern of
         Pattern.AllPattern ->
@@ -1006,7 +1014,7 @@ casePatternCatchFor casedExpression pattern =
             casePatternCatchFor casedExpression inParens
 
         specificPattern ->
-            casePatternSpecificCatchFor casedExpression specificPattern
+            casePatternSpecificCatchFor [] casedExpression specificPattern
 
 
 {-| See what a given pattern catches
@@ -1062,8 +1070,8 @@ casePatternCatchForUnknown pattern =
             CatchSub
 
 
-casePatternSpecificCatchFor : Expression -> Pattern -> { catch : Catch, matchingVariants : Dict ( ModuleName, String ) Range }
-casePatternSpecificCatchFor casedExpression pattern =
+casePatternSpecificCatchFor : AstPath -> Expression -> Pattern -> { catch : Catch, matchingVariants : Dict AstPath Range }
+casePatternSpecificCatchFor astPath casedExpression pattern =
     case casedExpression of
         Expression.UnitExpr ->
             withoutMatchingVariants
@@ -1136,12 +1144,7 @@ casePatternSpecificCatchFor casedExpression pattern =
                         -- expression could be variant
                         case pattern of
                             Pattern.NamedPattern patternQualified namedPatternArguments ->
-                                let
-                                    qualified : ( ModuleName, String )
-                                    qualified =
-                                        ( qualification, name )
-                                in
-                                if ( patternQualified.moduleName, patternQualified.name ) /= qualified then
+                                if ( patternQualified.moduleName, patternQualified.name ) /= ( qualification, name ) then
                                     withoutMatchingVariants CatchNone
 
                                 else if List.length (firstArg :: argsAfterFirst) < List.length namedPatternArguments then
@@ -1151,16 +1154,13 @@ casePatternSpecificCatchFor casedExpression pattern =
                                 else
                                     -- pattern with same variant
                                     let
+                                        argumentCatch : { catch : Catch, matchingVariants : Dict AstPath Range }
                                         argumentCatch =
-                                            List.map2 Tuple.pair (firstArg :: argsAfterFirst) namedPatternArguments
-                                                |> combineCatchAndMatchingVariantsBy
-                                                    (\( Node _ tuplePart, Node _ patternPart ) ->
-                                                        casePatternCatchFor tuplePart patternPart
-                                                    )
+                                            catchAndMatchingVariantsForPairs astPath (firstArg :: argsAfterFirst) namedPatternArguments
                                     in
                                     { argumentCatch
                                         | matchingVariants =
-                                            Dict.insert qualified
+                                            Dict.insert astPath
                                                 { start = fedRange.start, end = (Node.range firstArg).end }
                                                 argumentCatch.matchingVariants
                                     }
@@ -1191,13 +1191,9 @@ casePatternSpecificCatchFor casedExpression pattern =
                                     Nothing ->
                                         { consed = [ left ], tail = right }
 
-                            beginningCatch : { catch : Catch, matchingVariants : Dict ( ModuleName, String ) Range }
+                            beginningCatch : { catch : Catch, matchingVariants : Dict AstPath Range }
                             beginningCatch =
-                                List.map2 Tuple.pair collapsedCons.consed collapsedPatternList.beginning
-                                    |> combineCatchAndMatchingVariantsBy
-                                        (\( Node _ tuplePart, Node _ patternPart ) ->
-                                            casePatternCatchFor tuplePart patternPart
-                                        )
+                                catchAndMatchingVariantsForPairs astPath collapsedCons.consed collapsedPatternList.beginning
                         in
                         if List.length collapsedPatternList.beginning <= List.length collapsedCons.consed then
                             beginningCatch
@@ -1243,11 +1239,7 @@ casePatternSpecificCatchFor casedExpression pattern =
 
                     else
                         -- length patternParts == length tupleParts
-                        List.map2 Tuple.pair tupleParts patternParts
-                            |> combineCatchAndMatchingVariantsBy
-                                (\( Node _ tuplePart, Node _ patternPart ) ->
-                                    casePatternCatchFor tuplePart patternPart
-                                )
+                        catchAndMatchingVariantsForPairs astPath tupleParts patternParts
 
                 _ ->
                     withoutMatchingVariants CatchNone
@@ -1277,11 +1269,7 @@ casePatternSpecificCatchFor casedExpression pattern =
 
                             else
                                 -- length patternElements.beginning <= List.length elements
-                                List.map2 Tuple.pair elements patternElements.beginning
-                                    |> combineCatchAndMatchingVariantsBy
-                                        (\( Node _ tuplePart, Node _ patternPart ) ->
-                                            casePatternCatchFor tuplePart patternPart
-                                        )
+                                catchAndMatchingVariantsForPairs astPath elements patternElements.beginning
 
                         Nothing ->
                             if List.length patternElements.beginning /= List.length elements then
@@ -1290,11 +1278,7 @@ casePatternSpecificCatchFor casedExpression pattern =
 
                             else
                                 -- length patternElements == length elements
-                                List.map2 Tuple.pair elements patternElements.beginning
-                                    |> combineCatchAndMatchingVariantsBy
-                                        (\( Node _ tuplePart, Node _ patternPart ) ->
-                                            casePatternCatchFor tuplePart patternPart
-                                        )
+                                catchAndMatchingVariantsForPairs astPath elements patternElements.beginning
 
                 Nothing ->
                     withoutMatchingVariants CatchNone
@@ -1309,10 +1293,10 @@ casePatternSpecificCatchFor casedExpression pattern =
             withoutMatchingVariants CatchNone
 
         Expression.ParenthesizedExpression (Node _ inParens) ->
-            casePatternSpecificCatchFor inParens pattern
+            casePatternSpecificCatchFor astPath inParens pattern
 
 
-withoutMatchingVariants : Catch -> { catch : Catch, matchingVariants : Dict ( ModuleName, String ) Range }
+withoutMatchingVariants : Catch -> { catch : Catch, matchingVariants : Dict AstPath Range }
 withoutMatchingVariants catch =
     { catch = catch, matchingVariants = Dict.empty }
 
@@ -1336,7 +1320,7 @@ required requiredCondition =
         CatchNone
 
 
-casePatternSpecificCatchForInt : Int -> (Pattern -> Catch)
+casePatternSpecificCatchForInt : Int -> Pattern -> Catch
 casePatternSpecificCatchForInt int pattern =
     case pattern of
         Pattern.HexPattern patternInt ->
@@ -1361,23 +1345,44 @@ casePatternCatchForRecord pattern =
 
 {-| `combineCatchBy` which additionally collects matching variants
 -}
-combineCatchAndMatchingVariantsBy :
-    (a -> { catch : Catch, matchingVariants : Dict ( ModuleName, String ) Range })
-    -> List a
-    -> { catch : Catch, matchingVariants : Dict ( ModuleName, String ) Range }
-combineCatchAndMatchingVariantsBy elementCatch list =
-    List.foldl
-        (\element soFar ->
+catchAndMatchingVariantsForPairs :
+    AstPath
+    -> List (Node Expression)
+    -> List (Node Pattern)
+    -> { catch : Catch, matchingVariants : Dict AstPath Range }
+catchAndMatchingVariantsForPairs basePath expressions patterns =
+    catchAndMatchingVariantsForPairsFrom ( 0, basePath ) expressions patterns
+
+
+catchAndMatchingVariantsForPairsFrom :
+    ( Int, AstPath )
+    -> List (Node Expression)
+    -> List (Node Pattern)
+    -> { catch : Catch, matchingVariants : Dict AstPath Range }
+catchAndMatchingVariantsForPairsFrom ( branchIndex, basePath ) expressions patterns =
+    case ( expressions, patterns ) of
+        ( [], _ :: _ ) ->
+            withoutMatchingVariants CatchAll
+
+        ( _ :: _, [] ) ->
+            withoutMatchingVariants CatchAll
+
+        ( [], [] ) ->
+            withoutMatchingVariants CatchAll
+
+        ( (Node _ expressionPart) :: expressionTail, (Node _ patternPart) :: patternTail ) ->
             let
+                elementCatchEvaluated : { catch : Catch, matchingVariants : Dict AstPath Range }
                 elementCatchEvaluated =
-                    elementCatch element
+                    casePatternCatchFor expressionPart patternPart
+
+                tailCatchAndMatchingVariants : { catch : Catch, matchingVariants : Dict AstPath Range }
+                tailCatchAndMatchingVariants =
+                    catchAndMatchingVariantsForPairsFrom ( branchIndex + 1, basePath ) expressionTail patternTail
             in
-            { catch = catchMergeWith (\() -> elementCatchEvaluated.catch) soFar.catch
-            , matchingVariants = Dict.union elementCatchEvaluated.matchingVariants soFar.matchingVariants
+            { catch = catchMergeWith (\() -> elementCatchEvaluated.catch) tailCatchAndMatchingVariants.catch
+            , matchingVariants = Dict.union elementCatchEvaluated.matchingVariants tailCatchAndMatchingVariants.matchingVariants
             }
-        )
-        (withoutMatchingVariants CatchAll)
-        list
 
 
 {-| Find out what the sum of the 2 given individual elements catch.
