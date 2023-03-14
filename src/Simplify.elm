@@ -7282,6 +7282,7 @@ catchCaseOfChecks resources caseBlock =
                                                         { patternRange = patternRange
                                                         , followingCase = followingCase
                                                         , casesAfterFollowing = casesAfterFollowing
+                                                        , matchingVariants = casePatternCatch.matchingVariants
                                                         }
                                                     )
 
@@ -7320,6 +7321,7 @@ catchCaseOfChecks resources caseBlock =
                                                         { patternRange = patternRange
                                                         , followingCase = followingCase
                                                         , casesAfterFollowing = casesAfterFollowing
+                                                        , matchingVariants = casePatternCatch.matchingVariants
                                                         }
                                                     )
                     }
@@ -7385,6 +7387,12 @@ catchCaseOfProduceErrors caseOfError cases =
             ]
 
         HasPrematureCatchAllCase prematureCatchAll ->
+            let
+                removeMatchingVariantsOfPrematureCatchAll : List Fix
+                removeMatchingVariantsOfPrematureCatchAll =
+                    List.map Fix.removeRange
+                        (Dict.values prematureCatchAll.matchingVariants)
+            in
             [ Rule.errorWithFix
                 { message = "Cases after this one will never be matched"
                 , details =
@@ -7393,7 +7401,7 @@ catchCaseOfProduceErrors caseOfError cases =
                     ]
                 }
                 prematureCatchAll.patternRange
-                [ Fix.removeRange
+                (Fix.removeRange
                     (case lastElement prematureCatchAll.casesAfterFollowing of
                         Nothing ->
                             caseRange prematureCatchAll.followingCase
@@ -7403,7 +7411,8 @@ catchCaseOfProduceErrors caseOfError cases =
                             , end = (caseRange lastCaseAfter).end
                             }
                     )
-                ]
+                    :: removeMatchingVariantsOfPrematureCatchAll
+                )
             ]
 
 
@@ -7412,6 +7421,7 @@ type CaseOfError
         { patternRange : Range
         , followingCase : Expression.Case
         , casesAfterFollowing : List Expression.Case
+        , matchingVariants : Dict AstHelpers.AstPath Range
         }
     | HasCatchNoneCases
         { patternRange : Range
