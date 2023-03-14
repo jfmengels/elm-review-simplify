@@ -1139,19 +1139,16 @@ dependenciesVisitor typeNamesAsStrings dict context =
 
         dependencyExposedVariants : Dict ModuleName (Set String)
         dependencyExposedVariants =
-            List.foldl
-                (\moduleDoc acc ->
-                    Dict.insert
-                        (AstHelpers.moduleNameFromString moduleDoc.name)
-                        (moduleDoc.unions
-                            |> List.concatMap
-                                (\union ->
-                                    union.tags
-                                        |> List.map (\( variantName, _ ) -> variantName)
-                                )
-                            |> Set.fromList
-                        )
-                        acc
+            CollectionHelpers.mapIntoDict
+                (\moduleDoc -> AstHelpers.moduleNameFromString moduleDoc.name)
+                (\moduleDoc ->
+                    moduleDoc.unions
+                        |> List.concatMap
+                            (\union ->
+                                union.tags
+                                    |> List.map (\( variantName, _ ) -> variantName)
+                            )
+                        |> Set.fromList
                 )
                 context.exposedVariants
                 modules
