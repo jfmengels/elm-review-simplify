@@ -1,5 +1,7 @@
 module Simplify.AstHelpers exposing
-    ( boolToString
+    ( Catch(..)
+    , boolToString
+    , casePatternCatchFor
     , declarationListBindings
     , emptyStringAsString
     , getBool
@@ -987,17 +989,20 @@ from a given expression.
 Make sure to normalize the expression for the best detection (what are calls, what are functions, ...)
 
 -}
-casePatternCatchFor : Expression -> Node Pattern -> Catch
+casePatternCatchFor : Expression -> Pattern -> Catch
 casePatternCatchFor casedExpression pattern =
-    case Node.value (removeParensFromPattern pattern) of
+    case pattern of
         Pattern.AllPattern ->
             CatchAll
 
         Pattern.VarPattern _ ->
             CatchAll
 
-        Pattern.AsPattern destructured _ ->
+        Pattern.AsPattern (Node _ destructured) _ ->
             casePatternCatchFor casedExpression destructured
+
+        Pattern.ParenthesizedPattern (Node _ inParens) ->
+            casePatternCatchFor casedExpression inParens
 
         specificPattern ->
             casePatternSpecificCatchFor casedExpression specificPattern
@@ -1052,8 +1057,8 @@ casePatternCatchForUnknown pattern =
         Pattern.TuplePattern tupleParts ->
             combineCatchBy (\(Node _ part) -> casePatternCatchForUnknown part) tupleParts
 
-        Pattern.NamedPattern _ arguments ->
-            combineCatchBy (\(Node _ arg) -> casePatternCatchForUnknown arg) arguments
+        Pattern.NamedPattern _ _ ->
+            CatchSub
 
 
 casePatternSpecificCatchFor : Expression -> Pattern -> Catch
@@ -1071,7 +1076,7 @@ casePatternSpecificCatchFor casedExpression pattern =
             if startingStartsWithUpper name then
                 case pattern of
                     Pattern.NamedPattern patternQualified [] ->
-                        required (patternQualified.moduleName == qualification && patternQualified.name == name)
+                        required (( patternQualified.moduleName, patternQualified.name ) == ( qualification, name ))
 
                     _ ->
                         CatchNone
@@ -1133,7 +1138,7 @@ casePatternSpecificCatchFor casedExpression pattern =
                                     -- pattern with same variant
                                     List.map2 Tuple.pair (firstArg :: argsAfterFirst) namedPatternArguments
                                         |> combineCatchBy
-                                            (\( Node _ tuplePart, patternPart ) ->
+                                            (\( Node _ tuplePart, Node _ patternPart ) ->
                                                 casePatternCatchFor tuplePart patternPart
                                             )
 
@@ -1167,7 +1172,7 @@ casePatternSpecificCatchFor casedExpression pattern =
                             beginningCatch =
                                 List.map2 Tuple.pair collapsedCons.consed collapsedPatternList.beginning
                                     |> combineCatchBy
-                                        (\( Node _ tuplePart, patternPart ) ->
+                                        (\( Node _ tuplePart, Node _ patternPart ) ->
                                             casePatternCatchFor tuplePart patternPart
                                         )
                         in
@@ -1214,7 +1219,7 @@ casePatternSpecificCatchFor casedExpression pattern =
                         -- length patternParts == length tupleParts
                         List.map2 Tuple.pair tupleParts patternParts
                             |> combineCatchBy
-                                (\( Node _ tuplePart, patternPart ) ->
+                                (\( Node _ tuplePart, Node _ patternPart ) ->
                                     casePatternCatchFor tuplePart patternPart
                                 )
 
@@ -1248,7 +1253,7 @@ casePatternSpecificCatchFor casedExpression pattern =
                                 -- length patternElements.beginning <= List.length elements
                                 List.map2 Tuple.pair elements patternElements.beginning
                                     |> combineCatchBy
-                                        (\( Node _ tuplePart, patternPart ) ->
+                                        (\( Node _ tuplePart, Node _ patternPart ) ->
                                             casePatternCatchFor tuplePart patternPart
                                         )
 
@@ -1261,7 +1266,7 @@ casePatternSpecificCatchFor casedExpression pattern =
                                 -- length patternElements == length elements
                                 List.map2 Tuple.pair elements patternElements.beginning
                                     |> combineCatchBy
-                                        (\( Node _ tuplePart, patternPart ) ->
+                                        (\( Node _ tuplePart, Node _ patternPart ) ->
                                             casePatternCatchFor tuplePart patternPart
                                         )
 
