@@ -7260,9 +7260,15 @@ catchCaseOfChecks resources caseBlock =
                                                     ++ recheckCasedExpressionHint
                                             }
                                             patternRange
-                                            [ Fix.removeRange
-                                                (caseRange case_)
-                                            ]
+                                            (case caseBlock.cases of
+                                                _ :: [] ->
+                                                    -- we can't remove a catch-none case that's the only case
+                                                    []
+
+                                                -- at least 2 cases
+                                                _ ->
+                                                    [ Fix.removeRange (caseRange case_) ]
+                                            )
                                         ]
 
                                 AstHelpers.CatchSub ->
