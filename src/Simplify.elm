@@ -7213,8 +7213,97 @@ caseOfChecks context parentRange caseBlock =
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
         , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
         , \() -> destructuringCaseOfChecks context.extractSourceCode parentRange caseBlock
+        , \() -> catchCaseOfChecks context caseBlock
         ]
         ()
+
+
+catchCaseOfChecks : Infer.Resources a -> Expression.CaseBlock -> List (Error {})
+catchCaseOfChecks resources caseBlock =
+    let
+        casedExpression : Expression
+        casedExpression =
+            Node.value (Normalize.normalize resources caseBlock.expression)
+
+        checked : Result (List (Error {})) (List ( Node Pattern, Node Expression ))
+        checked =
+            List.foldr
+                (\case_ soFar ->
+                    let
+                        ( Node patternRange casePattern, _ ) =
+                            case_
+                    in
+                    case soFar of
+                        Err errors ->
+                            Err errors
+
+                        Ok casesBeforeReverse ->
+                            case AstHelpers.casePatternCatchFor casedExpression casePattern of
+                                AstHelpers.CatchNone ->
+                                    Err
+                                        [ Rule.errorWithFix
+                                            { message = "This case will never be matched"
+                                            , details =
+                                                [ "For the value you're matching, this case pattern is impossible to get in practice."
+                                                , "You can remove this case."
+                                                ]
+                                            }
+                                            patternRange
+                                            [ Fix.removeRange
+                                                (caseRange case_)
+                                            ]
+                                        ]
+
+                                AstHelpers.CatchSub ->
+                                    Ok (case_ :: casesBeforeReverse)
+
+                                AstHelpers.CatchAll ->
+                                    case casesBeforeReverse of
+                                        [] ->
+                                            Ok (case_ :: casesBeforeReverse)
+
+                                        lastCase_ :: casesBeforeBeforeLastReverse ->
+                                            Err
+                                                [ Rule.errorWithFix
+                                                    { message = "Cases after this one will never be matched"
+                                                    , details =
+                                                        [ "For the value you're matching, this case pattern covers all possibilities. Therefore, later cases are impossible to get in practice."
+                                                        , "You can remove the cases after the marked one."
+                                                        ]
+                                                    }
+                                                    patternRange
+                                                    [ Fix.removeRange
+                                                        (case lastElement casesBeforeBeforeLastReverse of
+                                                            Nothing ->
+                                                                caseRange lastCase_
+
+                                                            Just caseAfter ->
+                                                                { start =
+                                                                    (caseRange caseAfter).start
+                                                                , end = (caseRange lastCase_).end
+                                                                }
+                                                        )
+                                                    ]
+                                                ]
+                )
+                (Ok [])
+                caseBlock.cases
+    in
+    case checked of
+        Err errors ->
+            errors
+
+        Ok _ ->
+            []
+
+
+caseRange : Expression.Case -> { start : Location, end : { row : Int, column : Int } }
+caseRange ( Node patternRange _, Node caseResultRange _ ) =
+    { start = patternRange.start
+    , end =
+        -- until the next potential pattern on the next line
+        { row = caseResultRange.end.row, column = patternRange.start.column }
+    }
 
 
 sameBodyForCaseOfChecks : ModuleContext -> Range -> List ( Node Pattern, Node Expression ) -> List (Error {})
@@ -7439,15 +7528,7 @@ parenthesizeFix toSurround =
 
 lastElementRange : List (Node a) -> Maybe Range
 lastElementRange nodes =
-    case nodes of
-        [] ->
-            Nothing
-
-        last :: [] ->
-            Just (Node.range last)
-
-        _ :: rest ->
-            lastElementRange rest
+    Maybe.map Node.range (lastElement nodes)
 
 
 rangeBetweenExclusive : ( Range, Range ) -> Range
@@ -8044,6 +8125,19 @@ combineResultValuesHelp lookupTable nodes soFar =
 
 
 -- LIST HELPERS
+
+
+lastElement : List a -> Maybe a
+lastElement list =
+    case list of
+        [] ->
+            Nothing
+
+        last :: [] ->
+            Just last
+
+        _ :: rest ->
+            lastElement rest
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
