@@ -781,6 +781,7 @@ import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getListSingletonCall, getNotFunction, getSpecificFunction, getSpecificFunctionCall, qualifiedToString)
+import Simplify.CollectionHelpers as CollectionHelpers
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
@@ -1081,15 +1082,9 @@ moduleExposingContext moduleHeader =
 
         Exposing.Explicit some ->
             ExposedSome
-                (List.foldl
-                    (\(Node _ expose) acc ->
-                        case AstHelpers.getTypeExposeIncludingVariants expose of
-                            Just name ->
-                                Set.insert name acc
-
-                            Nothing ->
-                                acc
-                    )
+                (CollectionHelpers.filterMapInto
+                    (\(Node _ expose) -> AstHelpers.getTypeExposeIncludingVariants expose)
+                    Set.insert
                     Set.empty
                     some
                 )
