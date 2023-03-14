@@ -7225,9 +7225,9 @@ catchCaseOfChecks resources caseBlock =
         casedExpression =
             Node.value (Normalize.normalize resources caseBlock.expression)
 
-        checked : Result (List (Error {})) (List ( Node Pattern, Node Expression ))
+        checked : Result (List (Error {})) Int
         checked =
-            List.foldr
+            List.foldl
                 (\case_ soFar ->
                     let
                         ( Node patternRange casePattern, _ ) =
@@ -7237,7 +7237,7 @@ catchCaseOfChecks resources caseBlock =
                         Err errors ->
                             Err errors
 
-                        Ok casesBeforeReverse ->
+                        Ok casesBeforeCount ->
                             case AstHelpers.casePatternCatchFor casedExpression casePattern of
                                 AstHelpers.CatchNone ->
                                     Err
@@ -7255,14 +7255,14 @@ catchCaseOfChecks resources caseBlock =
                                         ]
 
                                 AstHelpers.CatchSub ->
-                                    Ok (case_ :: casesBeforeReverse)
+                                    Ok (casesBeforeCount + 1)
 
                                 AstHelpers.CatchAll ->
-                                    case casesBeforeReverse of
+                                    case List.drop (casesBeforeCount + 1) caseBlock.cases of
                                         [] ->
-                                            Ok (case_ :: casesBeforeReverse)
+                                            Ok (casesBeforeCount + 1)
 
-                                        lastCase_ :: casesBeforeBeforeLastReverse ->
+                                        firstCaseAfter :: casesAfterOneAfter ->
                                             Err
                                                 [ Rule.errorWithFix
                                                     { message = "Cases after this one will never be matched"
@@ -7273,20 +7273,19 @@ catchCaseOfChecks resources caseBlock =
                                                     }
                                                     patternRange
                                                     [ Fix.removeRange
-                                                        (case lastElement casesBeforeBeforeLastReverse of
+                                                        (case lastElement casesAfterOneAfter of
                                                             Nothing ->
-                                                                caseRange lastCase_
+                                                                caseRange firstCaseAfter
 
-                                                            Just caseAfter ->
-                                                                { start =
-                                                                    (caseRange caseAfter).start
-                                                                , end = (caseRange lastCase_).end
+                                                            Just lastCaseAfter ->
+                                                                { start = (caseRange firstCaseAfter).start
+                                                                , end = (caseRange lastCaseAfter).end
                                                                 }
                                                         )
                                                     ]
                                                 ]
                 )
-                (Ok [])
+                (Ok 0)
                 caseBlock.cases
     in
     case checked of
