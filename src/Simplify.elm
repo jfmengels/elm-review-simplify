@@ -1208,8 +1208,9 @@ declarationVisitor declarationNode context =
                 let
                     exposedVariants : Set String
                     exposedVariants =
-                        List.foldl
-                            (\(Node _ variant) acc -> Set.insert (Node.value variant.name) acc)
+                        CollectionHelpers.mapInto
+                            (\(Node _ variant) -> Node.value variant.name)
+                            Set.insert
                             context.exposedVariants
                             variantType.constructors
                 in

@@ -1,10 +1,19 @@
 module Simplify.CollectionHelpers exposing
     ( concatMapInto
     , filterMapInto
+    , mapInto
     , mapIntoDict
     )
 
 import Dict exposing (Dict)
+
+
+mapInto : (a -> b) -> (b -> c -> c) -> c -> List a -> c
+mapInto mapper insert initialValue list =
+    List.foldl
+        (\value acc -> insert (mapper value) acc)
+        initialValue
+        list
 
 
 filterMapInto : (a -> Maybe b) -> (b -> c -> c) -> c -> List a -> c
