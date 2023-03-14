@@ -7244,9 +7244,20 @@ catchCaseOfChecks resources caseBlock =
                                         [ Rule.errorWithFix
                                             { message = "This case will never be matched"
                                             , details =
+                                                let
+                                                    recheckCasedExpressionHint : List String
+                                                    recheckCasedExpressionHint =
+                                                        case casesBeforeCount of
+                                                            0 ->
+                                                                [ "Hint: If this case looks like it should catch something, recheck the whole case..of for compiler errors. Maybe you're trying to match on a number/Float or (curried) function which is not possible in elm." ]
+
+                                                            _ ->
+                                                                []
+                                                in
                                                 [ "For the value you're matching, this case pattern is impossible to get in practice."
-                                                , "You can remove this case."
+                                                , "You can remove this case, or re-check if the value between case..of is correct."
                                                 ]
+                                                    ++ recheckCasedExpressionHint
                                             }
                                             patternRange
                                             [ Fix.removeRange
