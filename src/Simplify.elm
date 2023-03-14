@@ -1141,15 +1141,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
         dependencyExposedVariants =
             CollectionHelpers.mapIntoDict
                 (\moduleDoc -> AstHelpers.moduleNameFromString moduleDoc.name)
-                (\moduleDoc ->
-                    moduleDoc.unions
-                        |> List.concatMap
-                            (\union ->
-                                union.tags
-                                    |> List.map (\( variantName, _ ) -> variantName)
-                            )
-                        |> Set.fromList
-                )
+                collectTags
                 context.exposedVariants
                 modules
     in
@@ -1162,6 +1154,17 @@ dependenciesVisitor typeNamesAsStrings dict context =
       , exposedVariants = dependencyExposedVariants
       }
     )
+
+
+collectTags : Elm.Docs.Module -> Set String
+collectTags moduleDoc =
+    moduleDoc.unions
+        |> List.concatMap
+            (\union ->
+                union.tags
+                    |> List.map (\( variantName, _ ) -> variantName)
+            )
+        |> Set.fromList
 
 
 errorForUnknownIgnoredConstructor : List String -> Error scope
