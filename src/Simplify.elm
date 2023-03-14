@@ -1158,13 +1158,12 @@ dependenciesVisitor typeNamesAsStrings dict context =
 
 collectTags : Elm.Docs.Module -> Set String
 collectTags moduleDoc =
-    moduleDoc.unions
-        |> List.concatMap
-            (\union ->
-                union.tags
-                    |> List.map (\( variantName, _ ) -> variantName)
-            )
-        |> Set.fromList
+    CollectionHelpers.concatMapInto
+        (\union -> union.tags)
+        (\( variantName, _ ) -> variantName)
+        Set.insert
+        Set.empty
+        moduleDoc.unions
 
 
 errorForUnknownIgnoredConstructor : List String -> Error scope

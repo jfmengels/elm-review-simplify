@@ -1,5 +1,6 @@
 module Simplify.CollectionHelpers exposing
-    ( filterMapInto
+    ( concatMapInto
+    , filterMapInto
     , mapIntoDict
     )
 
@@ -16,6 +17,21 @@ filterMapInto mapper insert initialValue list =
 
                 Nothing ->
                     acc
+        )
+        initialValue
+        list
+
+
+concatMapInto : (a -> List b) -> (b -> c) -> (c -> d -> d) -> d -> List a -> d
+concatMapInto mapper subMap insert initialValue list =
+    List.foldl
+        (\value acc ->
+            List.foldl
+                (\subValue subAcc ->
+                    insert (subMap subValue) subAcc
+                )
+                acc
+                (mapper value)
         )
         initialValue
         list
