@@ -1085,7 +1085,7 @@ casePatternSpecificCatchFor astPath casedExpression pattern =
 
         Expression.FunctionOrValue qualification name ->
             withoutMatchingVariants
-                (if startingStartsWithUpper name then
+                (if stringStartsWithUpper name then
                     case pattern of
                         Pattern.NamedPattern patternQualified [] ->
                             required (( patternQualified.moduleName, patternQualified.name ) == ( qualification, name ))
@@ -1137,7 +1137,7 @@ casePatternSpecificCatchFor astPath casedExpression pattern =
         Expression.Application ((Node fedRange fed) :: firstArg :: argsAfterFirst) ->
             case fed of
                 Expression.FunctionOrValue qualification name ->
-                    if not (startingStartsWithUpper name) then
+                    if not (stringStartsWithUpper name) then
                         withoutMatchingVariants (casePatternCatchForUnknown pattern)
 
                     else
@@ -1301,8 +1301,8 @@ withoutMatchingVariants catch =
     { catch = catch, matchingVariants = Dict.empty }
 
 
-startingStartsWithUpper : String -> Bool
-startingStartsWithUpper string =
+stringStartsWithUpper : String -> Bool
+stringStartsWithUpper string =
     case String.uncons string of
         Nothing ->
             False
