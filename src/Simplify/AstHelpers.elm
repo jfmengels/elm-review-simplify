@@ -1154,15 +1154,15 @@ casePatternSpecificCatchFor astPath casedExpression pattern =
                                 else
                                     -- pattern with same variant
                                     let
-                                        argumentCatch : { catch : Catch, matchingVariants : Dict AstPath Range }
-                                        argumentCatch =
+                                        argumentsCatch : { catch : Catch, matchingVariants : Dict AstPath Range }
+                                        argumentsCatch =
                                             catchAndMatchingVariantsForPairs astPath (firstArg :: argsAfterFirst) namedPatternArguments
                                     in
-                                    { argumentCatch
-                                        | matchingVariants =
-                                            Dict.insert astPath
-                                                { start = fedRange.start, end = (Node.range firstArg).end }
-                                                argumentCatch.matchingVariants
+                                    { catch = argumentsCatch.catch
+                                    , matchingVariants =
+                                        Dict.insert astPath
+                                            { start = fedRange.start, end = (Node.range firstArg).end }
+                                            argumentsCatch.matchingVariants
                                     }
 
                             _ ->
