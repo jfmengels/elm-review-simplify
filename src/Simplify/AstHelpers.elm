@@ -1,6 +1,9 @@
 module Simplify.AstHelpers exposing
-    ( AstPath
-    , Catch(..)
+    ( CaseCatchSomeTree
+    , Catch
+    , CatchNoneOrSome(..)
+    , CatchSomeInfo
+    , CatchSomeKind(..)
     , boolToString
     , casePatternCatchFor
     , declarationListBindings
@@ -41,7 +44,6 @@ module Simplify.AstHelpers exposing
     , removeParensFromPattern
     )
 
-import Dict exposing (Dict)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -53,6 +55,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Set exposing (Set)
 import Simplify.Infer as Infer
 import Simplify.Normalize as Normalize
+import Tree exposing (Tree)
 
 
 removeParens : Node Expression -> Node Expression
@@ -966,27 +969,81 @@ isBinaryOperation symbol checkInfo expression =
             False
 
 
-type Catch
-    = -- a pattern that always matches the cased expression:
-      -- - a required pattern (like case () of () -> or case 'a' of 'a' ->)
-      -- - a (partially required) pattern that catches all sub-patterns (like case a of _ -> or case Ok a of Ok b ->)
-      -- if other patterns exist later, they can be removed
-      -- if the pattern isn't (partially) required, there will be be a compiler error
-      CatchAll
-    | -- a pattern that matches only a narrower subset of possible values
-      -- (like case result of Ok value -> or case list of [] ->)
-      -- if only one CatchSub case exists, there will be be a compiler error
-      CatchSub
+type alias Catch =
+    CatchNoneOrSome CaseCatchSomeTree
+
+
+type CatchNoneOrSome some
+    = CatchSome some
     | -- a case that impossible:
-      -- - there is no pattern for this (like function, glsl, ...)
-      -- - impossible to match in practice (like case Nothing of Just ...)
+      --     - there is no pattern for this (like function, glsl, ...)
+      --     - impossible to match in practice (like case Nothing of Just ...)
       -- impossible patterns can safely be removed.
       -- if all patterns are impossible, there will be be a compiler error
       CatchNone
 
 
-type alias AstPath =
-    List Int
+onCatchSome : (CaseCatchSomeTree -> CaseCatchSomeTree) -> Catch -> Catch
+onCatchSome caseCatchSomeTreeChange catch =
+    case catch of
+        CatchNone ->
+            CatchNone
+
+        CatchSome catchSome ->
+            CatchSome (caseCatchSomeTreeChange catchSome)
+
+
+type alias CatchSomeInfo =
+    { patternRange : Range
+    , catch : CatchSomeKind
+    }
+
+
+type CatchSomeKind
+    = -- CatchSub means a pattern that matches only a narrower subset of possible values
+      -- (like case result of Ok value -> or case list of [] ->)
+      -- if the only case is CatchSub, there will be be a compiler error
+      CatchSub
+    | -- CatchAll means a pattern that always matches the cased expression:
+      --     - a required pattern (like case () of () -> or case 'a' of 'a' ->)
+      --     - a (partially required) pattern that catches all sub-patterns (like case a of _ -> or case Ok a of Ok b ->)
+      -- if other patterns exist in later cases, their cases can be removed.
+      -- if that pattern also isn't (partially) required, there will be be a compiler error
+      -- if the patterns for the same expression (part) from all cases are CatchAll,
+      -- they are all simplifiable to ()
+      CatchAll
+        { -- if containsVariables is True, then
+          -- the case pattern contains at least 1 pattern variable there (like case Err err of Err error -> or case [ el ] of [ a ] ->)
+          containsVariables : Bool
+        }
+
+
+onCatchAll : { containsVariables : Bool -> Bool } -> CatchSomeKind -> CatchSomeKind
+onCatchAll catchAllInfoChange catchSomeKind =
+    case catchSomeKind of
+        CatchSub ->
+            CatchSub
+
+        CatchAll catchAll ->
+            CatchAll { containsVariables = catchAllInfoChange.containsVariables catchAll.containsVariables }
+
+
+type alias CaseCatchSomeTree =
+    Tree CatchSomeTreeElement
+
+
+type alias CatchSomeTreeElement =
+    { expressionRange : Range
+    , patternInCase : CatchSomeInfo
+    }
+
+
+patternInCaseAlter : (CatchSomeInfo -> CatchSomeInfo) -> CatchSomeTreeElement -> CatchSomeTreeElement
+patternInCaseAlter catchSomeInfoChange caseCatchSomeTreeElement =
+    { caseCatchSomeTreeElement
+        | patternInCase =
+            catchSomeInfoChange caseCatchSomeTreeElement.patternInCase
+    }
 
 
 {-| See what a given pattern catches
@@ -996,47 +1053,87 @@ Make sure to normalize the expression for the best detection (what are calls, wh
 
 -}
 casePatternCatchFor :
-    Expression
-    -> Pattern
-    -> { catch : Catch, matchingVariants : Dict AstPath Range }
-casePatternCatchFor casedExpression pattern =
-    case pattern of
+    ModuleNameLookupTable
+    -> Node Expression
+    -> Node Pattern
+    -> Catch
+casePatternCatchFor lookupTable casedExpression pattern =
+    let
+        -- only use for surface patterns (those directly casing on casedExpression)
+        treeWith : CatchSomeKind -> List CaseCatchSomeTree -> CaseCatchSomeTree
+        treeWith catch parts =
+            Tree.tree
+                { expressionRange = Node.range casedExpression
+                , patternInCase =
+                    { catch = catch, patternRange = Node.range pattern }
+                }
+                parts
+    in
+    case Node.value pattern of
         Pattern.AllPattern ->
-            withoutMatchingVariants CatchAll
+            CatchSome
+                (treeWith (CatchAll { containsVariables = False }) [])
 
         Pattern.VarPattern _ ->
-            withoutMatchingVariants CatchAll
+            CatchSome
+                (treeWith (CatchAll { containsVariables = True }) [])
 
-        Pattern.AsPattern (Node _ destructured) _ ->
-            casePatternCatchFor casedExpression destructured
+        Pattern.AsPattern destructured _ ->
+            onCatchSome
+                (\destructuredCatchSome ->
+                    Tree.elementAlter
+                        (\el ->
+                            patternInCaseAlter
+                                (\info ->
+                                    { patternRange = Node.range pattern
+                                    , catch = onCatchAll { containsVariables = \_ -> True } info.catch
+                                    }
+                                )
+                                el
+                        )
+                        destructuredCatchSome
+                )
+                (casePatternCatchFor lookupTable casedExpression destructured)
 
-        Pattern.ParenthesizedPattern (Node _ inParens) ->
-            casePatternCatchFor casedExpression inParens
+        Pattern.ParenthesizedPattern inParens ->
+            onCatchSome
+                (\inParensCatchSome ->
+                    Tree.elementAlter
+                        (\el ->
+                            patternInCaseAlter (\info -> { info | patternRange = Node.range pattern }) el
+                        )
+                        inParensCatchSome
+                )
+                (casePatternCatchFor lookupTable casedExpression inParens)
 
-        specificPattern ->
-            casePatternSpecificCatchFor [] casedExpression specificPattern
+        _ ->
+            casePatternSpecificCatchFor lookupTable casedExpression pattern
 
 
 {-| See what a given pattern catches
 from an expression that is fully unknown (like value/function variables).
 -}
-casePatternCatchForUnknown : Pattern -> Catch
+casePatternCatchForUnknown : Pattern -> CatchSomeKind
 casePatternCatchForUnknown pattern =
     case pattern of
         Pattern.UnitPattern ->
-            CatchAll
+            CatchAll { containsVariables = False }
 
         Pattern.AllPattern ->
-            CatchAll
+            CatchAll { containsVariables = False }
 
         Pattern.VarPattern _ ->
-            CatchAll
+            CatchAll { containsVariables = True }
 
         Pattern.AsPattern (Node _ destructured) _ ->
-            casePatternCatchForUnknown destructured
+            onCatchAll { containsVariables = \_ -> True }
+                (casePatternCatchForUnknown destructured)
+
+        Pattern.ParenthesizedPattern (Node _ inParens) ->
+            casePatternCatchForUnknown inParens
 
         Pattern.RecordPattern _ ->
-            CatchAll
+            CatchSub
 
         -- doesn't exist
         Pattern.FloatPattern _ ->
@@ -1060,125 +1157,279 @@ casePatternCatchForUnknown pattern =
         Pattern.StringPattern _ ->
             CatchSub
 
-        Pattern.ParenthesizedPattern (Node _ inParens) ->
-            casePatternCatchForUnknown inParens
-
         Pattern.TuplePattern tupleParts ->
-            combineCatchBy (\(Node _ part) -> casePatternCatchForUnknown part) tupleParts
+            List.foldl
+                (\(Node _ part) soFar ->
+                    case soFar of
+                        CatchSub ->
+                            CatchSub
+
+                        CatchAll soFarCatchAll ->
+                            case casePatternCatchForUnknown part of
+                                CatchSub ->
+                                    CatchSub
+
+                                CatchAll catchAll ->
+                                    CatchAll
+                                        { containsVariables =
+                                            soFarCatchAll.containsVariables
+                                                || catchAll.containsVariables
+                                        }
+                )
+                (CatchAll { containsVariables = False })
+                tupleParts
 
         Pattern.NamedPattern _ _ ->
             CatchSub
 
 
-casePatternSpecificCatchFor : AstPath -> Expression -> Pattern -> { catch : Catch, matchingVariants : Dict AstPath Range }
-casePatternSpecificCatchFor astPath casedExpression pattern =
-    case casedExpression of
-        Expression.UnitExpr ->
-            withoutMatchingVariants
-                (case pattern of
-                    Pattern.UnitPattern ->
-                        CatchAll
+{-| Find out what the sum of the 2 given individual elements catch.
+CatchNone > CatchSub > CatchAll. That means
 
-                    _ ->
-                        CatchNone
-                )
+  - if any is CatchNone → CatchNone
+  - otherwise if one is CatchSub → CatchSub,
+  - otherwise CatchAll
+
+-}
+catchMergeWith :
+    (() -> Catch)
+    -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
+    -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
+catchMergeWith lazyOtherCatch structureCatch =
+    case structureCatch of
+        CatchNone ->
+            CatchNone
+
+        CatchSome catchSome ->
+            case lazyOtherCatch () of
+                CatchNone ->
+                    CatchNone
+
+                CatchSome otherCatchSomeTree ->
+                    CatchSome
+                        { catch =
+                            case ( catchSome.catch, (Tree.element otherCatchSomeTree).patternInCase.catch ) of
+                                ( CatchAll catchAll, CatchAll otherCatchAll ) ->
+                                    CatchAll { containsVariables = catchAll.containsVariables || otherCatchAll.containsVariables }
+
+                                ( _, CatchSub ) ->
+                                    CatchSub
+
+                                ( CatchSub, _ ) ->
+                                    CatchSub
+                        , parts = otherCatchSomeTree :: catchSome.parts
+                        }
+
+
+casePatternSpecificCatchFor :
+    ModuleNameLookupTable
+    -> Node Expression
+    -> Node Pattern
+    -> Catch
+casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
+    let
+        (Node expressionRange expression) =
+            casedExpressionNode
+
+        (Node patternRange pattern) =
+            patternNode
+
+        -- only use for surface patterns (those directly casing on the expression at expressionRange)
+        treeWith : CatchSomeKind -> List CaseCatchSomeTree -> CaseCatchSomeTree
+        treeWith catch parts =
+            Tree.tree
+                { expressionRange = expressionRange
+                , patternInCase =
+                    { catch = catch, patternRange = patternRange }
+                }
+                parts
+
+        catchAllIfElseNone : Bool -> Catch
+        catchAllIfElseNone requirementSatisfied =
+            if requirementSatisfied then
+                CatchSome (treeWith (CatchAll { containsVariables = False }) [])
+
+            else
+                CatchNone
+
+        casePatternSpecificCatchForInt : Int -> Pattern -> Catch
+        casePatternSpecificCatchForInt int patternForInt =
+            case patternForInt of
+                Pattern.HexPattern patternInt ->
+                    catchAllIfElseNone (patternInt == int)
+
+                Pattern.IntPattern patternInt ->
+                    catchAllIfElseNone (patternInt == int)
+
+                _ ->
+                    CatchNone
+
+        casePatternCatchForRecord : () -> Catch
+        casePatternCatchForRecord () =
+            case pattern of
+                Pattern.RecordPattern _ ->
+                    CatchSome (treeWith (CatchAll { containsVariables = True }) [])
+
+                _ ->
+                    CatchNone
+
+        catchForPairs : List (Node Expression) -> List (Node Pattern) -> Catch
+        catchForPairs expressions patterns =
+            case structureCatchForPairs expressions patterns of
+                CatchNone ->
+                    CatchNone
+
+                CatchSome structureCatchSome ->
+                    CatchSome (treeWith structureCatchSome.catch structureCatchSome.parts)
+
+        structureCatchForPairs : List (Node Expression) -> List (Node Pattern) -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
+        structureCatchForPairs expressions patterns =
+            case ( expressions, patterns ) of
+                ( [], _ :: _ ) ->
+                    CatchSome { parts = [], catch = CatchAll { containsVariables = False } }
+
+                ( _ :: _, [] ) ->
+                    CatchSome { parts = [], catch = CatchAll { containsVariables = False } }
+
+                ( [], [] ) ->
+                    CatchSome { parts = [], catch = CatchAll { containsVariables = False } }
+
+                ( expressionPart :: expressionTail, patternPart :: patternTail ) ->
+                    let
+                        elementCatchEvaluated : () -> Catch
+                        elementCatchEvaluated () =
+                            casePatternCatchFor lookupTable expressionPart patternPart
+
+                        tailCatchAndSimplification : CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
+                        tailCatchAndSimplification =
+                            structureCatchForPairs expressionTail patternTail
+                    in
+                    catchMergeWith elementCatchEvaluated tailCatchAndSimplification
+    in
+    case expression of
+        Expression.UnitExpr ->
+            case pattern of
+                Pattern.UnitPattern ->
+                    CatchSome (treeWith (CatchAll { containsVariables = False }) [])
+
+                _ ->
+                    CatchNone
 
         Expression.FunctionOrValue qualification name ->
-            withoutMatchingVariants
-                (if stringStartsWithUpper name then
-                    case pattern of
-                        Pattern.NamedPattern patternQualified [] ->
-                            required (( patternQualified.moduleName, patternQualified.name ) == ( qualification, name ))
+            if not (stringStartsWithUpper name) then
+                CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
-                        _ ->
+            else
+                -- variant without arguments or empty record type alias constructor
+                case pattern of
+                    Pattern.NamedPattern patternQualified [] ->
+                        let
+                            patternFullyQualified : ( ModuleName, String )
+                            patternFullyQualified =
+                                ( Maybe.withDefault patternQualified.moduleName (ModuleNameLookupTable.moduleNameAt lookupTable patternRange)
+                                , patternQualified.name
+                                )
+
+                            fullyQualified : ( ModuleName, String )
+                            fullyQualified =
+                                ( Maybe.withDefault qualification (ModuleNameLookupTable.moduleNameAt lookupTable expressionRange)
+                                , name
+                                )
+                        in
+                        if patternFullyQualified == fullyQualified then
+                            CatchSome (treeWith (CatchAll { containsVariables = False }) [])
+
+                        else
                             CatchNone
 
-                 else
-                    casePatternCatchForUnknown pattern
-                )
+                    _ ->
+                        -- an empty record type alias constructor doesn't have a specific matching pattern
+                        -- a curried variant constructor doesn't have a matching pattern either
+                        CatchNone
 
         Expression.Hex int ->
-            withoutMatchingVariants (casePatternSpecificCatchForInt int pattern)
+            casePatternSpecificCatchForInt int pattern
 
         Expression.Integer int ->
-            withoutMatchingVariants (casePatternSpecificCatchForInt int pattern)
+            casePatternSpecificCatchForInt int pattern
 
         Expression.CharLiteral char ->
-            withoutMatchingVariants
-                (case pattern of
-                    Pattern.CharPattern patternChar ->
-                        required (char == patternChar)
+            case pattern of
+                Pattern.CharPattern patternChar ->
+                    catchAllIfElseNone (char == patternChar)
 
-                    _ ->
-                        CatchNone
-                )
+                _ ->
+                    CatchNone
 
+        -- compiler error
         Expression.Floatable _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
         Expression.Literal string ->
-            withoutMatchingVariants
-                (case pattern of
-                    Pattern.StringPattern patternString ->
-                        required (string == patternString)
+            case pattern of
+                Pattern.StringPattern patternString ->
+                    catchAllIfElseNone (string == patternString)
 
-                    _ ->
-                        CatchNone
-                )
+                _ ->
+                    CatchNone
 
         -- doesn't exist
         Expression.Application [] ->
-            withoutMatchingVariants (casePatternCatchForUnknown pattern)
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         -- doesn't exist
         Expression.Application (_ :: []) ->
-            withoutMatchingVariants (casePatternCatchForUnknown pattern)
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.Application ((Node fedRange fed) :: firstArg :: argsAfterFirst) ->
             case fed of
                 Expression.FunctionOrValue qualification name ->
                     if not (stringStartsWithUpper name) then
-                        withoutMatchingVariants (casePatternCatchForUnknown pattern)
+                        CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
                     else
-                        -- expression could be variant
+                        -- expression is (curried) variant or (curried) record type alias constructor
                         case pattern of
                             Pattern.NamedPattern patternQualified namedPatternArguments ->
-                                if ( patternQualified.moduleName, patternQualified.name ) /= ( qualification, name ) then
-                                    withoutMatchingVariants CatchNone
+                                let
+                                    patternFullyQualified : ( ModuleName, String )
+                                    patternFullyQualified =
+                                        ( Maybe.withDefault patternQualified.moduleName (ModuleNameLookupTable.moduleNameAt lookupTable patternRange)
+                                        , patternQualified.name
+                                        )
+
+                                    fedFullyQualified : ( ModuleName, String )
+                                    fedFullyQualified =
+                                        ( Maybe.withDefault qualification (ModuleNameLookupTable.moduleNameAt lookupTable fedRange)
+                                        , name
+                                        )
+                                in
+                                if patternFullyQualified /= fedFullyQualified then
+                                    CatchNone
 
                                 else if List.length (firstArg :: argsAfterFirst) < List.length namedPatternArguments then
-                                    -- variant constructor is only partially applied
-                                    withoutMatchingVariants CatchNone
+                                    -- constructor is only partially applied
+                                    CatchNone
 
                                 else
                                     -- pattern with same variant
-                                    let
-                                        argumentsCatch : { catch : Catch, matchingVariants : Dict AstPath Range }
-                                        argumentsCatch =
-                                            catchAndMatchingVariantsForPairs astPath (firstArg :: argsAfterFirst) namedPatternArguments
-                                    in
-                                    { catch = argumentsCatch.catch
-                                    , matchingVariants =
-                                        Dict.insert astPath
-                                            { start = fedRange.start, end = (Node.range firstArg).end }
-                                            argumentsCatch.matchingVariants
-                                    }
+                                    catchForPairs (firstArg :: argsAfterFirst) namedPatternArguments
 
                             _ ->
-                                withoutMatchingVariants CatchNone
+                                -- expression is (curried) record type alias constructor
+                                casePatternCatchForRecord ()
 
                 _ ->
-                    withoutMatchingVariants (casePatternCatchForUnknown pattern)
+                    CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.OperatorApplication operatorName _ left right ->
             if List.member operatorName [ ">>", "<<", "|.", "|=", "<?>", "</>" ] then
-                withoutMatchingVariants CatchNone
+                CatchNone
 
             else if operatorName == "::" then
                 case getCollapsedPatternList pattern of
                     Nothing ->
-                        withoutMatchingVariants CatchNone
+                        CatchNone
 
                     Just collapsedPatternList ->
                         let
@@ -1191,73 +1442,79 @@ casePatternSpecificCatchFor astPath casedExpression pattern =
                                     Nothing ->
                                         { consed = [ left ], tail = right }
 
-                            beginningCatch : { catch : Catch, matchingVariants : Dict AstPath Range }
+                            beginningCatch : Catch
                             beginningCatch =
-                                catchAndMatchingVariantsForPairs astPath collapsedCons.consed collapsedPatternList.beginning
+                                catchForPairs collapsedCons.consed collapsedPatternList.beginning
                         in
-                        if List.length collapsedPatternList.beginning <= List.length collapsedCons.consed then
-                            beginningCatch
+                        case beginningCatch of
+                            CatchSome beginningCatchSome ->
+                                CatchSome
+                                    (treeWith
+                                        (case (Tree.element beginningCatchSome).patternInCase.catch of
+                                            CatchSub ->
+                                                CatchSub
 
-                        else
-                            -- length collapsedPatternList.beginning > length collapsedCons.consed
-                            { beginningCatch
-                                | catch =
-                                    case beginningCatch.catch of
-                                        CatchAll ->
-                                            CatchSub
+                                            CatchAll beginningCatchAll ->
+                                                if List.length collapsedPatternList.beginning <= List.length collapsedCons.consed then
+                                                    CatchAll beginningCatchAll
 
-                                        CatchSub ->
-                                            CatchSub
+                                                else
+                                                    -- length collapsedPatternList.beginning > length collapsedCons.consedCatchSome beginningCatchSome
+                                                    CatchSub
+                                        )
+                                        []
+                                    )
 
-                                        CatchNone ->
-                                            CatchNone
-                            }
+                            CatchNone ->
+                                CatchNone
 
             else
-                withoutMatchingVariants (casePatternCatchForUnknown pattern)
+                CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.IfBlock _ _ _ ->
             -- simplify should clean the bool case up to a simple if
-            withoutMatchingVariants (casePatternCatchForUnknown pattern)
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.PrefixOperator _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
         -- doesn't exist
         Expression.Operator _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
         Expression.Negation _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
         Expression.TupledExpression tupleParts ->
+            -- TODO remove () parts
             case pattern of
                 Pattern.TuplePattern patternParts ->
                     if List.length patternParts /= List.length tupleParts then
                         -- compiler error
-                        withoutMatchingVariants CatchNone
+                        CatchNone
 
                     else
                         -- length patternParts == length tupleParts
-                        catchAndMatchingVariantsForPairs astPath tupleParts patternParts
+                        catchForPairs tupleParts patternParts
 
                 _ ->
-                    withoutMatchingVariants CatchNone
+                    CatchNone
 
         Expression.LetExpression _ ->
-            withoutMatchingVariants (casePatternCatchForUnknown pattern)
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.CaseExpression _ ->
-            withoutMatchingVariants (casePatternCatchForUnknown pattern)
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
+        -- compiler error
         Expression.LambdaExpression _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
         Expression.RecordExpr _ ->
-            withoutMatchingVariants (casePatternCatchForRecord pattern)
+            casePatternCatchForRecord ()
 
         Expression.RecordUpdateExpression _ _ ->
-            withoutMatchingVariants (casePatternCatchForRecord pattern)
+            casePatternCatchForRecord ()
 
         Expression.ListExpr elements ->
             case getCollapsedPatternList pattern of
@@ -1265,40 +1522,35 @@ casePatternSpecificCatchFor astPath casedExpression pattern =
                     case patternElements.tail of
                         Just _ ->
                             if List.length patternElements.beginning > List.length elements then
-                                withoutMatchingVariants CatchNone
+                                CatchNone
 
                             else
                                 -- length patternElements.beginning <= List.length elements
-                                catchAndMatchingVariantsForPairs astPath elements patternElements.beginning
+                                catchForPairs elements patternElements.beginning
 
                         Nothing ->
                             if List.length patternElements.beginning /= List.length elements then
                                 -- compiler error
-                                withoutMatchingVariants CatchNone
+                                CatchNone
 
                             else
                                 -- length patternElements == length elements
-                                catchAndMatchingVariantsForPairs astPath elements patternElements.beginning
+                                catchForPairs elements patternElements.beginning
 
                 Nothing ->
-                    withoutMatchingVariants CatchNone
+                    CatchNone
 
         Expression.RecordAccess _ _ ->
-            withoutMatchingVariants (casePatternCatchForUnknown pattern)
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.RecordAccessFunction _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
         Expression.GLSLExpression _ ->
-            withoutMatchingVariants CatchNone
+            CatchNone
 
-        Expression.ParenthesizedExpression (Node _ inParens) ->
-            casePatternSpecificCatchFor astPath inParens pattern
-
-
-withoutMatchingVariants : Catch -> { catch : Catch, matchingVariants : Dict AstPath Range }
-withoutMatchingVariants catch =
-    { catch = catch, matchingVariants = Dict.empty }
+        Expression.ParenthesizedExpression inParens ->
+            casePatternSpecificCatchFor lookupTable inParens patternNode
 
 
 stringStartsWithUpper : String -> Bool
@@ -1309,122 +1561,6 @@ stringStartsWithUpper string =
 
         Just ( firstChar, _ ) ->
             Char.isUpper firstChar
-
-
-required : Bool -> Catch
-required requiredCondition =
-    if requiredCondition then
-        CatchAll
-
-    else
-        CatchNone
-
-
-casePatternSpecificCatchForInt : Int -> Pattern -> Catch
-casePatternSpecificCatchForInt int pattern =
-    case pattern of
-        Pattern.HexPattern patternInt ->
-            required (patternInt == int)
-
-        Pattern.IntPattern patternInt ->
-            required (patternInt == int)
-
-        _ ->
-            CatchNone
-
-
-casePatternCatchForRecord : Pattern -> Catch
-casePatternCatchForRecord pattern =
-    case pattern of
-        Pattern.RecordPattern _ ->
-            CatchAll
-
-        _ ->
-            CatchNone
-
-
-{-| `combineCatchBy` which additionally collects matching variants
--}
-catchAndMatchingVariantsForPairs :
-    AstPath
-    -> List (Node Expression)
-    -> List (Node Pattern)
-    -> { catch : Catch, matchingVariants : Dict AstPath Range }
-catchAndMatchingVariantsForPairs basePath expressions patterns =
-    catchAndMatchingVariantsForPairsFrom ( 0, basePath ) expressions patterns
-
-
-catchAndMatchingVariantsForPairsFrom :
-    ( Int, AstPath )
-    -> List (Node Expression)
-    -> List (Node Pattern)
-    -> { catch : Catch, matchingVariants : Dict AstPath Range }
-catchAndMatchingVariantsForPairsFrom ( branchIndex, basePath ) expressions patterns =
-    case ( expressions, patterns ) of
-        ( [], _ :: _ ) ->
-            withoutMatchingVariants CatchAll
-
-        ( _ :: _, [] ) ->
-            withoutMatchingVariants CatchAll
-
-        ( [], [] ) ->
-            withoutMatchingVariants CatchAll
-
-        ( (Node _ expressionPart) :: expressionTail, (Node _ patternPart) :: patternTail ) ->
-            let
-                elementCatchEvaluated : { catch : Catch, matchingVariants : Dict AstPath Range }
-                elementCatchEvaluated =
-                    casePatternCatchFor expressionPart patternPart
-
-                tailCatchAndMatchingVariants : { catch : Catch, matchingVariants : Dict AstPath Range }
-                tailCatchAndMatchingVariants =
-                    catchAndMatchingVariantsForPairsFrom ( branchIndex + 1, basePath ) expressionTail patternTail
-            in
-            { catch = catchMergeWith (\() -> elementCatchEvaluated.catch) tailCatchAndMatchingVariants.catch
-            , matchingVariants = Dict.union elementCatchEvaluated.matchingVariants tailCatchAndMatchingVariants.matchingVariants
-            }
-
-
-{-| Find out what the sum of the 2 given individual elements catch.
-
-CatchNone > CatchSub > CatchAll. That means
-
-  - if any is CatchNone → CatchNone
-  - otherwise if one is CatchSub → CatchSub,
-  - otherwise CatchAll
-
--}
-catchMergeWith : (() -> Catch) -> Catch -> Catch
-catchMergeWith lazyOtherCatch catch =
-    case catch of
-        CatchAll ->
-            lazyOtherCatch ()
-
-        CatchSub ->
-            case lazyOtherCatch () of
-                CatchNone ->
-                    CatchNone
-
-                CatchSub ->
-                    CatchSub
-
-                CatchAll ->
-                    CatchSub
-
-        CatchNone ->
-            CatchNone
-
-
-{-| Merge the whole List of catches. See `catchMergeWith`
--}
-combineCatchBy : (a -> Catch) -> List a -> Catch
-combineCatchBy elementCatch list =
-    case list of
-        [] ->
-            CatchAll
-
-        head :: tail ->
-            catchMergeWith (\() -> combineCatchBy elementCatch tail) (elementCatch head)
 
 
 getTypeExposeIncludingVariants : Exposing.TopLevelExpose -> Maybe String

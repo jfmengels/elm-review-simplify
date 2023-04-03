@@ -763,6 +763,7 @@ All of these also apply for `Sub`.
 
 -}
 
+import Array exposing (Array)
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Project exposing (Exposed)
@@ -786,6 +787,7 @@ import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 import Simplify.RangeDict as RangeDict exposing (RangeDict)
+import Tree exposing (Tree)
 
 
 {-| Rule to simplify Elm code.
@@ -7213,228 +7215,464 @@ caseOfChecks context parentRange caseBlock =
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
         , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
         , \() -> destructuringCaseOfChecks context.extractSourceCode parentRange caseBlock
-        , \() -> catchCaseOfChecks context caseBlock
+        , \() -> catchCaseOfChecks context { block = caseBlock, range = parentRange }
         ]
         ()
 
 
-catchCaseOfChecks : Infer.Resources a -> Expression.CaseBlock -> List (Error {})
-catchCaseOfChecks resources caseBlock =
+catchCaseOfChecks : Infer.Resources a -> { block : Expression.CaseBlock, range : Range } -> List (Error {})
+catchCaseOfChecks resources caseOf =
     let
-        casedExpression : Expression
-        casedExpression =
-            Node.value (Normalize.normalize resources caseBlock.expression)
-
-        checked :
-            { casesAfter : Expression.Cases
-            , status :
-                Result
-                    CaseOfError
-                    { matchingVariants : Dict AstHelpers.AstPath (List Range) }
-            }
+        checked : CaseCatches
         checked =
             List.foldl
-                (\case_ checkedSoFar ->
-                    let
-                        ( Node patternRange casePattern, _ ) =
-                            case_
-                    in
-                    { casesAfter = List.drop 1 checkedSoFar.casesAfter
-                    , status =
-                        case checkedSoFar.status of
-                            Err (HasPrematureCatchAllCase prematureCatchAllCase) ->
-                                Err (HasPrematureCatchAllCase prematureCatchAllCase)
-
-                            Err (HasCatchNoneCases catchNones) ->
-                                let
-                                    casePatternCatch : { catch : AstHelpers.Catch, matchingVariants : Dict AstHelpers.AstPath Range }
-                                    casePatternCatch =
-                                        AstHelpers.casePatternCatchFor casedExpression casePattern
-                                in
-                                case casePatternCatch.catch of
-                                    AstHelpers.CatchSub ->
-                                        Err
-                                            (HasCatchNoneCases
-                                                { catchNones
-                                                    | matchingVariants =
-                                                        dictIntersectCombine (\range catchNonesRanges -> range :: catchNonesRanges)
-                                                            casePatternCatch.matchingVariants
-                                                            catchNones.matchingVariants
-                                                }
-                                            )
-
-                                    AstHelpers.CatchNone ->
-                                        Err
-                                            (HasCatchNoneCases
-                                                { catchNones
-                                                    | catchNoneCases = case_ :: catchNones.catchNoneCases
-                                                }
-                                            )
-
-                                    AstHelpers.CatchAll ->
-                                        case checkedSoFar.casesAfter of
-                                            [] ->
-                                                Err (HasCatchNoneCases catchNones)
-
-                                            followingCase :: casesAfterFollowing ->
-                                                Err
-                                                    (HasPrematureCatchAllCase
-                                                        { patternRange = patternRange
-                                                        , followingCase = followingCase
-                                                        , casesAfterFollowing = casesAfterFollowing
-                                                        , matchingVariants = casePatternCatch.matchingVariants
-                                                        }
-                                                    )
-
-                            Ok soFar ->
-                                let
-                                    casePatternCatch : { catch : AstHelpers.Catch, matchingVariants : Dict AstHelpers.AstPath Range }
-                                    casePatternCatch =
-                                        AstHelpers.casePatternCatchFor casedExpression casePattern
-                                in
-                                case casePatternCatch.catch of
-                                    AstHelpers.CatchSub ->
-                                        Ok
-                                            { matchingVariants =
-                                                dictIntersectCombine (\range soFarRanges -> range :: soFarRanges)
-                                                    casePatternCatch.matchingVariants
-                                                    soFar.matchingVariants
-                                            }
-
-                                    AstHelpers.CatchNone ->
-                                        Err
-                                            (HasCatchNoneCases
-                                                { patternRange = patternRange
-                                                , matchingVariants = soFar.matchingVariants
-                                                , catchNoneCases = [ case_ ]
-                                                }
-                                            )
-
-                                    AstHelpers.CatchAll ->
-                                        case checkedSoFar.casesAfter of
-                                            [] ->
-                                                Ok { matchingVariants = soFar.matchingVariants }
-
-                                            followingCase :: casesAfterFollowing ->
-                                                Err
-                                                    (HasPrematureCatchAllCase
-                                                        { patternRange = patternRange
-                                                        , followingCase = followingCase
-                                                        , casesAfterFollowing = casesAfterFollowing
-                                                        , matchingVariants = casePatternCatch.matchingVariants
-                                                        }
-                                                    )
+                (\( patternNode, _ ) checkedSoFar ->
+                    { index = checkedSoFar.index + 1
+                    , result =
+                        checkedSoFar.result
+                            |> addCase checkedSoFar.index
+                                (AstHelpers.casePatternCatchFor resources.lookupTable caseOf.block.expression patternNode)
                     }
                 )
-                { casesAfter = List.drop 1 caseBlock.cases
-                , status = Ok { matchingVariants = Dict.empty }
-                }
-                caseBlock.cases
-    in
-    case checked.status of
-        Ok _ ->
-            []
-
-        Err caseOfError ->
-            catchCaseOfProduceErrors caseOfError caseBlock.cases
-
-
-catchCaseOfProduceErrors : CaseOfError -> Expression.Cases -> List (Rule.Error {})
-catchCaseOfProduceErrors caseOfError cases =
-    case caseOfError of
-        HasCatchNoneCases catchNones ->
-            let
-                removeCatchNoneCases : List Fix
-                removeCatchNoneCases =
-                    case cases of
-                        _ :: [] ->
-                            -- we can't remove a catch-none case that's the only case
-                            []
-
-                        -- at least 2 cases
-                        _ ->
-                            List.map (\case_ -> Fix.removeRange (caseRange case_)) catchNones.catchNoneCases
-
-                removeMatchingVariants : List Fix
-                removeMatchingVariants =
-                    List.concatMap
-                        (\variantRanges ->
-                            List.map Fix.removeRange variantRanges
-                        )
-                        (Dict.values catchNones.matchingVariants)
-            in
-            [ Rule.errorWithFix
-                { message = "This case will never be matched"
-                , details =
-                    let
-                        recheckCasedExpressionHint : List String
-                        recheckCasedExpressionHint =
-                            if List.length catchNones.catchNoneCases == List.length cases then
-                                [ "Hint: If this case looks like it should catch something, recheck the whole case..of for compiler errors. Maybe you're trying to match on a number/Float or (curried) function which is not possible in elm." ]
-
-                            else
-                                []
-                    in
-                    [ "For the value you're matching, this case pattern is impossible to get in practice."
-                    , "You can remove this case, or re-check if the value between case..of is correct."
-                    ]
-                        ++ recheckCasedExpressionHint
-                }
-                catchNones.patternRange
-                (removeCatchNoneCases
-                    ++ removeMatchingVariants
-                )
-            ]
-
-        HasPrematureCatchAllCase prematureCatchAll ->
-            let
-                removeMatchingVariantsOfPrematureCatchAll : List Fix
-                removeMatchingVariantsOfPrematureCatchAll =
-                    List.map Fix.removeRange
-                        (Dict.values prematureCatchAll.matchingVariants)
-            in
-            [ Rule.errorWithFix
-                { message = "Cases after this one will never be matched"
-                , details =
-                    [ "For the value you're matching, this case pattern covers all possibilities. Therefore, later cases are impossible to get in practice."
-                    , "You can remove the cases after the marked one."
-                    ]
-                }
-                prematureCatchAll.patternRange
-                (Fix.removeRange
-                    (case lastElement prematureCatchAll.casesAfterFollowing of
-                        Nothing ->
-                            caseRange prematureCatchAll.followingCase
-
-                        Just lastCaseAfter ->
-                            { start = (caseRange prematureCatchAll.followingCase).start
-                            , end = (caseRange lastCaseAfter).end
+                { index = 0
+                , result =
+                    { catchSomeCases =
+                        Tree.leaf
+                            { expressionRange = Node.range caseOf.block.expression
+                            , patternsInCases = Dict.empty
                             }
+                    , catchNoneCaseIndexes = Set.empty
+                    , firstCatchAllCaseIndex = Nothing
+                    }
+                }
+                caseOf.block.cases
+                |> .result
+    in
+    caseOfCatchError checked
+        { cases = Array.fromList caseOf.block.cases, range = caseOf.range }
+
+
+addCase : Int -> AstHelpers.Catch -> CaseCatches -> CaseCatches
+addCase indexInCases caseCatch checkedSoFar =
+    case checkedSoFar.firstCatchAllCaseIndex of
+        Just _ ->
+            checkedSoFar
+
+        Nothing ->
+            case caseCatch of
+                AstHelpers.CatchNone ->
+                    { checkedSoFar
+                        | catchNoneCaseIndexes =
+                            checkedSoFar.catchNoneCaseIndexes
+                                |> Set.insert indexInCases
+                    }
+
+                AstHelpers.CatchSome catchSome ->
+                    { checkedSoFar
+                        | catchSomeCases =
+                            checkedSoFar.catchSomeCases
+                                |> addCatchSomeCase ( indexInCases, catchSome )
+                    }
+
+
+type alias CaseCatches =
+    { firstCatchAllCaseIndex : Maybe Int
+    , catchNoneCaseIndexes : Set Int
+    , catchSomeCases : CatchSomeCasesTree
+    }
+
+
+type alias CatchSomeCasesTree =
+    Tree CatchSomeCasesTreeElement
+
+
+type alias CatchSomeCasesTreeElement =
+    { expressionRange : Range
+    , patternsInCases : Dict Int AstHelpers.CatchSomeInfo
+    }
+
+
+addPatternInCase : ( Int, AstHelpers.CatchSomeInfo ) -> CatchSomeCasesTreeElement -> CatchSomeCasesTreeElement
+addPatternInCase ( indexInCases, caseCatchSomeInfo ) catchSomeCasesTreeElement =
+    { catchSomeCasesTreeElement
+        | patternsInCases =
+            Dict.insert
+                indexInCases
+                caseCatchSomeInfo
+                catchSomeCasesTreeElement.patternsInCases
+    }
+
+
+addCatchSomeCase : ( Int, AstHelpers.CaseCatchSomeTree ) -> CatchSomeCasesTree -> CatchSomeCasesTree
+addCatchSomeCase ( indexInCases, caseTree ) casesTree =
+    Tree.tree
+        (addPatternInCase ( indexInCases, caseTree |> Tree.element |> .patternInCase )
+            (Tree.element casesTree)
+        )
+        (case Tree.parts caseTree of
+            [] ->
+                []
+
+            casePatternPart0 :: casePatternParts1Up ->
+                List.map2
+                    (\casePartTree partTree ->
+                        addCatchSomeCase ( indexInCases, casePartTree ) partTree
                     )
-                    :: removeMatchingVariantsOfPrematureCatchAll
-                )
+                    (casePatternPart0 :: casePatternParts1Up)
+                    (Tree.parts casesTree)
+        )
+
+
+{-| if `CatchAll { containsVariables = False }`, like
+
+    _ ->
+    -- or
+    case [ () ] of [ () ] ->
+    -- or
+    case Nothing of Nothing ->
+
+→ this means that the pattern structure can be simplified to () / completely removed
+
+    ... _ ->
+    -- or
+    case ... () of ... () ->
+
+for example
+
+    case Err [] of Err [] ->
+    -- fixed to
+    case () of () ->
+
+    -- or better
+    case Ok [ (), a ] of
+        Ok [ (), _ ] ->
+            b
+
+        _ ->
+            c
+
+    -- fixed to
+    b
+
+it still matches equally as often
+
+Conversely, on `CatchAll { containsVariables = True }` or `CatchSub`, like
+
+    case maybe of Just _ ->
+    -- or
+    ( (), a ) ->
+
+→ this means that the pattern structure can't be simplified to () or removed (tho it's parts might)
+
+-}
+canBeRemoved : AstHelpers.CatchSomeKind -> Bool
+canBeRemoved catchSomeKind =
+    catchSomeKind == AstHelpers.CatchAll { containsVariables = False }
+
+
+indexthToString : Int -> String
+indexthToString index =
+    let
+        suffix : String
+        suffix =
+            case (index + 1) |> remainderBy 10 of
+                1 ->
+                    "st"
+
+                2 ->
+                    "nd"
+
+                3 ->
+                    "rd"
+
+                _ ->
+                    "th"
+    in
+    String.fromInt (index + 1) ++ suffix
+
+
+pluralize : { singular : String, plural : String } -> Int -> String
+pluralize word count =
+    case abs count of
+        1 ->
+            word.singular
+
+        _ ->
+            word.plural
+
+
+caseOfCatchError :
+    CaseCatches
+    -> { range : Range, cases : Array Expression.Case }
+    -> List (Rule.Error {})
+caseOfCatchError caseCatches caseOf =
+    let
+        prematureCatchAllError : Maybe { details : String, fix : List Fix }
+        prematureCatchAllError =
+            case caseCatches.firstCatchAllCaseIndex of
+                Nothing ->
+                    Nothing
+
+                Just firstCatchAllCaseIndex ->
+                    if firstCatchAllCaseIndex == (Array.length caseOf.cases - 1) then
+                        -- no premature catch-all
+                        Nothing
+
+                    else
+                        -- premature catch-all
+                        Just
+                            { details =
+                                "Cases after the "
+                                    ++ indexthToString firstCatchAllCaseIndex
+                                    ++ " one will never be matched, because the pattern covers all possibilities"
+                                    ++ "\nTherefore, later cases are impossible to get in practice and can be removed."
+                            , fix =
+                                List.map (\case_ -> Fix.removeRange (caseRange case_))
+                                    (List.drop (firstCatchAllCaseIndex + 1) (Array.toList caseOf.cases))
+                            }
+
+        removeCatchNoneCasesError : Maybe { details : String, fix : List Fix }
+        removeCatchNoneCasesError =
+            if Set.isEmpty caseCatches.catchNoneCaseIndexes then
+                Nothing
+
+            else
+                -- if all cases are catch-none, there will be a compiler error
+                Just
+                    { details =
+                        let
+                            catchNoneCaseCount : Int
+                            catchNoneCaseCount =
+                                Set.size caseCatches.catchNoneCaseIndexes
+                        in
+                        "The "
+                            ++ String.join ", " (List.map indexthToString (Set.toList caseCatches.catchNoneCaseIndexes))
+                            ++ " "
+                            ++ pluralize { singular = "case", plural = "cases" } catchNoneCaseCount
+                            ++ " will in practice never match the value between case..of."
+                            ++ "\nThis means you can remove "
+                            ++ pluralize { singular = "this case", plural = "these cases" } catchNoneCaseCount
+                            ++ " after simplifying the matched expression and patterns."
+                            ++ "\nHint: If this case should catch something, check if the value between case..of is really what you want to match on."
+                    , fix =
+                        List.map (\case_ -> Fix.removeRange (caseRange case_))
+                            (List.filterMap
+                                (\catchNoneCaseIndex ->
+                                    Array.get catchNoneCaseIndex caseOf.cases
+                                )
+                                (Set.toList caseCatches.catchNoneCaseIndexes)
+                            )
+                    }
+
+        maybeCatchNoneCasesError : Maybe { details : List String, fix : List Fix }
+        maybeCatchNoneCasesError =
+            case List.filterMap identity [ prematureCatchAllError, removeCatchNoneCasesError ] of
+                [] ->
+                    Nothing
+
+                alwaysErrorPiece0 :: alwaysErrorPieces1Up ->
+                    List.foldl
+                        (\error soFar ->
+                            { details = error.details :: soFar.details
+                            , fix = soFar.fix ++ error.fix
+                            }
+                        )
+                        { details = [ alwaysErrorPiece0.details ], fix = alwaysErrorPiece0.fix }
+                        alwaysErrorPieces1Up
+                        |> Just
+    in
+    case caseOfCatchSomeFix caseCatches.catchSomeCases of
+        CaseOfCatchSomeCannotBeSimplified ->
+            case maybeCatchNoneCasesError of
+                Nothing ->
+                    []
+
+                Just catchNoneCasesError ->
+                    [ Rule.errorWithFix
+                        { message = "Case-of with impossible cases"
+                        , details = catchNoneCasesError.details
+                        }
+                        (caseKeyWordRange caseOf.range)
+                        catchNoneCasesError.fix
+                    ]
+
+        CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeCanBeRemoved ->
+            case Array.get 0 caseOf.cases of
+                -- invalid syntax
+                Nothing ->
+                    []
+
+                Just firstCase ->
+                    [ Rule.errorWithFix
+                        { message = "This case-of always matches the first case"
+                        , details =
+                            [ """The first case catches the value between case..of without keeping variables or matches only a subset of values that are possible in practice.
+That means that the expression returned from the first case will always be the result of the whole case-of block."""
+                            ]
+                        }
+                        (caseKeyWordRange caseOf.range)
+                        (keepOnlyFix
+                            { parentRange = caseOf.range
+                            , keep = Node.range (Tuple.second firstCase)
+                            }
+                        )
+                    ]
+
+        CaseOfCatchSomeCanBeSimplified (CaseOfCatchSomeCanBeSimplifiedInParts caseOfCatchSomeFixes) ->
+            let
+                catchNoneCasesError : { details : List String, fix : List Fix }
+                catchNoneCasesError =
+                    Maybe.withDefault { details = [], fix = [] } maybeCatchNoneCasesError
+            in
+            [ Rule.errorWithFix
+                { message = "Case-of can be simplified"
+                , details =
+                    """I found values between case..of that aren't necessary because they are not specifically being matched on.
+Every case catches them but no case stores it in a variable or matches only a subset."""
+                        :: catchNoneCasesError.details
+                }
+                (caseKeyWordRange caseOf.range)
+                (catchNoneCasesError.fix ++ caseOfCatchSomeFixes)
             ]
 
 
-type CaseOfError
-    = HasPrematureCatchAllCase
-        { patternRange : Range
-        , followingCase : Expression.Case
-        , casesAfterFollowing : List Expression.Case
-        , matchingVariants : Dict AstHelpers.AstPath Range
-        }
-    | HasCatchNoneCases
-        { patternRange : Range
-        , matchingVariants : Dict AstHelpers.AstPath (List Range)
-        , catchNoneCases : List Expression.Case
-        }
+type CaseOfCatchSomeFix
+    = CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeSimplification
+    | CaseOfCatchSomeCannotBeSimplified
 
 
-caseRange : Expression.Case -> { start : Location, end : { row : Int, column : Int } }
+type CaseOfCatchSomeSimplification
+    = CaseOfCatchSomeCanBeRemoved
+    | CaseOfCatchSomeCanBeSimplifiedInParts (List Fix)
+
+
+dictAll : (k -> v -> Bool) -> Dict k v -> Bool
+dictAll isOk dict =
+    Dict.foldl
+        (\key value soFar ->
+            soFar && isOk key value
+        )
+        True
+        dict
+
+
+dictAny : (k -> v -> Bool) -> Dict k v -> Bool
+dictAny isNeedle dict =
+    Dict.foldl
+        (\key value soFar ->
+            soFar || isNeedle key value
+        )
+        False
+        dict
+
+
+caseOfCatchSomeFix : CatchSomeCasesTree -> CaseOfCatchSomeFix
+caseOfCatchSomeFix catchSomeCases =
+    let
+        anyPatternsInCasesCatchSub : Bool
+        anyPatternsInCasesCatchSub =
+            dictAny
+                (\_ patternInCase -> patternInCase.catch == AstHelpers.CatchSub)
+                (Tree.element catchSomeCases).patternsInCases
+
+        allPatternsInCasesCatchSub : () -> Bool
+        allPatternsInCasesCatchSub () =
+            dictAll
+                (\_ patternInCase -> patternInCase.catch == AstHelpers.CatchSub)
+                (Tree.element catchSomeCases).patternsInCases
+
+        canPatternBeRemovedInAllCases : () -> Bool
+        canPatternBeRemovedInAllCases () =
+            dictAll
+                (\_ patternInCase -> canBeRemoved patternInCase.catch)
+                (Tree.element catchSomeCases).patternsInCases
+    in
+    if List.isEmpty (Tree.parts catchSomeCases) && anyPatternsInCasesCatchSub then
+        CaseOfCatchSomeCannotBeSimplified
+
+    else if allPatternsInCasesCatchSub () then
+        CaseOfCatchSomeCannotBeSimplified
+
+    else if canPatternBeRemovedInAllCases () then
+        CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeCanBeRemoved
+
+    else
+        let
+            partsFixes : List Fix
+            partsFixes =
+                Tree.parts catchSomeCases
+                    |> List.foldl
+                        (\part soFar ->
+                            let
+                                patternRanges : List Range
+                                patternRanges =
+                                    List.map .patternRange (Dict.values (Tree.element part).patternsInCases)
+
+                                commaSeparationFix : List Fix
+                                commaSeparationFix =
+                                    case soFar.previous of
+                                        Nothing ->
+                                            []
+
+                                        Just previous ->
+                                            Fix.replaceRangeBy { start = previous.expressionRange.end, end = (Tree.element part).expressionRange.start } ", "
+                                                :: List.map2
+                                                    (\previousPatternRange currentPatternRange ->
+                                                        Fix.replaceRangeBy { start = previousPatternRange.end, end = currentPatternRange.start } ", "
+                                                    )
+                                                    previous.patternRanges
+                                                    patternRanges
+
+                                partsInnerFixes : List Fix
+                                partsInnerFixes =
+                                    case caseOfCatchSomeFix part of
+                                        CaseOfCatchSomeCannotBeSimplified ->
+                                            []
+
+                                        CaseOfCatchSomeCanBeSimplified (CaseOfCatchSomeCanBeSimplifiedInParts partsPartsFixes) ->
+                                            partsPartsFixes
+
+                                        CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeCanBeRemoved ->
+                                            case soFar.previous of
+                                                Nothing ->
+                                                    Fix.removeRange (Tree.element part).expressionRange
+                                                        :: List.map Fix.removeRange patternRanges
+
+                                                Just previous ->
+                                                    Fix.removeRange { start = previous.expressionRange.end, end = (Tree.element part).expressionRange.end }
+                                                        :: List.map2
+                                                            (\previousExpressionRange currentExpressionRange ->
+                                                                Fix.removeRange { start = previousExpressionRange.end, end = currentExpressionRange.end }
+                                                            )
+                                                            previous.patternRanges
+                                                            patternRanges
+                            in
+                            { fixes =
+                                partsInnerFixes
+                                    ++ commaSeparationFix
+                                    ++ soFar.fixes
+                            , previous =
+                                Just { expressionRange = (Tree.element part).expressionRange, patternRanges = patternRanges }
+                            }
+                        )
+                        { fixes = [], previous = Nothing }
+                    |> .fixes
+        in
+        CaseOfCatchSomeCanBeSimplified
+            (CaseOfCatchSomeCanBeSimplifiedInParts
+                (parenthesizeFix (Tree.element catchSomeCases).expressionRange
+                    ++ List.concatMap parenthesizeFix (List.map .patternRange (Dict.values (Tree.element catchSomeCases).patternsInCases))
+                    ++ partsFixes
+                )
+            )
+
+
+{-| from the pattern start until the next potential pattern on the next line
+-}
+caseRange : Expression.Case -> Range
 caseRange ( Node patternRange _, Node caseResultRange _ ) =
     { start = patternRange.start
     , end =
-        -- until the next potential pattern on the next line
         { row = caseResultRange.end.row + 1, column = patternRange.start.column }
     }
 
@@ -8306,29 +8544,3 @@ findMapNeighboringAfter before tryMap list =
 
                 Nothing ->
                     findMapNeighboringAfter (Just now) tryMap after
-
-
-
--- DICT HELPERS
-
-
-{-| Keep a key-value pair when its key appears in the second dictionary.
-Both values at that key are then combined into one for the resulting intersection Dict.
--}
-dictIntersectCombine :
-    (aValue -> bValue -> dedupValue)
-    -> Dict comparableKey aValue
-    -> Dict comparableKey bValue
-    -> Dict comparableKey dedupValue
-dictIntersectCombine abValueCombine aDict bDict =
-    Dict.foldl
-        (\key aValue soFar ->
-            case Dict.get key bDict of
-                Nothing ->
-                    soFar
-
-                Just bValue ->
-                    Dict.insert key (abValueCombine aValue bValue) soFar
-        )
-        Dict.empty
-        aDict
