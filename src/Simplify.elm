@@ -7587,21 +7587,6 @@ caseOfCatchSomeFix catchSomeCases =
                                 patternRanges =
                                     List.map .patternRange (Dict.values (Tree.element part).patternsInCases)
 
-                                commaSeparationFix : List Fix
-                                commaSeparationFix =
-                                    case soFar.previous of
-                                        Nothing ->
-                                            []
-
-                                        Just previous ->
-                                            Fix.replaceRangeBy { start = previous.expressionRange.end, end = (Tree.element part).expressionRange.start } ", "
-                                                :: List.map2
-                                                    (\previousPatternRange currentPatternRange ->
-                                                        Fix.replaceRangeBy { start = previousPatternRange.end, end = currentPatternRange.start } ", "
-                                                    )
-                                                    previous.patternRanges
-                                                    patternRanges
-
                                 partsInnerFixes : List Fix
                                 partsInnerFixes =
                                     case caseOfCatchSomeFix part of
@@ -7627,23 +7612,62 @@ caseOfCatchSomeFix catchSomeCases =
                                                             patternRanges
                             in
                             { fixes =
-                                partsInnerFixes
-                                    ++ commaSeparationFix
-                                    ++ soFar.fixes
+                                partsInnerFixes ++ soFar.fixes
                             , previous =
                                 Just { expressionRange = (Tree.element part).expressionRange, patternRanges = patternRanges }
                             }
                         )
                         { fixes = [], previous = Nothing }
                     |> .fixes
+
+            toNestedTupleFixes : List Fix
+            toNestedTupleFixes =
+                toNestedTupleFix
+                    { structure = (Tree.element catchSomeCases).expressionRange
+                    , parts =
+                        List.map (\part -> (Tree.element part).expressionRange)
+                            (Tree.parts catchSomeCases)
+                    }
+                    ++ List.concatMap
+                        (\( caseIndex, structure ) ->
+                            toNestedTupleFix
+                                { structure = structure.patternRange
+                                , parts =
+                                    Tree.parts catchSomeCases
+                                        |> List.filterMap (\part -> Dict.get caseIndex (Tree.element part).patternsInCases)
+                                        |> List.map .patternRange
+                                }
+                        )
+                        (Dict.toList (Tree.element catchSomeCases).patternsInCases)
         in
         CaseOfCatchSomeCanBeSimplified
             (CaseOfCatchSomeCanBeSimplifiedInParts
-                (parenthesizeFix (Tree.element catchSomeCases).expressionRange
-                    ++ List.concatMap parenthesizeFix (List.map .patternRange (Dict.values (Tree.element catchSomeCases).patternsInCases))
-                    ++ partsFixes
-                )
+                (toNestedTupleFixes ++ partsFixes)
             )
+
+
+toNestedTupleFix : { structure : Range, parts : List Range } -> List Fix
+toNestedTupleFix ranges =
+    case ranges.parts of
+        [] ->
+            [ Fix.replaceRangeBy ranges.structure "()" ]
+
+        part0 :: parts1Up ->
+            Fix.removeRange { start = ranges.structure.start, end = part0.start }
+                :: toNestedTupleFixFromPartial { structure = ranges.structure, parts = ( part0, parts1Up ) }
+
+
+toNestedTupleFixFromPartial : { structure : Range, parts : ( Range, List Range ) } -> List Fix
+toNestedTupleFixFromPartial ranges =
+    case ranges.parts of
+        ( only, [] ) ->
+            [ Fix.removeRange { start = only.end, end = ranges.structure.end } ]
+
+        ( first, second :: thirdUp ) ->
+            Fix.replaceRangeBy { start = first.end, end = second.start } ", "
+                :: parenthesizeFix { start = first.start, end = ranges.structure.end }
+                ++ toNestedTupleFixFromPartial
+                    { structure = ranges.structure, parts = ( second, thirdUp ) }
 
 
 {-| from the pattern start until the next potential pattern on the next line
