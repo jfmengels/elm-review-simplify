@@ -7272,6 +7272,13 @@ addCase indexInCases caseCatch checkedSoFar =
                         | catchSomeCases =
                             checkedSoFar.catchSomeCases
                                 |> addCatchSomeCase ( indexInCases, catchSome )
+                        , firstCatchAllCaseIndex =
+                            case (Tree.element catchSome).patternInCase.catch of
+                                AstHelpers.CatchSub ->
+                                    Nothing
+
+                                AstHelpers.StructuralCatchAll catchAll ->
+                                    Maybe.map (\_ -> indexInCases) catchAll.completeCatchAll
                     }
 
 
@@ -7311,15 +7318,38 @@ addCatchSomeCase ( indexInCases, caseTree ) casesTree =
         )
         (case Tree.parts caseTree of
             [] ->
-                []
+                case (Tree.element caseTree).patternInCase.catch of
+                    AstHelpers.CatchSub ->
+                        []
+
+                    AstHelpers.StructuralCatchAll catchAll ->
+                        if catchAll.completeCatchAll == Just (AstHelpers.CompleteCatchAllWithoutVariables { isGeneral = True }) then
+                            Tree.parts casesTree
+
+                        else
+                            []
 
             casePatternPart0 :: casePatternParts1Up ->
-                List.map2
-                    (\casePartTree partTree ->
-                        addCatchSomeCase ( indexInCases, casePartTree ) partTree
-                    )
-                    (casePatternPart0 :: casePatternParts1Up)
-                    (Tree.parts casesTree)
+                case Tree.parts casesTree of
+                    [] ->
+                        List.map
+                            (\casePartTree ->
+                                addCatchSomeCase ( indexInCases, casePartTree )
+                                    (Tree.leaf
+                                        { expressionRange = (Tree.element caseTree).expressionRange
+                                        , patternsInCases = Dict.empty
+                                        }
+                                    )
+                            )
+                            (casePatternPart0 :: casePatternParts1Up)
+
+                    casesPart0 :: casesParts1Up ->
+                        List.map2
+                            (\casePartTree partTree ->
+                                addCatchSomeCase ( indexInCases, casePartTree ) partTree
+                            )
+                            (casePatternPart0 :: casePatternParts1Up)
+                            (casesPart0 :: casesParts1Up)
         )
 
 
@@ -7374,7 +7404,12 @@ canBeRemoved catchSomeKind =
                     False
 
                 Just completeCatchAll ->
-                    not completeCatchAll.containsVariables
+                    case completeCatchAll of
+                        AstHelpers.CompleteCatchAllWithoutVariables _ ->
+                            True
+
+                        AstHelpers.CompleteCatchAllWithVariables ->
+                            False
 
         AstHelpers.CatchSub ->
             False
@@ -7422,7 +7457,7 @@ caseOfCatchError caseCatches caseOf =
             String.concat
                 (List.map
                     (\( caseIndex, reasons ) ->
-                        "\n  -   "
+                        "\n  - "
                             ++ indexthToString caseIndex
                             ++ " case: "
                             ++ String.join "; also, " (List.map catchNoneReasonToString reasons)
@@ -7437,11 +7472,11 @@ caseOfCatchError caseCatches caseOf =
                 ++ " should catch something, check if the value between case..of is really what you want to match on."
     in
     case caseOfCatchSomeFix caseCatches.catchSomeCases of
-        CaseOfCatchSomeCannotBeSimplified ->
+        Nothing ->
             -- if there is a catchNoneCasesError, there will be a compiler error
             []
 
-        CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeCanBeRemoved ->
+        Just CaseOfCatchSomeCanBeRemoved ->
             -- TODO this error should also happen for CaseOfCatchSomeCanBeSimplifiedInParts
             case (Tree.element caseCatches.catchSomeCases).patternsInCases |> Dict.keys |> List.head of
                 -- only catch-none cases
@@ -7470,20 +7505,20 @@ caseOfCatchError caseCatches caseOf =
                                     indexthToString firstCatchAllCaseIndex
                             in
                             [ Rule.errorWithFix
-                                { message = "This case-of always matches the " ++ firstCatchAllCaseIndexth ++ " case"
+                                { message = "This case-of always only matches the " ++ firstCatchAllCaseIndexth ++ " case"
                                 , details =
                                     [ "The "
                                         ++ firstCatchAllCaseIndexth
                                         ++ " case matches all values between case..of that are possible in practice."
-                                        ++ "\nThat means that the value returned from the "
-                                        ++ firstCatchAllCaseIndexth
-                                        ++ " case will always be the result of the whole case-of block."
                                         ++ (if Dict.isEmpty caseCatches.catchNoneCaseIndexes then
                                                 ""
 
                                             else
-                                                "\nAll other cases never catch the value between case..of:" ++ catchNoneReasonDetails ()
+                                                " All earlier cases never catch the value between case..of:" ++ catchNoneReasonDetails ()
                                            )
+                                        ++ "\nThat means that the value returned from the "
+                                        ++ firstCatchAllCaseIndexth
+                                        ++ " case will always be the result of the whole case-of block."
                                     ]
                                 }
                                 (caseKeyWordRange caseOf.range)
@@ -7494,7 +7529,7 @@ caseOfCatchError caseCatches caseOf =
                                 )
                             ]
 
-        CaseOfCatchSomeCanBeSimplified (CaseOfCatchSomeCanBeSimplifiedInParts caseOfCatchSomeFixes) ->
+        Just (CaseOfCatchSomeCanBeSimplifiedInParts caseOfCatchSomeFixes) ->
             let
                 catchNoneCasesError : { details : List String, fix : List Fix }
                 catchNoneCasesError =
@@ -7515,16 +7550,14 @@ caseOfCatchError caseCatches caseOf =
 
                         Just firstCatchAllCaseIndex ->
                             if firstCatchAllCaseIndex == (Array.length caseOf.cases - 1) then
-                                -- no premature catch-all
                                 Nothing
 
                             else
-                                -- premature catch-all
                                 Just
                                     { details =
                                         "Cases after the "
                                             ++ indexthToString firstCatchAllCaseIndex
-                                            ++ " one will never be matched, because the pattern covers all possibilities"
+                                            ++ " one will never be matched because that pattern covers all possibilities."
                                             ++ "\nTherefore, later cases are impossible to get in practice and can be removed."
                                     , fix =
                                         List.map (\case_ -> Fix.removeRange (caseRange case_))
@@ -7564,7 +7597,7 @@ caseOfCatchError caseCatches caseOf =
             [ Rule.errorWithFix
                 { message = "Case-of can be simplified"
                 , details =
-                    """I found values between case..of that aren't necessary because they are not specifically being matched on.
+                    """I found things between case..of that aren't necessary because they are not specifically being matched on.
 Every case catches them but no case stores it in a variable or matches only a subset."""
                         :: catchNoneCasesError.details
                 }
@@ -7583,9 +7616,8 @@ catchNoneReasonToString catchNoneReason =
             "the " ++ specificMismatch.kind ++ " " ++ specificMismatch.expression ++ " can never be matched by " ++ specificMismatch.pattern
 
 
-type CaseOfCatchSomeFix
-    = CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeSimplification
-    | CaseOfCatchSomeCannotBeSimplified
+type alias CaseOfCatchSomeFix =
+    Maybe CaseOfCatchSomeSimplification
 
 
 type CaseOfCatchSomeSimplification
@@ -7616,15 +7648,9 @@ dictAny isNeedle dict =
 caseOfCatchSomeFix : CatchSomeCasesTree -> CaseOfCatchSomeFix
 caseOfCatchSomeFix catchSomeCases =
     let
-        anyPatternsInCasesCatchSub : Bool
-        anyPatternsInCasesCatchSub =
+        anyCasesCatchSub : Bool
+        anyCasesCatchSub =
             dictAny
-                (\_ patternInCase -> patternInCase.catch == AstHelpers.CatchSub)
-                (Tree.element catchSomeCases).patternsInCases
-
-        allPatternsInCasesCatchSub : () -> Bool
-        allPatternsInCasesCatchSub () =
-            dictAll
                 (\_ patternInCase -> patternInCase.catch == AstHelpers.CatchSub)
                 (Tree.element catchSomeCases).patternsInCases
 
@@ -7634,14 +7660,11 @@ caseOfCatchSomeFix catchSomeCases =
                 (\_ patternInCase -> canBeRemoved patternInCase.catch)
                 (Tree.element catchSomeCases).patternsInCases
     in
-    if List.isEmpty (Tree.parts catchSomeCases) && anyPatternsInCasesCatchSub then
-        CaseOfCatchSomeCannotBeSimplified
-
-    else if allPatternsInCasesCatchSub () then
-        CaseOfCatchSomeCannotBeSimplified
+    if anyCasesCatchSub then
+        Nothing
 
     else if canPatternBeRemovedInAllCases () then
-        CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeCanBeRemoved
+        Just CaseOfCatchSomeCanBeRemoved
 
     else
         let
@@ -7658,13 +7681,13 @@ caseOfCatchSomeFix catchSomeCases =
                                 partsInnerFixes : List Fix
                                 partsInnerFixes =
                                     case caseOfCatchSomeFix part of
-                                        CaseOfCatchSomeCannotBeSimplified ->
+                                        Nothing ->
                                             []
 
-                                        CaseOfCatchSomeCanBeSimplified (CaseOfCatchSomeCanBeSimplifiedInParts partsPartsFixes) ->
+                                        Just (CaseOfCatchSomeCanBeSimplifiedInParts partsPartsFixes) ->
                                             partsPartsFixes
 
-                                        CaseOfCatchSomeCanBeSimplified CaseOfCatchSomeCanBeRemoved ->
+                                        Just CaseOfCatchSomeCanBeRemoved ->
                                             case soFar.previous of
                                                 Nothing ->
                                                     Fix.removeRange (Tree.element part).expressionRange
@@ -7687,69 +7710,75 @@ caseOfCatchSomeFix catchSomeCases =
                         )
                         { fixes = [], previous = Nothing }
                     |> .fixes
+        in
+        case partsFixes of
+            [] ->
+                Nothing
 
-            toSimplerStructureNestedTupleFixes : List Fix
-            toSimplerStructureNestedTupleFixes =
-                toNestedTupleFix
-                    { structure = (Tree.element catchSomeCases).expressionRange
-                    , parts =
-                        List.map (\part -> (Tree.element part).expressionRange)
-                            (Tree.parts catchSomeCases)
-                    }
-                    ++ List.concatMap
-                        (\( caseIndex, structure ) ->
-                            toNestedTupleFix
-                                { structure = structure.patternRange
-                                , parts =
-                                    Tree.parts catchSomeCases
-                                        |> List.filterMap (\part -> Dict.get caseIndex (Tree.element part).patternsInCases)
-                                        |> List.map .patternRange
-                                }
-                        )
-                        (Dict.toList (Tree.element catchSomeCases).patternsInCases)
-
-            maybeToConsTuple : Maybe (List { patternRange : Range, info : { expression : AstHelpers.ConsTupleParts, pattern : AstHelpers.ConsTupleParts } })
-            maybeToConsTuple =
-                listFilterMapSequence
-                    (\patternInCase ->
-                        case patternInCase.catch of
-                            AstHelpers.CatchSub ->
-                                Nothing
-
-                            AstHelpers.StructuralCatchAll patternInCaseStructuralCatchAll ->
-                                Maybe.map
-                                    (\info ->
-                                        { patternRange = patternInCase.patternRange, info = info }
-                                    )
-                                    patternInCaseStructuralCatchAll.toConsTuple
-                    )
-                    (Dict.values (Tree.element catchSomeCases).patternsInCases)
-
-            toConsTupleFixes : List Fix
-            toConsTupleFixes =
-                case maybeToConsTuple of
-                    Nothing ->
-                        []
-
-                    -- no non-catch-none cases
-                    Just [] ->
-                        []
-
-                    Just (casePatternToConsTuple0 :: casePatternsToConsTuple1Up) ->
-                        toConsTupleFix
+            partFix0 :: partFixes1Up ->
+                let
+                    toNestedTupleFixes : List Fix
+                    toNestedTupleFixes =
+                        toNestedTupleFix
                             { structure = (Tree.element catchSomeCases).expressionRange
-                            , parts = casePatternToConsTuple0.info.expression
+                            , parts =
+                                List.map (\part -> (Tree.element part).expressionRange)
+                                    (Tree.parts catchSomeCases)
                             }
                             ++ List.concatMap
-                                (\{ info, patternRange } ->
-                                    toConsTupleFix { structure = patternRange, parts = info.pattern }
+                                (\( caseIndex, structure ) ->
+                                    toNestedTupleFix
+                                        { structure = structure.patternRange
+                                        , parts =
+                                            Tree.parts catchSomeCases
+                                                |> List.filterMap (\part -> Dict.get caseIndex (Tree.element part).patternsInCases)
+                                                |> List.map .patternRange
+                                        }
                                 )
-                                (casePatternToConsTuple0 :: casePatternsToConsTuple1Up)
-        in
-        CaseOfCatchSomeCanBeSimplified
-            (CaseOfCatchSomeCanBeSimplifiedInParts
-                (toSimplerStructureNestedTupleFixes ++ toConsTupleFixes ++ partsFixes)
-            )
+                                (Dict.toList (Tree.element catchSomeCases).patternsInCases)
+
+                    maybeToConsTuple : Maybe (List { patternRange : Range, info : { expression : AstHelpers.ConsTupleParts, pattern : AstHelpers.ConsTupleParts } })
+                    maybeToConsTuple =
+                        listFilterMapSequence
+                            (\patternInCase ->
+                                case patternInCase.catch of
+                                    AstHelpers.CatchSub ->
+                                        Nothing
+
+                                    AstHelpers.StructuralCatchAll patternInCaseStructuralCatchAll ->
+                                        Maybe.map
+                                            (\info ->
+                                                { patternRange = patternInCase.patternRange, info = info }
+                                            )
+                                            patternInCaseStructuralCatchAll.toConsTuple
+                            )
+                            (Dict.values (Tree.element catchSomeCases).patternsInCases)
+
+                    toConsTupleFixes : List Fix
+                    toConsTupleFixes =
+                        case maybeToConsTuple of
+                            Nothing ->
+                                []
+
+                            -- no non-catch-none cases
+                            Just [] ->
+                                []
+
+                            Just (casePatternToConsTuple0 :: casePatternsToConsTuple1Up) ->
+                                toConsTupleFix
+                                    { structure = (Tree.element catchSomeCases).expressionRange
+                                    , parts = casePatternToConsTuple0.info.expression
+                                    }
+                                    ++ List.concatMap
+                                        (\{ info, patternRange } ->
+                                            toConsTupleFix { structure = patternRange, parts = info.pattern }
+                                        )
+                                        (casePatternToConsTuple0 :: casePatternsToConsTuple1Up)
+                in
+                Just
+                    (CaseOfCatchSomeCanBeSimplifiedInParts
+                        (toNestedTupleFixes ++ toConsTupleFixes ++ partFix0 :: partFixes1Up)
+                    )
 
 
 toConsTupleFix : { structure : Range, parts : AstHelpers.ConsTupleParts } -> List Fix
