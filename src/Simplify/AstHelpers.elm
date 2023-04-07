@@ -5,6 +5,7 @@ module Simplify.AstHelpers exposing
     , CatchNoneReason(..)
     , CatchSomeInfo
     , CatchSomeKind(..)
+    , CompleteCatchAllContainedVariables(..)
     , ConsTupleParts
     , ConsTupleSecondPart(..)
     , boolToString
@@ -1007,12 +1008,7 @@ type alias StructuralCatchAllInfo =
       -- if that pattern also isn't (partially) required, there will be be a compiler error
       -- if the patterns for the same expression from all cases are CatchAll,
       -- they are all simplifiable to ()
-      completeCatchAll :
-        Maybe
-            { -- if containsVariables is True, then
-              -- the case pattern contains at least 1 pattern variable there (like case Err err of Err error -> or case [ el ] of [ a ] ->)
-              containsVariables : Bool
-            }
+      completeCatchAll : Maybe CompleteCatchAllContainedVariables
 
     -- this is a bit ugly, but necessary
     -- to avoid check mixed cons (::) and literal ([...]) lists.
@@ -1023,6 +1019,17 @@ type alias StructuralCatchAllInfo =
             , pattern : ConsTupleParts
             }
     }
+
+
+type CompleteCatchAllContainedVariables
+    = -- CompleteCatchAllWithVariables:
+      -- the case pattern contains at least 1 pattern variable there (like case Err err of Err error -> or case [ el ] of [ a ] ->)
+      CompleteCatchAllWithVariables
+    | CompleteCatchAllWithoutVariables
+        { -- if isGeneral is True, the pattern catches all kinds of structure or value types,
+          -- independent of what expression it is casing on
+          isGeneral : Bool
+        }
 
 
 type alias ConsTupleParts =
@@ -1088,11 +1095,11 @@ casePatternCatchFor lookupTable casedExpression pattern =
     case Node.value pattern of
         Pattern.AllPattern ->
             CatchSome
-                (treeWith (StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing }) [])
+                (treeWith (StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = True }), toConsTuple = Nothing }) [])
 
         Pattern.VarPattern _ ->
             CatchSome
-                (treeWith (StructuralCatchAll { completeCatchAll = Just { containsVariables = True }, toConsTuple = Nothing }) [])
+                (treeWith (StructuralCatchAll { completeCatchAll = Just CompleteCatchAllWithVariables, toConsTuple = Nothing }) [])
 
         Pattern.AsPattern destructured _ ->
             onCatchSome
@@ -1107,7 +1114,7 @@ casePatternCatchFor lookupTable casedExpression pattern =
                                             (\structuralCatchAllInfo ->
                                                 { structuralCatchAllInfo
                                                     | completeCatchAll =
-                                                        Maybe.map (\_ -> { containsVariables = True }) structuralCatchAllInfo.completeCatchAll
+                                                        Maybe.map (\_ -> CompleteCatchAllWithVariables) structuralCatchAllInfo.completeCatchAll
                                                 }
                                             )
                                             catchSomeInfo.catch
@@ -1141,20 +1148,20 @@ casePatternCatchForUnknown : Pattern -> CatchSomeKind
 casePatternCatchForUnknown pattern =
     case pattern of
         Pattern.UnitPattern ->
-            StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing }
+            StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing }
 
         Pattern.AllPattern ->
-            StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing }
+            StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = True }), toConsTuple = Nothing }
 
         Pattern.VarPattern _ ->
-            StructuralCatchAll { completeCatchAll = Just { containsVariables = True }, toConsTuple = Nothing }
+            StructuralCatchAll { completeCatchAll = Just CompleteCatchAllWithVariables, toConsTuple = Nothing }
 
         Pattern.AsPattern (Node _ destructured) _ ->
             onStructuralCatchAll
                 (\structuralCatchAllInfo ->
                     { structuralCatchAllInfo
                         | completeCatchAll =
-                            Maybe.map (\_ -> { containsVariables = True }) structuralCatchAllInfo.completeCatchAll
+                            Maybe.map (\_ -> CompleteCatchAllWithVariables) structuralCatchAllInfo.completeCatchAll
                     }
                 )
                 (casePatternCatchForUnknown destructured)
@@ -1202,23 +1209,30 @@ casePatternCatchForUnknown pattern =
                                 StructuralCatchAll catchAll ->
                                     StructuralCatchAll
                                         { completeCatchAll =
-                                            Maybe.map2
-                                                (\soFarCompleteCatchAll completeCatchAll ->
-                                                    { containsVariables =
-                                                        soFarCompleteCatchAll.containsVariables
-                                                            || completeCatchAll.containsVariables
-                                                    }
-                                                )
+                                            Maybe.map2 structureCompleteCatchAllMergeWith
                                                 soFarCatchAll.completeCatchAll
                                                 catchAll.completeCatchAll
                                         , toConsTuple = Nothing
                                         }
                 )
-                (StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing })
+                (StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing })
                 tupleParts
 
         Pattern.NamedPattern _ _ ->
             CatchSub
+
+
+structureCompleteCatchAllMergeWith : CompleteCatchAllContainedVariables -> CompleteCatchAllContainedVariables -> CompleteCatchAllContainedVariables
+structureCompleteCatchAllMergeWith structureCompleteCatchAll nextCompleteCatchAll =
+    case ( structureCompleteCatchAll, nextCompleteCatchAll ) of
+        ( CompleteCatchAllWithVariables, _ ) ->
+            CompleteCatchAllWithVariables
+
+        ( _, CompleteCatchAllWithVariables ) ->
+            CompleteCatchAllWithVariables
+
+        ( CompleteCatchAllWithoutVariables _, CompleteCatchAllWithoutVariables _ ) ->
+            CompleteCatchAllWithoutVariables { isGeneral = False }
 
 
 {-| Find out what the sum of the 2 given individual elements catch.
@@ -1252,24 +1266,31 @@ catchMergeWith otherCatch structureCatch =
                             StructuralCatchAll
                                 { completeCatchAll =
                                     Maybe.map2
-                                        (\completeCatchAll otherCompleteCatchAll ->
-                                            { containsVariables =
-                                                completeCatchAll.containsVariables
-                                                    || otherCompleteCatchAll.containsVariables
-                                            }
-                                        )
+                                        structureCompleteCatchAllMergeWith
                                         catchAll.completeCatchAll
                                         otherCatchAll.completeCatchAll
                                 , toConsTuple = Nothing
                                 }
 
-                        ( _, CatchSub ) ->
-                            CatchSub
+                        ( StructuralCatchAll _, CatchSub ) ->
+                            StructuralCatchAll { completeCatchAll = Nothing, toConsTuple = Nothing }
 
-                        ( CatchSub, _ ) ->
+                        ( CatchSub, StructuralCatchAll _ ) ->
+                            StructuralCatchAll { completeCatchAll = Nothing, toConsTuple = Nothing }
+
+                        ( CatchSub, CatchSub ) ->
                             CatchSub
                 , parts = otherCatchSomeTree :: catchSome.parts
                 }
+
+
+a bool1 bool2 =
+    case ( bool1, bool2 ) of
+        ( True, True ) ->
+            1
+
+        _ ->
+            2
 
 
 casePatternSpecificCatchFor :
@@ -1300,7 +1321,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
             CatchSome
                 (treeWith
                     (StructuralCatchAll
-                        { completeCatchAll = Just { containsVariables = False }
+                        { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False })
                         , toConsTuple = Nothing
                         }
                     )
@@ -1348,27 +1369,14 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
 
         structureCatchForPairs : List (Node Expression) -> List (Node Pattern) -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
         structureCatchForPairs expressions patterns =
-            case ( expressions, patterns ) of
-                ( [], _ :: _ ) ->
-                    CatchSome { parts = [], catch = StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing } }
-
-                ( _ :: _, [] ) ->
-                    CatchSome { parts = [], catch = StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing } }
-
-                ( [], [] ) ->
-                    CatchSome { parts = [], catch = StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing } }
-
-                ( expressionPart :: expressionTail, patternPart :: patternTail ) ->
-                    let
-                        elementCatchEvaluated : Catch
-                        elementCatchEvaluated =
-                            casePatternCatchFor lookupTable expressionPart patternPart
-
-                        tailCatchAndSimplification : CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
-                        tailCatchAndSimplification =
-                            structureCatchForPairs expressionTail patternTail
-                    in
-                    catchMergeWith elementCatchEvaluated tailCatchAndSimplification
+            List.foldl
+                (\( expressionPart, patternPart ) soFar ->
+                    catchMergeWith (casePatternCatchFor lookupTable expressionPart patternPart) soFar
+                )
+                (CatchSome
+                    { parts = [], catch = StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing } }
+                )
+                (List.map2 Tuple.pair expressions patterns)
     in
     case expression of
         Expression.UnitExpr ->
@@ -1553,7 +1561,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                     catchAll ()
 
                 Pattern.ListPattern (_ :: _) ->
-                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a list pattern with at least one element ([..., ...]" } ]
+                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a list pattern filled with at least one element ([...])" } ]
 
                 Pattern.UnConsPattern _ _ ->
                     CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a cons pattern (... :: ...)" } ]
@@ -1564,7 +1572,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         Expression.ListExpr (element0Expression :: element1UpExpressions) ->
             case patternToConsTuple pattern of
                 Nothing ->
-                    CatchNone [ CatchNoneWithCompilerError "a List with at least one element must be matched by a list ([..., ...]) or un-cons (...::...) pattern" ]
+                    CatchNone [ CatchNoneWithCompilerError "a List with at least one element must be matched by a filled list ([...]) or un-cons (...::...) pattern" ]
 
                 Just patternConsTuple ->
                     CatchSome
@@ -1669,24 +1677,6 @@ patternToConsTuple pattern =
 
         _ ->
             Nothing
-
-
-test =
-    { a0 =
-        case [] of
-            1 :: 2 :: [ 3, 4 ] ->
-                1
-
-            _ ->
-                0
-    , a1 =
-        case Ok () of
-            Err err ->
-                "err " ++ err
-
-            Ok () ->
-                "eh "
-    }
 
 
 stringStartsWithUpper : String -> Bool
