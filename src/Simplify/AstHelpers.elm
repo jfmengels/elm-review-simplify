@@ -2,8 +2,11 @@ module Simplify.AstHelpers exposing
     ( CaseCatchSomeTree
     , Catch
     , CatchNoneOrSome(..)
+    , CatchNoneReason(..)
     , CatchSomeInfo
     , CatchSomeKind(..)
+    , ConsTupleParts
+    , ConsTupleSecondPart(..)
     , boolToString
     , casePatternCatchFor
     , declarationListBindings
@@ -671,24 +674,6 @@ getVarPattern node =
             Nothing
 
 
-getCollapsedPatternList : Pattern -> Maybe { beginning : List (Node Pattern), tail : Maybe (Node Pattern) }
-getCollapsedPatternList pattern =
-    case pattern of
-        Pattern.ListPattern elements ->
-            Just { beginning = elements, tail = Nothing }
-
-        Pattern.UnConsPattern head tail ->
-            case getCollapsedPatternList (Node.value tail) of
-                Nothing ->
-                    Just { beginning = [ head ], tail = Just tail }
-
-                Just tailCollapsed ->
-                    Just { beginning = head :: tailCollapsed.beginning, tail = tailCollapsed.tail }
-
-        _ ->
-            Nothing
-
-
 patternListBindings : List (Node Pattern) -> Set String
 patternListBindings patterns =
     List.foldl
@@ -980,14 +965,19 @@ type CatchNoneOrSome some
       --     - impossible to match in practice (like case Nothing of Just ...)
       -- impossible patterns can safely be removed.
       -- if all patterns are impossible, there will be be a compiler error
-      CatchNone
+      CatchNone (List CatchNoneReason)
 
 
-onCatchSome : (CaseCatchSomeTree -> CaseCatchSomeTree) -> Catch -> Catch
+type CatchNoneReason
+    = CatchNoneWithCompilerError String
+    | CatchNoneDueToSpecificMismatch { kind : String, expression : String, pattern : String }
+
+
+onCatchSome : (some -> mappedSome) -> CatchNoneOrSome some -> CatchNoneOrSome mappedSome
 onCatchSome caseCatchSomeTreeChange catch =
     case catch of
-        CatchNone ->
-            CatchNone
+        CatchNone catchNone ->
+            CatchNone catchNone
 
         CatchSome catchSome ->
             CatchSome (caseCatchSomeTreeChange catchSome)
@@ -1000,32 +990,58 @@ type alias CatchSomeInfo =
 
 
 type CatchSomeKind
-    = -- CatchSub means a pattern that matches only a narrower subset of possible values
+    = -- CatchSub: the pattern matches only a narrower subset of possible values
       -- (like case result of Ok value -> or case list of [] ->)
       -- if the only case is CatchSub, there will be be a compiler error
       CatchSub
-    | -- CatchAll means a pattern that always matches the cased expression:
-      --     - a required pattern (like case () of () -> or case 'a' of 'a' ->)
-      --     - a (partially required) pattern that catches all sub-patterns (like case a of _ -> or case Ok a of Ok b ->)
-      -- if other patterns exist in later cases, their cases can be removed.
+    | -- CatchAll: the pattern always partially matches the expression:
+      -- (like case a of _ -> or case ( b, [ Ok a ] ) of ( 3, [ Ok 3 ] ) ->)
+      -- they can all be simplified
+      StructuralCatchAll StructuralCatchAllInfo
+
+
+type alias StructuralCatchAllInfo =
+    { -- if completeCatchAll is True, the pattern that always matches the expression:
+      -- (like case () of () -> or case 'a' of 'a' -> or case ( 3, [] ) of ( b, [] ) ->)
+      -- if a case is a complete catch-all, other patterns that exist later can be removed.
       -- if that pattern also isn't (partially) required, there will be be a compiler error
-      -- if the patterns for the same expression (part) from all cases are CatchAll,
+      -- if the patterns for the same expression from all cases are CatchAll,
       -- they are all simplifiable to ()
-      CatchAll
-        { -- if containsVariables is True, then
-          -- the case pattern contains at least 1 pattern variable there (like case Err err of Err error -> or case [ el ] of [ a ] ->)
-          containsVariables : Bool
-        }
+      completeCatchAll :
+        Maybe
+            { -- if containsVariables is True, then
+              -- the case pattern contains at least 1 pattern variable there (like case Err err of Err error -> or case [ el ] of [ a ] ->)
+              containsVariables : Bool
+            }
+
+    -- this is a bit ugly, but necessary
+    -- to avoid check mixed cons (::) and literal ([...]) lists.
+    -- whenever secondPart... is Just, its parts should be put in a tuple with the second part potentially put in a new list expression
+    , toConsTuple :
+        Maybe
+            { expression : ConsTupleParts
+            , pattern : ConsTupleParts
+            }
+    }
 
 
-onCatchAll : { containsVariables : Bool -> Bool } -> CatchSomeKind -> CatchSomeKind
-onCatchAll catchAllInfoChange catchSomeKind =
+type alias ConsTupleParts =
+    { firstPartRange : Range, secondPart : ConsTupleSecondPart }
+
+
+type ConsTupleSecondPart
+    = ConsTupleSecondPartToList (List Range)
+    | ConsTupleSecondPartExisting Range
+
+
+onStructuralCatchAll : (StructuralCatchAllInfo -> StructuralCatchAllInfo) -> CatchSomeKind -> CatchSomeKind
+onStructuralCatchAll catchAllInfoChange catchSomeKind =
     case catchSomeKind of
         CatchSub ->
             CatchSub
 
-        CatchAll catchAll ->
-            CatchAll { containsVariables = catchAllInfoChange.containsVariables catchAll.containsVariables }
+        StructuralCatchAll catchAll ->
+            StructuralCatchAll (catchAllInfoChange catchAll)
 
 
 type alias CaseCatchSomeTree =
@@ -1072,11 +1088,11 @@ casePatternCatchFor lookupTable casedExpression pattern =
     case Node.value pattern of
         Pattern.AllPattern ->
             CatchSome
-                (treeWith (CatchAll { containsVariables = False }) [])
+                (treeWith (StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing }) [])
 
         Pattern.VarPattern _ ->
             CatchSome
-                (treeWith (CatchAll { containsVariables = True }) [])
+                (treeWith (StructuralCatchAll { completeCatchAll = Just { containsVariables = True }, toConsTuple = Nothing }) [])
 
         Pattern.AsPattern destructured _ ->
             onCatchSome
@@ -1084,9 +1100,17 @@ casePatternCatchFor lookupTable casedExpression pattern =
                     Tree.elementAlter
                         (\el ->
                             patternInCaseAlter
-                                (\info ->
+                                (\catchSomeInfo ->
                                     { patternRange = Node.range pattern
-                                    , catch = onCatchAll { containsVariables = \_ -> True } info.catch
+                                    , catch =
+                                        onStructuralCatchAll
+                                            (\structuralCatchAllInfo ->
+                                                { structuralCatchAllInfo
+                                                    | completeCatchAll =
+                                                        Maybe.map (\_ -> { containsVariables = True }) structuralCatchAllInfo.completeCatchAll
+                                                }
+                                            )
+                                            catchSomeInfo.catch
                                     }
                                 )
                                 el
@@ -1117,16 +1141,22 @@ casePatternCatchForUnknown : Pattern -> CatchSomeKind
 casePatternCatchForUnknown pattern =
     case pattern of
         Pattern.UnitPattern ->
-            CatchAll { containsVariables = False }
+            StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing }
 
         Pattern.AllPattern ->
-            CatchAll { containsVariables = False }
+            StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing }
 
         Pattern.VarPattern _ ->
-            CatchAll { containsVariables = True }
+            StructuralCatchAll { completeCatchAll = Just { containsVariables = True }, toConsTuple = Nothing }
 
         Pattern.AsPattern (Node _ destructured) _ ->
-            onCatchAll { containsVariables = \_ -> True }
+            onStructuralCatchAll
+                (\structuralCatchAllInfo ->
+                    { structuralCatchAllInfo
+                        | completeCatchAll =
+                            Maybe.map (\_ -> { containsVariables = True }) structuralCatchAllInfo.completeCatchAll
+                    }
+                )
                 (casePatternCatchForUnknown destructured)
 
         Pattern.ParenthesizedPattern (Node _ inParens) ->
@@ -1164,19 +1194,27 @@ casePatternCatchForUnknown pattern =
                         CatchSub ->
                             CatchSub
 
-                        CatchAll soFarCatchAll ->
+                        StructuralCatchAll soFarCatchAll ->
                             case casePatternCatchForUnknown part of
                                 CatchSub ->
                                     CatchSub
 
-                                CatchAll catchAll ->
-                                    CatchAll
-                                        { containsVariables =
-                                            soFarCatchAll.containsVariables
-                                                || catchAll.containsVariables
+                                StructuralCatchAll catchAll ->
+                                    StructuralCatchAll
+                                        { completeCatchAll =
+                                            Maybe.map2
+                                                (\soFarCompleteCatchAll completeCatchAll ->
+                                                    { containsVariables =
+                                                        soFarCompleteCatchAll.containsVariables
+                                                            || completeCatchAll.containsVariables
+                                                    }
+                                                )
+                                                soFarCatchAll.completeCatchAll
+                                                catchAll.completeCatchAll
+                                        , toConsTuple = Nothing
                                         }
                 )
-                (CatchAll { containsVariables = False })
+                (StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing })
                 tupleParts
 
         Pattern.NamedPattern _ _ ->
@@ -1192,33 +1230,46 @@ CatchNone > CatchSub > CatchAll. That means
 
 -}
 catchMergeWith :
-    (() -> Catch)
+    Catch
     -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
     -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
-catchMergeWith lazyOtherCatch structureCatch =
-    case structureCatch of
-        CatchNone ->
-            CatchNone
+catchMergeWith otherCatch structureCatch =
+    case ( structureCatch, otherCatch ) of
+        ( CatchNone catchNone, CatchNone otherCatchNone ) ->
+            CatchNone (otherCatchNone ++ catchNone)
 
-        CatchSome catchSome ->
-            case lazyOtherCatch () of
-                CatchNone ->
-                    CatchNone
+        ( CatchSome _, CatchNone otherCatchNone ) ->
+            CatchNone otherCatchNone
 
-                CatchSome otherCatchSomeTree ->
-                    CatchSome
-                        { catch =
-                            case ( catchSome.catch, (Tree.element otherCatchSomeTree).patternInCase.catch ) of
-                                ( CatchAll catchAll, CatchAll otherCatchAll ) ->
-                                    CatchAll { containsVariables = catchAll.containsVariables || otherCatchAll.containsVariables }
+        ( CatchNone catchNone, CatchSome _ ) ->
+            CatchNone catchNone
 
-                                ( _, CatchSub ) ->
-                                    CatchSub
+        ( CatchSome catchSome, CatchSome otherCatchSomeTree ) ->
+            CatchSome
+                { catch =
+                    case ( catchSome.catch, (Tree.element otherCatchSomeTree).patternInCase.catch ) of
+                        ( StructuralCatchAll catchAll, StructuralCatchAll otherCatchAll ) ->
+                            StructuralCatchAll
+                                { completeCatchAll =
+                                    Maybe.map2
+                                        (\completeCatchAll otherCompleteCatchAll ->
+                                            { containsVariables =
+                                                completeCatchAll.containsVariables
+                                                    || otherCompleteCatchAll.containsVariables
+                                            }
+                                        )
+                                        catchAll.completeCatchAll
+                                        otherCatchAll.completeCatchAll
+                                , toConsTuple = Nothing
+                                }
 
-                                ( CatchSub, _ ) ->
-                                    CatchSub
-                        , parts = otherCatchSomeTree :: catchSome.parts
-                        }
+                        ( _, CatchSub ) ->
+                            CatchSub
+
+                        ( CatchSub, _ ) ->
+                            CatchSub
+                , parts = otherCatchSomeTree :: catchSome.parts
+                }
 
 
 casePatternSpecificCatchFor :
@@ -1244,40 +1295,53 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                 }
                 parts
 
-        catchAllIfElseNone : Bool -> Catch
-        catchAllIfElseNone requirementSatisfied =
-            if requirementSatisfied then
-                CatchSome (treeWith (CatchAll { containsVariables = False }) [])
-
-            else
-                CatchNone
+        catchAll : () -> Catch
+        catchAll () =
+            CatchSome
+                (treeWith
+                    (StructuralCatchAll
+                        { completeCatchAll = Just { containsVariables = False }
+                        , toConsTuple = Nothing
+                        }
+                    )
+                    []
+                )
 
         casePatternSpecificCatchForInt : Int -> Pattern -> Catch
         casePatternSpecificCatchForInt int patternForInt =
             case patternForInt of
                 Pattern.HexPattern patternInt ->
-                    catchAllIfElseNone (patternInt == int)
+                    if patternInt == int then
+                        catchAll ()
+
+                    else
+                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "Int", expression = String.fromInt int, pattern = String.fromInt patternInt } ]
 
                 Pattern.IntPattern patternInt ->
-                    catchAllIfElseNone (patternInt == int)
+                    if patternInt == int then
+                        catchAll ()
+
+                    else
+                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "Int", expression = String.fromInt int, pattern = String.fromInt patternInt } ]
 
                 _ ->
-                    CatchNone
+                    CatchNone [ CatchNoneWithCompilerError "an Int must be matched by either an int or hex pattern" ]
 
         casePatternCatchForRecord : () -> Catch
         casePatternCatchForRecord () =
             case pattern of
                 Pattern.RecordPattern _ ->
-                    CatchSome (treeWith (CatchAll { containsVariables = True }) [])
+                    -- a record pattern without field variables is invalid syntax
+                    catchAll ()
 
                 _ ->
-                    CatchNone
+                    CatchNone [ CatchNoneWithCompilerError "a record must be matched by a record ({...}) pattern" ]
 
         catchForPairs : List (Node Expression) -> List (Node Pattern) -> Catch
         catchForPairs expressions patterns =
             case structureCatchForPairs expressions patterns of
-                CatchNone ->
-                    CatchNone
+                CatchNone catchNone ->
+                    CatchNone catchNone
 
                 CatchSome structureCatchSome ->
                     CatchSome (treeWith structureCatchSome.catch structureCatchSome.parts)
@@ -1286,18 +1350,18 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         structureCatchForPairs expressions patterns =
             case ( expressions, patterns ) of
                 ( [], _ :: _ ) ->
-                    CatchSome { parts = [], catch = CatchAll { containsVariables = False } }
+                    CatchSome { parts = [], catch = StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing } }
 
                 ( _ :: _, [] ) ->
-                    CatchSome { parts = [], catch = CatchAll { containsVariables = False } }
+                    CatchSome { parts = [], catch = StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing } }
 
                 ( [], [] ) ->
-                    CatchSome { parts = [], catch = CatchAll { containsVariables = False } }
+                    CatchSome { parts = [], catch = StructuralCatchAll { completeCatchAll = Just { containsVariables = False }, toConsTuple = Nothing } }
 
                 ( expressionPart :: expressionTail, patternPart :: patternTail ) ->
                     let
-                        elementCatchEvaluated : () -> Catch
-                        elementCatchEvaluated () =
+                        elementCatchEvaluated : Catch
+                        elementCatchEvaluated =
                             casePatternCatchFor lookupTable expressionPart patternPart
 
                         tailCatchAndSimplification : CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
@@ -1310,42 +1374,10 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         Expression.UnitExpr ->
             case pattern of
                 Pattern.UnitPattern ->
-                    CatchSome (treeWith (CatchAll { containsVariables = False }) [])
+                    catchAll ()
 
                 _ ->
-                    CatchNone
-
-        Expression.FunctionOrValue qualification name ->
-            if not (stringStartsWithUpper name) then
-                CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
-
-            else
-                -- variant without arguments or empty record type alias constructor
-                case pattern of
-                    Pattern.NamedPattern patternQualified [] ->
-                        let
-                            patternFullyQualified : ( ModuleName, String )
-                            patternFullyQualified =
-                                ( Maybe.withDefault patternQualified.moduleName (ModuleNameLookupTable.moduleNameAt lookupTable patternRange)
-                                , patternQualified.name
-                                )
-
-                            fullyQualified : ( ModuleName, String )
-                            fullyQualified =
-                                ( Maybe.withDefault qualification (ModuleNameLookupTable.moduleNameAt lookupTable expressionRange)
-                                , name
-                                )
-                        in
-                        if patternFullyQualified == fullyQualified then
-                            CatchSome (treeWith (CatchAll { containsVariables = False }) [])
-
-                        else
-                            CatchNone
-
-                    _ ->
-                        -- an empty record type alias constructor doesn't have a specific matching pattern
-                        -- a curried variant constructor doesn't have a matching pattern either
-                        CatchNone
+                    CatchNone [ CatchNoneWithCompilerError "a unit () value must be matched by a unit () pattern" ]
 
         Expression.Hex int ->
             casePatternSpecificCatchForInt int pattern
@@ -1356,30 +1388,70 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         Expression.CharLiteral char ->
             case pattern of
                 Pattern.CharPattern patternChar ->
-                    catchAllIfElseNone (char == patternChar)
+                    if char == patternChar then
+                        catchAll ()
+
+                    else
+                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "Char", expression = "'" ++ String.fromChar char ++ "'", pattern = "'" ++ String.fromChar patternChar ++ "'" } ]
 
                 _ ->
-                    CatchNone
+                    CatchNone [ CatchNoneWithCompilerError ("the Char '" ++ String.fromChar char ++ "' must be matched by a literal Char pattern") ]
 
-        -- compiler error
         Expression.Floatable _ ->
-            CatchNone
+            CatchNone [ CatchNoneWithCompilerError "a Float can never be matched" ]
 
         Expression.Literal string ->
             case pattern of
                 Pattern.StringPattern patternString ->
-                    catchAllIfElseNone (string == patternString)
+                    if string == patternString then
+                        catchAll ()
+
+                    else
+                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "String", expression = "\"" ++ string ++ "\"", pattern = "\"" ++ patternString ++ "\"" } ]
 
                 _ ->
-                    CatchNone
+                    CatchNone [ CatchNoneWithCompilerError ("the String \"" ++ string ++ "\" must be matched by a literal String pattern") ]
+
+        Expression.FunctionOrValue qualification name ->
+            if not (stringStartsWithUpper name) then
+                CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
+
+            else
+                -- variant without arguments or empty record type alias constructor
+                let
+                    fullyQualified : ( ModuleName, String )
+                    fullyQualified =
+                        ( Maybe.withDefault qualification (ModuleNameLookupTable.moduleNameAt lookupTable expressionRange)
+                        , name
+                        )
+                in
+                case pattern of
+                    Pattern.NamedPattern patternQualified [] ->
+                        let
+                            patternFullyQualified : ( ModuleName, String )
+                            patternFullyQualified =
+                                ( Maybe.withDefault patternQualified.moduleName (ModuleNameLookupTable.moduleNameAt lookupTable patternRange)
+                                , patternQualified.name
+                                )
+                        in
+                        if patternFullyQualified == fullyQualified then
+                            catchAll ()
+
+                        else
+                            CatchNone [ CatchNoneDueToSpecificMismatch { kind = "variant", expression = qualifiedToString fullyQualified, pattern = qualifiedToString patternFullyQualified } ]
+
+                    _ ->
+                        -- an empty record type alias constructor doesn't have a specific matching pattern
+                        -- a curried variant constructor doesn't have a matching pattern either
+                        CatchNone [ CatchNoneWithCompilerError ("the variant " ++ qualifiedToString fullyQualified ++ " must be matched by a variant pattern") ]
 
         -- doesn't exist
         Expression.Application [] ->
-            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
+            CatchNone [ CatchNoneWithCompilerError "elm-syntax bug: empty Application was parsed as an Expression" ]
 
         -- doesn't exist
         Expression.Application (_ :: []) ->
-            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
+            CatchNone [ CatchNoneWithCompilerError "elm-syntax bug: Application without arguments was parsed as an Expression" ]
 
         Expression.Application ((Node fedRange fed) :: firstArg :: argsAfterFirst) ->
             case fed of
@@ -1388,6 +1460,13 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                         CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
                     else
+                        let
+                            fedFullyQualified : ( ModuleName, String )
+                            fedFullyQualified =
+                                ( Maybe.withDefault qualification (ModuleNameLookupTable.moduleNameAt lookupTable fedRange)
+                                , name
+                                )
+                        in
                         -- expression is (curried) variant or (curried) record type alias constructor
                         case pattern of
                             Pattern.NamedPattern patternQualified namedPatternArguments ->
@@ -1397,108 +1476,149 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                                         ( Maybe.withDefault patternQualified.moduleName (ModuleNameLookupTable.moduleNameAt lookupTable patternRange)
                                         , patternQualified.name
                                         )
-
-                                    fedFullyQualified : ( ModuleName, String )
-                                    fedFullyQualified =
-                                        ( Maybe.withDefault qualification (ModuleNameLookupTable.moduleNameAt lookupTable fedRange)
-                                        , name
-                                        )
                                 in
                                 if patternFullyQualified /= fedFullyQualified then
-                                    CatchNone
+                                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "variant", expression = qualifiedToString fedFullyQualified, pattern = qualifiedToString patternFullyQualified } ]
 
                                 else if List.length (firstArg :: argsAfterFirst) < List.length namedPatternArguments then
-                                    -- constructor is only partially applied
-                                    CatchNone
+                                    CatchNone [ CatchNoneWithCompilerError "a partially applied constructor (of a variant or record) can never be matched" ]
 
                                 else
                                     -- pattern with same variant
-                                    catchForPairs (firstArg :: argsAfterFirst) namedPatternArguments
+                                    case structureCatchForPairs (firstArg :: argsAfterFirst) namedPatternArguments of
+                                        CatchNone catchNone ->
+                                            CatchNone catchNone
+
+                                        CatchSome variantCatchSome ->
+                                            CatchSome
+                                                (treeWith
+                                                    (case variantCatchSome.catch of
+                                                        StructuralCatchAll structuralCatchAll ->
+                                                            StructuralCatchAll structuralCatchAll
+
+                                                        CatchSub ->
+                                                            StructuralCatchAll { completeCatchAll = Nothing, toConsTuple = Nothing }
+                                                    )
+                                                    variantCatchSome.parts
+                                                )
+
+                            Pattern.RecordPattern _ ->
+                                catchAll ()
 
                             _ ->
-                                -- expression is (curried) record type alias constructor
-                                casePatternCatchForRecord ()
+                                CatchNone [ CatchNoneWithCompilerError ("the variant or record " ++ qualifiedToString fedFullyQualified ++ " must be matched by a variant pattern") ]
 
                 _ ->
                     CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
-        Expression.OperatorApplication operatorName _ left right ->
-            if List.member operatorName [ ">>", "<<", "|.", "|=", "<?>", "</>" ] then
-                CatchNone
+        Expression.OperatorApplication "::" _ element0Expression elements1UpListExpression ->
+            case patternToConsTuple pattern of
+                Nothing ->
+                    CatchNone [ CatchNoneWithCompilerError "a List with at least one element must be matched by a list ([..., ...]) or un-cons (...::...) pattern" ]
 
-            else if operatorName == "::" then
-                case getCollapsedPatternList pattern of
-                    Nothing ->
-                        CatchNone
+                Just patternConsTuple ->
+                    CatchSome
+                        (treeWith
+                            (StructuralCatchAll
+                                { completeCatchAll = Nothing
+                                , toConsTuple =
+                                    Just
+                                        { expression =
+                                            { firstPartRange = Node.range element0Expression
+                                            , secondPart = ConsTupleSecondPartExisting (Node.range elements1UpListExpression)
+                                            }
+                                        , pattern = patternConsTuple
+                                        }
+                                }
+                            )
+                            []
+                        )
 
-                    Just collapsedPatternList ->
-                        let
-                            collapsedCons : { consed : List (Node Expression), tail : Node Expression }
-                            collapsedCons =
-                                case getCollapsedCons right of
-                                    Just tailConsCollapsed ->
-                                        { consed = left :: tailConsCollapsed.consed, tail = tailConsCollapsed.tail }
+        Expression.OperatorApplication operatorName _ _ _ ->
+            if List.member operatorName [ ">>", "<<" ] then
+                CatchNone [ CatchNoneWithCompilerError "composed functions can never be matched" ]
 
-                                    Nothing ->
-                                        { consed = [ left ], tail = right }
+            else if List.member operatorName [ "|.", "|=" ] then
+                CatchNone [ CatchNoneWithCompilerError "sequenced elm/parser Parsers are opaque and can therefore never be matched" ]
 
-                            beginningCatch : Catch
-                            beginningCatch =
-                                catchForPairs collapsedCons.consed collapsedPatternList.beginning
-                        in
-                        case beginningCatch of
-                            CatchSome beginningCatchSome ->
-                                CatchSome
-                                    (treeWith
-                                        (case (Tree.element beginningCatchSome).patternInCase.catch of
-                                            CatchSub ->
-                                                CatchSub
-
-                                            CatchAll beginningCatchAll ->
-                                                if List.length collapsedPatternList.beginning <= List.length collapsedCons.consed then
-                                                    CatchAll beginningCatchAll
-
-                                                else
-                                                    -- length collapsedPatternList.beginning > length collapsedCons.consedCatchSome beginningCatchSome
-                                                    CatchSub
-                                        )
-                                        []
-                                    )
-
-                            CatchNone ->
-                                CatchNone
+            else if List.member operatorName [ "<?>", "</>" ] then
+                CatchNone [ CatchNoneWithCompilerError "sequenced elm/url Parsers are opaque and can therefore never be matched" ]
 
             else
                 CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
+
+        Expression.ListExpr [] ->
+            case pattern of
+                Pattern.ListPattern [] ->
+                    catchAll ()
+
+                Pattern.ListPattern (_ :: _) ->
+                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a list pattern with at least one element ([..., ...]" } ]
+
+                Pattern.UnConsPattern _ _ ->
+                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a cons pattern (... :: ...)" } ]
+
+                _ ->
+                    CatchNone [ CatchNoneWithCompilerError "an empty list must be matched with an empty list pattern ([])" ]
+
+        Expression.ListExpr (element0Expression :: element1UpExpressions) ->
+            case patternToConsTuple pattern of
+                Nothing ->
+                    CatchNone [ CatchNoneWithCompilerError "a List with at least one element must be matched by a list ([..., ...]) or un-cons (...::...) pattern" ]
+
+                Just patternConsTuple ->
+                    CatchSome
+                        (treeWith
+                            (StructuralCatchAll
+                                { completeCatchAll = Nothing
+                                , toConsTuple =
+                                    Just
+                                        { expression =
+                                            { firstPartRange = Node.range element0Expression
+                                            , secondPart = ConsTupleSecondPartToList (List.map Node.range element1UpExpressions)
+                                            }
+                                        , pattern = patternConsTuple
+                                        }
+                                }
+                            )
+                            []
+                        )
 
         Expression.IfBlock _ _ _ ->
             -- simplify should clean the bool case up to a simple if
             CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
-        Expression.PrefixOperator _ ->
-            CatchNone
+        Expression.PrefixOperator operatorName ->
+            CatchNone [ CatchNoneWithCompilerError ("a prefix operator function (" ++ operatorName ++ ") can never be matched (as any other function)") ]
 
-        -- doesn't exist
         Expression.Operator _ ->
-            CatchNone
+            CatchNone [ CatchNoneWithCompilerError "elm-syntax bug: intermediate Operator was parsed as an Expression" ]
 
         Expression.Negation _ ->
-            CatchNone
+            CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.TupledExpression tupleParts ->
-            -- TODO remove () parts
+            let
+                tuplePartCount : Int
+                tuplePartCount =
+                    List.length tupleParts
+            in
             case pattern of
-                Pattern.TuplePattern patternParts ->
-                    if List.length patternParts /= List.length tupleParts then
-                        -- compiler error
-                        CatchNone
+                Pattern.TuplePattern patternTupleParts ->
+                    let
+                        patternTuplePartCount : Int
+                        patternTuplePartCount =
+                            List.length tupleParts
+                    in
+                    if tuplePartCount == patternTuplePartCount then
+                        catchForPairs tupleParts patternTupleParts
 
                     else
                         -- length patternParts == length tupleParts
-                        catchForPairs tupleParts patternParts
+                        CatchNone [ CatchNoneWithCompilerError (String.fromInt tuplePartCount ++ "-tuples can never be matched with a " ++ String.fromInt patternTuplePartCount ++ "-tuple pattern") ]
 
                 _ ->
-                    CatchNone
+                    CatchNone [ CatchNoneWithCompilerError ("a " ++ String.fromInt tuplePartCount ++ "-tuple must be matched with a " ++ String.fromInt tuplePartCount ++ "-tuple pattern") ]
 
         Expression.LetExpression _ ->
             CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
@@ -1508,7 +1628,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
 
         -- compiler error
         Expression.LambdaExpression _ ->
-            CatchNone
+            CatchNone [ CatchNoneWithCompilerError "a lambda can never be matched (as any other function)" ]
 
         Expression.RecordExpr _ ->
             casePatternCatchForRecord ()
@@ -1516,41 +1636,57 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         Expression.RecordUpdateExpression _ _ ->
             casePatternCatchForRecord ()
 
-        Expression.ListExpr elements ->
-            case getCollapsedPatternList pattern of
-                Just patternElements ->
-                    case patternElements.tail of
-                        Just _ ->
-                            if List.length patternElements.beginning > List.length elements then
-                                CatchNone
-
-                            else
-                                -- length patternElements.beginning <= List.length elements
-                                catchForPairs elements patternElements.beginning
-
-                        Nothing ->
-                            if List.length patternElements.beginning /= List.length elements then
-                                -- compiler error
-                                CatchNone
-
-                            else
-                                -- length patternElements == length elements
-                                catchForPairs elements patternElements.beginning
-
-                Nothing ->
-                    CatchNone
-
         Expression.RecordAccess _ _ ->
             CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.RecordAccessFunction _ ->
-            CatchNone
+            CatchNone [ CatchNoneWithCompilerError "a record accessor can never be matched (as any other function)" ]
 
         Expression.GLSLExpression _ ->
-            CatchNone
+            CatchNone [ CatchNoneWithCompilerError "glsl can never be matched" ]
 
         Expression.ParenthesizedExpression inParens ->
             casePatternSpecificCatchFor lookupTable inParens patternNode
+
+
+patternToConsTuple : Pattern -> Maybe { firstPartRange : Range, secondPart : ConsTupleSecondPart }
+patternToConsTuple pattern =
+    case pattern of
+        Pattern.ListPattern [] ->
+            Nothing
+
+        Pattern.ListPattern ((Node headPatternRange _) :: element1UpPatterns) ->
+            Just
+                { firstPartRange = headPatternRange
+                , secondPart = ConsTupleSecondPartToList (List.map Node.range element1UpPatterns)
+                }
+
+        Pattern.UnConsPattern (Node headPatternRange _) (Node tailPatternRange _) ->
+            Just
+                { firstPartRange = headPatternRange
+                , secondPart = ConsTupleSecondPartExisting tailPatternRange
+                }
+
+        _ ->
+            Nothing
+
+
+test =
+    { a0 =
+        case [] of
+            1 :: 2 :: [ 3, 4 ] ->
+                1
+
+            _ ->
+                0
+    , a1 =
+        case Ok () of
+            Err err ->
+                "err " ++ err
+
+            Ok () ->
+                "eh "
+    }
 
 
 stringStartsWithUpper : String -> Bool
