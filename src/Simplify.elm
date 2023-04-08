@@ -7595,7 +7595,7 @@ caseOfCatchError caseCatches caseOf =
                                                 "Cases after the "
                                                     ++ indexthToString firstCatchAllCaseIndex
                                                     ++ " one will never be matched because that pattern covers all possibilities."
-                                                    ++ "\nTherefore, later cases are impossible to get in practice and can be removed."
+                                                    ++ "\nTherefore, later cases are impossible to get to in practice and can be removed."
                                             , fix =
                                                 List.map (\case_ -> Fix.removeRange (caseRange case_))
                                                     (List.drop (firstCatchAllCaseIndex + 1) (Array.toList caseOf.cases))
