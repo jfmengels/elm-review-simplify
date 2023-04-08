@@ -7500,7 +7500,12 @@ caseOfCatchError caseCatches caseOf =
             (justIf
                 (\_ ->
                     -- no other CatchSome cases before first catch-all
-                    Dict.size (Tree.element caseCatches.catchSomeCases).patternsInCases == 1
+                    case Dict.values (Tree.element caseCatches.catchSomeCases).patternsInCases of
+                        [ firstAllPatternOfCase ] ->
+                            firstAllPatternOfCase.catch |> canBeRemoved
+
+                        _ ->
+                            False
                 )
             )
             caseCatches.firstCatchAllCaseIndex
