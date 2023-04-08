@@ -7495,16 +7495,61 @@ caseOfCatchError caseCatches caseOf =
                 ++ pluralize { singular = "this case", plural = "these cases" } (Dict.size caseCatches.catchNoneCaseIndexes)
                 ++ " should catch something, check if the value between case..of is really what you want to match on."
     in
-    case caseOfCatchSomeFix caseCatches.catchSomeCases of
-        Nothing ->
-            -- if there is a catchNoneCasesError, there will be a compiler error
-            []
-
-        Just CaseOfCatchSomeCanBeRemoved ->
-            -- TODO this error should also happen for CaseOfCatchSomeCanBeSimplifiedInParts
-            case (Tree.element caseCatches.catchSomeCases).patternsInCases |> Dict.keys |> List.head of
-                -- only catch-none cases
+    case
+        Maybe.andThen
+            (justIf
+                (\_ ->
+                    -- no other CatchSome cases before first catch-all
+                    Dict.size (Tree.element caseCatches.catchSomeCases).patternsInCases == 1
+                )
+            )
+            caseCatches.firstCatchAllCaseIndex
+    of
+        Just firstCatchAllCaseIndex ->
+            case Array.get firstCatchAllCaseIndex caseOf.cases of
+                -- should not happen
                 Nothing ->
+                    -- only catch-none cases
+                    []
+
+                Just firstCase ->
+                    let
+                        firstCatchAllCaseIndexth : String
+                        firstCatchAllCaseIndexth =
+                            indexthToString firstCatchAllCaseIndex
+                    in
+                    [ Rule.errorWithFix
+                        { message = "This case-of always only matches the " ++ firstCatchAllCaseIndexth ++ " case"
+                        , details =
+                            [ "The "
+                                ++ firstCatchAllCaseIndexth
+                                ++ " case matches all values between case..of that are possible in practice."
+                                ++ (if Dict.isEmpty caseCatches.catchNoneCaseIndexes then
+                                        ""
+
+                                    else
+                                        " All earlier cases never catch the value between case..of:" ++ catchNoneReasonDetails ()
+                                   )
+                                ++ "\nThat means that the value returned from the "
+                                ++ firstCatchAllCaseIndexth
+                                ++ " case will always be the result of the whole case-of block."
+                            ]
+                        }
+                        (caseKeyWordRange caseOf.range)
+                        (keepOnlyFix
+                            { parentRange = caseOf.range
+                            , keep = Node.range (Tuple.second firstCase)
+                            }
+                        )
+                    ]
+
+        Nothing ->
+            case caseOfCatchSomeFix caseCatches.catchSomeCases of
+                Nothing ->
+                    -- if there is a catchNoneCasesError, there will be a compiler error
+                    []
+
+                Just CaseOfCatchSomeCanBeRemoved ->
                     [ Rule.error
                         { message = "All case-of cases never match the cased value"
                         , details =
@@ -7516,118 +7561,81 @@ caseOfCatchError caseCatches caseOf =
                         (caseKeyWordRange caseOf.range)
                     ]
 
-                Just firstCatchAllCaseIndex ->
-                    case Array.get firstCatchAllCaseIndex caseOf.cases of
-                        Nothing ->
-                            -- invalid syntax
-                            []
-
-                        Just firstCase ->
-                            let
-                                firstCatchAllCaseIndexth : String
-                                firstCatchAllCaseIndexth =
-                                    indexthToString firstCatchAllCaseIndex
-                            in
-                            [ Rule.errorWithFix
-                                { message = "This case-of always only matches the " ++ firstCatchAllCaseIndexth ++ " case"
-                                , details =
-                                    [ "The "
-                                        ++ firstCatchAllCaseIndexth
-                                        ++ " case matches all values between case..of that are possible in practice."
-                                        ++ (if Dict.isEmpty caseCatches.catchNoneCaseIndexes then
-                                                ""
-
-                                            else
-                                                " All earlier cases never catch the value between case..of:" ++ catchNoneReasonDetails ()
-                                           )
-                                        ++ "\nThat means that the value returned from the "
-                                        ++ firstCatchAllCaseIndexth
-                                        ++ " case will always be the result of the whole case-of block."
-                                    ]
-                                }
-                                (caseKeyWordRange caseOf.range)
-                                (keepOnlyFix
-                                    { parentRange = caseOf.range
-                                    , keep = Node.range (Tuple.second firstCase)
+                Just (CaseOfCatchSomeCanBeSimplifiedPartially caseOfCatchSomeFixes) ->
+                    let
+                        catchNoneCasesError : { details : List String, fix : List Fix }
+                        catchNoneCasesError =
+                            List.foldl
+                                (\error soFar ->
+                                    { details = error.details :: soFar.details
+                                    , fix = soFar.fix ++ error.fix
                                     }
                                 )
-                            ]
+                                { details = [], fix = [] }
+                                (List.filterMap identity [ prematureCatchAllError, removeCatchNoneCasesError ])
 
-        Just (CaseOfCatchSomeCanBeSimplifiedPartially caseOfCatchSomeFixes) ->
-            let
-                catchNoneCasesError : { details : List String, fix : List Fix }
-                catchNoneCasesError =
-                    List.foldl
-                        (\error soFar ->
-                            { details = error.details :: soFar.details
-                            , fix = soFar.fix ++ error.fix
-                            }
-                        )
-                        { details = [], fix = [] }
-                        (List.filterMap identity [ prematureCatchAllError, removeCatchNoneCasesError ])
+                        prematureCatchAllError : Maybe { details : String, fix : List Fix }
+                        prematureCatchAllError =
+                            case caseCatches.firstCatchAllCaseIndex of
+                                Nothing ->
+                                    Nothing
 
-                prematureCatchAllError : Maybe { details : String, fix : List Fix }
-                prematureCatchAllError =
-                    case caseCatches.firstCatchAllCaseIndex of
-                        Nothing ->
-                            Nothing
+                                Just firstCatchAllCaseIndex ->
+                                    if firstCatchAllCaseIndex == (Array.length caseOf.cases - 1) then
+                                        Nothing
 
-                        Just firstCatchAllCaseIndex ->
-                            if firstCatchAllCaseIndex == (Array.length caseOf.cases - 1) then
-                                Nothing
+                                    else
+                                        Just
+                                            { details =
+                                                "Cases after the "
+                                                    ++ indexthToString firstCatchAllCaseIndex
+                                                    ++ " one will never be matched because that pattern covers all possibilities."
+                                                    ++ "\nTherefore, later cases are impossible to get in practice and can be removed."
+                                            , fix =
+                                                List.map (\case_ -> Fix.removeRange (caseRange case_))
+                                                    (List.drop (firstCatchAllCaseIndex + 1) (Array.toList caseOf.cases))
+                                            }
 
-                            else
-                                Just
-                                    { details =
-                                        "Cases after the "
-                                            ++ indexthToString firstCatchAllCaseIndex
-                                            ++ " one will never be matched because that pattern covers all possibilities."
-                                            ++ "\nTherefore, later cases are impossible to get in practice and can be removed."
-                                    , fix =
-                                        List.map (\case_ -> Fix.removeRange (caseRange case_))
-                                            (List.drop (firstCatchAllCaseIndex + 1) (Array.toList caseOf.cases))
-                                    }
+                        removeCatchNoneCasesError : Maybe { details : String, fix : List Fix }
+                        removeCatchNoneCasesError =
+                            case Dict.size caseCatches.catchNoneCaseIndexes of
+                                0 ->
+                                    Nothing
 
-                removeCatchNoneCasesError : Maybe { details : String, fix : List Fix }
-                removeCatchNoneCasesError =
-                    case Dict.size caseCatches.catchNoneCaseIndexes of
-                        0 ->
-                            Nothing
-
-                        catchNoneCaseCount ->
-                            -- if all cases are catch-none, there will be a compiler error
-                            Just
-                                { details =
-                                    "The "
-                                        ++ String.join ", " (List.map indexthToString (Dict.keys caseCatches.catchNoneCaseIndexes))
-                                        ++ " "
-                                        ++ pluralize { singular = "case", plural = "cases" } catchNoneCaseCount
-                                        ++ " will in practice never match the value between case..of."
-                                        ++ "\nThis means you can remove "
-                                        ++ pluralize { singular = "this case", plural = "these cases" } catchNoneCaseCount
-                                        ++ " after simplifying the matched expression and patterns."
-                                        ++ catchNoneReasonDetails ()
-                                        ++ hintRecheckCasedValue ()
-                                , fix =
-                                    List.map (\case_ -> Fix.removeRange (caseRange case_))
-                                        (List.filterMap
-                                            (\catchNoneCaseIndex ->
-                                                Array.get catchNoneCaseIndex caseOf.cases
-                                            )
-                                            (Dict.keys caseCatches.catchNoneCaseIndexes)
-                                        )
-                                }
-            in
-            [ Rule.errorWithFix
-                { message = "Case-of can be simplified"
-                , details =
-                    """I found things between case..of that aren't necessary because they are not specifically being matched on.
+                                catchNoneCaseCount ->
+                                    -- if all cases are catch-none, there will be a compiler error
+                                    Just
+                                        { details =
+                                            "The "
+                                                ++ String.join ", " (List.map indexthToString (Dict.keys caseCatches.catchNoneCaseIndexes))
+                                                ++ " "
+                                                ++ pluralize { singular = "case", plural = "cases" } catchNoneCaseCount
+                                                ++ " will in practice never match the value between case..of."
+                                                ++ "\nThis means you can remove "
+                                                ++ pluralize { singular = "this case", plural = "these cases" } catchNoneCaseCount
+                                                ++ " after simplifying the matched expression and patterns."
+                                                ++ catchNoneReasonDetails ()
+                                                ++ hintRecheckCasedValue ()
+                                        , fix =
+                                            List.map (\case_ -> Fix.removeRange (caseRange case_))
+                                                (List.filterMap
+                                                    (\catchNoneCaseIndex ->
+                                                        Array.get catchNoneCaseIndex caseOf.cases
+                                                    )
+                                                    (Dict.keys caseCatches.catchNoneCaseIndexes)
+                                                )
+                                        }
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Case-of can be simplified"
+                        , details =
+                            """I found things between case..of that aren't necessary because they are not specifically being matched on.
 Every case catches them but no case stores it in a variable or matches only a subset."""
-                        :: catchNoneCasesError.details
-                }
-                (caseKeyWordRange caseOf.range)
-                (catchNoneCasesError.fix ++ caseOfCatchSomeFixes)
-            ]
+                                :: catchNoneCasesError.details
+                        }
+                        (caseKeyWordRange caseOf.range)
+                        (catchNoneCasesError.fix ++ caseOfCatchSomeFixes)
+                    ]
 
 
 catchNoneReasonToString : AstHelpers.CatchNoneReason -> String
@@ -8726,6 +8734,19 @@ combineResultValuesHelp lookupTable nodes soFar =
 
         [] ->
             Just soFar
+
+
+
+-- MAYBE HELPERS
+
+
+justIf : (a -> Bool) -> a -> Maybe a
+justIf passes value =
+    if passes value then
+        Just value
+
+    else
+        Nothing
 
 
 
