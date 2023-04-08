@@ -7692,8 +7692,8 @@ caseOfCatchSomeFix catchSomeCases =
 
     else
         let
-            partsWithSimplifications : List { element : CatchSomeCasesTreeElement, simplification : Maybe CaseOfCatchSomeSimplification }
-            partsWithSimplifications =
+            partsAndSimplifications : List { element : CatchSomeCasesTreeElement, simplification : Maybe CaseOfCatchSomeSimplification }
+            partsAndSimplifications =
                 List.map
                     (\part -> { element = Tree.element part, simplification = caseOfCatchSomeFix part })
                     (Tree.parts catchSomeCases)
@@ -7712,7 +7712,48 @@ caseOfCatchSomeFix catchSomeCases =
                             Just (CaseOfCatchSomeCanBeSimplifiedPartially partsPartsFixes) ->
                                 partsPartsFixes
                     )
-                    partsWithSimplifications
+                    partsAndSimplifications
+
+            toNestedTupleFixes : List Fix
+            toNestedTupleFixes =
+                toNestedTupleFix
+                    { structure = (Tree.element catchSomeCases).expressionRange
+                    , parts =
+                        List.filterMap
+                            (\part ->
+                                case part.simplification of
+                                    Nothing ->
+                                        Just part.element.expressionRange
+
+                                    Just (CaseOfCatchSomeCanBeSimplifiedPartially _) ->
+                                        Just part.element.expressionRange
+
+                                    Just CaseOfCatchSomeCanBeRemoved ->
+                                        Nothing
+                            )
+                            partsAndSimplifications
+                    }
+                    ++ List.concatMap
+                        (\( caseIndex, structureInCase ) ->
+                            toNestedTupleFix
+                                { structure = structureInCase.patternRange
+                                , parts =
+                                    List.filterMap
+                                        (\part ->
+                                            case part.simplification of
+                                                Nothing ->
+                                                    Maybe.map .patternRange (Dict.get caseIndex part.element.patternsInCases)
+
+                                                Just (CaseOfCatchSomeCanBeSimplifiedPartially _) ->
+                                                    Maybe.map .patternRange (Dict.get caseIndex part.element.patternsInCases)
+
+                                                Just CaseOfCatchSomeCanBeRemoved ->
+                                                    Nothing
+                                        )
+                                        partsAndSimplifications
+                                }
+                        )
+                        (Dict.toList (Tree.element catchSomeCases).patternsInCases)
 
             patternInAllCasesIsStructureCatchAll : Bool
             patternInAllCasesIsStructureCatchAll =
@@ -7722,47 +7763,6 @@ caseOfCatchSomeFix catchSomeCases =
         in
         if patternInAllCasesIsStructureCatchAll then
             let
-                toNestedTupleFixes : List Fix
-                toNestedTupleFixes =
-                    toNestedTupleFix
-                        { structure = (Tree.element catchSomeCases).expressionRange
-                        , parts =
-                            List.filterMap
-                                (\part ->
-                                    case part.simplification of
-                                        Nothing ->
-                                            Just part.element.expressionRange
-
-                                        Just CaseOfCatchSomeCanBeRemoved ->
-                                            Nothing
-
-                                        Just (CaseOfCatchSomeCanBeSimplifiedPartially _) ->
-                                            Just part.element.expressionRange
-                                )
-                                partsWithSimplifications
-                        }
-                        ++ List.concatMap
-                            (\( caseIndex, structure ) ->
-                                toNestedTupleFix
-                                    { structure = structure.patternRange
-                                    , parts =
-                                        List.filterMap
-                                            (\part ->
-                                                case part.simplification of
-                                                    Nothing ->
-                                                        Maybe.map .patternRange (Dict.get caseIndex part.element.patternsInCases)
-
-                                                    Just (CaseOfCatchSomeCanBeSimplifiedPartially _) ->
-                                                        Maybe.map .patternRange (Dict.get caseIndex part.element.patternsInCases)
-
-                                                    Just CaseOfCatchSomeCanBeRemoved ->
-                                                        Nothing
-                                            )
-                                            partsWithSimplifications
-                                    }
-                            )
-                            (Dict.toList (Tree.element catchSomeCases).patternsInCases)
-
                 maybeToConsTuple : Maybe (List { patternRange : Range, info : { expression : AstHelpers.ConsTupleParts, pattern : AstHelpers.ConsTupleParts } })
                 maybeToConsTuple =
                     listFilterMapSequence
@@ -7810,7 +7810,10 @@ caseOfCatchSomeFix catchSomeCases =
                     Nothing
 
                 partFix0 :: partFixes1Up ->
-                    Just (CaseOfCatchSomeCanBeSimplifiedPartially (partFix0 :: partFixes1Up))
+                    Just
+                        (CaseOfCatchSomeCanBeSimplifiedPartially
+                            (toNestedTupleFixes ++ partFix0 :: partFixes1Up)
+                        )
 
 
 toConsTupleFix : { structure : Range, parts : AstHelpers.ConsTupleParts } -> List Fix
