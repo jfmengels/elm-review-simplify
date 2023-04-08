@@ -1669,8 +1669,8 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         Expression.GLSLExpression _ ->
             CatchNone [ CatchNoneWithCompilerError "glsl can never be matched" ]
 
-        Expression.ParenthesizedExpression inParens ->
-            casePatternSpecificCatchFor lookupTable inParens patternNode
+        Expression.ParenthesizedExpression (Node _ inParens) ->
+            casePatternSpecificCatchFor lookupTable (Node expressionRange inParens) patternNode
 
 
 patternToConsTuple : Pattern -> Maybe { firstPartRange : Range, secondPart : ConsTupleSecondPart }
