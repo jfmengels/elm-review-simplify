@@ -1309,15 +1309,6 @@ catchMergeWith otherCatch structureCatch =
                 }
 
 
-a bool1 bool2 =
-    case ( bool1, bool2 ) of
-        ( True, True ) ->
-            1
-
-        _ ->
-            2
-
-
 casePatternSpecificCatchFor :
     ModuleNameLookupTable
     -> Node Expression
