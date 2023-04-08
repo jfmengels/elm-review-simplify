@@ -995,8 +995,12 @@ type CatchSomeKind
       -- (like case result of Ok value -> or case list of [] ->)
       -- if the only case is CatchSub, there will be be a compiler error
       CatchSub
-    | -- CatchAll: the pattern always partially matches the expression:
-      -- (like case a of _ -> or case ( b, [ Ok a ] ) of ( 3, [ Ok 3 ] ) ->)
+        { -- if True, then the shape always matches (like with tuples) and some part is a `StructuralCatchAll`)
+          -- (like case ( b, [ Ok a ] ) of ( 3, [ Ok 3 ] ) ->)
+          containsStructuralCatchAll : Bool
+        }
+    | -- CatchAll: the pattern always matches the expression's narrow structure shape in some way:
+      -- (like case a of _ -> or case [ Ok a ] of [ Ok 3 ] ->)
       -- they can all be simplified
       StructuralCatchAll StructuralCatchAllInfo
 
@@ -1044,8 +1048,8 @@ type ConsTupleSecondPart
 onStructuralCatchAll : (StructuralCatchAllInfo -> StructuralCatchAllInfo) -> CatchSomeKind -> CatchSomeKind
 onStructuralCatchAll catchAllInfoChange catchSomeKind =
     case catchSomeKind of
-        CatchSub ->
-            CatchSub
+        CatchSub catchSub ->
+            CatchSub catchSub
 
         StructuralCatchAll catchAll ->
             StructuralCatchAll (catchAllInfoChange catchAll)
@@ -1146,6 +1150,37 @@ from an expression that is fully unknown (like value/function variables).
 -}
 casePatternCatchForUnknown : Pattern -> CatchSomeKind
 casePatternCatchForUnknown pattern =
+    let
+        partsCatchMerge : List (Node Pattern) -> CatchSomeKind
+        partsCatchMerge parts =
+            List.foldl
+                (\(Node _ part) soFar ->
+                    case ( soFar, casePatternCatchForUnknown part ) of
+                        ( CatchSub _, StructuralCatchAll _ ) ->
+                            CatchSub { containsStructuralCatchAll = True }
+
+                        ( StructuralCatchAll _, CatchSub _ ) ->
+                            CatchSub { containsStructuralCatchAll = True }
+
+                        ( CatchSub soFarCatchSub, CatchSub partCatchSub ) ->
+                            CatchSub
+                                { containsStructuralCatchAll =
+                                    soFarCatchSub.containsStructuralCatchAll
+                                        || partCatchSub.containsStructuralCatchAll
+                                }
+
+                        ( StructuralCatchAll soFarCatchAll, StructuralCatchAll catchAll ) ->
+                            StructuralCatchAll
+                                { completeCatchAll =
+                                    Maybe.map2 structureCompleteCatchAllMergeWith
+                                        soFarCatchAll.completeCatchAll
+                                        catchAll.completeCatchAll
+                                , toConsTuple = Nothing
+                                }
+                )
+                (StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing })
+                parts
+    in
     case pattern of
         Pattern.UnitPattern ->
             StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing }
@@ -1170,56 +1205,42 @@ casePatternCatchForUnknown pattern =
             casePatternCatchForUnknown inParens
 
         Pattern.RecordPattern _ ->
-            CatchSub
+            StructuralCatchAll { completeCatchAll = Just CompleteCatchAllWithVariables, toConsTuple = Nothing }
 
         -- doesn't exist
         Pattern.FloatPattern _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.HexPattern _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.IntPattern _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.CharPattern _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.UnConsPattern _ _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.ListPattern _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.StringPattern _ ->
-            CatchSub
+            CatchSub { containsStructuralCatchAll = False }
 
         Pattern.TuplePattern tupleParts ->
-            List.foldl
-                (\(Node _ part) soFar ->
-                    case soFar of
-                        CatchSub ->
-                            CatchSub
+            partsCatchMerge tupleParts
 
-                        StructuralCatchAll soFarCatchAll ->
-                            case casePatternCatchForUnknown part of
-                                CatchSub ->
-                                    CatchSub
-
-                                StructuralCatchAll catchAll ->
-                                    StructuralCatchAll
-                                        { completeCatchAll =
-                                            Maybe.map2 structureCompleteCatchAllMergeWith
-                                                soFarCatchAll.completeCatchAll
-                                                catchAll.completeCatchAll
-                                        , toConsTuple = Nothing
-                                        }
-                )
-                (StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing })
-                tupleParts
-
-        Pattern.NamedPattern _ _ ->
+        Pattern.NamedPattern _ arguments ->
             CatchSub
+                (case partsCatchMerge arguments of
+                    CatchSub catchSub ->
+                        catchSub
+
+                    StructuralCatchAll _ ->
+                        { containsStructuralCatchAll = True }
+                )
 
 
 structureCompleteCatchAllMergeWith : CompleteCatchAllContainedVariables -> CompleteCatchAllContainedVariables -> CompleteCatchAllContainedVariables
@@ -1272,14 +1293,18 @@ catchMergeWith otherCatch structureCatch =
                                 , toConsTuple = Nothing
                                 }
 
-                        ( StructuralCatchAll _, CatchSub ) ->
-                            StructuralCatchAll { completeCatchAll = Nothing, toConsTuple = Nothing }
+                        ( StructuralCatchAll _, CatchSub _ ) ->
+                            CatchSub { containsStructuralCatchAll = True }
 
-                        ( CatchSub, StructuralCatchAll _ ) ->
-                            StructuralCatchAll { completeCatchAll = Nothing, toConsTuple = Nothing }
+                        ( CatchSub _, StructuralCatchAll _ ) ->
+                            CatchSub { containsStructuralCatchAll = True }
 
-                        ( CatchSub, CatchSub ) ->
+                        ( CatchSub catchSub, CatchSub otherCatchSub ) ->
                             CatchSub
+                                { containsStructuralCatchAll =
+                                    catchSub.containsStructuralCatchAll
+                                        || otherCatchSub.containsStructuralCatchAll
+                                }
                 , parts = otherCatchSomeTree :: catchSome.parts
                 }
 
@@ -1504,7 +1529,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                                                         StructuralCatchAll structuralCatchAll ->
                                                             StructuralCatchAll structuralCatchAll
 
-                                                        CatchSub ->
+                                                        CatchSub _ ->
                                                             StructuralCatchAll { completeCatchAll = Nothing, toConsTuple = Nothing }
                                                     )
                                                     variantCatchSome.parts
