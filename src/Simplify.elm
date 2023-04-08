@@ -7700,34 +7700,19 @@ caseOfCatchSomeFix catchSomeCases =
 
             partsFixes : List Fix
             partsFixes =
-                partsWithSimplifications
-                    |> List.foldl
-                        (\part soFar ->
-                            let
-                                patternRanges : List Range
-                                patternRanges =
-                                    List.map .patternRange (Dict.values part.element.patternsInCases)
+                List.concatMap
+                    (\part ->
+                        case part.simplification of
+                            Nothing ->
+                                []
 
-                                partsInnerFixes : List Fix
-                                partsInnerFixes =
-                                    case part.simplification of
-                                        Nothing ->
-                                            []
+                            Just CaseOfCatchSomeCanBeRemoved ->
+                                []
 
-                                        Just (CaseOfCatchSomeCanBeSimplifiedPartially partsPartsFixes) ->
-                                            partsPartsFixes
-
-                                        Just CaseOfCatchSomeCanBeRemoved ->
-                                            []
-                            in
-                            { fixes =
-                                partsInnerFixes ++ soFar.fixes
-                            , previous =
-                                Just { expressionRange = part.element.expressionRange, patternRanges = patternRanges }
-                            }
-                        )
-                        { fixes = [], previous = Nothing }
-                    |> .fixes
+                            Just (CaseOfCatchSomeCanBeSimplifiedPartially partsPartsFixes) ->
+                                partsPartsFixes
+                    )
+                    partsWithSimplifications
 
             patternInAllCasesIsStructureCatchAll : Bool
             patternInAllCasesIsStructureCatchAll =
@@ -7739,7 +7724,6 @@ caseOfCatchSomeFix catchSomeCases =
             let
                 toNestedTupleFixes : List Fix
                 toNestedTupleFixes =
-                    -- TODO remove catch-all parts
                     toNestedTupleFix
                         { structure = (Tree.element catchSomeCases).expressionRange
                         , parts =
@@ -7749,11 +7733,11 @@ caseOfCatchSomeFix catchSomeCases =
                                         Nothing ->
                                             Just part.element.expressionRange
 
-                                        Just (CaseOfCatchSomeCanBeSimplifiedPartially _) ->
-                                            Just part.element.expressionRange
-
                                         Just CaseOfCatchSomeCanBeRemoved ->
                                             Nothing
+
+                                        Just (CaseOfCatchSomeCanBeSimplifiedPartially _) ->
+                                            Just part.element.expressionRange
                                 )
                                 partsWithSimplifications
                         }
@@ -7789,9 +7773,7 @@ caseOfCatchSomeFix catchSomeCases =
 
                                 AstHelpers.StructuralCatchAll patternInCaseStructuralCatchAll ->
                                     Maybe.map
-                                        (\info ->
-                                            { patternRange = patternInCase.patternRange, info = info }
-                                        )
+                                        (\info -> { patternRange = patternInCase.patternRange, info = info })
                                         patternInCaseStructuralCatchAll.toConsTuple
                         )
                         (Dict.values (Tree.element catchSomeCases).patternsInCases)
