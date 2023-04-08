@@ -1352,14 +1352,26 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                         catchAll ()
 
                     else
-                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "Int", expression = String.fromInt int, pattern = String.fromInt patternInt } ]
+                        CatchNone
+                            [ CatchNoneDueToSpecificMismatch
+                                { kind = "Int"
+                                , expression = String.fromInt int
+                                , pattern = String.fromInt patternInt
+                                }
+                            ]
 
                 Pattern.IntPattern patternInt ->
                     if patternInt == int then
                         catchAll ()
 
                     else
-                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "Int", expression = String.fromInt int, pattern = String.fromInt patternInt } ]
+                        CatchNone
+                            [ CatchNoneDueToSpecificMismatch
+                                { kind = "Int"
+                                , expression = String.fromInt int
+                                , pattern = String.fromInt patternInt
+                                }
+                            ]
 
                 _ ->
                     CatchNone [ CatchNoneWithCompilerError "an Int must be matched by either an int or hex pattern" ]
@@ -1390,7 +1402,13 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                     catchMergeWith (casePatternCatchFor lookupTable expressionPart patternPart) soFar
                 )
                 (CatchSome
-                    { parts = [], catch = StructuralCatchAll { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False }), toConsTuple = Nothing } }
+                    { parts = []
+                    , catch =
+                        StructuralCatchAll
+                            { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False })
+                            , toConsTuple = Nothing
+                            }
+                    }
                 )
                 (List.map2 Tuple.pair expressions patterns)
     in
@@ -1416,10 +1434,22 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                         catchAll ()
 
                     else
-                        CatchNone [ CatchNoneDueToSpecificMismatch { kind = "Char", expression = "'" ++ String.fromChar char ++ "'", pattern = "'" ++ String.fromChar patternChar ++ "'" } ]
+                        CatchNone
+                            [ CatchNoneDueToSpecificMismatch
+                                { kind = "Char"
+                                , expression = "'" ++ String.fromChar char ++ "'"
+                                , pattern = "'" ++ String.fromChar patternChar ++ "'"
+                                }
+                            ]
 
                 _ ->
-                    CatchNone [ CatchNoneWithCompilerError ("the Char '" ++ String.fromChar char ++ "' must be matched by a literal Char pattern") ]
+                    CatchNone
+                        [ CatchNoneWithCompilerError
+                            ("the Char '"
+                                ++ String.fromChar char
+                                ++ "' must be matched by a literal Char pattern"
+                            )
+                        ]
 
         Expression.Floatable _ ->
             CatchNone [ CatchNoneWithCompilerError "a Float can never be matched" ]
@@ -1434,7 +1464,13 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                         CatchNone [ CatchNoneDueToSpecificMismatch { kind = "String", expression = "\"" ++ string ++ "\"", pattern = "\"" ++ patternString ++ "\"" } ]
 
                 _ ->
-                    CatchNone [ CatchNoneWithCompilerError ("the String \"" ++ string ++ "\" must be matched by a literal String pattern") ]
+                    CatchNone
+                        [ CatchNoneWithCompilerError
+                            ("the String \""
+                                ++ string
+                                ++ "\" must be matched by a literal String pattern"
+                            )
+                        ]
 
         Expression.FunctionOrValue qualification name ->
             if not (stringStartsWithUpper name) then
@@ -1467,7 +1503,13 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                     _ ->
                         -- an empty record type alias constructor doesn't have a specific matching pattern
                         -- a curried variant constructor doesn't have a matching pattern either
-                        CatchNone [ CatchNoneWithCompilerError ("the variant " ++ qualifiedToString fullyQualified ++ " must be matched by a variant pattern") ]
+                        CatchNone
+                            [ CatchNoneWithCompilerError
+                                ("the variant "
+                                    ++ qualifiedToString fullyQualified
+                                    ++ " must be matched by a variant pattern"
+                                )
+                            ]
 
         -- doesn't exist
         Expression.Application [] ->
@@ -1477,7 +1519,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
         Expression.Application (_ :: []) ->
             CatchNone [ CatchNoneWithCompilerError "elm-syntax bug: Application without arguments was parsed as an Expression" ]
 
-        Expression.Application ((Node fedRange fed) :: firstArg :: argsAfterFirst) ->
+        Expression.Application ((Node fedRange fed) :: argument0 :: arguments1Up) ->
             case fed of
                 Expression.FunctionOrValue qualification name ->
                     if not (stringStartsWithUpper name) then
@@ -1502,14 +1544,20 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                                         )
                                 in
                                 if patternFullyQualified /= fedFullyQualified then
-                                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "variant", expression = qualifiedToString fedFullyQualified, pattern = qualifiedToString patternFullyQualified } ]
+                                    CatchNone
+                                        [ CatchNoneDueToSpecificMismatch
+                                            { kind = "variant"
+                                            , expression = qualifiedToString fedFullyQualified
+                                            , pattern = qualifiedToString patternFullyQualified
+                                            }
+                                        ]
 
-                                else if List.length (firstArg :: argsAfterFirst) < List.length namedPatternArguments then
+                                else if List.length (argument0 :: arguments1Up) < List.length namedPatternArguments then
                                     CatchNone [ CatchNoneWithCompilerError "a partially applied constructor (of a variant or record) can never be matched" ]
 
                                 else
-                                    -- pattern with same variant
-                                    case structureCatchForPairs (firstArg :: argsAfterFirst) namedPatternArguments of
+                                    -- pattern of same variant
+                                    case structureCatchForPairs (argument0 :: arguments1Up) namedPatternArguments of
                                         CatchNone catchNone ->
                                             CatchNone catchNone
 
@@ -1530,7 +1578,13 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                                 catchAll ()
 
                             _ ->
-                                CatchNone [ CatchNoneWithCompilerError ("the variant or record " ++ qualifiedToString fedFullyQualified ++ " must be matched by a variant pattern") ]
+                                CatchNone
+                                    [ CatchNoneWithCompilerError
+                                        ("the variant or record "
+                                            ++ qualifiedToString fedFullyQualified
+                                            ++ " must be matched by a variant pattern"
+                                        )
+                                    ]
 
                 _ ->
                     CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
@@ -1577,10 +1631,22 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
                     catchAll ()
 
                 Pattern.ListPattern (_ :: _) ->
-                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a list pattern filled with at least one element ([...])" } ]
+                    CatchNone
+                        [ CatchNoneDueToSpecificMismatch
+                            { kind = "List"
+                            , expression = "[]"
+                            , pattern = "a list pattern filled with at least one element ([...])"
+                            }
+                        ]
 
                 Pattern.UnConsPattern _ _ ->
-                    CatchNone [ CatchNoneDueToSpecificMismatch { kind = "List", expression = "[]", pattern = "a cons pattern (... :: ...)" } ]
+                    CatchNone
+                        [ CatchNoneDueToSpecificMismatch
+                            { kind = "List"
+                            , expression = "[]"
+                            , pattern = "a cons pattern (... :: ...)"
+                            }
+                        ]
 
                 _ ->
                     CatchNone [ CatchNoneWithCompilerError "an empty list must be matched with an empty list pattern ([])" ]
@@ -1613,7 +1679,13 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
             CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
 
         Expression.PrefixOperator operatorName ->
-            CatchNone [ CatchNoneWithCompilerError ("a prefix operator function (" ++ operatorName ++ ") can never be matched (as any other function)") ]
+            CatchNone
+                [ CatchNoneWithCompilerError
+                    ("a prefix operator function ("
+                        ++ operatorName
+                        ++ ") can never be matched (as any other function)"
+                    )
+                ]
 
         Expression.Operator _ ->
             CatchNone [ CatchNoneWithCompilerError "elm-syntax bug: intermediate Operator was parsed as an Expression" ]
@@ -1639,10 +1711,25 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
 
                     else
                         -- length patternParts == length tupleParts
-                        CatchNone [ CatchNoneWithCompilerError (String.fromInt tuplePartCount ++ "-tuples can never be matched with a " ++ String.fromInt patternTuplePartCount ++ "-tuple pattern") ]
+                        CatchNone
+                            [ CatchNoneWithCompilerError
+                                (String.fromInt tuplePartCount
+                                    ++ "-tuples can never be matched with a "
+                                    ++ String.fromInt patternTuplePartCount
+                                    ++ "-tuple pattern"
+                                )
+                            ]
 
                 _ ->
-                    CatchNone [ CatchNoneWithCompilerError ("a " ++ String.fromInt tuplePartCount ++ "-tuple must be matched with a " ++ String.fromInt tuplePartCount ++ "-tuple pattern") ]
+                    CatchNone
+                        [ CatchNoneWithCompilerError
+                            ("a "
+                                ++ String.fromInt tuplePartCount
+                                ++ "-tuple must be matched with a "
+                                ++ String.fromInt tuplePartCount
+                                ++ "-tuple pattern"
+                            )
+                        ]
 
         Expression.LetExpression _ ->
             CatchSome (treeWith (casePatternCatchForUnknown pattern) [])
