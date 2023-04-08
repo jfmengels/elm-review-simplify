@@ -1,4 +1,4 @@
-module Tree exposing (Tree(..), element, elementAlter, leaf, parts, tree)
+module Tree exposing (Tree(..), element, elementAlter, isLeaf, leaf, parts, tree)
 
 
 type Tree element
@@ -26,6 +26,11 @@ element (Tree treeInfo) =
 parts : Tree element -> List (Tree element)
 parts (Tree treeInfo) =
     treeInfo.parts
+
+
+isLeaf : Tree element -> Bool
+isLeaf tree_ =
+    List.isEmpty (parts tree_)
 
 
 elementAlter : (element -> element) -> Tree element -> Tree element
