@@ -1309,6 +1309,24 @@ catchMergeWith otherCatch structureCatch =
                 }
 
 
+structureCatchForPairs : ModuleNameLookupTable -> List (Node Expression) -> List (Node Pattern) -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
+structureCatchForPairs lookupTable expressions patterns =
+    List.foldl
+        (\( expressionPart, patternPart ) soFar ->
+            catchMergeWith (casePatternCatchFor lookupTable expressionPart patternPart) soFar
+        )
+        (CatchSome
+            { parts = []
+            , catch =
+                StructuralCatchAll
+                    { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False })
+                    , toConsTuple = Nothing
+                    }
+            }
+        )
+        (List.map2 Tuple.pair expressions patterns)
+
+
 casePatternSpecificCatchFor :
     ModuleNameLookupTable
     -> Node Expression
@@ -1388,29 +1406,12 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
 
         catchForPairs : List (Node Expression) -> List (Node Pattern) -> Catch
         catchForPairs expressions patterns =
-            case structureCatchForPairs expressions patterns of
+            case structureCatchForPairs lookupTable expressions patterns of
                 CatchNone catchNone ->
                     CatchNone catchNone
 
                 CatchSome structureCatchSome ->
                     CatchSome (treeWith structureCatchSome.catch structureCatchSome.parts)
-
-        structureCatchForPairs : List (Node Expression) -> List (Node Pattern) -> CatchNoneOrSome { catch : CatchSomeKind, parts : List CaseCatchSomeTree }
-        structureCatchForPairs expressions patterns =
-            List.foldl
-                (\( expressionPart, patternPart ) soFar ->
-                    catchMergeWith (casePatternCatchFor lookupTable expressionPart patternPart) soFar
-                )
-                (CatchSome
-                    { parts = []
-                    , catch =
-                        StructuralCatchAll
-                            { completeCatchAll = Just (CompleteCatchAllWithoutVariables { isGeneral = False })
-                            , toConsTuple = Nothing
-                            }
-                    }
-                )
-                (List.map2 Tuple.pair expressions patterns)
     in
     case expression of
         Expression.UnitExpr ->
@@ -1557,7 +1558,7 @@ casePatternSpecificCatchFor lookupTable casedExpressionNode patternNode =
 
                                 else
                                     -- pattern of same variant
-                                    case structureCatchForPairs (argument0 :: arguments1Up) namedPatternArguments of
+                                    case structureCatchForPairs lookupTable (argument0 :: arguments1Up) namedPatternArguments of
                                         CatchNone catchNone ->
                                             CatchNone catchNone
 
