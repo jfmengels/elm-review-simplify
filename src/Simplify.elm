@@ -7312,6 +7312,7 @@ addPatternInCase ( indexInCases, caseCatchSomeInfo ) catchSomeCasesTreeElement =
 
 addCatchSomeCase : ( Int, AstHelpers.CaseCatchSomeTree ) -> CatchSomeCasesTree -> CatchSomeCasesTree
 addCatchSomeCase ( indexInCases, caseTree ) casesTree =
+    -- REPLACEME integrate catch-all names
     Tree.tree
         (addPatternInCase ( indexInCases, caseTree |> Tree.element |> .patternInCase )
             (Tree.element casesTree)
@@ -7336,7 +7337,7 @@ addCatchSomeCase ( indexInCases, caseTree ) casesTree =
                             (\casePartTree ->
                                 addCatchSomeCase ( indexInCases, casePartTree )
                                     (Tree.leaf
-                                        { expressionRange = (Tree.element caseTree).expressionRange
+                                        { expressionRange = (Tree.element casePartTree).expressionRange
                                         , patternsInCases = Dict.empty
                                         }
                                     )
@@ -7415,25 +7416,19 @@ canBeRemoved catchSomeKind =
             False
 
 
-isStructureCatchAll : AstHelpers.CatchSomeKind -> { hasNoParts : Bool } -> Bool
-isStructureCatchAll catchSomeKind { hasNoParts } =
+isStructureCatchAll : AstHelpers.CatchSomeKind -> { isLeaf : Bool } -> Bool
+isStructureCatchAll catchSomeKind context =
     case catchSomeKind of
         AstHelpers.StructuralCatchAll structuralCatchAll ->
             case structuralCatchAll.completeCatchAll of
                 Nothing ->
-                    not hasNoParts
+                    True
 
-                Just completeCatchAll ->
-                    case completeCatchAll of
-                        AstHelpers.CompleteCatchAllWithoutVariables withoutVariables ->
-                            if withoutVariables.isGeneral then
-                                True
+                Just AstHelpers.CompleteCatchAllWithVariables ->
+                    not context.isLeaf
 
-                            else
-                                not hasNoParts
-
-                        AstHelpers.CompleteCatchAllWithVariables ->
-                            not hasNoParts
+                Just (AstHelpers.CompleteCatchAllWithoutVariables _) ->
+                    True
 
         AstHelpers.CatchSub _ ->
             False
@@ -7597,7 +7592,7 @@ caseOfCatchError caseCatches caseOf =
                                                     ++ " one will never be matched because that pattern covers all possibilities."
                                                     ++ "\nTherefore, later cases are impossible to get to in practice and can be removed."
                                             , fix =
-                                                List.map (\case_ -> Fix.removeRange (caseRange case_))
+                                                List.map (\case_ -> Fix.removeRange (caseRemoveRange case_))
                                                     (List.drop (firstCatchAllCaseIndex + 1) (Array.toList caseOf.cases))
                                             }
 
@@ -7622,7 +7617,7 @@ caseOfCatchError caseCatches caseOf =
                                                 ++ catchNoneReasonDetails ()
                                                 ++ hintRecheckCasedValue ()
                                         , fix =
-                                            List.map (\case_ -> Fix.removeRange (caseRange case_))
+                                            List.map (\case_ -> Fix.removeRange (caseRemoveRange case_))
                                                 (List.filterMap
                                                     (\catchNoneCaseIndex ->
                                                         Array.get catchNoneCaseIndex caseOf.cases
@@ -7771,7 +7766,7 @@ caseOfCatchSomeFix catchSomeCases =
             patternInAllCasesIsStructureCatchAll : Bool
             patternInAllCasesIsStructureCatchAll =
                 dictAll
-                    (\_ patternInCase -> isStructureCatchAll patternInCase.catch { hasNoParts = Tree.isLeaf catchSomeCases })
+                    (\_ patternInCase -> isStructureCatchAll patternInCase.catch { isLeaf = Tree.isLeaf catchSomeCases })
                     (Tree.element catchSomeCases).patternsInCases
         in
         if patternInAllCasesIsStructureCatchAll then
@@ -7914,13 +7909,11 @@ toNestedTupleFixFromPartial ranges =
                     { structure = ranges.structure, parts = ( second, thirdUp ) }
 
 
-{-| from the pattern start until the next potential pattern on the next line
--}
-caseRange : Expression.Case -> Range
-caseRange ( Node patternRange _, Node caseResultRange _ ) =
-    { start = patternRange.start
+caseRemoveRange : Expression.Case -> Range
+caseRemoveRange ( Node patternRange _, Node caseResultRange _ ) =
+    { start = { row = patternRange.start.row, column = 0 }
     , end =
-        { row = caseResultRange.end.row + 1, column = patternRange.start.column }
+        { row = caseResultRange.end.row + 2, column = 0 }
     }
 
 
