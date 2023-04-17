@@ -1,12 +1,16 @@
 # Changelog
 
+## [2.0.29] - 2023-04-17
+
+- Fixed an issue where `List.append` would be fixed incorrectly ([#105](https://github.com/jfmengels/elm-review-simplify/issues/105))
+
 ## [2.0.28] - 2023-02-25
 
-- Fixed an issue where errors for `List.foldl` operations would be incorrectly fixed (#86)
+- Fixed an issue where errors for `List.foldl` operations would be incorrectly fixed ([#86](https://github.com/jfmengels/elm-review-simplify/issues/86))
 
 ## [2.0.27] - 2023-02-21
 
-- Fixed an issue where `String.fromList [ f x ]` would incorrectly be changed to `String.fromChar f x` (#85)
+- Fixed an issue where `String.fromList [ f x ]` would incorrectly be changed to `String.fromChar f x` ([#85](https://github.com/jfmengels/elm-review-simplify/issues/85))
 
 ## [2.0.26] - 2023-02-06
 
@@ -306,7 +310,5 @@ Help would be appreciated to fill the blanks!
 [#40]: https://github.com/jfmengels/elm-review-simplify/pull/40
 [#48]: https://github.com/jfmengels/elm-review-simplify/pull/48
 [#52]: https://github.com/jfmengels/elm-review-simplify/pull/52
-[#85]: https://github.com/jfmengels/elm-review-simplify/issues/85
-[#86]: https://github.com/jfmengels/elm-review-simplify/issues/86
 
 [@miniBill]: https://github.com/miniBill
