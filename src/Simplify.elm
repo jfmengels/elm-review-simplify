@@ -4421,20 +4421,24 @@ listAppendChecks checkInfo =
                 , details = [ "Try moving all the elements into a single list." ]
                 }
                 checkInfo.fnRange
-                (let
-                    betweenListArguments : Range
-                    betweenListArguments =
-                        rangeBetweenExclusive ( firstListRange, secondListRange )
-                 in
-                 Fix.replaceRangeBy
-                    { start = { row = betweenListArguments.start.row, column = betweenListArguments.start.column - 1 }
-                    , end = { row = betweenListArguments.end.row, column = betweenListArguments.end.column + 1 }
-                    }
-                    ","
-                    :: keepOnlyFix
-                        { parentRange = checkInfo.parentRange
-                        , keep = Range.combine [ firstListRange, secondListRange ]
+                (if checkInfo.usingRightPizza then
+                    []
+
+                 else
+                    let
+                        betweenListArguments : Range
+                        betweenListArguments =
+                            rangeBetweenExclusive ( firstListRange, secondListRange )
+                    in
+                    Fix.replaceRangeBy
+                        { start = { row = betweenListArguments.start.row, column = betweenListArguments.start.column - 1 }
+                        , end = { row = betweenListArguments.end.row, column = betweenListArguments.end.column + 1 }
                         }
+                        ","
+                        :: keepOnlyFix
+                            { parentRange = checkInfo.parentRange
+                            , keep = Range.combine [ firstListRange, secondListRange ]
+                            }
                 )
             ]
 
