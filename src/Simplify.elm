@@ -4421,9 +4421,14 @@ listAppendChecks checkInfo =
                 , details = [ "Try moving all the elements into a single list." ]
                 }
                 checkInfo.fnRange
-                (Fix.replaceRangeBy
-                    { start = { row = firstListRange.end.row, column = firstListRange.end.column - 1 }
-                    , end = { row = secondListRange.start.row, column = secondListRange.start.column + 1 }
+                (let
+                    betweenListArguments : Range
+                    betweenListArguments =
+                        rangeBetweenExclusive ( firstListRange, secondListRange )
+                 in
+                 Fix.replaceRangeBy
+                    { start = { row = betweenListArguments.start.row, column = betweenListArguments.start.column - 1 }
+                    , end = { row = betweenListArguments.end.row, column = betweenListArguments.end.column + 1 }
                     }
                     ","
                     :: keepOnlyFix
