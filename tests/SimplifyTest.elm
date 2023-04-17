@@ -6349,6 +6349,22 @@ a = List.append [b] [c,d,0]
 a = [b,c,d,0]
 """
                         ]
+        , test "should report List.append applied on two list literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+a = List.append [ b, z ] [c,d,0]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Appending literal lists could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            , under = "List.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ b, z ,c,d,0]
+"""
+                        ]
         , test "should report List.append <| on two list literals" <|
             \() ->
                 """module A exposing (..)
@@ -6379,6 +6395,22 @@ a = [c,d,0] |> List.append [b]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [b,c,d,0]
+"""
+                        ]
+        , test "should report List.append |> on two list literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+a = [c,d,0] |> List.append [ b, z ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Appending literal lists could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            , under = "List.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ b, z ,c,d,0]
 """
                         ]
         , test "should replace List.append [] ys by ys" <|
