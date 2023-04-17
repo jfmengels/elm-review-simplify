@@ -7468,11 +7468,15 @@ rangeBetweenExclusive ( aRange, bRange ) =
 
 locationsCompare : ( Location, Location ) -> Order
 locationsCompare ( aEnd, bEnd ) =
-    if aEnd.column == bEnd.column then
-        compare aEnd.row bEnd.row
+    case compare aEnd.row bEnd.row of
+        EQ ->
+            compare aEnd.column bEnd.column
 
-    else
-        compare aEnd.column bEnd.column
+        LT ->
+            LT
+
+        GT ->
+            GT
 
 
 removeFunctionFromFunctionCall : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Fix
