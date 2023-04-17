@@ -6377,6 +6377,9 @@ a = [c,d,0] |> List.append [b]
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.append"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [b,c,d,0]
+"""
                         ]
         , test "should replace List.append [] ys by ys" <|
             \() ->

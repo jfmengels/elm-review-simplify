@@ -4424,7 +4424,13 @@ listAppendChecks checkInfo =
                 }
                 checkInfo.fnRange
                 (if checkInfo.usingRightPizza then
-                    []
+                    Fix.insertAt
+                        (rangeWithoutListBrackets secondListRange).start
+                        (checkInfo.extractSourceCode (rangeWithoutListBrackets firstListRange) ++ ",")
+                        :: keepOnlyFix
+                            { parentRange = checkInfo.parentRange
+                            , keep = secondListRange
+                            }
 
                  else
                     let
@@ -4446,6 +4452,13 @@ listAppendChecks checkInfo =
 
         _ ->
             []
+
+
+rangeWithoutListBrackets : Range -> Range
+rangeWithoutListBrackets listRange =
+    { start = { row = listRange.start.row, column = listRange.start.column + 1 }
+    , end = { row = listRange.end.row, column = listRange.end.column - 1 }
+    }
 
 
 listHeadExistsError : { message : String, details : List String }
