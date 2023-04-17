@@ -1425,6 +1425,7 @@ expressionVisitorHelp node context =
             -> CheckInfo
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
+            , extractSourceCode = context.extractSourceCode
             , importLookup = context.importLookup
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
@@ -2078,6 +2079,7 @@ needsParens expr =
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
+    , extractSourceCode : Range -> String
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
