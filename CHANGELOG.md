@@ -2,6 +2,26 @@
 
 ## [2.0.29] - 2023-04-17
 
+The rule now simplifies:
+- `Html.Attributes.classList [ x, y, ( z, False ) ]` to `Html.Attributes.classList [ x, y ]`
+- `Html.Attributes.classList [ ( onlyOneThing, True ) ]` to `Html.Attributes.class onlyOneThing`
+- `Set.fromList [ a ]` to `Set.singleton a`
+- `Dict.partition f Dict.empty` to `( Dict.empty, Dict.empty )`
+- `Dict.partition (always True) dict` to `( dict, Dict.empty )`
+- `Dict.partition (always False) dict` to `( Dict.empty, dict )`
+- `Result.toMaybe (Ok x)` to `Just x`
+- `Result.toMaybe (Err e)` to `Nothing`
+- `Result.mapError identity x` to `x`
+- `Result.mapError f (Ok x)` to `Ok x`
+- `Result.mapError f (Err x)` to `Err (f x)`
+- `List.map Tuple.first (Dict.toList dict)` to `Dict.keys dict`
+- `List.map Tuple.second (Dict.toList dict)` to `Dict.values dict`
+
+We now also do a better job at figuring what code is the same:
+- `(f >> g) a == (g << f) a` will now be replaced by `True`.
+- `(\f -> List.map f)` is considered equivalent in all simplifications to `List.map` (and similarly for a number of other functions).
+
+Bug fixes:
 - Fixed an issue where `List.append` would be fixed incorrectly ([#105](https://github.com/jfmengels/elm-review-simplify/issues/105))
 
 ## [2.0.28] - 2023-02-25
@@ -63,7 +83,6 @@ The rule now simplifies:
 - `String.right n ""` to `""`
 - `String.slice 2 1 str` to `""`
 - `String.slice -1 -2 str` to `""`
-
 - `List.sortBy (\_ -> a) list ` to `list`
 - `List.sortBy identity list ` to `List.sort list`
 - `List.sortWith (\_ _ -> LT) list ` to `List.reverse list`
@@ -286,6 +305,7 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[2.0.29]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.29
 [2.0.28]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.28
 [2.0.27]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.27
 [2.0.26]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.26
