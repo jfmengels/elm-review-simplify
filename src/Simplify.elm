@@ -4681,14 +4681,13 @@ dictToListMapCompositionChecks checkInfo =
                 ( checkInfo.right, checkInfo.left )
     in
     case
-        Maybe.map2 Tuple.pair
-            (AstHelpers.getSpecificReducedFunction ( [ "Dict" ], "toList" ) checkInfo.lookupTable earlier)
-            (AstHelpers.getSpecificReducedFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable later)
+        AstHelpers.getSpecificReducedFunction ( [ "Dict" ], "toList" ) checkInfo.lookupTable earlier
+            |> Maybe.andThen (\_ -> AstHelpers.getSpecificReducedFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable later)
     of
         Nothing ->
             []
 
-        Just ( _, listMapCall ) ->
+        Just listMapCall ->
             let
                 error : { toEntryAspectList : String, tuplePart : String } -> Error {}
                 error info =
