@@ -3546,8 +3546,8 @@ stringReverseChecks checkInfo =
 
 stringSliceChecks : CheckInfo -> List (Error {})
 stringSliceChecks checkInfo =
-    case ( checkInfo.firstArg, secondArg checkInfo, thirdArg checkInfo ) of
-        ( _, _, Just (Node _ (Expression.Literal "")) ) ->
+    case ( secondArg checkInfo, thirdArg checkInfo ) of
+        ( _, Just (Node _ (Expression.Literal "")) ) ->
             [ Rule.errorWithFix
                 { message = "Using String.slice on an empty string will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
@@ -3556,7 +3556,7 @@ stringSliceChecks checkInfo =
                 (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
             ]
 
-        ( _, Just (Node _ (Expression.Integer 0)), _ ) ->
+        ( Just (Node _ (Expression.Integer 0)), _ ) ->
             [ Rule.errorWithFix
                 { message = "Using String.slice with end index 0 will result in an empty string"
                 , details = [ "You can replace this call by an empty string." ]
@@ -3565,7 +3565,7 @@ stringSliceChecks checkInfo =
                 (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
             ]
 
-        ( start, Just end, _ ) ->
+        ( Just end, _ ) ->
             Maybe.map2
                 (\startInt endInt ->
                     if
@@ -3588,10 +3588,10 @@ stringSliceChecks checkInfo =
                         -- either is negative or startInt < endInt
                         Nothing
                 )
-                (Evaluate.getInt checkInfo start)
+                (Evaluate.getInt checkInfo checkInfo.firstArg)
                 (Evaluate.getInt checkInfo end)
                 |> Maybe.withDefault
-                    (if Normalize.areAllTheSame checkInfo start [ end ] then
+                    (if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ end ] then
                         [ Rule.errorWithFix
                             { message = "Using String.slice with equal start and end index will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
@@ -3606,7 +3606,7 @@ stringSliceChecks checkInfo =
                     )
                 |> Maybe.withDefault []
 
-        ( _, Nothing, _ ) ->
+        ( Nothing, _ ) ->
             []
 
 
