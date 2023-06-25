@@ -3815,7 +3815,7 @@ stringReplaceChecks checkInfo =
                             ]
 
                         ( Expression.Literal first, Expression.Literal second, Just (Node thirdRange (Expression.Literal third)) ) ->
-                            if String.replace first second third == third then
+                            if not (String.contains "\u{000D}" first) && String.replace first second third == third then
                                 [ Rule.errorWithFix
                                     { message = "The result of String.replace will be the original string"
                                     , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]

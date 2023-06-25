@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+Now avoids simplifying `String.replace` when the pattern to find contains `\r`.
+
 ## [2.0.30] - 2023-06-25
 
 Fixed an issue where `String.replace` would be fixed incorrectly ([01d3ff](https://github.com/jfmengels/elm-review-simplify/commit/01d3ff0e1ce920b5fcece74fed8d12537b7813c9))

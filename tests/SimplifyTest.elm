@@ -5722,6 +5722,23 @@ a = String.replace "x" "y" "xz"
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not remove String.replace call when the replacement is \u{000D}" <|
+            \() ->
+                """module A exposing (..)
+a = \"\"\"
+foo
+bar
+\"\"\"
+                    |> String.replace "\\r" ""
+
+b = \"\"\"
+foo
+bar
+\"\"\"
+                    |> String.replace "\\u{000D}" ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
