@@ -5699,6 +5699,22 @@ a = String.replace "x" "y" "z"
 a = "z"
 """
                         ]
+        , test "should replace z |> String.replace x y z by z when we know what the value will be and that it is unchanged" <|
+            \() ->
+                """module A exposing (..)
+a = "z" |> String.replace "x" "y"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The result of String.replace will be the original string"
+                            , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
+                            , under = "String.replace"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "z"
+"""
+                        ]
         , test "should not replace String.replace x y z by z when we know what the value will be but it will be different" <|
             \() ->
                 """module A exposing (..)
