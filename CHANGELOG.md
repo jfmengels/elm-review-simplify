@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+## [2.0.30] - 2023-06-25
+
+Fixed an issue where `String.replace` would be fixed incorrectly ([01d3ff](https://github.com/jfmengels/elm-review-simplify/commit/01d3ff0e1ce920b5fcece74fed8d12537b7813c9))
+
 ## [2.0.29] - 2023-04-17
 
 The rule now simplifies:
@@ -305,6 +311,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.30...HEAD
+[2.0.30]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.30
 [2.0.29]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.29
 [2.0.28]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.28
 [2.0.27]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.27
