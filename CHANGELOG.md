@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.31] - 2023-06-25
+
 Now avoids simplifying `String.replace` when the pattern to find contains `\r`.
 
 ## [2.0.30] - 2023-06-25
@@ -313,7 +315,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.30...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.31...HEAD
+[2.0.31]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.31
 [2.0.30]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.30
 [2.0.29]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.29
 [2.0.28]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.28
