@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [2.0.32] - 2023-07-11
+
+The rule now simplifies:
+- `List.concat [ a, [], b ]` to `List.concat [ a, b ]`
+
 ## [2.0.31] - 2023-06-25
 
 Now avoids simplifying `String.replace` when the pattern to find contains `\r`.
@@ -315,7 +320,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.31...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.32...HEAD
+[2.0.32]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.32
 [2.0.31]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.31
 [2.0.30]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.30
 [2.0.29]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.29
