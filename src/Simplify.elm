@@ -482,6 +482,9 @@ Destructuring using case expressions
     List.concat [ a, [ 1 ], [ 2 ] ]
     --> List.concat [ a, [ 1, 2 ] ]
 
+    List.concat [ a, [], b ]
+    --> List.concat [ a, b ]
+
     List.concatMap identity list
     --> List.concat list
 
@@ -4176,30 +4179,41 @@ listConcatChecks checkInfo =
                     ]
 
                 (firstListElement :: restOfListElements) as args ->
-                    if List.all AstHelpers.isListLiteral list then
-                        [ Rule.errorWithFix
-                            { message = "Expression could be simplified to be a single List"
-                            , details = [ "Try moving all the elements into a single list." ]
-                            }
-                            checkInfo.parentRange
-                            (Fix.removeRange checkInfo.fnRange
-                                :: List.concatMap removeBoundariesFix args
-                            )
-                        ]
+                    case findEmptyLiteral list of
+                        Just { element, removalRange } ->
+                            [ Rule.errorWithFix
+                                { message = "Found empty list in the list given List.concat"
+                                , details = [ "This element is unnecessary and can be removed." ]
+                                }
+                                element
+                                [ Fix.removeRange removalRange ]
+                            ]
 
-                    else
-                        case findConsecutiveListLiterals firstListElement restOfListElements of
-                            [] ->
-                                []
-
-                            fixes ->
+                        Nothing ->
+                            if List.all AstHelpers.isListLiteral list then
                                 [ Rule.errorWithFix
-                                    { message = "Consecutive literal lists should be merged"
-                                    , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                    { message = "Expression could be simplified to be a single List"
+                                    , details = [ "Try moving all the elements into a single list." ]
                                     }
-                                    checkInfo.fnRange
-                                    fixes
+                                    checkInfo.parentRange
+                                    (Fix.removeRange checkInfo.fnRange
+                                        :: List.concatMap removeBoundariesFix args
+                                    )
                                 ]
+
+                            else
+                                case findConsecutiveListLiterals firstListElement restOfListElements of
+                                    [] ->
+                                        []
+
+                                    fixes ->
+                                        [ Rule.errorWithFix
+                                            { message = "Consecutive literal lists should be merged"
+                                            , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                            }
+                                            checkInfo.fnRange
+                                            fixes
+                                        ]
 
                 _ ->
                     []
@@ -4220,6 +4234,50 @@ listConcatChecks checkInfo =
 
                 Nothing ->
                     []
+
+
+findEmptyLiteral : List (Node Expression) -> Maybe { element : Range, removalRange : Range }
+findEmptyLiteral nodes =
+    case nodes of
+        [] ->
+            Nothing
+
+        ((Node range _) as head) :: rest ->
+            if AstHelpers.isEmptyList head then
+                let
+                    end : Location
+                    end =
+                        case rest of
+                            [] ->
+                                range.end
+
+                            (Node nextItem _) :: _ ->
+                                nextItem.start
+                in
+                Just
+                    { element = range
+                    , removalRange = { start = range.start, end = end }
+                    }
+
+            else
+                findEmptyLiteralHelp rest range.end
+
+
+findEmptyLiteralHelp : List (Node Expression) -> Location -> Maybe { element : Range, removalRange : Range }
+findEmptyLiteralHelp nodes previousItemEnd =
+    case nodes of
+        [] ->
+            Nothing
+
+        ((Node range _) as head) :: rest ->
+            if AstHelpers.isEmptyList head then
+                Just
+                    { element = range
+                    , removalRange = { start = previousItemEnd, end = range.end }
+                    }
+
+            else
+                findEmptyLiteralHelp rest range.end
 
 
 findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix

@@ -6669,6 +6669,38 @@ a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ], [ 4, 5, 6], [7], c, [8], [9 ] ]
 a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ,  4, 5, 6, 7], c, [8, 9 ] ]
 """
                         ]
+        , test "should remove empty list literals passed to List.concat (last item)" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat [ a, [] ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Found empty list in the list given List.concat"
+                            , details = [ "This element is unnecessary and can be removed." ]
+                            , under = "[]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat [ a ]
+"""
+                        ]
+        , test "should remove empty list literals passed to List.concat (first item)" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat [ [], b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Found empty list in the list given List.concat"
+                            , details = [ "This element is unnecessary and can be removed." ]
+                            , under = "[]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat [ b ]
+"""
+                        ]
         , test "should replace List.concat (List.map f x) by List.concatMap f x" <|
             \() ->
                 """module A exposing (..)
