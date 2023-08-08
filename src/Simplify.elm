@@ -7548,7 +7548,7 @@ lastElementRange nodes =
 
 rangeBetweenExclusive : ( Range, Range ) -> Range
 rangeBetweenExclusive ( aRange, bRange ) =
-    case locationsCompare ( aRange.start, bRange.start ) of
+    case locationsCompare aRange.start bRange.start of
         GT ->
             { start = bRange.end, end = aRange.start }
 
@@ -7557,8 +7557,8 @@ rangeBetweenExclusive ( aRange, bRange ) =
             { start = aRange.end, end = bRange.start }
 
 
-locationsCompare : ( Location, Location ) -> Order
-locationsCompare ( aEnd, bEnd ) =
+locationsCompare : Location -> Location -> Order
+locationsCompare aEnd bEnd =
     case compare aEnd.row bEnd.row of
         EQ ->
             compare aEnd.column bEnd.column
