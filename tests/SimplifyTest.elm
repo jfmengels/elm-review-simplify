@@ -37,6 +37,7 @@ all =
         , htmlAttributesTests
         , recordAccessTests
         , letTests
+        , pipelineTests
         ]
 
 
@@ -17195,6 +17196,34 @@ a =
             1
     in
     b + c + d + e
+"""
+                        ]
+        ]
+
+
+pipelineTests : Test
+pipelineTests =
+    describe "Pipelines"
+        [ test "should replace >> when used directly in a |> pipeline" <|
+            \() ->
+                """module A exposing (..)
+a =
+    b
+        |> f
+        >> g
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    b
+        |> f
+        |> g
 """
                         ]
         ]
