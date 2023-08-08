@@ -2284,6 +2284,7 @@ compositionChecks =
     , setFromListSingletonCompositionChecks
     , dictToListMapCompositionChecks
     , resultToMaybeCompositionChecks
+    , pipelineCompositionChecks
     ]
 
 
@@ -6474,6 +6475,11 @@ resultToMaybeCompositionChecks checkInfo =
 
             else
                 []
+
+
+pipelineCompositionChecks : CompositionCheckInfo -> List (Error {})
+pipelineCompositionChecks checkInfo =
+    []
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
