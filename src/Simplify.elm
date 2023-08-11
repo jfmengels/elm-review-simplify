@@ -1654,7 +1654,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context { opToFind = ">>", replacementOp = "|>" } subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6479,8 +6479,8 @@ resultToMaybeCompositionChecks checkInfo =
                 []
 
 
-pipingIntoCompositionChecks : ModuleContext -> Node Expression -> Node Expression -> List (Rule.Error {})
-pipingIntoCompositionChecks context subLeft subRight =
+pipingIntoCompositionChecks : ModuleContext -> { opToFind : String, replacementOp : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
+pipingIntoCompositionChecks context { opToFind, replacementOp } subLeft subRight =
     case precisePositionForOperator context.extractSourceCode subLeft subRight of
         Just preciseRange ->
             [ Rule.errorWithFix
@@ -6489,7 +6489,7 @@ pipingIntoCompositionChecks context subLeft subRight =
                 }
                 preciseRange
                 ((preciseRange :: findOtherPipelines context.extractSourceCode subRight [])
-                    |> List.map (\range -> Fix.replaceRangeBy range "|>")
+                    |> List.map (\range -> Fix.replaceRangeBy range replacementOp)
                 )
             ]
 
