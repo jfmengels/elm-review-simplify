@@ -6479,7 +6479,12 @@ resultToMaybeCompositionChecks checkInfo =
 
 pipelineCompositionChecks : CompositionCheckInfo -> List (Error {})
 pipelineCompositionChecks checkInfo =
-    []
+    case Node.value checkInfo.right of
+        Expression.OperatorApplication ">>" _ subLeft subRight ->
+            []
+
+        _ ->
+            []
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
