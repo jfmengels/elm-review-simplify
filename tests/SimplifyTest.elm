@@ -17251,4 +17251,45 @@ a =
         |> h
 """
                         ]
+        , test "should replace << when used directly in a <| pipeline" <|
+            \() ->
+                """module A exposing (..)
+a =
+    g <<
+    f <|
+        b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    g <|
+    f <|
+        b
+"""
+                        ]
+        , test "should replace << when used directly in a <| pipeline (multiple)" <|
+            \() ->
+                """module A exposing (..)
+a =
+    h << g << f <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 12 }, end = { row = 3, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    h <| g <| f <| b
+"""
+                        ]
         ]
