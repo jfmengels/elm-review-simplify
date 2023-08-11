@@ -6481,14 +6481,14 @@ resultToMaybeCompositionChecks checkInfo =
 
 pipingIntoCompositionChecks : ModuleContext -> { opToFind : String, replacementOp : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
 pipingIntoCompositionChecks context { opToFind, replacementOp } subLeft subRight =
-    case precisePositionForOperator context.extractSourceCode subLeft subRight of
+    case precisePositionForOperator context.extractSourceCode opToFind subLeft subRight of
         Just preciseRange ->
             [ Rule.errorWithFix
                 { message = "REPLACEME"
                 , details = [ "REPLACEME" ]
                 }
                 preciseRange
-                ((preciseRange :: findOtherPipelines context.extractSourceCode subRight [])
+                ((preciseRange :: findOtherPipelines context.extractSourceCode opToFind subRight [])
                     |> List.map (\range -> Fix.replaceRangeBy range replacementOp)
                 )
             ]
@@ -6497,25 +6497,25 @@ pipingIntoCompositionChecks context { opToFind, replacementOp } subLeft subRight
             []
 
 
-precisePositionForOperator : (Range -> String) -> Node a -> Node a -> Maybe Range
-precisePositionForOperator extractSourceCode (Node a _) (Node b _) =
+precisePositionForOperator : (Range -> String) -> String -> Node a -> Node a -> Maybe Range
+precisePositionForOperator extractSourceCode opToFind (Node a _) (Node b _) =
     -- TODO Use the position of the operator Node once that is made available in elm-syntax
     extractSourceCode { start = a.end, end = b.start }
         |> String.split "\n"
-        |> positionForOperatorHelp 0 a.end
+        |> positionForOperatorHelp opToFind 0 a.end
 
 
-positionForOperatorHelp : Int -> Location -> List String -> Maybe Range
-positionForOperatorHelp lineOffset baseLocation lines =
+positionForOperatorHelp : String -> Int -> Location -> List String -> Maybe Range
+positionForOperatorHelp opToFind lineOffset baseLocation lines =
     case lines of
         [] ->
             -- Should not happen
             Nothing
 
         line :: rest ->
-            case String.indexes ">>" line of
+            case String.indexes opToFind line of
                 [] ->
-                    positionForOperatorHelp (lineOffset + 1) baseLocation rest
+                    positionForOperatorHelp opToFind (lineOffset + 1) baseLocation rest
 
                 offset :: _ ->
                     if lineOffset == 0 then
@@ -6531,13 +6531,13 @@ positionForOperatorHelp lineOffset baseLocation lines =
                             }
 
 
-findOtherPipelines : (Range -> String) -> Node Expression -> List Range -> List Range
-findOtherPipelines extractSourceCode node acc =
+findOtherPipelines : (Range -> String) -> String -> Node Expression -> List Range -> List Range
+findOtherPipelines extractSourceCode opToFind node acc =
     case Node.value node of
         Expression.OperatorApplication ">>" _ left right ->
-            case precisePositionForOperator extractSourceCode left right of
+            case precisePositionForOperator extractSourceCode opToFind left right of
                 Just position ->
-                    findOtherPipelines extractSourceCode right (position :: acc)
+                    findOtherPipelines extractSourceCode opToFind right (position :: acc)
 
                 Nothing ->
                     acc
