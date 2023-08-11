@@ -17226,4 +17226,29 @@ a =
         |> g
 """
                         ]
+        , test "should replace >> when used directly in a |> pipeline (multiple)" <|
+            \() ->
+                """module A exposing (..)
+a =
+    b
+        |> f
+        >> g
+        >> h
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 9 }, end = { row = 5, column = 11 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    b
+        |> f
+        |> g
+        |> h
+"""
+                        ]
         ]
