@@ -6481,10 +6481,21 @@ pipelineCompositionChecks : CompositionCheckInfo -> List (Error {})
 pipelineCompositionChecks checkInfo =
     case Node.value checkInfo.right of
         Expression.OperatorApplication ">>" _ subLeft subRight ->
-            []
+            [ Rule.error
+                { message = "REPLACEME"
+                , details = [ "REPLACEME" ]
+                }
+                (positionForOperator subLeft subRight)
+            ]
 
         _ ->
             []
+
+
+positionForOperator : Node a -> Node a -> Range
+positionForOperator (Node a _) (Node b _) =
+    -- TODO Use the position of the operator Node once that is made available in elm-syntax
+    { start = a.end, end = b.start }
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
