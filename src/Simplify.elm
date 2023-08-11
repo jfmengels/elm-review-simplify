@@ -1657,11 +1657,12 @@ expressionVisitorHelp node context =
             case precisePositionForOperator context.extractSourceCode subLeft subRight of
                 Just preciseRange ->
                     onlyErrors
-                        [ Rule.error
+                        [ Rule.errorWithFix
                             { message = "REPLACEME"
                             , details = [ "REPLACEME" ]
                             }
                             preciseRange
+                            [ Fix.replaceRangeBy preciseRange "|>" ]
                         ]
 
                 Nothing ->
