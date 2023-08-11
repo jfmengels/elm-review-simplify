@@ -1653,14 +1653,26 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors
-                [ Rule.error
-                    { message = "REPLACEME"
-                    , details = [ "REPLACEME" ]
-                    }
-                    (positionForOperator subLeft subRight)
-                ]
+        Expression.OperatorApplication "|>" _ _ (Node rightRange (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
+            case precisePositionForOperator context.extractSourceCode subLeft subRight of
+                Just preciseRange ->
+                    onlyErrors
+                        [ Rule.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            }
+                            preciseRange
+                        ]
+
+                Nothing ->
+                    -- Should not happen, but if it does, we want to indicate the error somehow
+                    onlyErrors
+                        [ Rule.error
+                            { message = "REPLACEME"
+                            , details = [ "REPLACEME" ]
+                            }
+                            rightRange
+                        ]
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6485,10 +6497,38 @@ resultToMaybeCompositionChecks checkInfo =
                 []
 
 
-positionForOperator : Node a -> Node a -> Range
-positionForOperator (Node a _) (Node b _) =
+precisePositionForOperator : (Range -> String) -> Node a -> Node a -> Maybe Range
+precisePositionForOperator extractSourceCode (Node a _) (Node b _) =
     -- TODO Use the position of the operator Node once that is made available in elm-syntax
-    { start = a.end, end = b.start }
+    extractSourceCode { start = a.end, end = b.start }
+        |> String.split "\n"
+        |> positionForOperatorHelp 0 a.end
+
+
+positionForOperatorHelp : Int -> Location -> List String -> Maybe Range
+positionForOperatorHelp lineOffset baseLocation lines =
+    case lines of
+        [] ->
+            -- Should not happen
+            Nothing
+
+        line :: rest ->
+            case String.indexes ">>" line of
+                [] ->
+                    positionForOperatorHelp (lineOffset + 1) baseLocation rest
+
+                offset :: _ ->
+                    if lineOffset == 0 then
+                        Just
+                            { start = { row = baseLocation.row, column = baseLocation.column + offset + 1 }
+                            , end = { row = baseLocation.row, column = baseLocation.column + offset + 3 }
+                            }
+
+                    else
+                        Just
+                            { start = { row = baseLocation.row + lineOffset, column = offset + 1 }
+                            , end = { row = baseLocation.row + lineOffset, column = offset + 3 }
+                            }
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
