@@ -1662,7 +1662,7 @@ expressionVisitorHelp node context =
                             , details = [ "REPLACEME" ]
                             }
                             preciseRange
-                            ([ preciseRange ]
+                            ((preciseRange :: findOtherPipelines context.extractSourceCode subRight [])
                                 |> List.map (\range -> Fix.replaceRangeBy range "|>")
                             )
                         ]
@@ -6532,6 +6532,21 @@ positionForOperatorHelp lineOffset baseLocation lines =
                             { start = { row = baseLocation.row + lineOffset, column = offset + 1 }
                             , end = { row = baseLocation.row + lineOffset, column = offset + 3 }
                             }
+
+
+findOtherPipelines : (Range -> String) -> Node Expression -> List Range -> List Range
+findOtherPipelines extractSourceCode node acc =
+    case Node.value node of
+        Expression.OperatorApplication ">>" _ left right ->
+            case precisePositionForOperator extractSourceCode left right of
+                Just position ->
+                    findOtherPipelines extractSourceCode right (position :: acc)
+
+                Nothing ->
+                    acc
+
+        _ ->
+            acc
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
