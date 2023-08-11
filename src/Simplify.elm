@@ -1662,7 +1662,9 @@ expressionVisitorHelp node context =
                             , details = [ "REPLACEME" ]
                             }
                             preciseRange
-                            [ Fix.replaceRangeBy preciseRange "|>" ]
+                            ([ preciseRange ]
+                                |> List.map (\range -> Fix.replaceRangeBy range "|>")
+                            )
                         ]
 
                 Nothing ->
