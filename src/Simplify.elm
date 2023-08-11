@@ -1653,6 +1653,15 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
+        Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
+            onlyErrors
+                [ Rule.error
+                    { message = "REPLACEME"
+                    , details = [ "REPLACEME" ]
+                    }
+                    (positionForOperator subLeft subRight)
+                ]
+
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
                 (firstThatReportsError compositionChecks
@@ -2284,7 +2293,6 @@ compositionChecks =
     , setFromListSingletonCompositionChecks
     , dictToListMapCompositionChecks
     , resultToMaybeCompositionChecks
-    , pipelineCompositionChecks
     ]
 
 
@@ -6475,21 +6483,6 @@ resultToMaybeCompositionChecks checkInfo =
 
             else
                 []
-
-
-pipelineCompositionChecks : CompositionCheckInfo -> List (Error {})
-pipelineCompositionChecks checkInfo =
-    case Node.value checkInfo.right of
-        Expression.OperatorApplication ">>" _ subLeft subRight ->
-            [ Rule.error
-                { message = "REPLACEME"
-                , details = [ "REPLACEME" ]
-                }
-                (positionForOperator subLeft subRight)
-            ]
-
-        _ ->
-            []
 
 
 positionForOperator : Node a -> Node a -> Range
