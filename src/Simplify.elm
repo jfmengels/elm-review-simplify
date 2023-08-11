@@ -1654,28 +1654,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "|>" _ _ (Node rightRange (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            case precisePositionForOperator context.extractSourceCode subLeft subRight of
-                Just preciseRange ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
-                            }
-                            preciseRange
-                            ((preciseRange :: findOtherPipelines context.extractSourceCode subRight [])
-                                |> List.map (\range -> Fix.replaceRangeBy range "|>")
-                            )
-                        ]
-
-                Nothing ->
-                    -- Should not happen, but if it does, we want to indicate the error somehow
-                    onlyErrors
-                        [ Rule.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
-                            }
-                            rightRange
-                        ]
+            onlyErrors (pipingIntoCompositionChecks context rightRange subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6498,6 +6477,30 @@ resultToMaybeCompositionChecks checkInfo =
 
             else
                 []
+
+
+pipingIntoCompositionChecks : ModuleContext -> Range -> Node Expression -> Node Expression -> List (Rule.Error {})
+pipingIntoCompositionChecks context rightRange subLeft subRight =
+    case precisePositionForOperator context.extractSourceCode subLeft subRight of
+        Just preciseRange ->
+            [ Rule.errorWithFix
+                { message = "REPLACEME"
+                , details = [ "REPLACEME" ]
+                }
+                preciseRange
+                ((preciseRange :: findOtherPipelines context.extractSourceCode subRight [])
+                    |> List.map (\range -> Fix.replaceRangeBy range "|>")
+                )
+            ]
+
+        Nothing ->
+            -- Should not happen, but if it does, we want to indicate the error somehow
+            [ Rule.error
+                { message = "REPLACEME"
+                , details = [ "REPLACEME" ]
+                }
+                rightRange
+            ]
 
 
 precisePositionForOperator : (Range -> String) -> Node a -> Node a -> Maybe Range
