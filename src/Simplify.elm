@@ -6552,13 +6552,17 @@ positionForOperatorHelp opToFind lineOffset baseLocation lines =
 findOtherPipelines : (Range -> String) -> String -> Node Expression -> List Range -> List Range
 findOtherPipelines extractSourceCode opToFind node acc =
     case Node.value node of
-        Expression.OperatorApplication ">>" _ left right ->
-            case precisePositionForOperator extractSourceCode opToFind left right of
-                Just position ->
-                    findOtherPipelines extractSourceCode opToFind right (position :: acc)
+        Expression.OperatorApplication op _ left right ->
+            if op == opToFind then
+                case precisePositionForOperator extractSourceCode opToFind left right of
+                    Just position ->
+                        findOtherPipelines extractSourceCode opToFind right (position :: acc)
 
-                Nothing ->
-                    acc
+                    Nothing ->
+                        acc
+
+            else
+                acc
 
         _ ->
             acc
