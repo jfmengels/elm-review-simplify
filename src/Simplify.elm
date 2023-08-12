@@ -1610,7 +1610,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "<|" _ _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context { opToFind = "<<", replacementOp = "<|" } subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context LeftComposition { opToFind = "<<", replacementOp = "<|" } subLeft subRight)
 
         ----------
         -- (|>) --
@@ -1657,7 +1657,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context { opToFind = ">>", replacementOp = "|>" } subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context RightComposition { opToFind = ">>", replacementOp = "|>" } subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6482,8 +6482,13 @@ resultToMaybeCompositionChecks checkInfo =
                 []
 
 
-pipingIntoCompositionChecks : ModuleContext -> { opToFind : String, replacementOp : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
-pipingIntoCompositionChecks context { opToFind, replacementOp } subLeft subRight =
+type CompositionDirection
+    = LeftComposition
+    | RightComposition
+
+
+pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> { opToFind : String, replacementOp : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
+pipingIntoCompositionChecks context compositionDirection { opToFind, replacementOp } subLeft subRight =
     case precisePositionForOperator context.extractSourceCode opToFind subLeft subRight of
         Just preciseRange ->
             [ Rule.errorWithFix
