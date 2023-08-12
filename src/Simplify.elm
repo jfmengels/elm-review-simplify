@@ -6547,8 +6547,8 @@ positionForOperatorHelp opToFind lineOffset baseLocation lines =
                 offset :: _ ->
                     if lineOffset == 0 then
                         Just
-                            { start = { row = baseLocation.row, column = baseLocation.column + offset + 1 }
-                            , end = { row = baseLocation.row, column = baseLocation.column + offset + 3 }
+                            { start = { row = baseLocation.row, column = baseLocation.column + offset }
+                            , end = { row = baseLocation.row, column = baseLocation.column + offset + 2 }
                             }
 
                     else
