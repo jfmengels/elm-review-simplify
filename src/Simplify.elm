@@ -1610,7 +1610,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "<|" _ _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context LeftComposition { opToFind = "<<", replacementOp = "<|" } subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context LeftComposition { opToFind = "<<" } subLeft subRight)
 
         ----------
         -- (|>) --
@@ -1657,7 +1657,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context RightComposition { opToFind = ">>", replacementOp = "|>" } subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context RightComposition { opToFind = ">>" } subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6487,8 +6487,18 @@ type CompositionDirection
     | RightComposition
 
 
-pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> { opToFind : String, replacementOp : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
-pipingIntoCompositionChecks context compositionDirection { opToFind, replacementOp } subLeft subRight =
+pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> { opToFind : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
+pipingIntoCompositionChecks context compositionDirection { opToFind } subLeft subRight =
+    let
+        replacement : String
+        replacement =
+            case compositionDirection of
+                LeftComposition ->
+                    "<|"
+
+                RightComposition ->
+                    "|>"
+    in
     case precisePositionForOperator context.extractSourceCode opToFind subLeft subRight of
         Just preciseRange ->
             [ Rule.errorWithFix
@@ -6497,7 +6507,7 @@ pipingIntoCompositionChecks context compositionDirection { opToFind, replacement
                 }
                 preciseRange
                 ((preciseRange :: findOtherPipelines context.extractSourceCode opToFind subRight [])
-                    |> List.map (\range -> Fix.replaceRangeBy range replacementOp)
+                    |> List.map (\range -> Fix.replaceRangeBy range replacement)
                 )
             ]
 
