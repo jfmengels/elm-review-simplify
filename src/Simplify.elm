@@ -1609,7 +1609,7 @@ expressionVisitorHelp node context =
                 Nothing ->
                     onlyErrors []
 
-        Expression.OperatorApplication "<|" _ _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) ->
+        Expression.OperatorApplication "<|" _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) _ ->
             onlyErrors (pipingIntoCompositionChecks context LeftComposition { opToFind = "<<" } subLeft subRight)
 
         ----------
