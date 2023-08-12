@@ -6498,6 +6498,15 @@ pipingIntoCompositionChecks context compositionDirection { opToFind } subLeft su
 
                 RightComposition ->
                     "|>"
+
+        selectNextNode : Node Expression -> Node Expression -> Node Expression
+        selectNextNode left right =
+            case compositionDirection of
+                LeftComposition ->
+                    left
+
+                RightComposition ->
+                    right
     in
     case precisePositionForOperator context.extractSourceCode opToFind subLeft subRight of
         Just preciseRange ->
@@ -6506,7 +6515,7 @@ pipingIntoCompositionChecks context compositionDirection { opToFind } subLeft su
                 , details = [ "REPLACEME" ]
                 }
                 preciseRange
-                ((preciseRange :: findOtherPipelines context.extractSourceCode opToFind subRight [])
+                ((preciseRange :: findOtherPipelines context.extractSourceCode opToFind selectNextNode (selectNextNode subLeft subRight) [])
                     |> List.map (\range -> Fix.replaceRangeBy range replacement)
                 )
             ]
@@ -6549,14 +6558,14 @@ positionForOperatorHelp opToFind lineOffset baseLocation lines =
                             }
 
 
-findOtherPipelines : (Range -> String) -> String -> Node Expression -> List Range -> List Range
-findOtherPipelines extractSourceCode opToFind node acc =
+findOtherPipelines : (Range -> String) -> String -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List Range -> List Range
+findOtherPipelines extractSourceCode opToFind selectNextNode node acc =
     case Node.value node of
         Expression.OperatorApplication op _ left right ->
             if op == opToFind then
                 case precisePositionForOperator extractSourceCode opToFind left right of
                     Just position ->
-                        findOtherPipelines extractSourceCode opToFind right (position :: acc)
+                        findOtherPipelines extractSourceCode opToFind selectNextNode (selectNextNode left right) (position :: acc)
 
                     Nothing ->
                         acc
