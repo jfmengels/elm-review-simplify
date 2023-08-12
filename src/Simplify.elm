@@ -1609,6 +1609,9 @@ expressionVisitorHelp node context =
                 Nothing ->
                     onlyErrors []
 
+        Expression.OperatorApplication "<|" _ _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) ->
+            onlyErrors (pipingIntoCompositionChecks context { opToFind = "<<", replacementOp = "<|" } subLeft subRight)
+
         ----------
         -- (|>) --
         ----------
