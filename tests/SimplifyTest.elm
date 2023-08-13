@@ -17215,8 +17215,11 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use |> instead of >>"
+                            , details =
+                                [ "Because of the precedence of operators, using >> at this location is the same as using |>."
+                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                ]
                             , under = ">>"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17238,8 +17241,11 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use |> instead of >>"
+                            , details =
+                                [ "Because of the precedence of operators, using >> at this location is the same as using |>."
+                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                ]
                             , under = ">>"
                             }
                             |> Review.Test.atExactly { start = { row = 5, column = 9 }, end = { row = 5, column = 11 } }
@@ -17261,8 +17267,11 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use |> instead of >>"
+                            , details =
+                                [ "Because of the precedence of operators, using >> at this location is the same as using |>."
+                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                ]
                             , under = ">>"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17282,8 +17291,11 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use <| instead of <<"
+                            , details =
+                                [ "Because of the precedence of operators, using << at this location is the same as using <|."
+                                , "Please use <| instead as that is more idiomatic in Elm and generally easier to read."
+                                ]
                             , under = "<<"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17302,8 +17314,11 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "REPLACEME"
-                            , details = [ "REPLACEME" ]
+                            { message = "Use <| instead of <<"
+                            , details =
+                                [ "Because of the precedence of operators, using << at this location is the same as using <|."
+                                , "Please use <| instead as that is more idiomatic in Elm and generally easier to read."
+                                ]
                             , under = "<<"
                             }
                             |> Review.Test.atExactly { start = { row = 3, column = 12 }, end = { row = 3, column = 14 } }

@@ -6523,8 +6523,11 @@ pipingIntoCompositionChecks context compositionDirection node =
 
         Just ( range, fixes ) ->
             [ Rule.errorWithFix
-                { message = "REPLACEME"
-                , details = [ "REPLACEME" ]
+                { message = "Use " ++ replacement ++ " instead of " ++ opToFind
+                , details =
+                    [ "Because of the precedence of operators, using " ++ opToFind ++ " at this location is the same as using " ++ replacement ++ "."
+                    , "Please use " ++ replacement ++ " instead as that is more idiomatic in Elm and generally easier to read."
+                    ]
                 }
                 range
                 fixes
