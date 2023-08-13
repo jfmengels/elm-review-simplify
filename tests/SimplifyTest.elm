@@ -2,7 +2,7 @@ module SimplifyTest exposing (all)
 
 import Review.Rule exposing (Rule)
 import Review.Test
-import Simplify exposing (defaults, ignoreCaseOfForTypes, rule)
+import Simplify exposing (defaults, expectNaN, ignoreCaseOfForTypes, rule)
 import Test exposing (Test, describe, test)
 
 
@@ -2284,7 +2284,7 @@ a = 1 * n
 a = n
 """
                         ]
-        , test "should report but not fix n * 0" <|
+        , test "should simplify n * 0 by 0" <|
             \() ->
                 """module A exposing (..)
 a = n * 0
@@ -2303,8 +2303,31 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                 ]
                             , under = " * 0"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
                         ]
-        , test "should report but not fix simplify n * 0.0" <|
+        , test "should report but not fix n * 0 when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = n * 0
+"""
+                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Multiplication by 0 should be replaced"
+                            , details =
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
+                                , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
+Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
+                                ]
+                            , under = " * 0"
+                            }
+                        ]
+        , test "should simplify n * 0.0 to 0" <|
             \() ->
                 """module A exposing (..)
 a = n * 0.0
@@ -2323,8 +2346,31 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                 ]
                             , under = " * 0.0"
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
                         ]
-        , test "should report but not fix 0 * n" <|
+        , test "should report but not fix n * 0.0 when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = n * 0.0
+"""
+                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Multiplication by 0 should be replaced"
+                            , details =
+                                [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
+                                , "Most likely, multiplying by 0 was unintentional and you had a different factor in mind."
+                                , """If you do want the described behavior, though, make your intention clear for the reader
+by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
+                                , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
+Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
+                                ]
+                            , under = " * 0.0"
+                            }
+                        ]
+        , test "should simplify 0 * n to 0" <|
             \() ->
                 """module A exposing (..)
 a = 0 * n
@@ -2343,8 +2389,11 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                 ]
                             , under = "0 * "
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
                         ]
-        , test "should report but not fix 0.0 * n" <|
+        , test "should simplify 0.0 * n to 0" <|
             \() ->
                 """module A exposing (..)
 a = 0.0 * n
@@ -2363,6 +2412,9 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                 ]
                             , under = "0.0 * "
                             }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
                         ]
         ]
 
