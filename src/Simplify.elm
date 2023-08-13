@@ -6517,7 +6517,7 @@ pipingIntoCompositionChecks context compositionDirection node =
                 RightComposition ->
                     ">>"
     in
-    case findOtherPipelines context.extractSourceCode opToFind selectNextNode node [] of
+    case findPipelines context.extractSourceCode opToFind selectNextNode node [] of
         [] ->
             []
 
@@ -6565,14 +6565,14 @@ positionForOperatorHelp opToFind lineOffset baseLocation lines =
                             }
 
 
-findOtherPipelines : (Range -> String) -> String -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List Range -> List Range
-findOtherPipelines extractSourceCode opToFind selectNextNode node acc =
+findPipelines : (Range -> String) -> String -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List Range -> List Range
+findPipelines extractSourceCode opToFind selectNextNode node acc =
     case Node.value node of
         Expression.OperatorApplication op _ left right ->
             if op == opToFind then
                 case precisePositionForOperator extractSourceCode opToFind left right of
                     Just position ->
-                        findOtherPipelines extractSourceCode opToFind selectNextNode (selectNextNode left right) (position :: acc)
+                        findPipelines extractSourceCode opToFind selectNextNode (selectNextNode left right) (position :: acc)
 
                     Nothing ->
                         List.reverse acc
