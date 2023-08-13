@@ -6588,6 +6588,14 @@ findOperators extractSourceCode ({ opToFind, replacement } as params) selectNext
             else
                 Nothing
 
+        Expression.ParenthesizedExpression expr ->
+            findOperators
+                extractSourceCode
+                params
+                selectNextNode
+                expr
+                (removeParenthesesFix (Node.range node) (Node.range expr) acc)
+
         _ ->
             Nothing
 
@@ -7665,6 +7673,13 @@ parenthesizeFix toSurround =
     [ Fix.insertAt toSurround.start "("
     , Fix.insertAt toSurround.end ")"
     ]
+
+
+removeParenthesesFix : Range -> Range -> List Fix -> List Fix
+removeParenthesesFix parentheses expr acc =
+    Fix.removeRange { start = parentheses.start, end = expr.start }
+        :: Fix.removeRange { start = expr.end, end = parentheses.end }
+        :: acc
 
 
 lastElementRange : List (Node a) -> Maybe Range
