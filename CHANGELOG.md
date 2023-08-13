@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.33] - 2023-08-13
+
 The rule now simplifies:
 - `a |> f >> g` to `a |> f |> g`
 
@@ -323,7 +325,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.32...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.33...HEAD
+[2.0.33]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.33
 [2.0.32]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.32
 [2.0.31]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.31
 [2.0.30]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.30
