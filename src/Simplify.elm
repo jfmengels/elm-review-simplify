@@ -585,6 +585,9 @@ Destructuring using case expressions
     List.any (always False) list
     --> False
 
+    List.any ((==) x) list
+    --> List.member x list
+
     List.range 6 3
     --> []
 

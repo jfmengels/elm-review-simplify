@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `List.any ((==) x) list` to `List.member x list`
+- `List.any (\y -> x == y) list` to `List.member x list`
+
 ## [2.0.33] - 2023-08-13
 
 The rule now simplifies:
