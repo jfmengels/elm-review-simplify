@@ -5307,7 +5307,20 @@ listAnyChecks checkInfo =
                     ]
 
                 _ ->
-                    []
+                    case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
+                        Nothing ->
+                            []
+
+                        Just range ->
+                            [ Rule.errorWithFix
+                                { message = "Use List.member instead"
+                                , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.fnRange "List.member"
+                                , Fix.removeRange range
+                                ]
+                            ]
 
 
 listFilterMapChecks : CheckInfo -> List (Error {})
