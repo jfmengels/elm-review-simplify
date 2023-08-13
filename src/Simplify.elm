@@ -1483,6 +1483,7 @@ expressionVisitorHelp node context =
             -> CheckInfo
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
+            , expectNaN = context.expectNaN
             , extractSourceCode = context.extractSourceCode
             , importLookup = context.importLookup
             , moduleBindings = context.moduleBindings
@@ -2143,6 +2144,7 @@ needsParens expr =
 
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , expectNaN : Bool
     , importLookup : ImportLookup
     , extractSourceCode : Range -> String
     , moduleBindings : Set String
@@ -4878,15 +4880,19 @@ listMemberChecks checkInfo =
 
                 listMemberExistsError : List (Error {})
                 listMemberExistsError =
-                    [ Rule.errorWithFix
-                        { message = "Using List.member on a list which contains the given element will result in True"
-                        , details = [ "You can replace this call by True." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange
-                            (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                    if checkInfo.expectNaN then
+                        []
+
+                    else
+                        [ Rule.errorWithFix
+                            { message = "Using List.member on a list which contains the given element will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                            ]
                         ]
-                    ]
 
                 singleNonNormalizedEqualElementError : Node Expression -> List (Error {})
                 singleNonNormalizedEqualElementError element =

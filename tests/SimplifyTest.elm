@@ -7429,6 +7429,13 @@ a = List.member b (List.singleton b)
 a = True
 """
                         ]
+        , test "should not report List.member a (List.singleton a) when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = List.member b (List.singleton b)
+"""
+                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.expectNoErrors
         , test "should replace List.member b (List.singleton a) by b == a" <|
             \() ->
                 """module A exposing (..)
