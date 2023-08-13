@@ -2484,18 +2484,23 @@ multiplyChecks checkInfo =
             case AstHelpers.getUncomputedNumberValue node of
                 Just number ->
                     if number == 1 then
+                        let
+                            range : Range
+                            range =
+                                getRange ()
+                        in
                         Just
                             [ Rule.errorWithFix
                                 { message = "Unnecessary multiplication by 1"
                                 , details = [ "Multiplying by 1 does not change the value of the number." ]
                                 }
-                                (getRange ())
-                                [ Fix.removeRange (getRange ()) ]
+                                range
+                                [ Fix.removeRange range ]
                             ]
 
                     else if number == 0 then
                         Just
-                            [ Rule.error
+                            [ Rule.errorWithFix
                                 { message = "Multiplication by 0 should be replaced"
                                 , details =
                                     [ "Multiplying by 0 will turn finite numbers into 0 and keep NaN and (-)Infinity"
@@ -2507,6 +2512,12 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                     ]
                                 }
                                 (getRange ())
+                                (if checkInfo.expectNaN then
+                                    []
+
+                                 else
+                                    [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
+                                )
                             ]
 
                     else
