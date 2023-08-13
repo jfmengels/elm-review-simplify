@@ -2,6 +2,7 @@ module Simplify.Evaluate exposing (getBoolean, getInt, isAlwaysBoolean, isEqualT
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Pattern as Pattern
 import Elm.Syntax.Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable
 import Simplify.AstHelpers as AstHelpers
@@ -93,12 +94,30 @@ isEqualToSomethingFunction rawNode =
             Just [ { start = equalRange.start, end = (Node.range expr).start } ]
 
         Expression.LambdaExpression lambda ->
-            case Node.value (AstHelpers.removeParens lambda.expression) of
-                Expression.OperatorApplication "==" _ left right ->
-                    Just
-                        [ { start = range.start, end = (Node.range left).start }
-                        , { start = (Node.range left).start, end = (Node.range right).start }
-                        ]
+            case lambda.args of
+                [ Node _ (Pattern.VarPattern var) ] ->
+                    case Node.value (AstHelpers.removeParens lambda.expression) of
+                        Expression.OperatorApplication "==" _ left right ->
+                            let
+                                nodeToFind : Expression
+                                nodeToFind =
+                                    Expression.FunctionOrValue [] var
+                            in
+                            if Node.value left == nodeToFind then
+                                Just
+                                    [ { start = range.start, end = (Node.range right).start } ]
+
+                            else if Node.value right == nodeToFind then
+                                Just
+                                    [ { start = range.start, end = (Node.range left).start }
+                                    , { start = (Node.range left).end, end = (Node.range right).end }
+                                    ]
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
 
                 _ ->
                     Nothing
