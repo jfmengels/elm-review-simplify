@@ -1609,8 +1609,8 @@ expressionVisitorHelp node context =
                 Nothing ->
                     onlyErrors []
 
-        Expression.OperatorApplication "<|" _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) _ ->
-            onlyErrors (pipingIntoCompositionChecks context LeftComposition node subLeft subRight)
+        Expression.OperatorApplication "<|" _ ((Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) as left) _ ->
+            onlyErrors (pipingIntoCompositionChecks context LeftComposition left subLeft subRight)
 
         ----------
         -- (|>) --
@@ -1656,8 +1656,8 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context RightComposition node subLeft subRight)
+        Expression.OperatorApplication "|>" _ _ ((Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) as right) ->
+            onlyErrors (pipingIntoCompositionChecks context RightComposition right subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6517,20 +6517,18 @@ pipingIntoCompositionChecks context compositionDirection node subLeft subRight =
                 RightComposition ->
                     ">>"
     in
-    case precisePositionForOperator context.extractSourceCode opToFind subLeft subRight of
-        Just preciseRange ->
+    case findOtherPipelines context.extractSourceCode opToFind selectNextNode node [] of
+        [] ->
+            []
+
+        (first :: _) as pipelines ->
             [ Rule.errorWithFix
                 { message = "REPLACEME"
                 , details = [ "REPLACEME" ]
                 }
-                preciseRange
-                ((preciseRange :: findOtherPipelines context.extractSourceCode opToFind selectNextNode (selectNextNode subLeft subRight) [])
-                    |> List.map (\range -> Fix.replaceRangeBy range replacement)
-                )
+                first
+                (List.map (\range -> Fix.replaceRangeBy range replacement) pipelines)
             ]
-
-        Nothing ->
-            []
 
 
 precisePositionForOperator : (Range -> String) -> String -> Node a -> Node a -> Maybe Range
@@ -6577,13 +6575,13 @@ findOtherPipelines extractSourceCode opToFind selectNextNode node acc =
                         findOtherPipelines extractSourceCode opToFind selectNextNode (selectNextNode left right) (position :: acc)
 
                     Nothing ->
-                        acc
+                        List.reverse acc
 
             else
-                acc
+                List.reverse acc
 
         _ ->
-            acc
+            List.reverse acc
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
