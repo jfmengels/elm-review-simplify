@@ -1610,7 +1610,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "<|" _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) _ ->
-            onlyErrors (pipingIntoCompositionChecks context LeftComposition { opToFind = "<<" } subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context LeftComposition subLeft subRight)
 
         ----------
         -- (|>) --
@@ -1657,7 +1657,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context RightComposition { opToFind = ">>" } subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context RightComposition subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6487,8 +6487,8 @@ type CompositionDirection
     | RightComposition
 
 
-pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> { opToFind : String } -> Node Expression -> Node Expression -> List (Rule.Error {})
-pipingIntoCompositionChecks context compositionDirection { opToFind } subLeft subRight =
+pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> Node Expression -> Node Expression -> List (Rule.Error {})
+pipingIntoCompositionChecks context compositionDirection subLeft subRight =
     let
         replacement : String
         replacement =
@@ -6507,6 +6507,15 @@ pipingIntoCompositionChecks context compositionDirection { opToFind } subLeft su
 
                 RightComposition ->
                     right
+
+        opToFind : String
+        opToFind =
+            case compositionDirection of
+                LeftComposition ->
+                    "<<"
+
+                RightComposition ->
+                    ">>"
     in
     case precisePositionForOperator context.extractSourceCode opToFind subLeft subRight of
         Just preciseRange ->
