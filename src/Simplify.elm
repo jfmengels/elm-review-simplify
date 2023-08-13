@@ -3227,7 +3227,11 @@ equalityChecks isEqual checkInfo =
                 in
                 case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
                     Normalize.ConfirmedEquality ->
-                        [ comparisonError isEqual checkInfo.parentRange ]
+                        if checkInfo.expectNaN then
+                            []
+
+                        else
+                            [ comparisonError isEqual checkInfo.parentRange ]
 
                     Normalize.ConfirmedInequality ->
                         [ comparisonError (not isEqual) checkInfo.parentRange ]
