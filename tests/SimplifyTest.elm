@@ -2911,6 +2911,13 @@ a = x == x
 a = True
 """
                         ]
+        , test "should not simplify x == x when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = x == x
+"""
+                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.expectNoErrors
         , test "should simplify x == (x) to True" <|
             \() ->
                 """module A exposing (..)
