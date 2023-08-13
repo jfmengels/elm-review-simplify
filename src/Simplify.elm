@@ -1,6 +1,6 @@
 module Simplify exposing
     ( rule
-    , Configuration, defaults, ignoreCaseOfForTypes
+    , Configuration, defaults, expectNaN, ignoreCaseOfForTypes
     )
 
 {-| Reports when an expression can be simplified.
@@ -12,7 +12,7 @@ module Simplify exposing
         ]
 
 @docs rule
-@docs Configuration, defaults, ignoreCaseOfForTypes
+@docs Configuration, defaults, expectNaN, ignoreCaseOfForTypes
 
 
 ## Try it out
@@ -832,6 +832,7 @@ moduleVisitor schema =
 type Configuration
     = Configuration
         { ignoreConstructors : List String
+        , expectNaN : Bool
         }
 
 
@@ -846,7 +847,10 @@ type Configuration
 -}
 defaults : Configuration
 defaults =
-    Configuration { ignoreConstructors = [] }
+    Configuration
+        { ignoreConstructors = []
+        , expectNaN = False
+        }
 
 
 {-| Ignore some reports about types from dependencies used in case expressions.
@@ -879,7 +883,50 @@ Please let me know by opening an issue if you do use this function, I am very cu
 -}
 ignoreCaseOfForTypes : List String -> Configuration -> Configuration
 ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
-    Configuration { config | ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors }
+    Configuration { ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors, expectNaN = config.expectNaN }
+
+
+{-| This rule will apply simplifications that are always safe to apply without risk of behavior change.
+However, some rare changes can actually impact behavior when encountering
+[`NaN`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN) values.
+
+For instance, the following expression will evaluate to `True`:
+
+    x == x
+    --> True
+
+However, if `x` is `NaN` or a value containing `NaN` then the expression will evaluate to `False`:
+
+    -- given x = NaN
+    x == x
+    --> False
+
+    -- given x = { a = ( NaN, 0 ) }
+    x == x
+    --> False
+
+Given the potential presence of `NaN`, some simplifications become unsafe to apply:
+
+  - `x == x` to `True`
+  - `List.member x [ x ]` to `True`
+  - `n * 0` to `0`
+
+This special value is hard to recreate in Elm code both intentionally and unintentionally,
+and it's therefore unlikely to be found in your application,
+which is why the rule applies these simplifications by defaults.
+
+If you somehow expect to create and encounter `NaN` values in your codebase, then you can use this function to disable these simplifications altogether.
+
+    config =
+        [ Simplify.defaults
+            |> Simplify.expectNaN
+            |> Simplify.rule
+        ]
+
+-}
+expectNaN : Configuration -> Configuration
+expectNaN (Configuration config) =
+    Configuration { ignoreConstructors = config.ignoreConstructors, expectNaN = True }
 
 
 
