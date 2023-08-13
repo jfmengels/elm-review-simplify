@@ -212,6 +212,9 @@ Destructuring using case expressions
     (++) a b
     --> a ++ b
 
+    a |> f >> g
+    --> a |> f |> g
+
 
 ### Numbers
 

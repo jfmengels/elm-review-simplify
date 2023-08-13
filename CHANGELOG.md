@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `a |> f >> g` to `a |> f |> g`
+
 ## [2.0.32] - 2023-07-11
 
 The rule now simplifies:
