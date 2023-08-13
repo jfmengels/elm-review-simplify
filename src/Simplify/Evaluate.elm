@@ -1,7 +1,8 @@
-module Simplify.Evaluate exposing (getBoolean, getInt, isAlwaysBoolean)
+module Simplify.Evaluate exposing (getBoolean, getInt, isAlwaysBoolean, isEqualToSomethingFunction)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
+import Elm.Syntax.Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
@@ -79,6 +80,16 @@ isAlwaysBoolean resources node =
 
         _ ->
             Undetermined
+
+
+isEqualToSomethingFunction : Node Expression -> Maybe Range
+isEqualToSomethingFunction node =
+    case Node.value (AstHelpers.removeParens node) of
+        Expression.Application ((Node equalRange (Expression.PrefixOperator "==")) :: expr :: []) ->
+            Just { start = equalRange.start, end = (Node.range expr).start }
+
+        _ ->
+            Nothing
 
 
 getInt : Infer.Resources a -> Node Expression -> Maybe Int
