@@ -1610,7 +1610,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "<|" _ (Node _ (Expression.OperatorApplication "<<" _ subLeft subRight)) _ ->
-            onlyErrors (pipingIntoCompositionChecks context LeftComposition subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context LeftComposition node subLeft subRight)
 
         ----------
         -- (|>) --
@@ -1657,7 +1657,7 @@ expressionVisitorHelp node context =
                     onlyErrors []
 
         Expression.OperatorApplication "|>" _ _ (Node _ (Expression.OperatorApplication ">>" _ subLeft subRight)) ->
-            onlyErrors (pipingIntoCompositionChecks context RightComposition subLeft subRight)
+            onlyErrors (pipingIntoCompositionChecks context RightComposition node subLeft subRight)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6487,8 +6487,8 @@ type CompositionDirection
     | RightComposition
 
 
-pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> Node Expression -> Node Expression -> List (Rule.Error {})
-pipingIntoCompositionChecks context compositionDirection subLeft subRight =
+pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> Node Expression -> Node Expression -> Node Expression -> List (Rule.Error {})
+pipingIntoCompositionChecks context compositionDirection node subLeft subRight =
     let
         replacement : String
         replacement =
