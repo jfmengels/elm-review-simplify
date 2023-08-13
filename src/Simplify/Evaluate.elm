@@ -82,11 +82,26 @@ isAlwaysBoolean resources node =
             Undetermined
 
 
-isEqualToSomethingFunction : Node Expression -> Maybe Range
-isEqualToSomethingFunction node =
-    case Node.value (AstHelpers.removeParens node) of
+isEqualToSomethingFunction : Node Expression -> Maybe (List Range)
+isEqualToSomethingFunction rawNode =
+    let
+        (Node range value) =
+            AstHelpers.removeParens rawNode
+    in
+    case value of
         Expression.Application ((Node equalRange (Expression.PrefixOperator "==")) :: expr :: []) ->
-            Just { start = equalRange.start, end = (Node.range expr).start }
+            Just [ { start = equalRange.start, end = (Node.range expr).start } ]
+
+        Expression.LambdaExpression lambda ->
+            case Node.value (AstHelpers.removeParens lambda.expression) of
+                Expression.OperatorApplication "==" _ left right ->
+                    Just
+                        [ { start = range.start, end = (Node.range left).start }
+                        , { start = (Node.range left).start, end = (Node.range right).start }
+                        ]
+
+                _ ->
+                    Nothing
 
         _ ->
             Nothing

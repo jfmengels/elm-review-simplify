@@ -5311,15 +5311,15 @@ listAnyChecks checkInfo =
                         Nothing ->
                             []
 
-                        Just range ->
+                        Just rangesToRemove ->
                             [ Rule.errorWithFix
                                 { message = "Use List.member instead"
                                 , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
                                 }
                                 checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.fnRange "List.member"
-                                , Fix.removeRange range
-                                ]
+                                (Fix.replaceRangeBy checkInfo.fnRange "List.member"
+                                    :: List.map Fix.removeRange rangesToRemove
+                                )
                             ]
 
 
