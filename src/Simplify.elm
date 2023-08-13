@@ -806,7 +806,7 @@ rule (Configuration config) =
         |> Rule.withModuleVisitor moduleVisitor
         |> Rule.withContextFromImportedModules
         |> Rule.withModuleContextUsingContextCreator
-            { fromProjectToModule = fromProjectToModule
+            { fromProjectToModule = fromProjectToModule config.expectNaN
             , fromModuleToProject = fromModuleToProject
             , foldProjectContexts = foldProjectContexts
             }
@@ -941,6 +941,7 @@ type alias ProjectContext =
 
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
+    , expectNaN : Bool
     , moduleName : ModuleName
     , exposedVariantTypes : Exposed
     , moduleBindings : Set String
@@ -1020,8 +1021,8 @@ fromModuleToProject =
         )
 
 
-fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
-fromProjectToModule =
+fromProjectToModule : Bool -> Rule.ContextCreator ProjectContext ModuleContext
+fromProjectToModule expectNaN_ =
     Rule.initContextCreator
         (\lookupTable metadata extractSourceCode fullAst projectContext ->
             let
@@ -1044,6 +1045,7 @@ fromProjectToModule =
                         fullAst.imports
             in
             { lookupTable = lookupTable
+            , expectNaN = expectNaN_
             , moduleName = Rule.moduleNameFromMetadata metadata
             , exposedVariantTypes = moduleExposedVariantTypes
             , importLookup =
@@ -1782,6 +1784,7 @@ expressionVisitorHelp node context =
                     { errors =
                         checkFn
                             { lookupTable = context.lookupTable
+                            , expectNaN = context.expectNaN
                             , importLookup = context.importLookup
                             , moduleBindings = context.moduleBindings
                             , localBindings = context.localBindings
@@ -2264,6 +2267,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , expectNaN : Bool
     , importLookup : ImportLookup
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
