@@ -11091,6 +11091,29 @@ a = List.any (\\y -> y == x)
 a = List.member (x)
 """
                         ]
+        , test "should replace List.any (\\y -> x == y) by List.member (x)" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (\\y -> x == y)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use List.member instead"
+                            , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.member (x)
+"""
+                        ]
+        , test "should not replace List.any (\\z -> x == y)" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (\\z -> x == y)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
