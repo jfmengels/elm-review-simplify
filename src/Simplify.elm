@@ -6517,17 +6517,17 @@ pipingIntoCompositionChecks context compositionDirection node =
                 RightComposition ->
                     ">>"
     in
-    case findPipelines context.extractSourceCode opToFind selectNextNode node [] of
+    case findOperators context.extractSourceCode { opToFind = opToFind, replacement = replacement } selectNextNode node [] of
         [] ->
             []
 
-        (first :: _) as pipelines ->
+        (( firstRange, _ ) :: _) as pipelines ->
             [ Rule.errorWithFix
                 { message = "REPLACEME"
                 , details = [ "REPLACEME" ]
                 }
-                first
-                (List.map (\range -> Fix.replaceRangeBy range replacement) pipelines)
+                firstRange
+                (List.map (\( _, fix ) -> fix) pipelines)
             ]
 
 
@@ -6565,14 +6565,19 @@ positionForOperatorHelp opToFind lineOffset baseLocation lines =
                             }
 
 
-findPipelines : (Range -> String) -> String -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List Range -> List Range
-findPipelines extractSourceCode opToFind selectNextNode node acc =
+findOperators : (Range -> String) -> { opToFind : String, replacement : String } -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List ( Range, Fix ) -> List ( Range, Fix )
+findOperators extractSourceCode ({ opToFind, replacement } as params) selectNextNode node acc =
     case Node.value node of
         Expression.OperatorApplication op _ left right ->
             if op == opToFind then
                 case precisePositionForOperator extractSourceCode opToFind left right of
                     Just position ->
-                        findPipelines extractSourceCode opToFind selectNextNode (selectNextNode left right) (position :: acc)
+                        findOperators
+                            extractSourceCode
+                            params
+                            selectNextNode
+                            (selectNextNode left right)
+                            (( position, Fix.replaceRangeBy position replacement ) :: acc)
 
                     Nothing ->
                         List.reverse acc
