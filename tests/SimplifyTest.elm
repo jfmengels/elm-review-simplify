@@ -6988,6 +6988,38 @@ a = List.concatMap f [ a ]
 a =  f a
 """
                         ]
+        , test "should replace List.concatMap f [ b c ] by f (b c)" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap f [ b c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =  f (b c)
+"""
+                        ]
+        , test "should replace List.concatMap f <| [ a ] by f <| a" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap f <| [ a ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                            , details = [ "You can replace this call by a call to the function directly." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =  f <| a
+"""
+                        ]
         , test "should replace List.concatMap f <| [ b c ] by f <| (b c)" <|
             \() ->
                 """module A exposing (..)
@@ -7004,7 +7036,7 @@ a = List.concatMap f <| [ b c ]
 a =  f <| (b c)
 """
                         ]
-        , test "should replace List.concatMap f <| [ c ] by c |> f" <|
+        , test "should replace [ c ] |> List.concatMap f by c |> f" <|
             \() ->
                 """module A exposing (..)
 a = [ c ] |> List.concatMap f
@@ -7020,7 +7052,7 @@ a = [ c ] |> List.concatMap f
 a = c |>  f
 """
                         ]
-        , test "should replace List.concatMap f <| [ b c ] by (b c) |> f" <|
+        , test "should replace [ b c ] |> List.concatMap f by (b c) |> f" <|
             \() ->
                 """module A exposing (..)
 a = [ b c ] |> List.concatMap f
