@@ -6640,6 +6640,7 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 
                 Expression.OperatorApplication symbol _ left right ->
                     let
+                        continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix }
                         continuedSearch =
                             case compositionDirection of
                                 LeftComposition ->
