@@ -12,7 +12,6 @@ all =
         [ configurationTests
         , qualifyTests
         , lambdaReduceTests
-        , operatorRangeTests
         , identityTests
         , alwaysTests
         , booleanTests
@@ -796,116 +795,6 @@ a = (\\result -> \\sorry -> (result |> Result.mapError f) <| sorry) << Err
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Err << f
-"""
-                        ]
-        ]
-
-
-
--- OPERATOR RANGE
-
-
-operatorRangeTests : Test
-operatorRangeTests =
-    describe "operator range"
-        [ test "between is only the operator" <|
-            \() ->
-                """module A exposing (..)
-a = 1::[ 2, 3 ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Element added to the beginning of the list could be included in the list"
-                            , details = [ "Try moving the element inside the list it is being added to." ]
-                            , under = "::"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = [ 1, 2, 3 ]
-"""
-                        ]
-        , test "between is additional white space" <|
-            \() ->
-                """module A exposing (..)
-a =
-  1
-
-
-    ::     [ 2, 3 ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Element added to the beginning of the list could be included in the list"
-                            , details = [ "Try moving the element inside the list it is being added to." ]
-                            , under = "::"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a =
-  [ 1
-
-
-    ,      2, 3 ]
-"""
-                        ]
-        , test "between is additional white space and different comments" <|
-            \() ->
-                """module A exposing (..)
-a =
-  1
-    {- -- comment {- nested -} here we go! -}
-    -- important
-    ::     [ 2, 3 ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Element added to the beginning of the list could be included in the list"
-                            , details = [ "Try moving the element inside the list it is being added to." ]
-                            , under = "::"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a =
-  [ 1
-    {- -- comment {- nested -} here we go! -}
-    -- important
-    ,      2, 3 ]
-"""
-                        ]
-        , test "between is additional white space and different comments that use the operator symbol" <|
-            \() ->
-                """module A exposing (..)
-a =
-  1
-    {- -- comment {-
-     nested :: -} here we :: go!
-         -}
-    -- important: ::
-    ::
-    -- why is there a rabbit in here ::)
-           [ 2, 3 ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Element added to the beginning of the list could be included in the list"
-                            , details = [ "Try moving the element inside the list it is being added to." ]
-                            , under = "::"
-                            }
-                            |> Review.Test.atExactly
-                                { start = { row = 8, column = 5 }
-                                , end = { row = 8, column = 7 }
-                                }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a =
-  [ 1
-    {- -- comment {-
-     nested :: -} here we :: go!
-         -}
-    -- important: ::
-    ,
-    -- why is there a rabbit in here ::)
-            2, 3 ]
 """
                         ]
         ]
@@ -6444,6 +6333,92 @@ a = 1::[ 2, 3 ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ 1, 2, 3 ]
+"""
+                        ]
+        , test
+            "should report using :: to a list literal, between is additional white space"
+          <|
+            \() ->
+                """module A exposing (..)
+a =
+  1
+
+
+    ::     [ 2, 3 ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "Try moving the element inside the list it is being added to." ]
+                            , under = "::"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  [ 1
+
+
+    ,      2, 3 ]
+"""
+                        ]
+        , test "should report using :: to a list literal, between is additional white space and different comments" <|
+            \() ->
+                """module A exposing (..)
+a =
+  1
+    {- -- comment {- nested -} here we go! -}
+    -- important
+    ::     [ 2, 3 ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "Try moving the element inside the list it is being added to." ]
+                            , under = "::"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  [ 1
+    {- -- comment {- nested -} here we go! -}
+    -- important
+    ,      2, 3 ]
+"""
+                        ]
+        , test "should report using :: to a list literal, between is additional white space and different comments that use the operator symbol" <|
+            \() ->
+                """module A exposing (..)
+a =
+  1
+    {- -- comment {-
+     nested :: -} here we :: go!
+         -}
+    -- important: ::
+    ::
+    -- why is there a rabbit in here ::)
+           [ 2, 3 ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "Try moving the element inside the list it is being added to." ]
+                            , under = "::"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 8, column = 5 }
+                                , end = { row = 8, column = 7 }
+                                }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  [ 1
+    {- -- comment {-
+     nested :: -} here we :: go!
+         -}
+    -- important: ::
+    ,
+    -- why is there a rabbit in here ::)
+            2, 3 ]
 """
                         ]
         , test "should report using :: to an empty list literal" <|
