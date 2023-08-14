@@ -2222,6 +2222,22 @@ a = 0 - List.length list
 a = -(List.length list)
 """
                         ]
+        , test "should simplify n - n to 0" <|
+            \() ->
+                """module A exposing (..)
+a = n - n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Subtraction always results in 0"
+                            , details = [ "The same value is on both end of `-` which will always result in 0. You can replace the expression by 0." ]
+                            , under = "n - n"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
         ]
 
 
