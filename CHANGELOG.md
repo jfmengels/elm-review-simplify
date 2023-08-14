@@ -2,9 +2,16 @@
 
 ## [Unreleased]
 
+New opt-in configuration option [`expectNaN`] which will disable some simplifications when the user indicates their
+project is likely to use `NaN` values. This disables the following simplifications:
+- `x == x` to `True`
+- `List.member x [ x ]` to `True`
+- `n * 0` to `0`
+
 The rule now simplifies:
 - `List.any ((==) x) list` to `List.member x list`
 - `List.any (\y -> x == y) list` to `List.member x list`
+- `n * 0` to `0` is now autofixed.
 
 ## [2.0.33] - 2023-08-13
 
@@ -361,3 +368,5 @@ Help would be appreciated to fill the blanks!
 [#52]: https://github.com/jfmengels/elm-review-simplify/pull/52
 
 [@miniBill]: https://github.com/miniBill
+
+[`expectNaN`]: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN
