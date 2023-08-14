@@ -2539,7 +2539,7 @@ offsetInStringToLocation config =
             , column = config.startLocation.column + String.length onlyLine
             }
 
-        lineWithOffsetLocation :: lineBeforeWithOffsetLocation :: linesBeforeBeforeWithOffsetLocation ->
+        lineWithOffsetLocation :: _ :: linesBeforeBeforeWithOffsetLocation ->
             { column = 1 + String.length lineWithOffsetLocation
             , row = config.startLocation.row + 1 + List.length linesBeforeBeforeWithOffsetLocation
             }
@@ -8035,6 +8035,7 @@ keepOnlyFix config =
 removeBoundariesFix : Node a -> List Fix
 removeBoundariesFix node =
     let
+        nodeRange : Range
         nodeRange =
             Node.range node
     in
