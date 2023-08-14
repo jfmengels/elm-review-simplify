@@ -7760,13 +7760,6 @@ parenthesizeFix toSurround =
     ]
 
 
-removeParenthesesFix : Range -> Range -> List Fix -> List Fix
-removeParenthesesFix parentheses expr acc =
-    Fix.removeRange { start = parentheses.start, end = expr.start }
-        :: Fix.removeRange { start = expr.end, end = parentheses.end }
-        :: acc
-
-
 lastElementRange : List (Node a) -> Maybe Range
 lastElementRange nodes =
     case nodes of
