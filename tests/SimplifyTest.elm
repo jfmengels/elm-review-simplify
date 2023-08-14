@@ -46,6 +46,11 @@ ruleWithDefaults =
     rule defaults
 
 
+ruleExpectingNaN : Rule
+ruleExpectingNaN =
+    rule (expectNaN defaults)
+
+
 
 -- CONFIGURATION
 
@@ -2243,7 +2248,7 @@ a = 0
                 """module A exposing (..)
 a = n - n
 """
-                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
         ]
 
@@ -2335,7 +2340,7 @@ a = 0
                 """module A exposing (..)
 a = n * 0
 """
-                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Multiplication by 0 should be replaced"
@@ -2378,7 +2383,7 @@ a = 0
                 """module A exposing (..)
 a = n * 0.0
 """
-                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Multiplication by 0 should be replaced"
@@ -2939,7 +2944,7 @@ a = True
                 """module A exposing (..)
 a = x == x
 """
-                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
         , test "should simplify x == (x) to True" <|
             \() ->
@@ -7521,7 +7526,7 @@ a = True
                 """module A exposing (..)
 a = List.member b (List.singleton b)
 """
-                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
         , test "should replace List.member b (List.singleton a) by b == a" <|
             \() ->
