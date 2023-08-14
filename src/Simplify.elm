@@ -6608,41 +6608,85 @@ type CompositionDirection
     | RightComposition
 
 
-pipingIntoCompositionChecks : ModuleContext -> CompositionDirection -> Node Expression -> List (Rule.Error {})
-pipingIntoCompositionChecks context compositionDirection node =
+pipingIntoCompositionChecks :
+    ModuleContext
+    -> CompositionDirection
+    -> Node Expression
+    -> List (Rule.Error {})
+pipingIntoCompositionChecks context compositionDirection expressionNode =
     let
-        replacement : String
-        replacement =
+        ( opToFind, replacement ) =
             case compositionDirection of
                 LeftComposition ->
-                    "<|"
+                    ( "<<", "<|" )
 
                 RightComposition ->
-                    "|>"
+                    ( ">>", "|>" )
 
-        selectNextNode : Node Expression -> Node Expression -> Node Expression
-        selectNextNode left right =
-            case compositionDirection of
-                LeftComposition ->
-                    left
+        pipingIntoCompositionChecksHelp : Node Expression -> Maybe { opToReplaceRange : Range, fixes : List Fix }
+        pipingIntoCompositionChecksHelp subExpression =
+            case Node.value subExpression of
+                Expression.ParenthesizedExpression inParens ->
+                    case pipingIntoCompositionChecksHelp inParens of
+                        Nothing ->
+                            Nothing
 
-                RightComposition ->
-                    right
+                        Just error ->
+                            Just
+                                { error
+                                    | fixes =
+                                        removeBoundariesFix subExpression ++ error.fixes
+                                }
 
-        opToFind : String
-        opToFind =
-            case compositionDirection of
-                LeftComposition ->
-                    "<<"
+                Expression.OperatorApplication symbol _ left right ->
+                    let
+                        continuedSearch =
+                            case compositionDirection of
+                                LeftComposition ->
+                                    pipingIntoCompositionChecksHelp left
 
-                RightComposition ->
-                    ">>"
+                                RightComposition ->
+                                    pipingIntoCompositionChecksHelp right
+                    in
+                    if symbol == replacement then
+                        continuedSearch
+
+                    else if symbol == opToFind then
+                        let
+                            opToFindRange : Range
+                            opToFindRange =
+                                findOperatorRange
+                                    { operator = opToFind
+                                    , commentRanges = context.commentRanges
+                                    , extractSourceCode = context.extractSourceCode
+                                    , leftRange = Node.range left
+                                    , rightRange = Node.range right
+                                    }
+                        in
+                        Just
+                            { opToReplaceRange = opToFindRange
+                            , fixes =
+                                Fix.replaceRangeBy opToFindRange replacement
+                                    :: (case continuedSearch of
+                                            Nothing ->
+                                                []
+
+                                            Just additionalErrorsFound ->
+                                                additionalErrorsFound.fixes
+                                       )
+                            }
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
     in
-    case findOperators context.extractSourceCode { opToFind = opToFind, replacement = replacement } selectNextNode node [] of
+    case pipingIntoCompositionChecksHelp expressionNode of
         Nothing ->
             []
 
-        Just ( range, fixes ) ->
+        Just error ->
             [ Rule.errorWithFix
                 { message = "Use " ++ replacement ++ " instead of " ++ opToFind
                 , details =
@@ -6650,102 +6694,9 @@ pipingIntoCompositionChecks context compositionDirection node =
                     , "Please use " ++ replacement ++ " instead as that is more idiomatic in Elm and generally easier to read."
                     ]
                 }
-                range
-                fixes
+                error.opToReplaceRange
+                error.fixes
             ]
-
-
-precisePositionForOperator : (Range -> String) -> String -> Node a -> Node a -> Maybe Range
-precisePositionForOperator extractSourceCode opToFind (Node a _) (Node b _) =
-    -- TODO Use the position of the operator Node once that is made available in elm-syntax
-    extractSourceCode { start = a.end, end = b.start }
-        |> String.split "\n"
-        |> positionForOperatorHelp opToFind 0 a.end
-
-
-positionForOperatorHelp : String -> Int -> Location -> List String -> Maybe Range
-positionForOperatorHelp opToFind lineOffset baseLocation lines =
-    case lines of
-        [] ->
-            -- Should not happen
-            Nothing
-
-        line :: rest ->
-            case String.indexes opToFind line of
-                [] ->
-                    positionForOperatorHelp opToFind (lineOffset + 1) baseLocation rest
-
-                offset :: _ ->
-                    if lineOffset == 0 then
-                        Just
-                            { start = { row = baseLocation.row, column = baseLocation.column + offset }
-                            , end = { row = baseLocation.row, column = baseLocation.column + offset + 2 }
-                            }
-
-                    else
-                        Just
-                            { start = { row = baseLocation.row + lineOffset, column = offset + 1 }
-                            , end = { row = baseLocation.row + lineOffset, column = offset + 3 }
-                            }
-
-
-findOperators : (Range -> String) -> { opToFind : String, replacement : String } -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List Fix -> Maybe ( Range, List Fix )
-findOperators extractSourceCode ({ opToFind, replacement } as params) selectNextNode node acc =
-    case Node.value node of
-        Expression.OperatorApplication op _ left right ->
-            if op == opToFind then
-                case precisePositionForOperator extractSourceCode opToFind left right of
-                    Just position ->
-                        Just
-                            ( position
-                            , findOperatorsHelp
-                                extractSourceCode
-                                params
-                                selectNextNode
-                                (selectNextNode left right)
-                                (Fix.replaceRangeBy position replacement :: acc)
-                            )
-
-                    Nothing ->
-                        Nothing
-
-            else
-                Nothing
-
-        Expression.ParenthesizedExpression expr ->
-            findOperators
-                extractSourceCode
-                params
-                selectNextNode
-                expr
-                (removeParenthesesFix (Node.range node) (Node.range expr) acc)
-
-        _ ->
-            Nothing
-
-
-findOperatorsHelp : (Range -> String) -> { opToFind : String, replacement : String } -> (Node Expression -> Node Expression -> Node Expression) -> Node Expression -> List Fix -> List Fix
-findOperatorsHelp extractSourceCode ({ opToFind, replacement } as params) selectNextNode node acc =
-    case Node.value node of
-        Expression.OperatorApplication op _ left right ->
-            if op == opToFind then
-                case precisePositionForOperator extractSourceCode opToFind left right of
-                    Just position ->
-                        findOperatorsHelp
-                            extractSourceCode
-                            params
-                            selectNextNode
-                            (selectNextNode left right)
-                            (Fix.replaceRangeBy position replacement :: acc)
-
-                    Nothing ->
-                        acc
-
-            else
-                acc
-
-        _ ->
-            acc
 
 
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
