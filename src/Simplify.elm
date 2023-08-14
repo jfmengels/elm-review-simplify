@@ -1746,9 +1746,11 @@ expressionVisitorHelp node context =
                 Just checkFn ->
                     { errors =
                         let
+                            leftRange : Range
                             leftRange =
                                 Node.range left
 
+                            rightRange : Range
                             rightRange =
                                 Node.range right
                         in
@@ -2458,6 +2460,7 @@ findOperatorRange checkInfo =
 offsetInStringToLocation : { offset : Int, source : String, startLocation : Location } -> Location
 offsetInStringToLocation config =
     let
+        before : List String
         before =
             config.source |> String.left config.offset |> String.lines
     in
