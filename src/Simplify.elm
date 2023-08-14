@@ -2523,12 +2523,7 @@ findOperatorRange context =
 
 offsetInStringToLocation : { offset : Int, source : String, startLocation : Location } -> Location
 offsetInStringToLocation config =
-    let
-        before : List String
-        before =
-            config.source |> String.left config.offset |> String.lines
-    in
-    case before |> List.reverse of
+    case config.source |> String.left config.offset |> String.lines |> List.reverse of
         [] ->
             config.startLocation
 
@@ -2538,8 +2533,8 @@ offsetInStringToLocation config =
             }
 
         lineWithOffsetLocation :: _ :: linesBeforeBeforeWithOffsetLocation ->
-            { column = 1 + String.length lineWithOffsetLocation
-            , row = config.startLocation.row + 1 + List.length linesBeforeBeforeWithOffsetLocation
+            { row = config.startLocation.row + 1 + List.length linesBeforeBeforeWithOffsetLocation
+            , column = 1 + String.length lineWithOffsetLocation
             }
 
 
