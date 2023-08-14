@@ -836,10 +836,23 @@ type Configuration
         }
 
 
-{-| Default configuration for this rule. Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to change the configuration.
+{-| Default configuration for this rule.
+
+The rule aims tries to improve the code through simplifications that don't impact the behavior. An exception to this are
+when the presence of `NaN` values
+
+Use [`expectNaN`](#expectNaN) if you want to opt out of changes that can impact the behaviour of your code if you expect to work with `NaN` values.
+
+Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to prevent simplifying case expressions that work on custom types defined in dependencies.
 
     config =
+        [ Simplify.rule Simplify.defaults
+        ]
+
+    -- or
+    config =
         [ Simplify.defaults
+            |> Simplify.expectNaN
             |> Simplify.ignoreCaseOfForTypes [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
@@ -886,9 +899,9 @@ ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
     Configuration { ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors, expectNaN = config.expectNaN }
 
 
-{-| This rule will apply simplifications that are always safe to apply without risk of behavior change.
-However, some rare changes can actually impact behavior when encountering
-[`NaN`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN) values.
+{-| Usually, `elm-review-simplify` will only suggest simplifications that are safe to apply without risk of changing the original behavior.
+However, when encountering [`NaN`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN)
+values, some simplifications can actually impact behavior.
 
 For instance, the following expression will evaluate to `True`:
 
