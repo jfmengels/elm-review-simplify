@@ -4171,8 +4171,8 @@ listConcatChecks checkInfo =
                             , details = [ "Try moving all the elements into a single list." ]
                             }
                             checkInfo.parentRange
-                            (Fix.removeRange checkInfo.fnRange
-                                :: List.concatMap removeBoundariesFix args
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                ++ List.concatMap removeBoundariesFix args
                             )
                         ]
 
