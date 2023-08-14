@@ -2432,6 +2432,15 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
 
 plusChecks : OperatorCheckInfo -> List (Error {})
 plusChecks checkInfo =
+    firstThatReportsError
+        [ addingZeroCheck
+        , addingOppositesCheck
+        ]
+        checkInfo
+
+
+addingZeroCheck : OperatorCheckInfo -> List (Error {})
+addingZeroCheck checkInfo =
     findMap
         (\( node, getRange ) ->
             if AstHelpers.getUncomputedNumberValue node == Just 0 then
@@ -2451,6 +2460,29 @@ plusChecks checkInfo =
         , ( checkInfo.left, \() -> { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start } )
         ]
         |> Maybe.withDefault []
+
+
+addingOppositesCheck : OperatorCheckInfo -> List (Error {})
+addingOppositesCheck checkInfo =
+    if checkInfo.expectNaN then
+        []
+
+    else
+        case Normalize.compare checkInfo checkInfo.left (Node Range.emptyRange (Expression.Negation checkInfo.right)) of
+            Normalize.ConfirmedEquality ->
+                [ Rule.errorWithFix
+                    { message = "Addition always results in 0"
+                    , details = [ "Opposite values are on both end of `-` which will always result in 0. You can replace the expression by 0." ]
+                    }
+                    checkInfo.parentRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
+                ]
+
+            Normalize.ConfirmedInequality ->
+                []
+
+            Normalize.Unconfirmed ->
+                []
 
 
 minusChecks : OperatorCheckInfo -> List (Error {})
