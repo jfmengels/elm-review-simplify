@@ -961,7 +961,7 @@ type alias ModuleContext =
     , expectNaN : Bool
     , moduleName : ModuleName
     , exposedVariantTypes : Exposed
-    , comments : List (Node String)
+    , commentRanges : List Range
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , branchLocalBindings : RangeDict (Set String)
@@ -1071,7 +1071,7 @@ fromProjectToModule config =
                     { imports = imports
                     , importExposedVariants = projectContext.exposedVariants
                     }
-            , comments = []
+            , commentRanges = []
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
             , branchLocalBindings = RangeDict.empty
@@ -1269,7 +1269,7 @@ errorForUnknownIgnoredConstructor list =
 
 commentsVisitor : List (Node String) -> ModuleContext -> ModuleContext
 commentsVisitor comments context =
-    { context | comments = comments }
+    { context | commentRanges = List.map Node.range comments }
 
 
 
@@ -1832,7 +1832,7 @@ expressionVisitorHelp node context =
                             , operatorRange =
                                 findOperatorRange
                                     { operator = operator
-                                    , comments = context.comments
+                                    , commentRanges = context.commentRanges
                                     , extractSourceCode = context.extractSourceCode
                                     , leftRange = leftRange
                                     , rightRange = rightRange
@@ -2465,22 +2465,22 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
 
 findOperatorRange :
     { extractSourceCode : Range -> String
-    , comments : List (Node String)
+    , commentRanges : List Range
     , operator : String
     , leftRange : Range
     , rightRange : Range
     }
     -> Range
-findOperatorRange checkInfo =
+findOperatorRange context =
     let
         betweenOperands : String
         betweenOperands =
-            checkInfo.extractSourceCode
-                { start = checkInfo.leftRange.end, end = checkInfo.rightRange.start }
+            context.extractSourceCode
+                { start = context.leftRange.end, end = context.rightRange.start }
 
         operatorStartLocationFound : Maybe Location
         operatorStartLocationFound =
-            String.indexes checkInfo.operator betweenOperands
+            String.indexes context.operator betweenOperands
                 |> findMap
                     (\operatorOffset ->
                         let
@@ -2488,17 +2488,17 @@ findOperatorRange checkInfo =
                             operatorStartLocation =
                                 offsetInStringToLocation
                                     { offset = operatorOffset
-                                    , startLocation = checkInfo.leftRange.end
+                                    , startLocation = context.leftRange.end
                                     , source = betweenOperands
                                     }
 
                             isPartOfComment : Bool
                             isPartOfComment =
                                 List.any
-                                    (\(Node commentRange _) ->
+                                    (\commentRange ->
                                         rangeContainsLocation operatorStartLocation commentRange
                                     )
-                                    checkInfo.comments
+                                    context.commentRanges
                         in
                         if isPartOfComment then
                             Nothing
@@ -2512,12 +2512,12 @@ findOperatorRange checkInfo =
             { start = operatorStartLocation
             , end =
                 { row = operatorStartLocation.row
-                , column = operatorStartLocation.column + String.length checkInfo.operator
+                , column = operatorStartLocation.column + String.length context.operator
                 }
             }
 
+        -- there's a bug somewhere
         Nothing ->
-            -- there's a bug somewhere
             Range.emptyRange
 
 
