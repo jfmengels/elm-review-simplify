@@ -11,6 +11,8 @@ project is likely to use `NaN` values. This disables the following simplificatio
 The rule now simplifies:
 - `List.any ((==) x) list` to `List.member x list`
 - `List.any (\y -> x == y) list` to `List.member x list`
+- `n - n` to `0`
+- `-n + n` to `0`
 - `n * 0` to `0` is now autofixed.
 
 ## [2.0.33] - 2023-08-13
