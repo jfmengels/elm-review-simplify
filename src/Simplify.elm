@@ -817,6 +817,7 @@ rule (Configuration config) =
 moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor schema =
     schema
+        |> Rule.withCommentsVisitor (\comments context -> ( [], commentsVisitor comments context ))
         |> Rule.withDeclarationListVisitor (\decls context -> ( [], declarationListVisitor decls context ))
         |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
         |> Rule.withExpressionEnterVisitor expressionVisitor
@@ -896,6 +897,7 @@ type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
     , exposedVariantTypes : Exposed
+    , comments : List (Node String)
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , branchLocalBindings : RangeDict (Set String)
@@ -1004,6 +1006,7 @@ fromProjectToModule =
                     { imports = imports
                     , importExposedVariants = projectContext.exposedVariants
                     }
+            , comments = []
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
             , branchLocalBindings = RangeDict.empty
@@ -1193,6 +1196,15 @@ errorForUnknownIgnoredConstructor list =
             , "Also note that the configuration for this rule changed in v2.0.19: types that are custom to your project are ignored by default, so this configuration setting can only be used to avoid simplifying case expressions that use custom types defined in dependencies."
             ]
         }
+
+
+
+-- COMMENTS VISITOR
+
+
+commentsVisitor : List (Node String) -> ModuleContext -> ModuleContext
+commentsVisitor comments context =
+    { context | comments = comments }
 
 
 
@@ -1733,6 +1745,13 @@ expressionVisitorHelp node context =
             case Dict.get operator operatorChecks of
                 Just checkFn ->
                     { errors =
+                        let
+                            leftRange =
+                                Node.range left
+
+                            rightRange =
+                                Node.range right
+                        in
                         checkFn
                             { lookupTable = context.lookupTable
                             , importLookup = context.importLookup
@@ -1741,10 +1760,18 @@ expressionVisitorHelp node context =
                             , inferredConstants = context.inferredConstants
                             , parentRange = Node.range node
                             , operator = operator
+                            , operatorRange =
+                                findOperatorRange
+                                    { operator = operator
+                                    , comments = context.comments
+                                    , extractSourceCode = context.extractSourceCode
+                                    , leftRange = leftRange
+                                    , rightRange = rightRange
+                                    }
                             , left = left
-                            , leftRange = Node.range left
+                            , leftRange = leftRange
                             , right = right
-                            , rightRange = Node.range right
+                            , rightRange = rightRange
                             , isOnTheRightSideOfPlusPlus = RangeDict.member (Node.range node) context.rightSidesOfPlusPlus
                             }
                     , rangesToIgnore = RangeDict.empty
@@ -2223,6 +2250,7 @@ type alias OperatorCheckInfo =
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , operator : String
+    , operatorRange : Range
     , left : Node Expression
     , leftRange : Range
     , right : Node Expression
@@ -2362,6 +2390,90 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
 
         _ ->
             []
+
+
+findOperatorRange :
+    { extractSourceCode : Range -> String
+    , comments : List (Node String)
+    , operator : String
+    , leftRange : Range
+    , rightRange : Range
+    }
+    -> Range
+findOperatorRange checkInfo =
+    let
+        betweenOperands : String
+        betweenOperands =
+            checkInfo.extractSourceCode
+                { start = checkInfo.leftRange.end, end = checkInfo.rightRange.start }
+
+        operatorRangeFound : Maybe Range
+        operatorRangeFound =
+            betweenOperands
+                |> String.indexes checkInfo.operator
+                |> List.map
+                    (\operatorOffset ->
+                        offsetInStringToLocation
+                            { offset = operatorOffset
+                            , startLocation = checkInfo.leftRange.end
+                            , source = betweenOperands
+                            }
+                    )
+                |> List.foldl
+                    (\operatorStartLocation resultSoFar ->
+                        case resultSoFar of
+                            Just found ->
+                                Just found
+
+                            Nothing ->
+                                let
+                                    isPartOfComment : Bool
+                                    isPartOfComment =
+                                        List.any
+                                            (\(Node commentRange _) ->
+                                                rangeContainsLocation operatorStartLocation commentRange
+                                            )
+                                            checkInfo.comments
+                                in
+                                if isPartOfComment then
+                                    Nothing
+
+                                else
+                                    Just
+                                        { start = operatorStartLocation
+                                        , end =
+                                            { row = operatorStartLocation.row
+                                            , column = operatorStartLocation.column + String.length checkInfo.operator
+                                            }
+                                        }
+                    )
+                    Nothing
+    in
+    operatorRangeFound
+        |> Maybe.withDefault
+            -- there's a bug somewhere
+            Range.emptyRange
+
+
+offsetInStringToLocation : { offset : Int, source : String, startLocation : Location } -> Location
+offsetInStringToLocation config =
+    let
+        before =
+            config.source |> String.left config.offset |> String.lines
+    in
+    case before |> List.reverse of
+        [] ->
+            config.startLocation
+
+        onlyLine :: [] ->
+            { row = config.startLocation.row
+            , column = config.startLocation.column + String.length onlyLine
+            }
+
+        lineWithOffsetLocation :: lineBeforeWithOffsetLocation :: linesBeforeBeforeWithOffsetLocation ->
+            { column = 1 + String.length lineWithOffsetLocation
+            , row = config.startLocation.row + 1 + List.length linesBeforeBeforeWithOffsetLocation
+            }
 
 
 plusChecks : OperatorCheckInfo -> List (Error {})
@@ -2601,13 +2713,10 @@ consChecks checkInfo =
                 { message = "Element added to the beginning of the list could be included in the list"
                 , details = [ "Try moving the element inside the list it is being added to." ]
                 }
-                checkInfo.leftRange
+                checkInfo.operatorRange
                 [ Fix.insertAt checkInfo.leftRange.start "[ "
-                , Fix.replaceRangeBy
-                    { start = checkInfo.leftRange.end
-                    , end = { row = checkInfo.rightRange.start.row, column = checkInfo.rightRange.start.column + 1 }
-                    }
-                    ","
+                , Fix.replaceRangeBy checkInfo.operatorRange ","
+                , Fix.removeRange (leftBoundaryRange checkInfo.rightRange)
                 ]
             ]
 
@@ -7677,6 +7786,15 @@ letKeyWordRange range =
     }
 
 
+rangeContainsLocation : Location -> Range -> Bool
+rangeContainsLocation location =
+    \range ->
+        not
+            ((Range.compareLocations location range.start == LT)
+                || (Range.compareLocations location range.end == GT)
+            )
+
+
 
 -- FIX HELPERS
 
@@ -7775,18 +7893,26 @@ keepOnlyFix config =
 removeBoundariesFix : Node a -> List Fix
 removeBoundariesFix node =
     let
-        { start, end } =
+        nodeRange =
             Node.range node
     in
-    [ Fix.removeRange
-        { start = { row = start.row, column = start.column }
-        , end = { row = start.row, column = start.column + 1 }
-        }
-    , Fix.removeRange
-        { start = { row = end.row, column = end.column - 1 }
-        , end = { row = end.row, column = end.column }
-        }
+    [ Fix.removeRange (leftBoundaryRange nodeRange)
+    , Fix.removeRange (rightBoundaryRange nodeRange)
     ]
+
+
+leftBoundaryRange : Range -> Range
+leftBoundaryRange range =
+    { start = range.start
+    , end = { row = range.start.row, column = range.start.column + 1 }
+    }
+
+
+rightBoundaryRange : Range -> Range
+rightBoundaryRange range =
+    { start = { row = range.end.row, column = range.end.column - 1 }
+    , end = range.end
+    }
 
 
 replaceByEmptyFix : String -> Range -> Maybe a -> QualifyResources b -> List Fix
