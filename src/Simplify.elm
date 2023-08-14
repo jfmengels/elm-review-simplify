@@ -2488,22 +2488,30 @@ minusChecks checkInfo =
             )
         ]
 
+    else if checkInfo.expectNaN then
+        []
+
     else
-        case Normalize.compare checkInfo checkInfo.left checkInfo.right of
-            Normalize.ConfirmedEquality ->
-                [ Rule.errorWithFix
-                    { message = "Subtraction always results in 0"
-                    , details = [ "The same value is on both end of `-` which will always result in 0. You can replace the expression by 0." ]
-                    }
-                    checkInfo.parentRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
-                ]
+        checkIfMinusResultsInZero checkInfo
 
-            Normalize.ConfirmedInequality ->
-                []
 
-            Normalize.Unconfirmed ->
-                []
+checkIfMinusResultsInZero : OperatorCheckInfo -> List (Error {})
+checkIfMinusResultsInZero checkInfo =
+    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+        Normalize.ConfirmedEquality ->
+            [ Rule.errorWithFix
+                { message = "Subtraction always results in 0"
+                , details = [ "The same value is on both ends of `-` which will always result in 0. You can replace the expression by 0." ]
+                }
+                checkInfo.parentRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
+            ]
+
+        Normalize.ConfirmedInequality ->
+            []
+
+        Normalize.Unconfirmed ->
+            []
 
 
 multiplyChecks : OperatorCheckInfo -> List (Error {})

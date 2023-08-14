@@ -2231,13 +2231,20 @@ a = n - n
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Subtraction always results in 0"
-                            , details = [ "The same value is on both end of `-` which will always result in 0. You can replace the expression by 0." ]
+                            , details = [ "The same value is on both ends of `-` which will always result in 0. You can replace the expression by 0." ]
                             , under = "n - n"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
 """
                         ]
+        , test "should not simplify n - n to 0 when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = n - n
+"""
+                    |> Review.Test.run (rule (expectNaN defaults))
+                    |> Review.Test.expectNoErrors
         ]
 
 
