@@ -2478,50 +2478,45 @@ findOperatorRange checkInfo =
             checkInfo.extractSourceCode
                 { start = checkInfo.leftRange.end, end = checkInfo.rightRange.start }
 
-        operatorRangeFound : Maybe Range
-        operatorRangeFound =
-            betweenOperands
-                |> String.indexes checkInfo.operator
-                |> List.map
+        operatorStartLocationFound : Maybe Location
+        operatorStartLocationFound =
+            String.indexes checkInfo.operator betweenOperands
+                |> findMap
                     (\operatorOffset ->
-                        offsetInStringToLocation
-                            { offset = operatorOffset
-                            , startLocation = checkInfo.leftRange.end
-                            , source = betweenOperands
-                            }
-                    )
-                |> List.foldl
-                    (\operatorStartLocation resultSoFar ->
-                        case resultSoFar of
-                            Just found ->
-                                Just found
+                        let
+                            operatorStartLocation : Location
+                            operatorStartLocation =
+                                offsetInStringToLocation
+                                    { offset = operatorOffset
+                                    , startLocation = checkInfo.leftRange.end
+                                    , source = betweenOperands
+                                    }
 
-                            Nothing ->
-                                let
-                                    isPartOfComment : Bool
-                                    isPartOfComment =
-                                        List.any
-                                            (\(Node commentRange _) ->
-                                                rangeContainsLocation operatorStartLocation commentRange
-                                            )
-                                            checkInfo.comments
-                                in
-                                if isPartOfComment then
-                                    Nothing
+                            isPartOfComment : Bool
+                            isPartOfComment =
+                                List.any
+                                    (\(Node commentRange _) ->
+                                        rangeContainsLocation operatorStartLocation commentRange
+                                    )
+                                    checkInfo.comments
+                        in
+                        if isPartOfComment then
+                            Nothing
 
-                                else
-                                    Just
-                                        { start = operatorStartLocation
-                                        , end =
-                                            { row = operatorStartLocation.row
-                                            , column = operatorStartLocation.column + String.length checkInfo.operator
-                                            }
-                                        }
+                        else
+                            Just operatorStartLocation
                     )
-                    Nothing
     in
-    operatorRangeFound
-        |> Maybe.withDefault
+    case operatorStartLocationFound of
+        Just operatorStartLocation ->
+            { start = operatorStartLocation
+            , end =
+                { row = operatorStartLocation.row
+                , column = operatorStartLocation.column + String.length checkInfo.operator
+                }
+            }
+
+        Nothing ->
             -- there's a bug somewhere
             Range.emptyRange
 
