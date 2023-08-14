@@ -806,7 +806,7 @@ rule (Configuration config) =
         |> Rule.withModuleVisitor moduleVisitor
         |> Rule.withContextFromImportedModules
         |> Rule.withModuleContextUsingContextCreator
-            { fromProjectToModule = fromProjectToModule config.expectNaN
+            { fromProjectToModule = fromProjectToModule config
             , fromModuleToProject = fromModuleToProject
             , foldProjectContexts = foldProjectContexts
             }
@@ -1021,8 +1021,8 @@ fromModuleToProject =
         )
 
 
-fromProjectToModule : Bool -> Rule.ContextCreator ProjectContext ModuleContext
-fromProjectToModule expectNaN_ =
+fromProjectToModule : { config_ | expectNaN : Bool } -> Rule.ContextCreator ProjectContext ModuleContext
+fromProjectToModule config =
     Rule.initContextCreator
         (\lookupTable metadata extractSourceCode fullAst projectContext ->
             let
@@ -1045,7 +1045,7 @@ fromProjectToModule expectNaN_ =
                         fullAst.imports
             in
             { lookupTable = lookupTable
-            , expectNaN = expectNaN_
+            , expectNaN = config.expectNaN
             , moduleName = Rule.moduleNameFromMetadata metadata
             , exposedVariantTypes = moduleExposedVariantTypes
             , importLookup =
