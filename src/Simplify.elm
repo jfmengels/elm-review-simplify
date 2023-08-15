@@ -1514,6 +1514,7 @@ expressionVisitorHelp node context =
             , expectNaN = context.expectNaN
             , extractSourceCode = context.extractSourceCode
             , importLookup = context.importLookup
+            , commentRanges = context.commentRanges
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
             , inferredConstants = context.inferredConstants
@@ -2192,6 +2193,7 @@ type alias CheckInfo =
     , expectNaN : Bool
     , importLookup : ImportLookup
     , extractSourceCode : Range -> String
+    , commentRanges : List Range
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
