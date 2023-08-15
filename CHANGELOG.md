@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2023-08-15
+
 New opt-in configuration option [`expectNaN`] which will disable some simplifications when the user indicates their
 project is likely to use `NaN` values. This disables the following simplifications:
 - `x == x` to `True`
@@ -349,7 +351,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.0.33...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.0
 [2.0.33]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.33
 [2.0.32]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.32
 [2.0.31]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.31
