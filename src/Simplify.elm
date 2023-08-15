@@ -4115,34 +4115,19 @@ stringRepeatChecks checkInfo =
 stringReplaceChecks : CheckInfo -> List (Error {})
 stringReplaceChecks checkInfo =
     case secondArg checkInfo of
-        Just secondArg_ ->
-            case Normalize.compare checkInfo checkInfo.firstArg secondArg_ of
+        Just replacementArg ->
+            case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
                 Normalize.ConfirmedEquality ->
                     [ Rule.errorWithFix
                         { message = "The result of String.replace will be the original string"
                         , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
                         }
                         checkInfo.fnRange
-                        (case thirdArg checkInfo of
-                            Just thirdArg_ ->
-                                [ Fix.removeRange
-                                    { start = checkInfo.fnRange.start
-                                    , end = (Node.range thirdArg_).start
-                                    }
-                                ]
-
-                            Nothing ->
-                                [ Fix.replaceRangeBy
-                                    { start = checkInfo.fnRange.start
-                                    , end = (Node.range secondArg_).end
-                                    }
-                                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
-                                ]
-                        )
+                        (toIdentityFix { lastArg = thirdArg checkInfo, resources = checkInfo })
                     ]
 
                 _ ->
-                    case ( Node.value checkInfo.firstArg, Node.value secondArg_, thirdArg checkInfo ) of
+                    case ( Node.value checkInfo.firstArg, Node.value replacementArg, thirdArg checkInfo ) of
                         ( _, _, Just (Node thirdRange (Expression.Literal "")) ) ->
                             [ Rule.errorWithFix
                                 { message = "The result of String.replace will be the empty string"
