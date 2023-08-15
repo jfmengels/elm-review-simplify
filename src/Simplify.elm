@@ -6765,7 +6765,7 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                 RightComposition ->
                     ( ">>", "|>" )
 
-        pipingIntoCompositionChecksHelp : Node Expression -> Maybe { opToReplaceRange : Range, fixes : List Fix }
+        pipingIntoCompositionChecksHelp : Node Expression -> Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
         pipingIntoCompositionChecksHelp subExpression =
             case Node.value subExpression of
                 Expression.ParenthesizedExpression inParens ->
@@ -6774,15 +6774,22 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                             Nothing
 
                         Just error ->
-                            Just
-                                { error
-                                    | fixes =
-                                        removeBoundariesFix subExpression ++ error.fixes
-                                }
+                            if error.firstStepIsComposition then
+                                -- parens can safely be removed
+                                Just
+                                    { error
+                                        | fixes =
+                                            removeBoundariesFix subExpression ++ error.fixes
+                                    }
+
+                            else
+                                -- inside parenthesis is checked separately because
+                                -- the parens here can't safely be removed
+                                Nothing
 
                 Expression.OperatorApplication symbol _ left right ->
                     let
-                        continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix }
+                        continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
                         continuedSearch =
                             case compositionDirection of
                                 LeftComposition ->
@@ -6792,7 +6799,8 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                                     pipingIntoCompositionChecksHelp right
                     in
                     if symbol == replacement then
-                        continuedSearch
+                        Maybe.map (\errors -> { errors | firstStepIsComposition = False })
+                            continuedSearch
 
                     else if symbol == opToFind then
                         let
@@ -6817,6 +6825,7 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                                             Just additionalErrorsFound ->
                                                 additionalErrorsFound.fixes
                                        )
+                            , firstStepIsComposition = True
                             }
 
                     else
@@ -7917,26 +7926,13 @@ lastElementRange nodes =
 
 rangeBetweenExclusive : ( Range, Range ) -> Range
 rangeBetweenExclusive ( aRange, bRange ) =
-    case locationsCompare aRange.start bRange.start of
+    case Range.compareLocations aRange.start bRange.start of
         GT ->
             { start = bRange.end, end = aRange.start }
 
         -- EQ | LT
         _ ->
             { start = aRange.end, end = bRange.start }
-
-
-locationsCompare : Location -> Location -> Order
-locationsCompare aEnd bEnd =
-    case compare aEnd.row bEnd.row of
-        EQ ->
-            compare aEnd.column bEnd.column
-
-        LT ->
-            LT
-
-        GT ->
-            GT
 
 
 removeFunctionFromFunctionCall : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Fix
