@@ -1574,55 +1574,13 @@ expressionVisitorHelp node context =
         --  APPLIED LAMBDA FUNCTIONS --
         -------------------------------
         Expression.Application ((Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)))) :: firstArgument :: _) ->
-            case lambda.args of
-                (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "Unnecessary unit argument"
-                            , details =
-                                [ "This function is expecting a unit, but also passing it directly."
-                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
-                                ]
-                            }
-                            unitRange
-                            (case otherPatterns of
-                                [] ->
-                                    [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
-                                    , Fix.removeRange (Node.range firstArgument)
-                                    ]
-
-                                secondPattern :: _ ->
-                                    [ Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
-                                    , Fix.removeRange (Node.range firstArgument)
-                                    ]
-                            )
-                        ]
-
-                (Node allRange Pattern.AllPattern) :: otherPatterns ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "Unnecessary wildcard argument argument"
-                            , details =
-                                [ "This function is being passed an argument that is directly ignored."
-                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
-                                ]
-                            }
-                            allRange
-                            (case otherPatterns of
-                                [] ->
-                                    [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
-                                    , Fix.removeRange (Node.range firstArgument)
-                                    ]
-
-                                secondPattern :: _ ->
-                                    [ Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
-                                    , Fix.removeRange (Node.range firstArgument)
-                                    ]
-                            )
-                        ]
-
-                _ ->
-                    onlyErrors []
+            onlyErrors
+                (appliedLambdaChecks
+                    { lambdaRange = lambdaRange
+                    , lambda = lambda
+                    , firstArgument = firstArgument
+                    }
+                )
 
         -----------------------------------
         -- FULLY APPLIED PREFIX OPERATOR --
@@ -7892,6 +7850,57 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
 
                 _ ->
                     introducesVariableOrUsesTypeConstructor context remaining
+
+
+appliedLambdaChecks : { lambdaRange : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> List (Error {})
+appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
+    case lambda.args of
+        (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
+            [ Rule.errorWithFix
+                { message = "Unnecessary unit argument"
+                , details =
+                    [ "This function is expecting a unit, but also passing it directly."
+                    , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                    ]
+                }
+                unitRange
+                (case otherPatterns of
+                    [] ->
+                        [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                        , Fix.removeRange (Node.range firstArgument)
+                        ]
+
+                    secondPattern :: _ ->
+                        [ Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
+                        , Fix.removeRange (Node.range firstArgument)
+                        ]
+                )
+            ]
+
+        (Node allRange Pattern.AllPattern) :: otherPatterns ->
+            [ Rule.errorWithFix
+                { message = "Unnecessary wildcard argument argument"
+                , details =
+                    [ "This function is being passed an argument that is directly ignored."
+                    , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                    ]
+                }
+                allRange
+                (case otherPatterns of
+                    [] ->
+                        [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                        , Fix.removeRange (Node.range firstArgument)
+                        ]
+
+                    secondPattern :: _ ->
+                        [ Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
+                        , Fix.removeRange (Node.range firstArgument)
+                        ]
+                )
+            ]
+
+        _ ->
+            []
 
 
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
