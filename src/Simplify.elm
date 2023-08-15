@@ -7673,9 +7673,7 @@ removeRecordFields recordUpdateRange variable fields =
                     , details = [ "The field is being set to its own value." ]
                     }
                     (Node.range value)
-                    [ Fix.removeRange { start = recordUpdateRange.start, end = (Node.range variable).start }
-                    , Fix.removeRange { start = (Node.range variable).end, end = recordUpdateRange.end }
-                    ]
+                    (keepOnlyFix { parentRange = recordUpdateRange,keep = Node.range variable })
                 ]
 
             else
@@ -7744,15 +7742,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                     , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
                     }
                     (targetIfKeyword nodeRange)
-                    [ Fix.removeRange
-                        { start = nodeRange.start
-                        , end = (Node.range trueBranch).start
-                        }
-                    , Fix.removeRange
-                        { start = (Node.range trueBranch).end
-                        , end = nodeRange.end
-                        }
-                    ]
+                    (keepOnlyFix { parentRange = nodeRange, keep = Node.range trueBranch })
                 ]
                 (RangeDict.singleton (Node.range condition) ())
 
@@ -7780,15 +7770,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             , details = [ "The expression can be replaced by the condition." ]
                             }
                             (targetIfKeyword nodeRange)
-                            [ Fix.removeRange
-                                { start = nodeRange.start
-                                , end = (Node.range condition).start
-                                }
-                            , Fix.removeRange
-                                { start = (Node.range condition).end
-                                , end = nodeRange.end
-                                }
-                            ]
+                            (keepOnlyFix { parentRange = nodeRange, keep = Node.range condition })
                         ]
 
                 ( Determined False, Determined True ) ->
@@ -7822,15 +7804,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                     , details = [ "The expression can be replaced by the contents of either branch." ]
                                     }
                                     (targetIfKeyword nodeRange)
-                                    [ Fix.removeRange
-                                        { start = nodeRange.start
-                                        , end = (Node.range trueBranch).start
-                                        }
-                                    , Fix.removeRange
-                                        { start = (Node.range trueBranch).end
-                                        , end = nodeRange.end
-                                        }
-                                    ]
+                                    (keepOnlyFix { parentRange = nodeRange, keep = Node.range trueBranch })
                                 ]
 
                         _ ->
