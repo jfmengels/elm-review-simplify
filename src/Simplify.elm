@@ -2104,58 +2104,6 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                     []
 
 
-replaceBySubExpressionFix : Range -> Node Expression -> List Fix
-replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
-    if needsParens exprValue then
-        [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
-        , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
-        ]
-
-    else
-        [ Fix.removeRange { start = outerRange.start, end = exprRange.start }
-        , Fix.removeRange { start = exprRange.end, end = outerRange.end }
-        ]
-
-
-replaceSubExpressionByRecordAccessFix : String -> Node Expression -> List Fix
-replaceSubExpressionByRecordAccessFix fieldName (Node exprRange exprValue) =
-    if needsParens exprValue then
-        [ Fix.insertAt exprRange.start "("
-        , Fix.insertAt exprRange.end (")." ++ fieldName)
-        ]
-
-    else
-        [ Fix.insertAt exprRange.end ("." ++ fieldName) ]
-
-
-needsParens : Expression -> Bool
-needsParens expr =
-    case expr of
-        Expression.Application _ ->
-            True
-
-        Expression.OperatorApplication _ _ _ _ ->
-            True
-
-        Expression.IfBlock _ _ _ ->
-            True
-
-        Expression.Negation _ ->
-            True
-
-        Expression.LetExpression _ ->
-            True
-
-        Expression.CaseExpression _ ->
-            True
-
-        Expression.LambdaExpression _ ->
-            True
-
-        _ ->
-            False
-
-
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , expectNaN : Bool
@@ -8051,8 +7999,8 @@ letInChecks letBlock =
                 , details = [ "Let blocks can contain multiple declarations, and there is no advantage to having multiple chained let expressions rather than one longer let expression." ]
                 }
                 letRange
-                (case lastElementRange letBlock.declarations of
-                    Just lastDeclRange ->
+                (case listLast letBlock.declarations of
+                    Just (Node lastDeclRange _) ->
                         [ Fix.replaceRangeBy { start = lastDeclRange.end, end = letRange.end } "\n" ]
 
                     Nothing ->
@@ -8100,17 +8048,39 @@ parenthesizeFix toSurround =
     ]
 
 
-lastElementRange : List (Node a) -> Maybe Range
-lastElementRange nodes =
-    case nodes of
-        [] ->
-            Nothing
+keepOnlyFix : { parentRange : Range, keep : Range } -> List Fix
+keepOnlyFix config =
+    [ Fix.removeRange
+        { start = config.parentRange.start
+        , end = config.keep.start
+        }
+    , Fix.removeRange
+        { start = config.keep.end
+        , end = config.parentRange.end
+        }
+    ]
 
-        last :: [] ->
-            Just (Node.range last)
 
-        _ :: rest ->
-            lastElementRange rest
+replaceBySubExpressionFix : Range -> Node Expression -> List Fix
+replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
+    if needsParens exprValue then
+        [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
+        , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
+        ]
+
+    else
+        keepOnlyFix { parentRange = outerRange, keep = exprRange }
+
+
+replaceSubExpressionByRecordAccessFix : String -> Node Expression -> List Fix
+replaceSubExpressionByRecordAccessFix fieldName (Node exprRange exprValue) =
+    if needsParens exprValue then
+        [ Fix.insertAt exprRange.start "("
+        , Fix.insertAt exprRange.end (")." ++ fieldName)
+        ]
+
+    else
+        [ Fix.insertAt exprRange.end ("." ++ fieldName) ]
 
 
 rangeBetweenExclusive : ( Range, Range ) -> Range
@@ -8140,19 +8110,6 @@ removeFunctionAndFirstArg checkInfo secondArgRange =
 
     else
         Fix.removeRange { start = checkInfo.fnRange.start, end = secondArgRange.start }
-
-
-keepOnlyFix : { parentRange : Range, keep : Range } -> List Fix
-keepOnlyFix config =
-    [ Fix.removeRange
-        { start = config.parentRange.start
-        , end = config.keep.start
-        }
-    , Fix.removeRange
-        { start = config.keep.end
-        , end = config.parentRange.end
-        }
-    ]
 
 
 removeBoundariesFix : Node a -> List Fix
@@ -8337,6 +8294,34 @@ wrapInBackticks s =
 
 
 -- MATCHERS AND PARSERS
+
+
+needsParens : Expression -> Bool
+needsParens expr =
+    case expr of
+        Expression.Application _ ->
+            True
+
+        Expression.OperatorApplication _ _ _ _ ->
+            True
+
+        Expression.IfBlock _ _ _ ->
+            True
+
+        Expression.Negation _ ->
+            True
+
+        Expression.LetExpression _ ->
+            True
+
+        Expression.CaseExpression _ ->
+            True
+
+        Expression.LambdaExpression _ ->
+            True
+
+        _ ->
+            False
 
 
 isSimpleDestructurePattern : Node Pattern -> Bool
@@ -8707,6 +8692,26 @@ combineResultValuesHelp lookupTable nodes soFar =
 
 
 -- LIST HELPERS
+
+
+listLast : List a -> Maybe a
+listLast list =
+    case list of
+        [] ->
+            Nothing
+
+        head :: tail ->
+            Just (listFilledLast ( head, tail ))
+
+
+listFilledLast : ( a, List a ) -> a
+listFilledLast ( head, tail ) =
+    case tail of
+        [] ->
+            head
+
+        tailHead :: tailTail ->
+            listFilledLast ( tailHead, tailTail )
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
