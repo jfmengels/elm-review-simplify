@@ -2475,7 +2475,7 @@ addingOppositesCheck checkInfo =
             Normalize.ConfirmedEquality ->
                 [ Rule.errorWithFix
                     { message = "Addition always results in 0"
-                    , details = [ "Opposite values are on both end of `-` which will always result in 0. You can replace the expression by 0." ]
+                    , details = [ "These two expressions have an equal absolute value but an opposite sign. This means adding them they will cancel out to 0." ]
                     }
                     checkInfo.parentRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
@@ -2536,7 +2536,7 @@ checkIfMinusResultsInZero checkInfo =
         Normalize.ConfirmedEquality ->
             [ Rule.errorWithFix
                 { message = "Subtraction always results in 0"
-                , details = [ "The same value is on both ends of `-` which will always result in 0. You can replace the expression by 0." ]
+                , details = [ "These two expressions have the same value, which means they will cancel add when subtracting one by the other." ]
                 }
                 checkInfo.parentRange
                 [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
