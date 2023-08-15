@@ -2553,6 +2553,7 @@ addingZeroCheck checkInfo =
         (\( node, getRanges ) ->
             if AstHelpers.getUncomputedNumberValue node == Just 0 then
                 let
+                    ranges : { error : Range, removed : Range }
                     ranges =
                         getRanges ()
                 in
