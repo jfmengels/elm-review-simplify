@@ -2996,6 +2996,15 @@ getNegateFunction lookupTable baseNode =
 
 basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
+    firstThatReportsError
+        [ notOnKnownBoolCheck
+        , removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage getNotFunction
+        ]
+        checkInfo
+
+
+notOnKnownBoolCheck : CheckInfo -> List (Error {})
+notOnKnownBoolCheck checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
             [ Rule.errorWithFix
@@ -3009,7 +3018,7 @@ basicsNotChecks checkInfo =
             ]
 
         Undetermined ->
-            removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage getNotFunction checkInfo
+            []
 
 
 notNotCompositionCheck : CompositionCheckInfo -> List (Error {})
