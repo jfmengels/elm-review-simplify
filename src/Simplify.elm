@@ -5560,19 +5560,33 @@ foldAndSetToListCompositionChecks foldOperationName checkInfo =
 
 listAllChecks : CheckInfo -> List (Error {})
 listAllChecks checkInfo =
-    case Maybe.map (AstHelpers.removeParens >> Node.value) (secondArg checkInfo) of
-        Just (Expression.ListExpr []) ->
-            [ Rule.errorWithFix
-                { message = "The call to List.all will result in True"
-                , details = [ "You can replace this call by True." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                ]
-            ]
+    let
+        maybeListArg : Maybe (Node Expression)
+        maybeListArg =
+            secondArg checkInfo
+    in
+    firstThatReportsError
+        [ \() ->
+            case maybeListArg of
+                Just listArg ->
+                    case Node.value (AstHelpers.removeParens listArg) of
+                        Expression.ListExpr [] ->
+                            [ Rule.errorWithFix
+                                { message = "The call to List.all will result in True"
+                                , details = [ "You can replace this call by True." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                                ]
+                            ]
 
-        _ ->
+                        _ ->
+                            []
+
+                Nothing ->
+                    []
+        , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
@@ -5580,28 +5594,39 @@ listAllChecks checkInfo =
                         , details = [ "You can replace this call by True." ]
                         }
                         checkInfo.fnRange
-                        (replaceByBoolFix checkInfo.parentRange (secondArg checkInfo) True checkInfo)
+                        (replaceByBoolFix checkInfo.parentRange maybeListArg True checkInfo)
                     ]
 
                 _ ->
                     []
+        ]
+        ()
 
 
 listAnyChecks : CheckInfo -> List (Error {})
 listAnyChecks checkInfo =
-    case Maybe.map (AstHelpers.removeParens >> Node.value) (secondArg checkInfo) of
-        Just (Expression.ListExpr []) ->
-            [ Rule.errorWithFix
-                { message = "The call to List.any will result in False"
-                , details = [ "You can replace this call by False." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
-                ]
-            ]
+    let
+        maybeListArg : Maybe Expression
+        maybeListArg =
+            Maybe.map (AstHelpers.removeParens >> Node.value) (secondArg checkInfo)
+    in
+    firstThatReportsError
+        [ \() ->
+            case maybeListArg of
+                Just (Expression.ListExpr []) ->
+                    [ Rule.errorWithFix
+                        { message = "The call to List.any will result in False"
+                        , details = [ "You can replace this call by False." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
+                        ]
+                    ]
 
-        listArg ->
+                _ ->
+                    []
+        , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined False ->
                     [ Rule.errorWithFix
@@ -5609,7 +5634,7 @@ listAnyChecks checkInfo =
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
-                        (replaceByBoolFix checkInfo.parentRange listArg False checkInfo)
+                        (replaceByBoolFix checkInfo.parentRange maybeListArg False checkInfo)
                     ]
 
                 _ ->
@@ -5627,6 +5652,8 @@ listAnyChecks checkInfo =
                                     :: List.map Fix.removeRange rangesToRemove
                                 )
                             ]
+        ]
+        ()
 
 
 listFilterMapChecks : CheckInfo -> List (Error {})
