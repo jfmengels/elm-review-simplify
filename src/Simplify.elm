@@ -7338,14 +7338,14 @@ collectionPartitionChecks collection checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     case secondArg checkInfo of
-                        Just listArg ->
+                        Just (Node listArgRange _) ->
                             [ Rule.errorWithFix
                                 { message = "All elements will go to the first " ++ collection.represents
                                 , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.emptyDescription ++ "." ]
                                 }
                                 checkInfo.fnRange
-                                [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } "( "
-                                , Fix.insertAt (Node.range listArg).end (", " ++ collectionEmptyAsString ++ " )")
+                                [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
+                                , Fix.insertAt listArgRange.end (", " ++ collectionEmptyAsString ++ " )")
                                 ]
                             ]
 
