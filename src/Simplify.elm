@@ -237,6 +237,9 @@ Destructuring using case expressions
     n / 1
     --> n
 
+    0 / n
+    --> 0
+
     -(-n)
     --> n
 
