@@ -2564,7 +2564,7 @@ addingZeroCheck checkInfo =
             else
                 Nothing
         )
-        (operationSides checkInfo)
+        (operationToSides checkInfo)
         |> Maybe.withDefault []
 
 
@@ -2598,21 +2598,21 @@ minusChecks checkInfo =
             { message = "Unnecessary subtraction with 0"
             , details = [ "Subtracting 0 does not change the value of the number." ]
             }
-            { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
-            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
+            (errorToRightRange checkInfo)
+            [ Fix.removeRange (fixToRightRange checkInfo) ]
         ]
 
     else if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
         let
             replacedRange : Range
             replacedRange =
-                { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
+                fixToLeftRange checkInfo
         in
         [ Rule.errorWithFix
             { message = "Unnecessary subtracting from 0"
             , details = [ "You can negate the expression on the right like `-n`." ]
             }
-            { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
+            (errorToLeftRange checkInfo)
             (if needsParens (Node.value checkInfo.right) then
                 [ Fix.replaceRangeBy replacedRange "-(", Fix.insertAt checkInfo.rightRange.end ")" ]
 
@@ -2691,21 +2691,41 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                 Nothing ->
                     Nothing
         )
-        (operationSides checkInfo)
+        (operationToSides checkInfo)
         |> Maybe.withDefault []
 
 
-operationSides : OperatorCheckInfo -> List { node : Node Expression, removeRange : Range, errorRange : Range }
-operationSides checkInfo =
+operationToSides : OperatorCheckInfo -> List { node : Node Expression, removeRange : Range, errorRange : Range }
+operationToSides checkInfo =
     [ { node = checkInfo.right
-      , removeRange = { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-      , errorRange = { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
+      , removeRange = fixToRightRange checkInfo
+      , errorRange = errorToRightRange checkInfo
       }
     , { node = checkInfo.left
-      , removeRange = { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-      , errorRange = { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
+      , removeRange = fixToLeftRange checkInfo
+      , errorRange = errorToLeftRange checkInfo
       }
     ]
+
+
+fixToLeftRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
+fixToLeftRange checkInfo =
+    { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
+
+
+errorToLeftRange : { checkInfo | leftRange : Range, operatorRange : Range } -> Range
+errorToLeftRange checkInfo =
+    { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
+
+
+fixToRightRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
+fixToRightRange checkInfo =
+    { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
+
+
+errorToRightRange : { checkInfo | rightRange : Range, operatorRange : Range } -> Range
+errorToRightRange checkInfo =
+    { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
 
 
 divisionChecks : OperatorCheckInfo -> List (Error {})
@@ -2715,8 +2735,8 @@ divisionChecks checkInfo =
             { message = "Unnecessary division by 1"
             , details = [ "Dividing by 1 does not change the value of the number." ]
             }
-            { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
-            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
+            (errorToRightRange checkInfo)
+            [ Fix.removeRange (fixToRightRange checkInfo) ]
         ]
 
     else
@@ -3362,8 +3382,8 @@ equalityChecks isEqual checkInfo =
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
             }
-            { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
-            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
+            (errorToRightRange checkInfo)
+            [ Fix.removeRange (fixToRightRange checkInfo) ]
         ]
 
     else if Evaluate.getBoolean checkInfo checkInfo.left == Determined isEqual then
@@ -3371,8 +3391,8 @@ equalityChecks isEqual checkInfo =
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
             }
-            { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
-            [ Fix.removeRange { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start } ]
+            (errorToLeftRange checkInfo)
+            [ Fix.removeRange (fixToLeftRange checkInfo) ]
         ]
 
     else
@@ -3590,7 +3610,7 @@ alwaysCompositionCheck checkInfo =
             [ Rule.errorWithFix
                 alwaysCompositionErrorMessage
                 checkInfo.rightRange
-                [ Fix.removeRange { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start } ]
+                [ Fix.removeRange (fixToLeftRange checkInfo) ]
             ]
 
         else
@@ -3600,7 +3620,7 @@ alwaysCompositionCheck checkInfo =
         [ Rule.errorWithFix
             alwaysCompositionErrorMessage
             checkInfo.leftRange
-            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
+            [ Fix.removeRange (fixToRightRange checkInfo) ]
         ]
 
     else
