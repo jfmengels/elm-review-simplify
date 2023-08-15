@@ -210,6 +210,9 @@ Destructuring using case expressions
     (\_ y -> x) data
     --> (\y -> x)
 
+    (\x y -> x + y) n m
+    -- Reported because simplifiable but not autofixed
+
 
 ### Operators
 
@@ -7900,7 +7903,19 @@ appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
             ]
 
         _ ->
-            []
+            [ Rule.error
+                { message = "Anonymous function is immediately invoked"
+                , details =
+                    [ "This expression defines a function which then gets called directly afterwards, which overly complexifies the intended computation."
+                    , "While there are reasonable uses for this in languages like JavaScript, the same benefits aren't there in Elm because of not allowing name shadowing."
+                    , "Here are a few ways you can simplify this:"
+                    , """- Remove the lambda and reference the arguments directly instead of giving them new names
+- Remove the lambda and use let variables to give names to the current arguments
+- Extract the lambda to a named function (at the top-level or defined in a let expression)"""
+                    ]
+                }
+                lambdaRange
+            ]
 
 
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
