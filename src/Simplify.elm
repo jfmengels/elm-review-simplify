@@ -4865,45 +4865,50 @@ listHeadChecks checkInfo =
         listArg =
             AstHelpers.removeParens checkInfo.firstArg
     in
-    case Node.value listArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Using List.head on an empty list will result in Nothing"
-                , details = [ "You can replace this call by Nothing." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value listArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.head on an empty list will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                        ]
+                    ]
 
-        Expression.ListExpr ((Node headRange head) :: _) ->
-            if needsParens head then
-                [ Rule.errorWithFix
-                    listHeadExistsError
-                    checkInfo.fnRange
-                    (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
-                        ++ [ Fix.insertAt headRange.start "("
-                           , Fix.insertAt headRange.end ")"
-                           , Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                           ]
-                    )
-                ]
+                Expression.ListExpr ((Node headRange head) :: _) ->
+                    if needsParens head then
+                        [ Rule.errorWithFix
+                            listHeadExistsError
+                            checkInfo.fnRange
+                            (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
+                                ++ parenthesizeFix headRange
+                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                   ]
+                            )
+                        ]
 
-            else
-                justFirstElementError headRange
+                    else
+                        justFirstElementError headRange
 
-        Expression.OperatorApplication "::" _ (Node headRange _) _ ->
-            justFirstElementError headRange
+                Expression.OperatorApplication "::" _ (Node headRange _) _ ->
+                    justFirstElementError headRange
 
-        _ ->
+                _ ->
+                    []
+        , \() ->
             case getListSingletonCall checkInfo.lookupTable listArg of
                 Just single ->
                     justFirstElementError (Node.range single.element)
 
                 Nothing ->
                     []
+        ]
+        ()
 
 
 listTailExistsError : { message : String, details : List String }
@@ -4926,57 +4931,57 @@ listTailChecks checkInfo =
         listArg : Node Expression
         listArg =
             AstHelpers.removeParens checkInfo.firstArg
-
-        listArgRange : Range
-        listArgRange =
-            Node.range listArg
     in
-    case Node.value listArg of
-        Expression.ListExpr listLiteral ->
-            case listLiteral of
-                [] ->
-                    [ Rule.errorWithFix
-                        { message = "Using List.tail on an empty list will result in Nothing"
-                        , details = [ "You can replace this call by Nothing." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                        ]
-                    ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value listArg of
+                Expression.ListExpr listLiteral ->
+                    case listLiteral of
+                        [] ->
+                            [ Rule.errorWithFix
+                                { message = "Using List.tail on an empty list will result in Nothing"
+                                , details = [ "You can replace this call by Nothing." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                                ]
+                            ]
 
-                _ :: [] ->
-                    [ Rule.errorWithFix
-                        listEmptyTailExistsError
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy listArgRange "[]"
-                        , Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                        ]
-                    ]
+                        _ :: [] ->
+                            [ Rule.errorWithFix
+                                listEmptyTailExistsError
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy (Node.range listArg) "[]"
+                                , Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                ]
+                            ]
 
-                (Node headRange _) :: (Node tailFirstRange _) :: _ ->
+                        (Node headRange _) :: (Node tailFirstRange _) :: _ ->
+                            [ Rule.errorWithFix
+                                listTailExistsError
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
+                                , Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                ]
+                            ]
+
+                Expression.OperatorApplication "::" _ _ (Node tailRange _) ->
                     [ Rule.errorWithFix
                         listTailExistsError
                         checkInfo.fnRange
-                        [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
-                        , Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                        ]
+                        (keepOnlyFix { parentRange = Node.range listArg, keep = tailRange }
+                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                               ]
+                        )
                     ]
 
-        Expression.OperatorApplication "::" _ _ (Node tailRange _) ->
-            [ Rule.errorWithFix
-                listTailExistsError
-                checkInfo.fnRange
-                (keepOnlyFix { parentRange = listArgRange, keep = tailRange }
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                       ]
-                )
-            ]
-
-        _ ->
+                _ ->
+                    []
+        , \() ->
             case getListSingletonCall checkInfo.lookupTable listArg of
                 Just _ ->
                     [ Rule.errorWithFix
@@ -4990,6 +4995,8 @@ listTailChecks checkInfo =
 
                 Nothing ->
                     []
+        ]
+        ()
 
 
 listMapChecks : CheckInfo -> List (Error {})
