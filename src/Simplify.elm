@@ -7673,7 +7673,7 @@ removeRecordFields recordUpdateRange variable fields =
                     , details = [ "The field is being set to its own value." ]
                     }
                     (Node.range value)
-                    (keepOnlyFix { parentRange = recordUpdateRange,keep = Node.range variable })
+                    (keepOnlyFix { parentRange = recordUpdateRange, keep = Node.range variable })
                 ]
 
             else
