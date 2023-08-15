@@ -5626,7 +5626,9 @@ listFilterMapChecks checkInfo =
                     , details = [ "You can remove this call and replace it by the list itself." ]
                     }
                     checkInfo.fnRange
-                    (noopFix checkInfo)
+                    (toIdentityFix
+                        { lastArg = secondArg checkInfo, resources = checkInfo }
+                    )
                 ]
 
         Determined Nothing ->
@@ -6525,28 +6527,45 @@ collectionMapChecks :
     -> CheckInfo
     -> List (Error {})
 collectionMapChecks collection checkInfo =
-    case Maybe.map (collection.isEmpty checkInfo.lookupTable) (secondArg checkInfo) of
-        Just True ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
-                , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
-                }
-                checkInfo.fnRange
-                (noopFix checkInfo)
-            ]
+    let
+        maybeListArg : Maybe (Node Expression)
+        maybeListArg =
+            secondArg checkInfo
+    in
+    firstThatReportsError
+        [ \() ->
+            case maybeListArg of
+                Just listArg ->
+                    if collection.isEmpty checkInfo.lookupTable listArg then
+                        [ Rule.errorWithFix
+                            { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
+                            , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg })
+                        ]
 
-        _ ->
+                    else
+                        []
+
+                Nothing ->
+                    []
+        , \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
                     { message = "Using " ++ collection.moduleName ++ ".map with an identity function is the same as not using " ++ collection.moduleName ++ ".map"
                     , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
                     }
                     checkInfo.fnRange
-                    (noopFix checkInfo)
+                    (toIdentityFix
+                        { lastArg = maybeListArg, resources = checkInfo }
+                    )
                 ]
 
             else
                 []
+        ]
+        ()
 
 
 maybeAndThenChecks : CheckInfo -> List (Error {})
@@ -6555,31 +6574,40 @@ maybeAndThenChecks checkInfo =
         maybeEmptyAsString : String
         maybeEmptyAsString =
             emptyAsString checkInfo maybeCollection
+
+        maybeMaybeArg : Maybe (Node Expression)
+        maybeMaybeArg =
+            secondArg checkInfo
     in
     firstThatReportsError
         [ \() ->
-            case Match.maybeAndThen (getMaybeValues checkInfo.lookupTable) (secondArg checkInfo) of
-                Determined (Just justRanges) ->
-                    [ Rule.errorWithFix
-                        { message = "Calling " ++ maybeCollection.moduleName ++ ".andThen on a value that is known to be Just"
-                        , details = [ "You can remove the Just and just call the function directly." ]
-                        }
-                        checkInfo.fnRange
-                        (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            :: List.map Fix.removeRange justRanges
-                        )
-                    ]
+            case maybeMaybeArg of
+                Just maybeArg ->
+                    case getMaybeValues checkInfo.lookupTable maybeArg of
+                        Determined (Just justRanges) ->
+                            [ Rule.errorWithFix
+                                { message = "Calling " ++ maybeCollection.moduleName ++ ".andThen on a value that is known to be Just"
+                                , details = [ "You can remove the Just and just call the function directly." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                    :: List.map Fix.removeRange justRanges
+                                )
+                            ]
 
-                Determined Nothing ->
-                    [ Rule.errorWithFix
-                        { message = "Using " ++ maybeCollection.moduleName ++ ".andThen on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
-                        , details = [ "You can replace this call by " ++ maybeEmptyAsString ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        (noopFix checkInfo)
-                    ]
+                        Determined Nothing ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ maybeCollection.moduleName ++ ".andThen on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
+                                , details = [ "You can replace this call by " ++ maybeEmptyAsString ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
+                            ]
 
-                _ ->
+                        Undetermined ->
+                            []
+
+                Nothing ->
                     []
         , \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
@@ -6602,7 +6630,9 @@ maybeAndThenChecks checkInfo =
                             , details = [ "You can remove this call and replace it by the value itself." ]
                             }
                             checkInfo.fnRange
-                            (noopFix checkInfo)
+                            (toIdentityFix
+                                { lastArg = maybeMaybeArg, resources = checkInfo }
+                            )
                         ]
 
                 Determined Nothing ->
@@ -6622,30 +6652,40 @@ maybeAndThenChecks checkInfo =
 
 resultAndThenChecks : CheckInfo -> List (Error {})
 resultAndThenChecks checkInfo =
+    let
+        maybeResultArg : Maybe (Node Expression)
+        maybeResultArg =
+            secondArg checkInfo
+    in
     firstThatReportsError
         [ \() ->
-            case Maybe.andThen (getResultValues checkInfo.lookupTable) (secondArg checkInfo) of
-                Just (Ok okRanges) ->
-                    [ Rule.errorWithFix
-                        { message = "Calling " ++ resultCollection.moduleName ++ ".andThen on a value that is known to be Ok"
-                        , details = [ "You can remove the Ok and just call the function directly." ]
-                        }
-                        checkInfo.fnRange
-                        (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            :: List.map Fix.removeRange okRanges
-                        )
-                    ]
+            case maybeResultArg of
+                Just resultArg ->
+                    case getResultValues checkInfo.lookupTable resultArg of
+                        Just (Ok okRanges) ->
+                            [ Rule.errorWithFix
+                                { message = "Calling " ++ resultCollection.moduleName ++ ".andThen on a value that is known to be Ok"
+                                , details = [ "You can remove the Ok and just call the function directly." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                    :: List.map Fix.removeRange okRanges
+                                )
+                            ]
 
-                Just (Err _) ->
-                    [ Rule.errorWithFix
-                        { message = "Using " ++ resultCollection.moduleName ++ ".andThen on an error will result in the error"
-                        , details = [ "You can replace this call by the error itself." ]
-                        }
-                        checkInfo.fnRange
-                        (noopFix checkInfo)
-                    ]
+                        Just (Err _) ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ resultCollection.moduleName ++ ".andThen on an error will result in the error"
+                                , details = [ "You can replace this call by the error itself." ]
+                                }
+                                checkInfo.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
+                            ]
 
-                _ ->
+                        Nothing ->
+                            []
+
+                Nothing ->
                     []
         , \() ->
             case isAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
@@ -6668,7 +6708,9 @@ resultAndThenChecks checkInfo =
                             , details = [ "You can remove this call and replace it by the value itself." ]
                             }
                             checkInfo.fnRange
-                            (noopFix checkInfo)
+                            (toIdentityFix
+                                { lastArg = maybeResultArg, resources = checkInfo }
+                            )
                         ]
 
                 _ ->
@@ -6679,26 +6721,33 @@ resultAndThenChecks checkInfo =
 
 resultWithDefaultChecks : CheckInfo -> List (Error {})
 resultWithDefaultChecks checkInfo =
-    case Maybe.andThen (getResultValues checkInfo.lookupTable) (secondArg checkInfo) of
-        Just (Ok okRanges) ->
-            [ Rule.errorWithFix
-                { message = "Using Result.withDefault on a value that is Ok will result in that value"
-                , details = [ "You can replace this call by the value wrapped in Ok." ]
-                }
-                checkInfo.fnRange
-                (List.map Fix.removeRange okRanges ++ noopFix checkInfo)
-            ]
+    case secondArg checkInfo of
+        Just resultArg ->
+            case getResultValues checkInfo.lookupTable resultArg of
+                Just (Ok okRanges) ->
+                    [ Rule.errorWithFix
+                        { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                        , details = [ "You can replace this call by the value wrapped in Ok." ]
+                        }
+                        checkInfo.fnRange
+                        (List.map Fix.removeRange okRanges
+                            ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg }
+                        )
+                    ]
 
-        Just (Err _) ->
-            [ Rule.errorWithFix
-                { message = "Using Result.withDefault on an error will result in the default value"
-                , details = [ "You can replace this call by the default value." ]
-                }
-                checkInfo.fnRange
-                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                ]
-            ]
+                Just (Err _) ->
+                    [ Rule.errorWithFix
+                        { message = "Using Result.withDefault on an error will result in the default value"
+                        , details = [ "You can replace this call by the default value." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                        , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                        ]
+                    ]
+
+                Nothing ->
+                    []
 
         Nothing ->
             []
@@ -6928,25 +6977,34 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 collectionFilterChecks : Collection -> CheckInfo -> List (Error {})
 collectionFilterChecks collection checkInfo =
     let
-        collectionArg : Maybe (Node Expression)
-        collectionArg =
-            secondArg checkInfo
-
         collectionEmptyAsString : String
         collectionEmptyAsString =
             emptyAsString checkInfo collection
-    in
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
-        Just (Exactly 0) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".filter on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                }
-                checkInfo.fnRange
-                (noopFix checkInfo)
-            ]
 
-        _ ->
+        maybeCollectionArg : Maybe (Node Expression)
+        maybeCollectionArg =
+            secondArg checkInfo
+    in
+    firstThatReportsError
+        [ \() ->
+            case maybeCollectionArg of
+                Just collectionArg ->
+                    case collection.determineSize checkInfo.lookupTable collectionArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ collection.moduleName ++ ".filter on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                                , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+                            ]
+
+                        _ ->
+                            []
+
+                Nothing ->
+                    []
+        , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
@@ -6954,7 +7012,9 @@ collectionFilterChecks collection checkInfo =
                         , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
                         }
                         checkInfo.fnRange
-                        (noopFix checkInfo)
+                        (toIdentityFix
+                            { lastArg = maybeCollectionArg, resources = checkInfo }
+                        )
                     ]
 
                 Determined False ->
@@ -6963,31 +7023,38 @@ collectionFilterChecks collection checkInfo =
                         , details = [ "You can remove this call and replace it by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange collectionArg checkInfo)
+                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
                     ]
 
                 Undetermined ->
                     []
+        ]
+        ()
 
 
 collectionRemoveChecks : Collection -> CheckInfo -> List (Error {})
 collectionRemoveChecks collection checkInfo =
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
-        Just (Exactly 0) ->
-            let
-                collectionEmptyAsString : String
-                collectionEmptyAsString =
-                    emptyAsString checkInfo collection
-            in
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                }
-                checkInfo.fnRange
-                (noopFix checkInfo)
-            ]
+    case secondArg checkInfo of
+        Just collectionArg ->
+            case collection.determineSize checkInfo.lookupTable collectionArg of
+                Just (Exactly 0) ->
+                    let
+                        collectionEmptyAsString : String
+                        collectionEmptyAsString =
+                            emptyAsString checkInfo collection
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                        , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+                    ]
 
-        _ ->
+                _ ->
+                    []
+
+        Nothing ->
             []
 
 
@@ -7079,34 +7146,46 @@ collectionDiffChecks collection checkInfo =
 
 collectionUnionChecks : Collection -> CheckInfo -> List (Error {})
 collectionUnionChecks collection checkInfo =
+    let
+        maybeCollectionArg : Maybe (Node Expression)
+        maybeCollectionArg =
+            secondArg checkInfo
+    in
     firstThatReportsError
         [ \() ->
             case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Unnecessary union with Set.empty"
-                        , details = [ "You can replace this call by the set itself." ]
+                        { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
+                        , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                         }
                         checkInfo.fnRange
-                        (noopFix checkInfo)
+                        (toIdentityFix
+                            { lastArg = maybeCollectionArg, resources = checkInfo }
+                        )
                     ]
 
                 _ ->
                     []
         , \() ->
-            case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
-                Just (Exactly 0) ->
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary union with Set.empty"
-                        , details = [ "You can replace this call by the set itself." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                        , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
+            case maybeCollectionArg of
+                Just collectionArg ->
+                    case collection.determineSize checkInfo.lookupTable collectionArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
+                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                                ]
+                            ]
 
-                _ ->
+                        _ ->
+                            []
+
+                Nothing ->
                     []
         ]
         ()
@@ -7303,28 +7382,35 @@ collectionPartitionChecks collection checkInfo =
 
 maybeWithDefaultChecks : CheckInfo -> List (Error {})
 maybeWithDefaultChecks checkInfo =
-    case Match.maybeAndThen (getMaybeValues checkInfo.lookupTable) (secondArg checkInfo) of
-        Determined (Just justRanges) ->
-            [ Rule.errorWithFix
-                { message = "Using Maybe.withDefault on a value that is Just will result in that value"
-                , details = [ "You can replace this call by the value wrapped in Just." ]
-                }
-                checkInfo.fnRange
-                (List.map Fix.removeRange justRanges ++ noopFix checkInfo)
-            ]
+    case secondArg checkInfo of
+        Just maybeArg ->
+            case getMaybeValues checkInfo.lookupTable maybeArg of
+                Determined (Just justRanges) ->
+                    [ Rule.errorWithFix
+                        { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                        , details = [ "You can replace this call by the value wrapped in Just." ]
+                        }
+                        checkInfo.fnRange
+                        (List.map Fix.removeRange justRanges
+                            ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg }
+                        )
+                    ]
 
-        Determined Nothing ->
-            [ Rule.errorWithFix
-                { message = "Using Maybe.withDefault on Nothing will result in the default value"
-                , details = [ "You can replace this call by the default value." ]
-                }
-                checkInfo.fnRange
-                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                ]
-            ]
+                Determined Nothing ->
+                    [ Rule.errorWithFix
+                        { message = "Using Maybe.withDefault on Nothing will result in the default value"
+                        , details = [ "You can replace this call by the default value." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                        , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                        ]
+                    ]
 
-        Undetermined ->
+                Undetermined ->
+                    []
+
+        Nothing ->
             []
 
 
@@ -8113,12 +8199,7 @@ removeFunctionAndFirstArg checkInfo secondArgRange =
 
 
 removeBoundariesFix : Node a -> List Fix
-removeBoundariesFix node =
-    let
-        nodeRange : Range
-        nodeRange =
-            Node.range node
-    in
+removeBoundariesFix (Node nodeRange _) =
     [ Fix.removeRange (leftBoundaryRange nodeRange)
     , Fix.removeRange (rightBoundaryRange nodeRange)
     ]
@@ -8190,19 +8271,6 @@ identityError config =
         }
         config.resources.fnRange
         (toIdentityFix { lastArg = config.lastArg, resources = config.resources })
-
-
-{-| identity if there's no second argument, else the second argument.
-
-TODO replace uses with `toIdentityFix` to be more explicit
-
--}
-noopFix : CheckInfo -> List Fix
-noopFix checkInfo =
-    toIdentityFix
-        { lastArg = secondArg checkInfo
-        , resources = checkInfo
-        }
 
 
 toIdentityFix :
