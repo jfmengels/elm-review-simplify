@@ -5371,6 +5371,46 @@ a = (\\x y -> x + y) n
                             , under = "\\x y -> x + y"
                             }
                         ]
+        , test "should report but not fix non-simplifiable lambdas that are directly called in a |> pipeline" <|
+            \() ->
+                """module A exposing (..)
+a = n |> (\\x y -> x + y)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Anonymous function is immediately invoked"
+                            , details =
+                                [ "This expression defines a function which then gets called directly afterwards, which overly complexifies the intended computation."
+                                , "While there are reasonable uses for this in languages like JavaScript, the same benefits aren't there in Elm because of not allowing name shadowing."
+                                , "Here are a few ways you can simplify this:"
+                                , """- Remove the lambda and reference the arguments directly instead of giving them new names
+- Remove the lambda and use let variables to give names to the current arguments
+- Extract the lambda to a named function (at the top-level or defined in a let expression)"""
+                                ]
+                            , under = "\\x y -> x + y"
+                            }
+                        ]
+        , test "should report but not fix non-simplifiable lambdas that are directly called in a <| pipeline" <|
+            \() ->
+                """module A exposing (..)
+a = (\\x y -> x + y) <| n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Anonymous function is immediately invoked"
+                            , details =
+                                [ "This expression defines a function which then gets called directly afterwards, which overly complexifies the intended computation."
+                                , "While there are reasonable uses for this in languages like JavaScript, the same benefits aren't there in Elm because of not allowing name shadowing."
+                                , "Here are a few ways you can simplify this:"
+                                , """- Remove the lambda and reference the arguments directly instead of giving them new names
+- Remove the lambda and use let variables to give names to the current arguments
+- Extract the lambda to a named function (at the top-level or defined in a let expression)"""
+                                ]
+                            , under = "\\x y -> x + y"
+                            }
+                        ]
         ]
 
 
