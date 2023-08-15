@@ -14,10 +14,17 @@ The rule now simplifies:
 - `List.any (\y -> x == y) list` to `List.member x list`
 - `n - n` to `0`
 - `-n + n` to `0`
+- `0 / n` to `0`
 - `n * 0` to `0` is now autofixed
 
 The rule now reports:
 - Immediately invoked anonymous functions `(\x y -> x + y) 1 2`. This is very simplifiable but there is no autofix because there are varied ways to simplify it.
+
+Bug fixes:
+- Fixed an issue where `[ [ 1 ], [ 2 ] ] |> List.concat` would be incorrectly fixed and cause a compiler error
+
+Misc:
+- Improved error positioning and fixes for errors related to the usage of operators
 
 ## [2.0.33] - 2023-08-13
 
