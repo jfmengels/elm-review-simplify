@@ -4148,20 +4148,7 @@ stringReplaceChecks checkInfo =
                                     , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
                                     }
                                     checkInfo.fnRange
-                                    (if checkInfo.usingRightPizza then
-                                        [ Fix.removeRange
-                                            { start = thirdRange.end
-                                            , end = checkInfo.parentRange.end
-                                            }
-                                        ]
-
-                                     else
-                                        [ Fix.removeRange
-                                            { start = checkInfo.fnRange.start
-                                            , end = thirdRange.start
-                                            }
-                                        ]
-                                    )
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = thirdRange })
                                 ]
 
                             else
