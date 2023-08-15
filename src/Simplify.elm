@@ -7592,45 +7592,6 @@ getComparableExpressionHelper sign (Node _ expression) =
             Nothing
 
 
-traverse : (a -> Maybe b) -> List a -> Maybe (List b)
-traverse f list =
-    traverseHelp f list []
-
-
-traverseHelp : (a -> Maybe b) -> List a -> List b -> Maybe (List b)
-traverseHelp f list acc =
-    case list of
-        head :: tail ->
-            case f head of
-                Just a ->
-                    traverseHelp f tail (a :: acc)
-
-                Nothing ->
-                    Nothing
-
-        [] ->
-            Just (List.reverse acc)
-
-
-unique : List a -> List a
-unique list =
-    uniqueHelp [] list []
-
-
-uniqueHelp : List a -> List a -> List a -> List a
-uniqueHelp existing remaining accumulator =
-    case remaining of
-        [] ->
-            List.reverse accumulator
-
-        first :: rest ->
-            if List.member first existing then
-                uniqueHelp existing rest accumulator
-
-            else
-                uniqueHelp (first :: existing) rest (first :: accumulator)
-
-
 
 -- RECORD UPDATE
 
@@ -8815,3 +8776,42 @@ findMapNeighboringAfter before tryMap list =
 
                 Nothing ->
                     findMapNeighboringAfter (Just now) tryMap after
+
+
+traverse : (a -> Maybe b) -> List a -> Maybe (List b)
+traverse f list =
+    traverseHelp f list []
+
+
+traverseHelp : (a -> Maybe b) -> List a -> List b -> Maybe (List b)
+traverseHelp f list acc =
+    case list of
+        head :: tail ->
+            case f head of
+                Just a ->
+                    traverseHelp f tail (a :: acc)
+
+                Nothing ->
+                    Nothing
+
+        [] ->
+            Just (List.reverse acc)
+
+
+unique : List a -> List a
+unique list =
+    uniqueHelp [] list []
+
+
+uniqueHelp : List a -> List a -> List a -> List a
+uniqueHelp existing remaining accumulator =
+    case remaining of
+        [] ->
+            List.reverse accumulator
+
+        first :: rest ->
+            if List.member first existing then
+                uniqueHelp existing rest accumulator
+
+            else
+                uniqueHelp (first :: existing) rest (first :: accumulator)
