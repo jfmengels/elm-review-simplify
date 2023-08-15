@@ -2552,7 +2552,6 @@ addingZeroCheck checkInfo =
     findMap
         (\side ->
             if AstHelpers.getUncomputedNumberValue side.node == Just 0 then
-                
                 Just
                     [ Rule.errorWithFix
                         { message = "Unnecessary addition with 0"
