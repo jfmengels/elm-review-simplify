@@ -2745,6 +2745,18 @@ divisionChecks checkInfo =
             [ Fix.removeRange (fixToRightRange checkInfo) ]
         ]
 
+    else if not checkInfo.expectNaN && (AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0) then
+        [ Rule.errorWithFix
+            { message = "Dividing 0 always returns 0"
+            , details =
+                [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
+                , "Most likely, dividing 0 was unintentional and you had a different number in mind."
+                ]
+            }
+            (errorToLeftRange checkInfo)
+            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
+        ]
+
     else
         []
 
