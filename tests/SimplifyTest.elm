@@ -2625,6 +2625,44 @@ a = n / 1.0
 a = n
 """
                         ]
+        , test "should simplify 0 / n to 0" <|
+            \() ->
+                """module A exposing (..)
+a = 0 / n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dividing 0 always returns 0"
+                            , details =
+                                [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
+                                , "Most likely, dividing 0 was unintentional and you had a different number in mind."
+                                ]
+                            , under = "0 /"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should simplify 0.0 / n to 0.0" <|
+            \() ->
+                """module A exposing (..)
+a = 0.0 / n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dividing 0 always returns 0"
+                            , details =
+                                [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
+                                , "Most likely, dividing 0 was unintentional and you had a different number in mind."
+                                ]
+                            , under = "0.0 /"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0.0
+"""
+                        ]
         ]
 
 
