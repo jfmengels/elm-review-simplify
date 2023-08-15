@@ -2550,38 +2550,22 @@ plusChecks checkInfo =
 addingZeroCheck : OperatorCheckInfo -> List (Error {})
 addingZeroCheck checkInfo =
     findMap
-        (\( node, getRanges ) ->
-            if AstHelpers.getUncomputedNumberValue node == Just 0 then
-                let
-                    ranges : { error : Range, removed : Range }
-                    ranges =
-                        getRanges ()
-                in
+        (\side ->
+            if AstHelpers.getUncomputedNumberValue side.node == Just 0 then
+                
                 Just
                     [ Rule.errorWithFix
                         { message = "Unnecessary addition with 0"
                         , details = [ "Adding 0 does not change the value of the number." ]
                         }
-                        ranges.error
-                        [ Fix.removeRange ranges.removed ]
+                        side.errorRange
+                        [ Fix.removeRange side.removeRange ]
                     ]
 
             else
                 Nothing
         )
-        [ ( checkInfo.right
-          , \() ->
-                { removed = { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-                , error = { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
-                }
-          )
-        , ( checkInfo.left
-          , \() ->
-                { removed = { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-                , error = { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
-                }
-          )
-        ]
+        (operationSides checkInfo)
         |> Maybe.withDefault []
 
 
@@ -2667,22 +2651,17 @@ checkIfMinusResultsInZero checkInfo =
 multiplyChecks : OperatorCheckInfo -> List (Error {})
 multiplyChecks checkInfo =
     findMap
-        (\( node, getRanges ) ->
-            case AstHelpers.getUncomputedNumberValue node of
+        (\side ->
+            case AstHelpers.getUncomputedNumberValue side.node of
                 Just number ->
                     if number == 1 then
-                        let
-                            range : { error : Range, fix : Range }
-                            range =
-                                getRanges ()
-                        in
                         Just
                             [ Rule.errorWithFix
                                 { message = "Unnecessary multiplication by 1"
                                 , details = [ "Multiplying by 1 does not change the value of the number." ]
                                 }
-                                range.error
-                                [ Fix.removeRange range.fix ]
+                                side.errorRange
+                                [ Fix.removeRange side.removeRange ]
                             ]
 
                     else if number == 0 then
@@ -2698,7 +2677,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                     ]
                                 }
-                                (getRanges ()).error
+                                side.errorRange
                                 (if checkInfo.expectNaN then
                                     []
 
@@ -2713,20 +2692,21 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                 Nothing ->
                     Nothing
         )
-        [ ( checkInfo.right
-          , \() ->
-                { fix = { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-                , error = { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
-                }
-          )
-        , ( checkInfo.left
-          , \() ->
-                { fix = { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-                , error = { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
-                }
-          )
-        ]
+        (operationSides checkInfo)
         |> Maybe.withDefault []
+
+
+operationSides : OperatorCheckInfo -> List { node : Node Expression, removeRange : Range, errorRange : Range }
+operationSides checkInfo =
+    [ { node = checkInfo.right
+      , removeRange = { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
+      , errorRange = { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
+      }
+    , { node = checkInfo.left
+      , removeRange = { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
+      , errorRange = { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
+      }
+    ]
 
 
 divisionChecks : OperatorCheckInfo -> List (Error {})
