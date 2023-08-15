@@ -7,6 +7,7 @@ project is likely to use `NaN` values. This disables the following simplificatio
 - `x == x` to `True`
 - `List.member x [ x ]` to `True`
 - `n * 0` to `0`
+- `not (a < b)` to `a >= b` (similarly for `>`, `<=`, `>=`, `==` and `/=`)
 
 The rule now simplifies:
 - `List.any ((==) x) list` to `List.member x list`

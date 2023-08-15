@@ -49,6 +49,10 @@ Below is the list of all kinds of simplifications this rule applies.
     not (not x)
     --> x
 
+    -- for `<`, `>`, `<=`, `>=`, `==` and `/=`
+    not (a < b)
+    --> a >= b
+
 
 ### Comparisons
 
@@ -3001,6 +3005,7 @@ basicsNotChecks checkInfo =
     firstThatReportsError
         [ notOnKnownBoolCheck
         , removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage getNotFunction
+        , isNotOnBooleanOperatorCheck
         ]
         checkInfo
 
@@ -3021,6 +3026,65 @@ notOnKnownBoolCheck checkInfo =
 
         Undetermined ->
             []
+
+
+isNotOnBooleanOperatorCheck : CheckInfo -> List (Error {})
+isNotOnBooleanOperatorCheck checkInfo =
+    case Node.value checkInfo.firstArg of
+        Expression.ParenthesizedExpression (Node _ (Expression.OperatorApplication operator _ left right)) ->
+            case isNegatableOperator operator of
+                Just replacement ->
+                    let
+                        operatorRange : Range
+                        operatorRange =
+                            findOperatorRange
+                                { operator = operator
+                                , commentRanges = checkInfo.commentRanges
+                                , extractSourceCode = checkInfo.extractSourceCode
+                                , leftRange = Node.range left
+                                , rightRange = Node.range right
+                                }
+                    in
+                    [ Rule.errorWithFix
+                        { message = "`not` is used on a negatable boolean operation"
+                        , details = [ "You can remove the `not` call and use `" ++ replacement ++ "` instead." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                        , Fix.replaceRangeBy operatorRange replacement
+                        ]
+                    ]
+
+                Nothing ->
+                    []
+
+        _ ->
+            []
+
+
+isNegatableOperator : String -> Maybe String
+isNegatableOperator op =
+    case op of
+        "<" ->
+            Just ">="
+
+        ">" ->
+            Just "<="
+
+        "<=" ->
+            Just ">"
+
+        ">=" ->
+            Just "<"
+
+        "==" ->
+            Just "/="
+
+        "/=" ->
+            Just "=="
+
+        _ ->
+            Nothing
 
 
 notNotCompositionCheck : CompositionCheckInfo -> List (Error {})

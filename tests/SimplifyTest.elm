@@ -1702,6 +1702,102 @@ a = not <| not x
 a = x
 """
                         ]
+        , test "should simplify 'not (b < c) to (b >= c)" <|
+            \() ->
+                """module A exposing (..)
+a = not (b < c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`not` is used on a negatable boolean operation"
+                            , details = [ "You can remove the `not` call and use `>=` instead." ]
+                            , under = "not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b >= c)
+"""
+                        ]
+        , test "should simplify 'not (b <= c) to (b > c)" <|
+            \() ->
+                """module A exposing (..)
+a = not (b <= c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`not` is used on a negatable boolean operation"
+                            , details = [ "You can remove the `not` call and use `>` instead." ]
+                            , under = "not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b > c)
+"""
+                        ]
+        , test "should simplify 'not (b > c) to (b <= c)" <|
+            \() ->
+                """module A exposing (..)
+a = not (b > c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`not` is used on a negatable boolean operation"
+                            , details = [ "You can remove the `not` call and use `<=` instead." ]
+                            , under = "not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b <= c)
+"""
+                        ]
+        , test "should simplify 'not (b >= c) to (b < c)" <|
+            \() ->
+                """module A exposing (..)
+a = not (b >= c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`not` is used on a negatable boolean operation"
+                            , details = [ "You can remove the `not` call and use `<` instead." ]
+                            , under = "not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b < c)
+"""
+                        ]
+        , test "should simplify 'not (b == c) to (b /= c)" <|
+            \() ->
+                """module A exposing (..)
+a = not (b == c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`not` is used on a negatable boolean operation"
+                            , details = [ "You can remove the `not` call and use `/=` instead." ]
+                            , under = "not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b /= c)
+"""
+                        ]
+        , test "should simplify 'not (b /= c) to (b == c)" <|
+            \() ->
+                """module A exposing (..)
+a = not (b /= c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`not` is used on a negatable boolean operation"
+                            , details = [ "You can remove the `not` call and use `==` instead." ]
+                            , under = "not"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (b == c)
+"""
+                        ]
         ]
 
 
