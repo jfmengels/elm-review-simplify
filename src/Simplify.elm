@@ -6838,11 +6838,19 @@ fullyAppliedLambdaInPipelineChecks : { firstArgument : Node Expression, function
 fullyAppliedLambdaInPipelineChecks { function, firstArgument } =
     case Node.value function of
         Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)) ->
-            appliedLambdaChecks
-                { lambdaRange = lambdaRange
-                , lambda = lambda
-                , firstArgument = firstArgument
-                }
+            case Node.value (AstHelpers.removeParens firstArgument) of
+                Expression.OperatorApplication "|>" _ _ _ ->
+                    []
+
+                Expression.OperatorApplication "<|" _ _ _ ->
+                    []
+
+                _ ->
+                    appliedLambdaChecks
+                        { lambdaRange = lambdaRange
+                        , lambda = lambda
+                        , firstArgument = firstArgument
+                        }
 
         _ ->
             []

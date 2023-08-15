@@ -5353,6 +5353,13 @@ a = n |> (\\x y -> x + y)
                             , under = "\\x y -> x + y"
                             }
                         ]
+        , test "should not report lambdas that are directly called in a |> pipeline if the argument is a pipeline itself" <|
+            \() ->
+                """module A exposing (..)
+a = n |> f |> (\\x y -> x + y)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should report but not fix non-simplifiable lambdas that are directly called in a <| pipeline" <|
             \() ->
                 """module A exposing (..)
@@ -5373,6 +5380,13 @@ a = (\\x y -> x + y) <| n
                             , under = "\\x y -> x + y"
                             }
                         ]
+        , test "should not report lambdas that are directly called in a <| pipeline if the argument is a pipeline itself" <|
+            \() ->
+                """module A exposing (..)
+a = (\\x y -> x + y) <| f <| n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
