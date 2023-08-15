@@ -1659,8 +1659,8 @@ expressionVisitorHelp node context =
                 Nothing ->
                     onlyErrors []
 
-        Expression.OperatorApplication "<|" _ left _ ->
-            onlyErrors (pipingIntoCompositionChecks context LeftComposition left)
+        Expression.OperatorApplication "<|" _ left right ->
+            onlyErrors (leftPipelineChecks context left right)
 
         ----------
         -- (|>) --
@@ -1706,8 +1706,8 @@ expressionVisitorHelp node context =
                 _ ->
                     onlyErrors []
 
-        Expression.OperatorApplication "|>" _ _ right ->
-            onlyErrors (pipingIntoCompositionChecks context RightComposition right)
+        Expression.OperatorApplication "|>" _ left right ->
+            onlyErrors (rightPipelineChecks context left right)
 
         Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
             onlyErrors
@@ -6814,6 +6814,38 @@ resultToMaybeCompositionChecks checkInfo =
 
             else
                 []
+
+
+leftPipelineChecks : ModuleContext -> Node Expression -> Node Expression -> List (Error {})
+leftPipelineChecks context left right =
+    firstThatReportsError
+        [ \() -> pipingIntoCompositionChecks context LeftComposition left
+        , \() -> fullyAppliedLambdaInPipelineChecks { function = left, firstArgument = right }
+        ]
+        ()
+
+
+rightPipelineChecks : ModuleContext -> Node Expression -> Node Expression -> List (Error {})
+rightPipelineChecks context left right =
+    firstThatReportsError
+        [ \() -> pipingIntoCompositionChecks context RightComposition right
+        , \() -> fullyAppliedLambdaInPipelineChecks { function = right, firstArgument = left }
+        ]
+        ()
+
+
+fullyAppliedLambdaInPipelineChecks : { firstArgument : Node Expression, function : Node Expression } -> List (Error {})
+fullyAppliedLambdaInPipelineChecks { function, firstArgument } =
+    case Node.value function of
+        Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)) ->
+            appliedLambdaChecks
+                { lambdaRange = lambdaRange
+                , lambda = lambda
+                , firstArgument = firstArgument
+                }
+
+        _ ->
+            []
 
 
 type CompositionDirection
