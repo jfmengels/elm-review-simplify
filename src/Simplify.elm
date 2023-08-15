@@ -5352,7 +5352,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
         Nothing ->
             []
 
-        Just initialArgument ->
+        Just initialArg ->
             let
                 listArg : Maybe (Node Expression)
                 listArg =
@@ -5376,7 +5376,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                     let
                         initialNumber : Maybe Float
                         initialNumber =
-                            AstHelpers.getUncomputedNumberValue initialArgument
+                            AstHelpers.getUncomputedNumberValue initialArg
 
                         numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> List (Error {})
                         numberBinaryOperationChecks operation =
@@ -5396,7 +5396,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 fixWith
                                     [ Fix.replaceRangeBy
                                         { start = checkInfo.fnRange.start
-                                        , end = (Node.range initialArgument).end
+                                        , end = (Node.range initialArg).end
                                         }
                                         (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo))
                                     ]
@@ -5410,8 +5410,8 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                         if checkInfo.usingRightPizza then
                                             -- list |> fold op initial --> ((list |> List.op) op initial)
                                             fixWith
-                                                [ Fix.insertAt (Node.range initialArgument).end ")"
-                                                , Fix.insertAt (Node.range initialArgument).start (operation.two ++ " ")
+                                                [ Fix.insertAt (Node.range initialArg).end ")"
+                                                , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
                                                 , Fix.replaceRangeBy
                                                     { start = checkInfo.fnRange.start
                                                     , end = (Node.range checkInfo.firstArg).end
@@ -5425,7 +5425,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                             -- fold op initial list --> (initial op (List.op list))
                                             fixWith
                                                 [ Fix.insertAt checkInfo.parentRange.end ")"
-                                                , Fix.insertAt (Node.range initialArgument).end
+                                                , Fix.insertAt (Node.range initialArg).end
                                                     (" "
                                                         ++ operation.two
                                                         ++ " ("
@@ -5433,7 +5433,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                                     )
                                                 , Fix.removeRange
                                                     { start = checkInfo.fnRange.start
-                                                    , end = (Node.range initialArgument).start
+                                                    , end = (Node.range initialArg).start
                                                     }
                                                 ]
 
@@ -5456,7 +5456,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy
-                                        { start = checkInfo.fnRange.start, end = (Node.range initialArgument).end }
+                                        { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
                                         (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
                                             ++ " "
                                             ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo)
@@ -5470,7 +5470,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             , details = [ "You can replace this call by the initial accumulator." ]
                             }
                             checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument })
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
                         ]
 
                     else if Maybe.withDefault False (Maybe.map (AstHelpers.isIdentity checkInfo.lookupTable) (getAlwaysResult checkInfo checkInfo.firstArg)) then
@@ -5489,7 +5489,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     ]
 
                                 Just _ ->
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArgument }
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
                             )
                         ]
 
@@ -5500,7 +5500,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                     else
-                        case Evaluate.getBoolean checkInfo initialArgument of
+                        case Evaluate.getBoolean checkInfo initialArg of
                             Undetermined ->
                                 []
 
