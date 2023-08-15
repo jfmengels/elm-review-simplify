@@ -4029,17 +4029,21 @@ reverseReverseCompositionErrorMessage =
 
 stringJoinChecks : CheckInfo -> List (Error {})
 stringJoinChecks checkInfo =
-    case secondArg checkInfo of
-        Just (Node _ (Expression.ListExpr [])) ->
-            [ Rule.errorWithFix
-                { message = "Using String.join on an empty list will result in an empty string"
-                , details = [ "You can replace this call by an empty string." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case secondArg checkInfo of
+                Just (Node _ (Expression.ListExpr [])) ->
+                    [ Rule.errorWithFix
+                        { message = "Using String.join on an empty list will result in an empty string"
+                        , details = [ "You can replace this call by an empty string." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                    ]
 
-        _ ->
+                _ ->
+                    []
+        , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.Literal "" ->
                     [ Rule.errorWithFix
@@ -4054,6 +4058,8 @@ stringJoinChecks checkInfo =
 
                 _ ->
                     []
+        ]
+        ()
 
 
 stringLengthChecks : CheckInfo -> List (Error {})
@@ -4116,19 +4122,23 @@ stringReplaceChecks : CheckInfo -> List (Error {})
 stringReplaceChecks checkInfo =
     case secondArg checkInfo of
         Just replacementArg ->
-            case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
-                Normalize.ConfirmedEquality ->
-                    [ Rule.errorWithFix
-                        { message = "The result of String.replace will be the original string"
-                        , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
-                        }
-                        checkInfo.fnRange
-                        (toIdentityFix { lastArg = thirdArg checkInfo, resources = checkInfo })
-                    ]
+            firstThatReportsError
+                [ \() ->
+                    case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
+                        Normalize.ConfirmedEquality ->
+                            [ Rule.errorWithFix
+                                { message = "The result of String.replace will be the original string"
+                                , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                                }
+                                checkInfo.fnRange
+                                (toIdentityFix { lastArg = thirdArg checkInfo, resources = checkInfo })
+                            ]
 
-                _ ->
-                    case ( Node.value checkInfo.firstArg, Node.value replacementArg, thirdArg checkInfo ) of
-                        ( _, _, Just (Node thirdRange (Expression.Literal "")) ) ->
+                        _ ->
+                            []
+                , \() ->
+                    case thirdArg checkInfo of
+                        Just (Node thirdRange (Expression.Literal "")) ->
                             [ Rule.errorWithFix
                                 { message = "The result of String.replace will be the empty string"
                                 , details = [ "Replacing anything on an empty string results in an empty string." ]
@@ -4141,6 +4151,10 @@ stringReplaceChecks checkInfo =
                                 ]
                             ]
 
+                        _ ->
+                            []
+                , \() ->
+                    case ( Node.value checkInfo.firstArg, Node.value replacementArg, thirdArg checkInfo ) of
                         ( Expression.Literal first, Expression.Literal second, Just (Node thirdRange (Expression.Literal third)) ) ->
                             if not (String.contains "\u{000D}" first) && String.replace first second third == third then
                                 [ Rule.errorWithFix
@@ -4156,6 +4170,8 @@ stringReplaceChecks checkInfo =
 
                         _ ->
                             []
+                ]
+                ()
 
         Nothing ->
             []
