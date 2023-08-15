@@ -2550,22 +2550,36 @@ plusChecks checkInfo =
 addingZeroCheck : OperatorCheckInfo -> List (Error {})
 addingZeroCheck checkInfo =
     findMap
-        (\( node, getRange ) ->
+        (\( node, getRanges ) ->
             if AstHelpers.getUncomputedNumberValue node == Just 0 then
+                let
+                    ranges =
+                        getRanges ()
+                in
                 Just
                     [ Rule.errorWithFix
                         { message = "Unnecessary addition with 0"
                         , details = [ "Adding 0 does not change the value of the number." ]
                         }
-                        (getRange ())
-                        [ Fix.removeRange (getRange ()) ]
+                        ranges.error
+                        [ Fix.removeRange ranges.removed ]
                     ]
 
             else
                 Nothing
         )
-        [ ( checkInfo.right, \() -> { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } )
-        , ( checkInfo.left, \() -> { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start } )
+        [ ( checkInfo.right
+          , \() ->
+                { removed = { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
+                , error = { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
+                }
+          )
+        , ( checkInfo.left
+          , \() ->
+                { removed = { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
+                , error = { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
+                }
+          )
         ]
         |> Maybe.withDefault []
 
@@ -2596,35 +2610,30 @@ addingOppositesCheck checkInfo =
 minusChecks : OperatorCheckInfo -> List (Error {})
 minusChecks checkInfo =
     if AstHelpers.getUncomputedNumberValue checkInfo.right == Just 0 then
-        let
-            range : Range
-            range =
-                { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-        in
         [ Rule.errorWithFix
             { message = "Unnecessary subtraction with 0"
             , details = [ "Subtracting 0 does not change the value of the number." ]
             }
-            range
-            [ Fix.removeRange range ]
+            { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
+            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
         ]
 
     else if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
         let
-            range : Range
-            range =
+            replacedRange : Range
+            replacedRange =
                 { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
         in
         [ Rule.errorWithFix
             { message = "Unnecessary subtracting from 0"
             , details = [ "You can negate the expression on the right like `-n`." ]
             }
-            range
+            { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
             (if needsParens (Node.value checkInfo.right) then
-                [ Fix.replaceRangeBy range "-(", Fix.insertAt checkInfo.rightRange.end ")" ]
+                [ Fix.replaceRangeBy replacedRange "-(", Fix.insertAt checkInfo.rightRange.end ")" ]
 
              else
-                [ Fix.replaceRangeBy range "-" ]
+                [ Fix.replaceRangeBy replacedRange "-" ]
             )
         ]
 
@@ -2657,22 +2666,22 @@ checkIfMinusResultsInZero checkInfo =
 multiplyChecks : OperatorCheckInfo -> List (Error {})
 multiplyChecks checkInfo =
     findMap
-        (\( node, getRange ) ->
+        (\( node, getRanges ) ->
             case AstHelpers.getUncomputedNumberValue node of
                 Just number ->
                     if number == 1 then
                         let
-                            range : Range
+                            range : { error : Range, fix : Range }
                             range =
-                                getRange ()
+                                getRanges ()
                         in
                         Just
                             [ Rule.errorWithFix
                                 { message = "Unnecessary multiplication by 1"
                                 , details = [ "Multiplying by 1 does not change the value of the number." ]
                                 }
-                                range
-                                [ Fix.removeRange range ]
+                                range.error
+                                [ Fix.removeRange range.fix ]
                             ]
 
                     else if number == 0 then
@@ -2688,7 +2697,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                     ]
                                 }
-                                (getRange ())
+                                (getRanges ()).error
                                 (if checkInfo.expectNaN then
                                     []
 
@@ -2703,8 +2712,18 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                 Nothing ->
                     Nothing
         )
-        [ ( checkInfo.right, \() -> { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } )
-        , ( checkInfo.left, \() -> { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start } )
+        [ ( checkInfo.right
+          , \() ->
+                { fix = { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
+                , error = { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
+                }
+          )
+        , ( checkInfo.left
+          , \() ->
+                { fix = { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
+                , error = { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
+                }
+          )
         ]
         |> Maybe.withDefault []
 
@@ -2712,17 +2731,12 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
 divisionChecks : OperatorCheckInfo -> List (Error {})
 divisionChecks checkInfo =
     if AstHelpers.getUncomputedNumberValue checkInfo.right == Just 1 then
-        let
-            range : Range
-            range =
-                { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-        in
         [ Rule.errorWithFix
             { message = "Unnecessary division by 1"
             , details = [ "Dividing by 1 does not change the value of the number." ]
             }
-            range
-            [ Fix.removeRange range ]
+            { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
+            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
         ]
 
     else
@@ -2733,30 +2747,54 @@ plusplusChecks : OperatorCheckInfo -> List (Error {})
 plusplusChecks checkInfo =
     case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
         ( Expression.Literal "", Expression.Literal _ ) ->
-            [ errorForAddingEmptyStrings checkInfo.leftRange
-                { start = checkInfo.leftRange.start
-                , end = checkInfo.rightRange.start
+            [ errorForAddingEmptyStrings
+                { removed =
+                    { start = checkInfo.leftRange.start
+                    , end = checkInfo.rightRange.start
+                    }
+                , error =
+                    { start = checkInfo.leftRange.start
+                    , end = checkInfo.operatorRange.end
+                    }
                 }
             ]
 
         ( Expression.Literal _, Expression.Literal "" ) ->
-            [ errorForAddingEmptyStrings checkInfo.rightRange
-                { start = checkInfo.leftRange.end
-                , end = checkInfo.rightRange.end
+            [ errorForAddingEmptyStrings
+                { removed =
+                    { start = checkInfo.leftRange.end
+                    , end = checkInfo.rightRange.end
+                    }
+                , error =
+                    { start = checkInfo.operatorRange.start
+                    , end = checkInfo.rightRange.end
+                    }
                 }
             ]
 
         ( Expression.ListExpr [], _ ) ->
-            [ errorForAddingEmptyLists checkInfo.leftRange
-                { start = checkInfo.leftRange.start
-                , end = checkInfo.rightRange.start
+            [ errorForAddingEmptyLists
+                { removed =
+                    { start = checkInfo.leftRange.start
+                    , end = checkInfo.rightRange.start
+                    }
+                , error =
+                    { start = checkInfo.leftRange.start
+                    , end = checkInfo.operatorRange.end
+                    }
                 }
             ]
 
         ( _, Expression.ListExpr [] ) ->
-            [ errorForAddingEmptyLists checkInfo.rightRange
-                { start = checkInfo.leftRange.end
-                , end = checkInfo.rightRange.end
+            [ errorForAddingEmptyLists
+                { removed =
+                    { start = checkInfo.leftRange.end
+                    , end = checkInfo.rightRange.end
+                    }
+                , error =
+                    { start = checkInfo.operatorRange.start
+                    , end = checkInfo.rightRange.end
+                    }
                 }
             ]
 
@@ -2784,11 +2822,8 @@ plusplusChecks checkInfo =
                     , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
                     }
                     checkInfo.parentRange
-                    (Fix.replaceRangeBy
-                        { start = checkInfo.leftRange.end
-                        , end = checkInfo.rightRange.start
-                        }
-                        " :: "
+                    (Fix.replaceRangeBy checkInfo.operatorRange
+                        "::"
                         :: replaceBySubExpressionFix checkInfo.leftRange listElement
                     )
                 ]
@@ -2797,24 +2832,24 @@ plusplusChecks checkInfo =
             []
 
 
-errorForAddingEmptyStrings : Range -> Range -> Error {}
-errorForAddingEmptyStrings range rangeToRemove =
+errorForAddingEmptyStrings : { error : Range, removed : Range } -> Error {}
+errorForAddingEmptyStrings ranges =
     Rule.errorWithFix
         { message = "Unnecessary concatenation with an empty string"
         , details = [ "You should remove the concatenation with the empty string." ]
         }
-        range
-        [ Fix.removeRange rangeToRemove ]
+        ranges.error
+        [ Fix.removeRange ranges.removed ]
 
 
-errorForAddingEmptyLists : Range -> Range -> Error {}
-errorForAddingEmptyLists range rangeToRemove =
+errorForAddingEmptyLists : { error : Range, removed : Range } -> Error {}
+errorForAddingEmptyLists ranges =
     Rule.errorWithFix
-        { message = "Concatenating with a single list doesn't have any effect"
+        { message = "Unnecessary concatenation with an empty list"
         , details = [ "You should remove the concatenation with the empty list." ]
         }
-        range
-        [ Fix.removeRange rangeToRemove ]
+        ranges.error
+        [ Fix.removeRange ranges.removed ]
 
 
 consChecks : OperatorCheckInfo -> List (Error {})
@@ -2825,7 +2860,7 @@ consChecks checkInfo =
                 { message = "Element added to the beginning of the list could be included in the list"
                 , details = [ "Try moving the element inside the list it is being added to." ]
                 }
-                checkInfo.leftRange
+                checkInfo.operatorRange
                 [ Fix.insertAt checkInfo.leftRange.start "[ "
                 , Fix.replaceRangeBy
                     { start = checkInfo.leftRange.end
@@ -3347,7 +3382,7 @@ equalityChecks isEqual checkInfo =
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
             }
-            checkInfo.parentRange
+            { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
             [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end } ]
         ]
 
@@ -3356,7 +3391,7 @@ equalityChecks isEqual checkInfo =
             { message = "Unnecessary comparison with boolean"
             , details = [ "The result of the expression will be the same with or without the comparison." ]
             }
-            checkInfo.parentRange
+            { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
             [ Fix.removeRange { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start } ]
         ]
 

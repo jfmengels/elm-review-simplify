@@ -2111,7 +2111,7 @@ a = n + 0
                         [ Review.Test.error
                             { message = "Unnecessary addition with 0"
                             , details = [ "Adding 0 does not change the value of the number." ]
-                            , under = " + 0"
+                            , under = "+ 0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2127,7 +2127,7 @@ a = n + 0.0
                         [ Review.Test.error
                             { message = "Unnecessary addition with 0"
                             , details = [ "Adding 0 does not change the value of the number." ]
-                            , under = " + 0.0"
+                            , under = "+ 0.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2143,7 +2143,7 @@ a = 0 + n
                         [ Review.Test.error
                             { message = "Unnecessary addition with 0"
                             , details = [ "Adding 0 does not change the value of the number." ]
-                            , under = "0 + "
+                            , under = "0 +"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2212,7 +2212,7 @@ a = n - 0
                         [ Review.Test.error
                             { message = "Unnecessary subtraction with 0"
                             , details = [ "Subtracting 0 does not change the value of the number." ]
-                            , under = " - 0"
+                            , under = "- 0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2228,7 +2228,7 @@ a = n - 0.0
                         [ Review.Test.error
                             { message = "Unnecessary subtraction with 0"
                             , details = [ "Subtracting 0 does not change the value of the number." ]
-                            , under = " - 0.0"
+                            , under = "- 0.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2244,7 +2244,7 @@ a = 0 - n
                         [ Review.Test.error
                             { message = "Unnecessary subtracting from 0"
                             , details = [ "You can negate the expression on the right like `-n`." ]
-                            , under = "0 - "
+                            , under = "0 -"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = -n
@@ -2260,7 +2260,7 @@ a = 0 - List.length list
                         [ Review.Test.error
                             { message = "Unnecessary subtracting from 0"
                             , details = [ "You can negate the expression on the right like `-n`." ]
-                            , under = "0 - "
+                            , under = "0 -"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = -(List.length list)
@@ -2313,7 +2313,7 @@ a = n * 1
                         [ Review.Test.error
                             { message = "Unnecessary multiplication by 1"
                             , details = [ "Multiplying by 1 does not change the value of the number." ]
-                            , under = " * 1"
+                            , under = "* 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2329,7 +2329,7 @@ a = n * 1.0
                         [ Review.Test.error
                             { message = "Unnecessary multiplication by 1"
                             , details = [ "Multiplying by 1 does not change the value of the number." ]
-                            , under = " * 1.0"
+                            , under = "* 1.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2345,7 +2345,7 @@ a = 1 * n
                         [ Review.Test.error
                             { message = "Unnecessary multiplication by 1"
                             , details = [ "Multiplying by 1 does not change the value of the number." ]
-                            , under = "1 * "
+                            , under = "1 *"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2368,7 +2368,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
                                 , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                 ]
-                            , under = " * 0"
+                            , under = "* 0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
@@ -2391,7 +2391,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
                                 , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                 ]
-                            , under = " * 0"
+                            , under = "* 0"
                             }
                         ]
         , test "should simplify n * 0.0 to 0" <|
@@ -2411,7 +2411,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
                                 , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                 ]
-                            , under = " * 0.0"
+                            , under = "* 0.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
@@ -2434,7 +2434,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
                                 , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                 ]
-                            , under = " * 0.0"
+                            , under = "* 0.0"
                             }
                         ]
         , test "should simplify 0 * n to 0" <|
@@ -2454,7 +2454,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
                                 , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                 ]
-                            , under = "0 * "
+                            , under = "0 *"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
@@ -2477,7 +2477,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
                                 , """Basics.isNaN: https://package.elm-lang.org/packages/elm/core/latest/Basics#isNaN
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                 ]
-                            , under = "0.0 * "
+                            , under = "0.0 *"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
@@ -2507,7 +2507,7 @@ a = n / 1
                         [ Review.Test.error
                             { message = "Unnecessary division by 1"
                             , details = [ "Dividing by 1 does not change the value of the number." ]
-                            , under = " / 1"
+                            , under = "/ 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2523,7 +2523,7 @@ a = n / 1.0
                         [ Review.Test.error
                             { message = "Unnecessary division by 1"
                             , details = [ "Dividing by 1 does not change the value of the number." ]
-                            , under = " / 1.0"
+                            , under = "/ 1.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2848,7 +2848,7 @@ a = x == True
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
-                            , under = "x == True"
+                            , under = "== True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -2871,7 +2871,7 @@ a = True == x
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
-                            , under = "True == x"
+                            , under = "True =="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -2901,7 +2901,7 @@ a = x /= False
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
-                            , under = "x /= False"
+                            , under = "/= False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -2924,7 +2924,7 @@ a = False /= x
                         [ Review.Test.error
                             { message = "Unnecessary comparison with boolean"
                             , details = [ "The result of the expression will be the same with or without the comparison." ]
-                            , under = "False /= x"
+                            , under = "False /="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -5260,7 +5260,7 @@ a = "a" ++ ""
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty string"
                             , details = [ "You should remove the concatenation with the empty string." ]
-                            , under = "\"\""
+                            , under = "++ \"\""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = "a"
@@ -5283,7 +5283,7 @@ a = "" ++ "a"
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty string"
                             , details = [ "You should remove the concatenation with the empty string." ]
-                            , under = "\"\""
+                            , under = "\"\" ++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = "a"
@@ -5329,9 +5329,9 @@ a = [] ++ something
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Concatenating with a single list doesn't have any effect"
+                            { message = "Unnecessary concatenation with an empty list"
                             , details = [ "You should remove the concatenation with the empty list." ]
-                            , under = "[]"
+                            , under = "[] ++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = something
@@ -5345,9 +5345,9 @@ a = something ++ []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Concatenating with a single list doesn't have any effect"
+                            { message = "Unnecessary concatenation with an empty list"
                             , details = [ "You should remove the concatenation with the empty list." ]
-                            , under = "[]"
+                            , under = "++ []"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = something
@@ -6557,7 +6557,7 @@ a = 1 :: []
                         [ Review.Test.error
                             { message = "Element added to the beginning of the list could be included in the list"
                             , details = [ "Try moving the element inside the list it is being added to." ]
-                            , under = "1"
+                            , under = "::"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ 1 ]
