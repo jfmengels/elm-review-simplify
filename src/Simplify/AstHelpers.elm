@@ -18,6 +18,7 @@ module Simplify.AstHelpers exposing
     , getSpecificValueOrFunction
     , getTuple
     , getTypeExposeIncludingVariants
+    , getUncomputedIntValue
     , getUncomputedNumberValue
     , isBinaryOperation
     , isEmptyList
@@ -399,18 +400,38 @@ isTupleSecondPatternLambda expressionNode =
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
 getUncomputedNumberValue node =
+    case getUncomputedIntValue node of
+        Just intValue ->
+            Just (toFloat intValue)
+
+        Nothing ->
+            getUncomputedFloatValue node
+
+
+getUncomputedFloatValue : Node Expression -> Maybe Float
+getUncomputedFloatValue node =
     case Node.value (removeParens node) of
-        Expression.Integer n ->
-            Just (toFloat n)
-
-        Expression.Hex n ->
-            Just (toFloat n)
-
         Expression.Floatable n ->
             Just n
 
         Expression.Negation expr ->
-            Maybe.map negate (getUncomputedNumberValue expr)
+            Maybe.map negate (getUncomputedFloatValue expr)
+
+        _ ->
+            Nothing
+
+
+getUncomputedIntValue : Node Expression -> Maybe Int
+getUncomputedIntValue node =
+    case Node.value (removeParens node) of
+        Expression.Integer n ->
+            Just n
+
+        Expression.Hex n ->
+            Just n
+
+        Expression.Negation expr ->
+            Maybe.map negate (getUncomputedIntValue expr)
 
         _ ->
             Nothing
