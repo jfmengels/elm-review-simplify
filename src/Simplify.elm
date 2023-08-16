@@ -1545,83 +1545,52 @@ expressionVisitorHelp (Node expressionRange expression) context =
             }
     in
     case expression of
-        --------------------
-        -- FUNCTION CALLS --
-        --------------------
-        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: restOfArguments) ->
-            case
-                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
-            of
-                Just checkFn ->
+        -----------------
+        -- APPLICATION --
+        -----------------
+        Expression.Application (applied :: applicationFirstArg :: applicationArgsAfterFirst) ->
+            case ( applied, ( applicationFirstArg, applicationArgsAfterFirst ) ) of
+                ( Node fnRange (Expression.FunctionOrValue _ fnName), ( firstArg, restOfArguments ) ) ->
+                    case
+                        ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                            |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+                    of
+                        Just checkFn ->
+                            onlyErrors
+                                (checkFn
+                                    (toCheckInfo
+                                        { fnRange = fnRange
+                                        , firstArg = firstArg
+                                        , argsAfterFirst = restOfArguments
+                                        , usingRightPizza = False
+                                        }
+                                    )
+                                )
+
+                        Nothing ->
+                            onlyErrors []
+
+                ( Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))), ( firstArg, _ ) ) ->
                     onlyErrors
-                        (checkFn
-                            (toCheckInfo
-                                { fnRange = fnRange
-                                , firstArg = firstArg
-                                , argsAfterFirst = restOfArguments
-                                , usingRightPizza = False
-                                }
-                            )
+                        (appliedLambdaChecks
+                            { lambdaRange = lambdaRange
+                            , lambda = lambda
+                            , firstArgument = firstArg
+                            }
                         )
 
-                Nothing ->
+                ( Node operatorRange (Expression.PrefixOperator operator), ( left, right :: [] ) ) ->
+                    onlyErrors
+                        (fullyAppliedPrefixOperatorChecks
+                            { operator = operator
+                            , operatorRange = operatorRange
+                            , left = left
+                            , right = right
+                            }
+                        )
+
+                _ ->
                     onlyErrors []
-
-        -------------------
-        -- IF EXPRESSION --
-        -------------------
-        Expression.IfBlock condition trueBranch falseBranch ->
-            ifChecks
-                context
-                expressionRange
-                { condition = condition
-                , trueBranch = trueBranch
-                , falseBranch = falseBranch
-                }
-
-        -------------------------------
-        --  APPLIED LAMBDA FUNCTIONS --
-        -------------------------------
-        Expression.Application ((Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)))) :: firstArgument :: _) ->
-            onlyErrors
-                (appliedLambdaChecks
-                    { lambdaRange = lambdaRange
-                    , lambda = lambda
-                    , firstArgument = firstArgument
-                    }
-                )
-
-        -----------------------------------
-        -- FULLY APPLIED PREFIX OPERATOR --
-        -----------------------------------
-        Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), left, right ] ->
-            onlyErrors
-                (fullyAppliedPrefixOperatorChecks
-                    { operator = operator
-                    , operatorRange = operatorRange
-                    , left = left
-                    , right = right
-                    }
-                )
-
-        -------------------
-        -- RECORD UPDATE --
-        -------------------
-        Expression.RecordUpdateExpression variable fields ->
-            onlyErrors (removeRecordFields expressionRange variable fields)
-
-        -------------
-        -- CASE OF --
-        -------------
-        Expression.CaseExpression caseBlock ->
-            onlyErrors (caseOfChecks context expressionRange caseBlock)
-
-        ------------
-        -- LET IN --
-        ------------
-        Expression.LetExpression caseBlock ->
-            onlyErrors (letInChecks caseBlock)
 
         ----------
         -- (<|) --
@@ -1860,7 +1829,94 @@ expressionVisitorHelp (Node expressionRange expression) context =
                 _ ->
                     onlyErrors []
 
-        _ ->
+        --------
+        -- IF --
+        --------
+        Expression.IfBlock condition trueBranch falseBranch ->
+            ifChecks
+                context
+                expressionRange
+                { condition = condition
+                , trueBranch = trueBranch
+                , falseBranch = falseBranch
+                }
+
+        -------------
+        -- CASE OF --
+        -------------
+        Expression.CaseExpression caseBlock ->
+            onlyErrors (caseOfChecks context expressionRange caseBlock)
+
+        ------------
+        -- LET IN --
+        ------------
+        Expression.LetExpression caseBlock ->
+            onlyErrors (letInChecks caseBlock)
+
+        -------------------
+        -- RECORD UPDATE --
+        -------------------
+        Expression.RecordUpdateExpression variable fields ->
+            onlyErrors (removeRecordFields expressionRange variable fields)
+
+        --------------------
+        -- NOT SIMPLIFIED --
+        --------------------
+        Expression.UnitExpr ->
+            onlyErrors []
+
+        Expression.CharLiteral _ ->
+            onlyErrors []
+
+        Expression.Integer _ ->
+            onlyErrors []
+
+        Expression.Hex _ ->
+            onlyErrors []
+
+        Expression.Floatable _ ->
+            onlyErrors []
+
+        Expression.Literal _ ->
+            onlyErrors []
+
+        Expression.GLSLExpression _ ->
+            onlyErrors []
+
+        Expression.PrefixOperator _ ->
+            onlyErrors []
+
+        Expression.RecordAccessFunction _ ->
+            onlyErrors []
+
+        Expression.FunctionOrValue _ _ ->
+            onlyErrors []
+
+        Expression.ParenthesizedExpression _ ->
+            onlyErrors []
+
+        Expression.TupledExpression _ ->
+            onlyErrors []
+
+        Expression.ListExpr _ ->
+            onlyErrors []
+
+        Expression.RecordExpr _ ->
+            onlyErrors []
+
+        Expression.LambdaExpression _ ->
+            onlyErrors []
+
+        ----------------------
+        -- IMPOSSIBLE CASES --
+        ----------------------
+        Expression.Operator _ ->
+            onlyErrors []
+
+        Expression.Application [] ->
+            onlyErrors []
+
+        Expression.Application (_ :: []) ->
             onlyErrors []
 
 
