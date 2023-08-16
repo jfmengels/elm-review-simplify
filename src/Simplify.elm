@@ -6475,7 +6475,7 @@ randomUniformChecks checkInfo =
                         Node.range checkInfo.firstArg
                 in
                 [ Rule.errorWithFix
-                    { message = "uniform with only one possible value can be replaced by constant"
+                    { message = "Random.uniform with only one possible value can be replaced by Random.constant"
                     , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
                     }
                     checkInfo.fnRange
@@ -6498,7 +6498,7 @@ randomWeightedChecks checkInfo =
         Just otherOptionsArg ->
             if AstHelpers.isEmptyList otherOptionsArg then
                 [ Rule.errorWithFix
-                    { message = "weighted with only one possible value can be replaced by constant"
+                    { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                     , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                     }
                     checkInfo.fnRange

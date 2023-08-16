@@ -17421,7 +17421,7 @@ a = Random.uniform a []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "uniform with only one possible value can be replaced by constant"
+                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.uniform"
                             }
@@ -17439,7 +17439,7 @@ a = Random.uniform a <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "uniform with only one possible value can be replaced by constant"
+                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.uniform"
                             }
@@ -17457,7 +17457,7 @@ a = [] |> Random.uniform a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "uniform with only one possible value can be replaced by constant"
+                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.uniform"
                             }
@@ -17492,7 +17492,7 @@ a = Random.weighted ( w, a ) []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "weighted with only one possible value can be replaced by constant"
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.weighted"
                             }
@@ -17510,7 +17510,7 @@ a = Random.weighted ( w, a ) <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "weighted with only one possible value can be replaced by constant"
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.weighted"
                             }
@@ -17528,7 +17528,7 @@ a = [] |> Random.weighted ( w, a )
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "weighted with only one possible value can be replaced by constant"
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.weighted"
                             }
@@ -17546,7 +17546,7 @@ a = Random.weighted tuple []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "weighted with only one possible value can be replaced by constant"
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.weighted"
                             }
@@ -17564,7 +17564,7 @@ a = Random.weighted tuple <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "weighted with only one possible value can be replaced by constant"
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.weighted"
                             }
@@ -17582,7 +17582,7 @@ a = [] |> Random.weighted tuple
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "weighted with only one possible value can be replaced by constant"
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
                             , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
                             , under = "Random.weighted"
                             }
