@@ -5381,117 +5381,121 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
 
         Just initialArg ->
             let
-                listArg : Maybe (Node Expression)
-                listArg =
+                maybeListArg : Maybe (Node Expression)
+                maybeListArg =
                     thirdArg checkInfo
-            in
-            case Maybe.andThen (getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable) listArg of
-                Just setToListCall ->
-                    [ Rule.errorWithFix
-                        { message = "To fold a set, you don't need to convert to a List"
-                        , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
-                        }
-                        checkInfo.fnRange
-                        (keepOnlyFix { parentRange = setToListCall.nodeRange, keep = Node.range setToListCall.firstArg }
-                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                    (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
-                               ]
-                        )
-                    ]
 
-                Nothing ->
+                numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> List (Error {})
+                numberBinaryOperationChecks operation =
                     let
-                        initialNumber : Maybe Float
-                        initialNumber =
-                            AstHelpers.getUncomputedNumberValue initialArg
+                        fixWith : List Fix -> List (Error {})
+                        fixWith fixes =
+                            [ Rule.errorWithFix
+                                { message = "Use List." ++ operation.list ++ " instead"
+                                , details =
+                                    [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                fixes
+                            ]
+                    in
+                    if AstHelpers.getUncomputedNumberValue initialArg == Just (Basics.toFloat operation.identity) then
+                        fixWith
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.fnRange.start
+                                , end = (Node.range initialArg).end
+                                }
+                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo))
+                            ]
 
-                        numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> List (Error {})
-                        numberBinaryOperationChecks operation =
-                            let
-                                fixWith : List Fix -> List (Error {})
-                                fixWith fixes =
+                    else
+                        case maybeListArg of
+                            Nothing ->
+                                []
+
+                            Just _ ->
+                                if checkInfo.usingRightPizza then
+                                    -- list |> fold op initial --> ((list |> List.op) op initial)
+                                    fixWith
+                                        [ Fix.insertAt (Node.range initialArg).end ")"
+                                        , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
+                                        , Fix.replaceRangeBy
+                                            { start = checkInfo.fnRange.start
+                                            , end = (Node.range checkInfo.firstArg).end
+                                            }
+                                            (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
+                                        , Fix.insertAt checkInfo.parentRange.start "(("
+                                        ]
+
+                                else
+                                    -- <| or application
+                                    -- fold op initial list --> (initial op (List.op list))
+                                    fixWith
+                                        [ Fix.insertAt checkInfo.parentRange.end ")"
+                                        , Fix.insertAt (Node.range initialArg).end
+                                            (" "
+                                                ++ operation.two
+                                                ++ " ("
+                                                ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                            )
+                                        , Fix.removeRange
+                                            { start = checkInfo.fnRange.start
+                                            , end = (Node.range initialArg).start
+                                            }
+                                        ]
+
+                boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> List (Rule.Error {})
+                boolBinaryOperationChecks operation initialIsDetermining =
+                    if initialIsDetermining == operation.determining then
+                        [ Rule.errorWithFix
+                            { message = "The call to List." ++ foldOperationName ++ " will result in " ++ AstHelpers.boolToString operation.determining
+                            , details = [ "You can replace this call by " ++ AstHelpers.boolToString operation.determining ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix (AstHelpers.boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                        ]
+
+                    else
+                        -- initialIsTrue /= operation.determining
+                        [ Rule.errorWithFix
+                            { message = "Use List." ++ operation.list ++ " identity instead"
+                            , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using List." ++ operation.list ++ " identity." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
+                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                    ++ " "
+                                    ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo)
+                                )
+                            ]
+                        ]
+            in
+            firstThatReportsError
+                [ \() ->
+                    case maybeListArg of
+                        Just listArg ->
+                            case getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
+                                Just setToListCall ->
                                     [ Rule.errorWithFix
-                                        { message = "Use List." ++ operation.list ++ " instead"
-                                        , details =
-                                            [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
+                                        { message = "To fold a set, you don't need to convert to a List"
+                                        , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
                                         }
                                         checkInfo.fnRange
-                                        fixes
-                                    ]
-                            in
-                            if initialNumber == Just (Basics.toFloat operation.identity) then
-                                fixWith
-                                    [ Fix.replaceRangeBy
-                                        { start = checkInfo.fnRange.start
-                                        , end = (Node.range initialArg).end
-                                        }
-                                        (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo))
-                                    ]
-
-                            else
-                                case listArg of
-                                    Nothing ->
-                                        []
-
-                                    Just _ ->
-                                        if checkInfo.usingRightPizza then
-                                            -- list |> fold op initial --> ((list |> List.op) op initial)
-                                            fixWith
-                                                [ Fix.insertAt (Node.range initialArg).end ")"
-                                                , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
-                                                , Fix.replaceRangeBy
-                                                    { start = checkInfo.fnRange.start
-                                                    , end = (Node.range checkInfo.firstArg).end
-                                                    }
-                                                    (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
-                                                , Fix.insertAt checkInfo.parentRange.start "(("
-                                                ]
-
-                                        else
-                                            -- <| or application
-                                            -- fold op initial list --> (initial op (List.op list))
-                                            fixWith
-                                                [ Fix.insertAt checkInfo.parentRange.end ")"
-                                                , Fix.insertAt (Node.range initialArg).end
-                                                    (" "
-                                                        ++ operation.two
-                                                        ++ " ("
-                                                        ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
-                                                    )
-                                                , Fix.removeRange
-                                                    { start = checkInfo.fnRange.start
-                                                    , end = (Node.range initialArg).start
-                                                    }
-                                                ]
-
-                        boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> List (Rule.Error {})
-                        boolBinaryOperationChecks operation initialIsDetermining =
-                            if initialIsDetermining == operation.determining then
-                                [ Rule.errorWithFix
-                                    { message = "The call to List." ++ foldOperationName ++ " will result in " ++ AstHelpers.boolToString operation.determining
-                                    , details = [ "You can replace this call by " ++ AstHelpers.boolToString operation.determining ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceByEmptyFix (AstHelpers.boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                                ]
-
-                            else
-                                -- initialIsTrue /= operation.determining
-                                [ Rule.errorWithFix
-                                    { message = "Use List." ++ operation.list ++ " identity instead"
-                                    , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using List." ++ operation.list ++ " identity." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy
-                                        { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
-                                        (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
-                                            ++ " "
-                                            ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo)
+                                        (keepOnlyFix { parentRange = setToListCall.nodeRange, keep = Node.range setToListCall.firstArg }
+                                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                    (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
+                                               ]
                                         )
                                     ]
-                                ]
-                    in
-                    if Maybe.withDefault False (Maybe.map AstHelpers.isEmptyList listArg) then
+
+                                Nothing ->
+                                    []
+
+                        Nothing ->
+                            []
+                , \() ->
+                    if Maybe.withDefault False (Maybe.map AstHelpers.isEmptyList maybeListArg) then
                         [ Rule.errorWithFix
                             { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
@@ -5500,46 +5504,64 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
                         ]
 
-                    else if Maybe.withDefault False (Maybe.map (AstHelpers.isIdentity checkInfo.lookupTable) (getAlwaysResult checkInfo checkInfo.firstArg)) then
-                        [ Rule.errorWithFix
-                            { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
-                            }
-                            checkInfo.fnRange
-                            (case listArg of
-                                Nothing ->
-                                    [ Fix.replaceRangeBy
-                                        { start = checkInfo.fnRange.start
-                                        , end = (Node.range checkInfo.firstArg).end
-                                        }
-                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo))
-                                    ]
+                    else
+                        []
+                , \() ->
+                    case getAlwaysResult checkInfo checkInfo.firstArg of
+                        Just reduceAlwaysResult ->
+                            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
+                                [ Rule.errorWithFix
+                                    { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                                    , details = [ "You can replace this call by the initial accumulator." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (case maybeListArg of
+                                        Nothing ->
+                                            [ Fix.replaceRangeBy
+                                                { start = checkInfo.fnRange.start
+                                                , end = (Node.range checkInfo.firstArg).end
+                                                }
+                                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo))
+                                            ]
 
-                                Just _ ->
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
-                            )
-                        ]
+                                        Just _ ->
+                                            keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                    )
+                                ]
 
-                    else if AstHelpers.isBinaryOperation "*" checkInfo checkInfo.firstArg then
+                            else
+                                []
+
+                        Nothing ->
+                            []
+                , \() ->
+                    if AstHelpers.isBinaryOperation "*" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
-                    else if AstHelpers.isBinaryOperation "+" checkInfo checkInfo.firstArg then
+                    else
+                        []
+                , \() ->
+                    if AstHelpers.isBinaryOperation "+" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                     else
-                        case Evaluate.getBoolean checkInfo initialArg of
-                            Undetermined ->
+                        []
+                , \() ->
+                    case Evaluate.getBoolean checkInfo initialArg of
+                        Undetermined ->
+                            []
+
+                        Determined initialBool ->
+                            if AstHelpers.isBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                                boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool
+
+                            else if AstHelpers.isBinaryOperation "||" checkInfo checkInfo.firstArg then
+                                boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool
+
+                            else
                                 []
-
-                            Determined initialBool ->
-                                if AstHelpers.isBinaryOperation "&&" checkInfo checkInfo.firstArg then
-                                    boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool
-
-                                else if AstHelpers.isBinaryOperation "||" checkInfo checkInfo.firstArg then
-                                    boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool
-
-                                else
-                                    []
+                ]
+                ()
 
 
 foldAndSetToListCompositionChecks : String -> CompositionCheckInfo -> List (Error {})
