@@ -793,7 +793,7 @@ import Elm.Docs
 import Elm.Project exposing (Exposed)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
-import Elm.Syntax.Expression as Expression exposing (Expression, RecordSetter)
+import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Module
 import Elm.Syntax.ModuleName exposing (ModuleName)
@@ -2156,7 +2156,7 @@ fullyAppliedPrefixOperatorChecks checkInfo =
     ]
 
 
-recordAccessChecks : Range -> Maybe Range -> String -> List (Node RecordSetter) -> List (Error {})
+recordAccessChecks : Range -> Maybe Range -> String -> List (Node Expression.RecordSetter) -> List (Error {})
 recordAccessChecks nodeRange recordNameRange fieldName setters =
     case
         findMap
