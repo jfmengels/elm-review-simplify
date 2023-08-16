@@ -4702,47 +4702,72 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 listConcatMapChecks : CheckInfo -> List (Error {})
 listConcatMapChecks checkInfo =
-    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-        [ Rule.errorWithFix
-            { message = "Using List.concatMap with an identity function is the same as using List.concat"
-            , details = [ "You can replace this call by List.concat." ]
-            }
-            checkInfo.fnRange
-            [ Fix.replaceRangeBy
-                { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                (qualifiedToString (qualify ( [ "List" ], "concat" ) checkInfo))
-            ]
+    firstThatReportsError
+        [ \() ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                [ Rule.errorWithFix
+                    { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                    , details = [ "You can replace this call by List.concat." ]
+                    }
+                    checkInfo.fnRange
+                    [ Fix.replaceRangeBy
+                        { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                        (qualifiedToString (qualify ( [ "List" ], "concat" ) checkInfo))
+                    ]
+                ]
+
+            else
+                []
+        , \() ->
+            if isAlwaysEmptyList checkInfo.lookupTable checkInfo.firstArg then
+                [ Rule.errorWithFix
+                    { message = "List.concatMap will result in on an empty list"
+                    , details = [ "You can replace this call by an empty list." ]
+                    }
+                    checkInfo.fnRange
+                    (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                ]
+
+            else
+                []
+        , \() ->
+            case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
+                Expression.LambdaExpression lambda ->
+                    case replaceSingleElementListBySingleValue checkInfo.lookupTable lambda.expression of
+                        Just fixes ->
+                            [ Rule.errorWithFix
+                                { message = "Use List.map instead"
+                                , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                                    :: fixes
+                                )
+                            ]
+
+                        Nothing ->
+                            []
+
+                _ ->
+                    []
+        , \() ->
+            case secondArg checkInfo of
+                Just (Node listRange (Expression.ListExpr (listElement :: []))) ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                        , details = [ "You can replace this call by a call to the function directly." ]
+                        }
+                        checkInfo.fnRange
+                        (Fix.removeRange checkInfo.fnRange
+                            :: replaceBySubExpressionFix listRange listElement
+                        )
+                    ]
+
+                _ ->
+                    []
         ]
-
-    else if isAlwaysEmptyList checkInfo.lookupTable checkInfo.firstArg then
-        [ Rule.errorWithFix
-            { message = "List.concatMap will result in on an empty list"
-            , details = [ "You can replace this call by an empty list." ]
-            }
-            checkInfo.fnRange
-            (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
-        ]
-
-    else
-        case replaceSingleElementListBySingleValue_RENAME checkInfo checkInfo.fnRange checkInfo.firstArg of
-            Just errors ->
-                errors
-
-            Nothing ->
-                case secondArg checkInfo of
-                    Just (Node listRange (Expression.ListExpr [ listElement ])) ->
-                        [ Rule.errorWithFix
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.removeRange checkInfo.fnRange
-                                :: replaceBySubExpressionFix listRange listElement
-                            )
-                        ]
-
-                    _ ->
-                        []
+        ()
 
 
 concatAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
@@ -7614,31 +7639,6 @@ determineListLength lookupTable node =
 
             else
                 Nothing
-
-        _ ->
-            Nothing
-
-
-replaceSingleElementListBySingleValue_RENAME : QualifyResources { a | lookupTable : ModuleNameLookupTable } -> Range -> Node Expression -> Maybe (List (Error {}))
-replaceSingleElementListBySingleValue_RENAME resources fnRange node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.LambdaExpression { expression } ->
-            case replaceSingleElementListBySingleValue resources.lookupTable expression of
-                Just fixes ->
-                    Just
-                        [ Rule.errorWithFix
-                            { message = "Use List.map instead"
-                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
-                            }
-                            fnRange
-                            (Fix.replaceRangeBy fnRange
-                                (qualifiedToString (qualify ( [ "List" ], "map" ) resources))
-                                :: fixes
-                            )
-                        ]
-
-                Nothing ->
-                    Nothing
 
         _ ->
             Nothing
