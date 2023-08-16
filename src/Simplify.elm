@@ -2062,7 +2062,7 @@ distributeFieldAccess kind recordRange branches (Node fieldRange fieldName) =
             []
 
 
-injectRecordAccessIntoLetExpression : Range -> Node Expression -> Node String -> Rule.Error {}
+injectRecordAccessIntoLetExpression : Range -> Node Expression -> Node String -> Error {}
 injectRecordAccessIntoLetExpression recordRange letBody (Node fieldRange fieldName) =
     let
         removalRange : Range
@@ -2114,7 +2114,7 @@ recordLeavesRangesHelp nodes foundRanges =
                     Nothing
 
 
-negationChecks : { parentRange : Range, negatedExpression : Node Expression } -> List (Rule.Error {})
+negationChecks : { parentRange : Range, negatedExpression : Node Expression } -> List (Error {})
 negationChecks checkInfo =
     case AstHelpers.removeParens checkInfo.negatedExpression of
         Node range (Expression.Negation negatedValue) ->
@@ -2143,7 +2143,7 @@ fullyAppliedPrefixOperatorChecks :
     , left : Node Expression
     , right : Node Expression
     }
-    -> List (Rule.Error {})
+    -> List (Error {})
 fullyAppliedPrefixOperatorChecks checkInfo =
     [ Rule.errorWithFix
         { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
@@ -3427,7 +3427,7 @@ andChecks operatorCheckInfo =
         ()
 
 
-and_isLeftSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
+and_isLeftSimplifiableError : OperatorCheckInfo -> List (Error {})
 and_isLeftSimplifiableError checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.left of
         Determined True ->
@@ -3460,7 +3460,7 @@ and_isLeftSimplifiableError checkInfo =
             []
 
 
-and_isRightSimplifiableError : OperatorCheckInfo -> List (Rule.Error {})
+and_isRightSimplifiableError : OperatorCheckInfo -> List (Error {})
 and_isRightSimplifiableError checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.right of
         Determined True ->
@@ -5510,7 +5510,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                             }
                                         ]
 
-                boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> List (Rule.Error {})
+                boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> List (Error {})
                 boolBinaryOperationChecks operation initialIsDetermining =
                     if initialIsDetermining == operation.determining then
                         [ Rule.errorWithFix
@@ -6288,7 +6288,7 @@ setFromListChecks checkInfo =
         ++ setFromListSingletonChecks checkInfo
 
 
-setFromListSingletonChecks : CheckInfo -> List (Rule.Error {})
+setFromListSingletonChecks : CheckInfo -> List (Error {})
 setFromListSingletonChecks checkInfo =
     case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
         Nothing ->
@@ -7047,7 +7047,7 @@ pipingIntoCompositionChecks :
     ModuleContext
     -> CompositionDirection
     -> Node Expression
-    -> List (Rule.Error {})
+    -> List (Error {})
 pipingIntoCompositionChecks context compositionDirection expressionNode =
     let
         ( opToFind, replacement ) =
