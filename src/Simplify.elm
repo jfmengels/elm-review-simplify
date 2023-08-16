@@ -4824,54 +4824,60 @@ concatAndMapCompositionCheck checkInfo =
 
 listIndexedMapChecks : CheckInfo -> List (Error {})
 listIndexedMapChecks checkInfo =
-    case AstHelpers.removeParens checkInfo.firstArg of
-        Node lambdaRange (Expression.LambdaExpression lambda) ->
-            case Maybe.map AstHelpers.removeParensFromPattern (List.head lambda.args) of
-                Just (Node patternRange Pattern.AllPattern) ->
-                    let
-                        rangeToRemove : Range
-                        rangeToRemove =
-                            case lambda.args of
-                                [] ->
-                                    Range.emptyRange
+    firstThatReportsError
+        [ \() ->
+            case AstHelpers.removeParens checkInfo.firstArg of
+                Node lambdaRange (Expression.LambdaExpression lambda) ->
+                    case Maybe.map AstHelpers.removeParensFromPattern (List.head lambda.args) of
+                        Just (Node patternRange Pattern.AllPattern) ->
+                            let
+                                rangeToRemove : Range
+                                rangeToRemove =
+                                    case lambda.args of
+                                        [] ->
+                                            Range.emptyRange
 
-                                _ :: [] ->
-                                    -- Only one argument, remove the entire lambda except the expression
-                                    { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                                        _ :: [] ->
+                                            -- Only one argument, remove the entire lambda except the expression
+                                            { start = lambdaRange.start, end = (Node.range lambda.expression).start }
 
-                                (Node firstRange _) :: (Node secondRange _) :: _ ->
-                                    { start = firstRange.start, end = secondRange.start }
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Use List.map instead"
-                        , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
-                        }
-                        patternRange
-                        [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                        , Fix.removeRange rangeToRemove
-                        ]
-                    ]
+                                        (Node firstRange _) :: (Node secondRange _) :: _ ->
+                                            { start = firstRange.start, end = secondRange.start }
+                            in
+                            [ Rule.errorWithFix
+                                { message = "Use List.map instead"
+                                , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                                }
+                                patternRange
+                                [ Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                                , Fix.removeRange rangeToRemove
+                                ]
+                            ]
+
+                        _ ->
+                            []
 
                 _ ->
                     []
-
-        _ ->
+        , \() ->
             case getAlwaysArgument checkInfo.lookupTable checkInfo.firstArg of
-                Just { alwaysRange, rangeToRemove } ->
+                Just elementChangeArg ->
                     [ Rule.errorWithFix
                         { message = "Use List.map instead"
                         , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
                         }
-                        alwaysRange
+                        elementChangeArg.alwaysRange
                         [ Fix.replaceRangeBy checkInfo.fnRange
                             (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                        , Fix.removeRange rangeToRemove
+                        , Fix.removeRange elementChangeArg.rangeToRemove
                         ]
                     ]
 
                 Nothing ->
                     []
+        ]
+        ()
 
 
 listAppendEmptyErrorInfo : { message : String, details : List String }
