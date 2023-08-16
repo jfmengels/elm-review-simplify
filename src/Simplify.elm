@@ -805,7 +805,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getNotFunction, getSpecificFunction, getSpecificFunctionCall, qualifiedToString)
+import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getSpecificFunction, getSpecificFunctionCall, qualifiedToString)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
@@ -3038,7 +3038,7 @@ basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
     firstThatReportsError
         [ notOnKnownBoolCheck
-        , removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage getNotFunction
+        , removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage AstHelpers.getNotFunction
         , isNotOnBooleanOperatorCheck
         ]
         checkInfo
@@ -3126,11 +3126,11 @@ notNotCompositionCheck checkInfo =
     let
         notOnLeft : Maybe Range
         notOnLeft =
-            getNotFunction checkInfo.lookupTable checkInfo.left
+            AstHelpers.getNotFunction checkInfo.lookupTable checkInfo.left
 
         notOnRight : Maybe Range
         notOnRight =
-            getNotFunction checkInfo.lookupTable checkInfo.right
+            AstHelpers.getNotFunction checkInfo.lookupTable checkInfo.right
     in
     case ( notOnLeft, notOnRight ) of
         ( Just _, Just _ ) ->
@@ -3195,11 +3195,11 @@ getNotComposition lookupTable takeFirstFunction node =
                     Node.range right
             in
             if takeFirstFunction then
-                getNotFunction lookupTable right
+                AstHelpers.getNotFunction lookupTable right
                     |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
 
             else
-                getNotFunction lookupTable left
+                AstHelpers.getNotFunction lookupTable left
                     |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
 
         Expression.OperatorApplication ">>" _ left right ->
@@ -3213,11 +3213,11 @@ getNotComposition lookupTable takeFirstFunction node =
                     Node.range right
             in
             if takeFirstFunction then
-                getNotFunction lookupTable left
+                AstHelpers.getNotFunction lookupTable left
                     |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
 
             else
-                getNotFunction lookupTable right
+                AstHelpers.getNotFunction lookupTable right
                     |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
 
         _ ->
