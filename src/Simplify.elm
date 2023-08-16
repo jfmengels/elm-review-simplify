@@ -2833,7 +2833,7 @@ plusplusChecks checkInfo =
                 ]
             ]
 
-        ( Expression.ListExpr [ listElement ], _ ) ->
+        ( Expression.ListExpr (listElement :: []), _ ) ->
             if checkInfo.isOnTheRightSideOfPlusPlus then
                 []
 
@@ -2921,25 +2921,36 @@ negateNegateCompositionErrorMessage =
 
 negateCompositionCheck : CompositionCheckInfo -> List (Error {})
 negateCompositionCheck checkInfo =
-    case Maybe.map2 Tuple.pair (getNegateFunction checkInfo.lookupTable checkInfo.left) (getNegateFunction checkInfo.lookupTable checkInfo.right) of
-        Just _ ->
-            [ Rule.errorWithFix
-                negateNegateCompositionErrorMessage
-                checkInfo.parentRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
-                ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case
+                ( getNegateFunction checkInfo.lookupTable checkInfo.left
+                , getNegateFunction checkInfo.lookupTable checkInfo.right
+                )
+            of
+                ( Just _, Just _ ) ->
+                    [ Rule.errorWithFix
+                        negateNegateCompositionErrorMessage
+                        checkInfo.parentRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                        ]
+                    ]
 
-        _ ->
+                ( Nothing, _ ) ->
+                    []
+
+                ( _, Nothing ) ->
+                    []
+        , \() ->
             case getNegateFunction checkInfo.lookupTable checkInfo.left of
-                Just leftNotRange ->
+                Just leftNegateRange ->
                     case getNegateComposition checkInfo.lookupTable checkInfo.fromLeftToRight checkInfo.right of
                         Just rightNotRange ->
                             [ Rule.errorWithFix
                                 negateNegateCompositionErrorMessage
-                                { start = leftNotRange.start, end = rightNotRange.end }
-                                [ Fix.removeRange { start = leftNotRange.start, end = checkInfo.rightRange.start }
+                                { start = leftNegateRange.start, end = rightNotRange.end }
+                                [ Fix.removeRange { start = leftNegateRange.start, end = checkInfo.rightRange.start }
                                 , Fix.removeRange rightNotRange
                                 ]
                             ]
@@ -2948,23 +2959,27 @@ negateCompositionCheck checkInfo =
                             []
 
                 Nothing ->
-                    case getNegateFunction checkInfo.lookupTable checkInfo.right of
-                        Just rightNotRange ->
-                            case getNegateComposition checkInfo.lookupTable (not checkInfo.fromLeftToRight) checkInfo.left of
-                                Just leftNotRange ->
-                                    [ Rule.errorWithFix
-                                        negateNegateCompositionErrorMessage
-                                        { start = leftNotRange.start, end = rightNotRange.end }
-                                        [ Fix.removeRange leftNotRange
-                                        , Fix.removeRange { start = checkInfo.leftRange.end, end = rightNotRange.end }
-                                        ]
-                                    ]
-
-                                Nothing ->
-                                    []
+                    []
+        , \() ->
+            case getNegateFunction checkInfo.lookupTable checkInfo.right of
+                Just rightNegateRange ->
+                    case getNegateComposition checkInfo.lookupTable (not checkInfo.fromLeftToRight) checkInfo.left of
+                        Just leftNotRange ->
+                            [ Rule.errorWithFix
+                                negateNegateCompositionErrorMessage
+                                { start = leftNotRange.start, end = rightNegateRange.end }
+                                [ Fix.removeRange leftNotRange
+                                , Fix.removeRange { start = checkInfo.leftRange.end, end = rightNegateRange.end }
+                                ]
+                            ]
 
                         Nothing ->
                             []
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 getNegateComposition : ModuleNameLookupTable -> Bool -> Node Expression -> Maybe Range
@@ -4564,7 +4579,7 @@ listConcatChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr list ->
             case list of
-                [ Node elementRange _ ] ->
+                (Node elementRange _) :: [] ->
                     [ Rule.errorWithFix
                         { message = "Unnecessary use of List.concat on a list with 1 element"
                         , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
@@ -4745,7 +4760,7 @@ concatAndMapCompositionCheck checkInfo =
     if checkInfo.fromLeftToRight then
         if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" checkInfo.lookupTable checkInfo.right then
             case Node.value (AstHelpers.removeParens checkInfo.left) of
-                Expression.Application [ leftFunction, _ ] ->
+                Expression.Application (leftFunction :: _ :: []) ->
                     if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable leftFunction then
                         [ Rule.errorWithFix
                             { message = "List.map and List.concat can be combined using List.concatMap"
@@ -4769,7 +4784,7 @@ concatAndMapCompositionCheck checkInfo =
 
     else if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" checkInfo.lookupTable checkInfo.left then
         case Node.value (AstHelpers.removeParens checkInfo.right) of
-            Expression.Application [ rightFunction, _ ] ->
+            Expression.Application (rightFunction :: _ :: []) ->
                 if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable rightFunction then
                     [ Rule.errorWithFix
                         { message = "List.map and List.concat can be combined using List.concatMap"
@@ -4805,7 +4820,7 @@ listIndexedMapChecks checkInfo =
                                 [] ->
                                     Range.emptyRange
 
-                                [ _ ] ->
+                                _ :: [] ->
                                     -- Only one argument, remove the entire lambda except the expression
                                     { start = lambdaRange.start, end = (Node.range lambda.expression).start }
 
@@ -5876,10 +5891,10 @@ filterAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
 filterAndMapCompositionCheck checkInfo =
     if checkInfo.fromLeftToRight then
         case Node.value (AstHelpers.removeParens checkInfo.right) of
-            Expression.Application [ rightFunction, arg ] ->
+            Expression.Application (rightFunction :: arg :: []) ->
                 if AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" checkInfo.lookupTable rightFunction && AstHelpers.isIdentity checkInfo.lookupTable arg then
                     case Node.value (AstHelpers.removeParens checkInfo.left) of
-                        Expression.Application [ leftFunction, _ ] ->
+                        Expression.Application (leftFunction :: _ :: []) ->
                             if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable leftFunction then
                                 [ Rule.errorWithFix
                                     { message = "List.map and List.filterMap identity can be combined using List.filterMap"
@@ -5906,10 +5921,10 @@ filterAndMapCompositionCheck checkInfo =
 
     else
         case Node.value (AstHelpers.removeParens checkInfo.left) of
-            Expression.Application [ leftFunction, arg ] ->
+            Expression.Application (leftFunction :: arg :: []) ->
                 if AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" checkInfo.lookupTable leftFunction && AstHelpers.isIdentity checkInfo.lookupTable arg then
                     case Node.value (AstHelpers.removeParens checkInfo.right) of
-                        Expression.Application [ rightFunction, _ ] ->
+                        Expression.Application (rightFunction :: _ :: []) ->
                             if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable rightFunction then
                                 [ Rule.errorWithFix
                                     { message = "List.map and List.filterMap identity can be combined using List.filterMap"
@@ -6357,7 +6372,7 @@ subAndCmdBatchChecks moduleName checkInfo =
                 ]
             ]
 
-        Expression.ListExpr [ listElement ] ->
+        Expression.ListExpr (listElement :: []) ->
             [ Rule.errorWithFix
                 { message = "Unnecessary " ++ moduleName ++ ".batch"
                 , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
@@ -7642,7 +7657,7 @@ replaceSingleElementListBySingleValue_RENAME resources fnRange node =
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
 replaceSingleElementListBySingleValue lookupTable node =
     case Node.value (AstHelpers.removeParens node) of
-        Expression.ListExpr [ listElement ] ->
+        Expression.ListExpr (listElement :: []) ->
             Just (replaceBySubExpressionFix (Node.range node) listElement)
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
@@ -7693,24 +7708,25 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
 
             Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
                 if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    if moduleName == [ "Set" ] then
-                        case list of
-                            [] ->
-                                Just (Exactly 0)
+                    case moduleName of
+                        [ "Set" ] ->
+                            case list of
+                                [] ->
+                                    Just (Exactly 0)
 
-                            [ _ ] ->
-                                Just (Exactly 1)
+                                _ :: [] ->
+                                    Just (Exactly 1)
 
-                            _ ->
-                                case traverse getComparableExpression list of
-                                    Nothing ->
-                                        Just NotEmpty
+                                _ :: _ :: _ ->
+                                    case traverse getComparableExpression list of
+                                        Nothing ->
+                                            Just NotEmpty
 
-                                    Just comparableExpressions ->
-                                        comparableExpressions |> unique |> List.length |> Exactly |> Just
+                                        Just comparableExpressions ->
+                                            comparableExpressions |> unique |> List.length |> Exactly |> Just
 
-                    else
-                        Just (Exactly (List.length list))
+                        _ ->
+                            Just (Exactly (List.length list))
 
                 else
                     Nothing
@@ -8104,7 +8120,7 @@ appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
 booleanCaseOfChecks lookupTable parentRange { expression, cases } =
     case cases of
-        [ ( firstPattern, Node firstRange _ ), ( Node secondPatternRange _, Node secondExprRange _ ) ] ->
+        ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
             case AstHelpers.getBooleanPattern lookupTable firstPattern of
                 Just isTrueFirst ->
                     let
@@ -8134,7 +8150,7 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
                         )
                     ]
 
-                _ ->
+                Nothing ->
                     []
 
         _ ->
@@ -8144,7 +8160,7 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
 destructuringCaseOfChecks : (Range -> String) -> Range -> Expression.CaseBlock -> List (Error {})
 destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
     case cases of
-        [ ( rawSinglePattern, Node bodyRange _ ) ] ->
+        ( rawSinglePattern, Node bodyRange _ ) :: [] ->
             let
                 singlePattern : Node Pattern
                 singlePattern =
