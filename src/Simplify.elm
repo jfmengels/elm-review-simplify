@@ -786,6 +786,18 @@ All of these also apply for `Sub`.
     Parser.oneOf [ a ]
     --> a
 
+
+### Random
+
+    Random.uniform a []
+    --> Random.constant a
+
+    Random.weighted ( weight, a ) []
+    --> Random.constant a
+
+    Random.weighted tuple []
+    --> Random.constant (Tuple.first tuple)
+
 -}
 
 import Dict exposing (Dict)
@@ -2182,6 +2194,8 @@ functionCallChecks =
         , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Parser", "Advanced" ], "oneOf" ), oneOfChecks )
+        , ( ( [ "Random" ], "uniform" ), randomUniformChecks )
+        , ( ( [ "Random" ], "weighted" ), randomWeightedChecks )
         ]
 
 
@@ -6444,6 +6458,80 @@ oneOfChecks checkInfo =
 
         _ ->
             []
+
+
+
+-- RANDOM
+
+
+randomUniformChecks : CheckInfo -> List (Error {})
+randomUniformChecks checkInfo =
+    case secondArg checkInfo of
+        Just otherOptionsArg ->
+            if AstHelpers.isEmptyList otherOptionsArg then
+                let
+                    onlyValueRange : Range
+                    onlyValueRange =
+                        Node.range checkInfo.firstArg
+                in
+                [ Rule.errorWithFix
+                    { message = "uniform with only one possible value can be replaced by constant"
+                    , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
+                    }
+                    checkInfo.fnRange
+                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
+                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
+                    , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
+                    ]
+                ]
+
+            else
+                []
+
+        Nothing ->
+            []
+
+
+randomWeightedChecks : CheckInfo -> List (Error {})
+randomWeightedChecks checkInfo =
+    case secondArg checkInfo of
+        Just otherOptionsArg ->
+            if AstHelpers.isEmptyList otherOptionsArg then
+                [ Rule.errorWithFix
+                    { message = "weighted with only one possible value can be replaced by constant"
+                    , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                    }
+                    checkInfo.fnRange
+                    (case Node.value checkInfo.firstArg of
+                        Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
+                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
+                            , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
+                            ]
+
+                        _ ->
+                            let
+                                tupleRange : Range
+                                tupleRange =
+                                    Node.range checkInfo.firstArg
+                            in
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
+                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " (Tuple.first ")
+                            , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
+                                ")"
+                            ]
+                    )
+                ]
+
+            else
+                []
+
+        Nothing ->
+            []
+
+
+
+--
 
 
 type alias Collection =
