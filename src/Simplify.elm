@@ -6276,48 +6276,46 @@ subAndCmdBatchChecks moduleName checkInfo =
             ]
 
         Expression.ListExpr args ->
-            List.map3 (\a b c -> ( a, b, c ))
-                (Nothing :: List.map (Node.range >> Just) args)
-                args
-                (List.map (Node.range >> Just) (List.drop 1 args) ++ [ Nothing ])
-                |> List.filterMap
-                    (\( prev, arg, next ) ->
-                        case AstHelpers.removeParens arg of
-                            Node batchRange (Expression.FunctionOrValue _ "none") ->
-                                if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just [ "Platform", moduleName ] then
-                                    let
-                                        argRange : Range
-                                        argRange =
-                                            Node.range arg
-                                    in
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Unnecessary " ++ moduleName ++ ".none"
-                                            , details = [ moduleName ++ ".none will be ignored by " ++ moduleName ++ ".batch." ]
-                                            }
-                                            argRange
-                                            (case prev of
-                                                Just prevRange ->
-                                                    [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
+            neighboringMap
+                (\arg ->
+                    case AstHelpers.removeParens arg.current of
+                        Node batchRange (Expression.FunctionOrValue _ "none") ->
+                            if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just [ "Platform", moduleName ] then
+                                let
+                                    argRange : Range
+                                    argRange =
+                                        Node.range arg.current
+                                in
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "Unnecessary " ++ moduleName ++ ".none"
+                                        , details = [ moduleName ++ ".none will be ignored by " ++ moduleName ++ ".batch." ]
+                                        }
+                                        argRange
+                                        (case arg.before of
+                                            Just (Node prevRange _) ->
+                                                [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
 
-                                                Nothing ->
-                                                    case next of
-                                                        Just nextRange ->
-                                                            [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
+                                            Nothing ->
+                                                case arg.after of
+                                                    Just (Node nextRange _) ->
+                                                        [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
 
-                                                        Nothing ->
-                                                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
-                                                            ]
-                                            )
+                                                    Nothing ->
+                                                        [ Fix.replaceRangeBy checkInfo.parentRange
+                                                            (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
+                                                        ]
                                         )
+                                    )
 
-                                else
-                                    Nothing
-
-                            _ ->
+                            else
                                 Nothing
-                    )
+
+                        _ ->
+                            Nothing
+                )
+                args
+                |> List.filterMap identity
 
         _ ->
             []
@@ -7703,23 +7701,26 @@ removeRecordFields recordUpdateRange variable fields =
                 []
 
         (Node firstRange _) :: (Node secondRange _) :: _ ->
-            List.filterMap
-                (\( Node range ( field, valueWithParens ), previousRange ) ->
+            withBeforeMap
+                (\field ->
                     let
+                        (Node currentFieldRange ( currentFieldName, valueWithParens )) =
+                            field.current
+
                         value : Node Expression
                         value =
                             AstHelpers.removeParens valueWithParens
                     in
-                    if isUnnecessaryRecordUpdateSetter variable field value then
+                    if isUnnecessaryRecordUpdateSetter variable currentFieldName value then
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary field assignment"
                                 , details = [ "The field is being set to its own value." ]
                                 }
                                 (Node.range value)
-                                (case previousRange of
-                                    Just prevRange ->
-                                        [ Fix.removeRange { start = prevRange.end, end = range.end } ]
+                                (case field.before of
+                                    Just (Node prevRange _) ->
+                                        [ Fix.removeRange { start = prevRange.end, end = currentFieldRange.end } ]
 
                                     Nothing ->
                                         -- It's the first element, so we can remove until the second element
@@ -7730,7 +7731,8 @@ removeRecordFields recordUpdateRange variable fields =
                     else
                         Nothing
                 )
-                (List.map2 Tuple.pair fields (Nothing :: List.map (Node.range >> Just) fields))
+                fields
+                |> List.filterMap identity
 
 
 isUnnecessaryRecordUpdateSetter : Node String -> Node String -> Node Expression -> Bool
@@ -8843,6 +8845,27 @@ findMapNeighboringAfter before tryMap list =
 
                 Nothing ->
                     findMapNeighboringAfter (Just now) tryMap after
+
+
+neighboringMap : ({ before : Maybe a, current : a, after : Maybe a } -> b) -> List a -> List b
+neighboringMap changeWithNeighboring list =
+    List.map3
+        (\before current after ->
+            changeWithNeighboring { before = before, current = current, after = after }
+        )
+        (Nothing :: List.map Just list)
+        list
+        (List.map Just (List.drop 1 list) ++ [ Nothing ])
+
+
+withBeforeMap : ({ before : Maybe a, current : a } -> b) -> List a -> List b
+withBeforeMap changeWithBefore list =
+    List.map2
+        (\before current ->
+            changeWithBefore { before = before, current = current }
+        )
+        (Nothing :: List.map Just list)
+        list
 
 
 traverse : (a -> Maybe b) -> List a -> Maybe (List b)
