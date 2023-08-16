@@ -805,7 +805,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getListSingletonCall, getNotFunction, getSpecificFunction, getSpecificFunctionCall, qualifiedToString)
+import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getNotFunction, getSpecificFunction, getSpecificFunctionCall, qualifiedToString)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
@@ -4987,7 +4987,7 @@ listHeadChecks checkInfo =
                 _ ->
                     []
         , \() ->
-            case getListSingletonCall checkInfo.lookupTable listArg of
+            case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
                 Just single ->
                     justFirstElementError (Node.range single.element)
 
@@ -5068,7 +5068,7 @@ listTailChecks checkInfo =
                 _ ->
                     []
         , \() ->
-            case getListSingletonCall checkInfo.lookupTable listArg of
+            case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
                 Just _ ->
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
@@ -5278,7 +5278,7 @@ listMemberChecks checkInfo =
                         []
 
                 _ ->
-                    case getListSingletonCall checkInfo.lookupTable listArg of
+                    case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
                         Just single ->
                             if isNeedle single.element then
                                 listMemberExistsError
@@ -6521,7 +6521,7 @@ htmlAttributesClassListChecks checkInfo =
                             []
 
                 Nothing ->
-                    case getListSingletonCall checkInfo.lookupTable listArg of
+                    case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
                         Just single ->
                             singleElementListChecks single
 
