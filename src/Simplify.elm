@@ -805,7 +805,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getSpecificFunctionCall, qualifiedToString)
+import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
@@ -4456,7 +4456,7 @@ resultMapErrorChecks checkInfo =
             else
                 []
         , \() ->
-            case Maybe.andThen (getSpecificFunctionCall ( [ "Result" ], "Err" ) checkInfo.lookupTable) maybeResultArg of
+            case Maybe.andThen (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) checkInfo.lookupTable) maybeResultArg of
                 Nothing ->
                     []
 
@@ -4616,7 +4616,7 @@ listConcatChecks checkInfo =
                     []
 
         _ ->
-            case getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just match ->
                     [ Rule.errorWithFix
                         { message = "List.map and List.concat can be combined using List.concatMap"
@@ -5541,7 +5541,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 [ \() ->
                     case maybeListArg of
                         Just listArg ->
-                            case getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
+                            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
                                 Just setToListCall ->
                                     [ Rule.errorWithFix
                                         { message = "To fold a set, you don't need to convert to a List"
@@ -5640,7 +5640,7 @@ foldAndSetToListCompositionChecks foldOperationName checkInfo =
             else
                 ( checkInfo.right, checkInfo.left )
     in
-    case getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable later of
+    case AstHelpers.getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable later of
         Just listFoldCall ->
             case listFoldCall.argsAfterFirst of
                 -- initial and reduce arguments are present
@@ -5809,7 +5809,7 @@ listFilterMapChecks checkInfo =
 
         Undetermined ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                case Maybe.andThen (getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable) (secondArg checkInfo) of
+                case Maybe.andThen (AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable) (secondArg checkInfo) of
                     Just listArg ->
                         [ Rule.errorWithFix
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
