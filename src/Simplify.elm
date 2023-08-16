@@ -2807,31 +2807,31 @@ errorForAddingEmptyLists ranges =
 consChecks : OperatorCheckInfo -> List (Error {})
 consChecks checkInfo =
     case Node.value checkInfo.right of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Element added to the beginning of the list could be included in the list"
-                , details = [ "Try moving the element inside the list it is being added to." ]
-                }
-                checkInfo.operatorRange
-                [ Fix.insertAt checkInfo.leftRange.start "[ "
-                , Fix.replaceRangeBy
-                    { start = checkInfo.leftRange.end
-                    , end = checkInfo.rightRange.end
-                    }
-                    " ]"
-                ]
-            ]
+        Expression.ListExpr tailElements ->
+            let
+                fix =
+                    case tailElements of
+                        [] ->
+                            [ Fix.insertAt checkInfo.leftRange.start "[ "
+                            , Fix.replaceRangeBy
+                                { start = checkInfo.leftRange.end
+                                , end = checkInfo.rightRange.end
+                                }
+                                " ]"
+                            ]
 
-        Expression.ListExpr _ ->
+                        _ :: _ ->
+                            [ Fix.insertAt checkInfo.leftRange.start "[ "
+                            , Fix.replaceRangeBy checkInfo.operatorRange ","
+                            , Fix.removeRange (leftBoundaryRange checkInfo.rightRange)
+                            ]
+            in
             [ Rule.errorWithFix
                 { message = "Element added to the beginning of the list could be included in the list"
                 , details = [ "Try moving the element inside the list it is being added to." ]
                 }
                 checkInfo.operatorRange
-                [ Fix.insertAt checkInfo.leftRange.start "[ "
-                , Fix.replaceRangeBy checkInfo.operatorRange ","
-                , Fix.removeRange (leftBoundaryRange checkInfo.rightRange)
-                ]
+                fix
             ]
 
         _ ->
