@@ -1848,27 +1848,9 @@ expressionVisitorHelp (Node expressionRange expression) context =
                 Nothing ->
                     onlyErrors []
 
-        Expression.Negation baseExpr ->
-            case AstHelpers.removeParens baseExpr of
-                Node range (Expression.Negation negatedValue) ->
-                    let
-                        doubleNegationRange : Range
-                        doubleNegationRange =
-                            { start = expressionRange.start
-                            , end = { row = range.start.row, column = range.start.column + 1 }
-                            }
-                    in
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "Unnecessary double number negation"
-                            , details = [ "Negating a number twice is the same as the number itself." ]
-                            }
-                            doubleNegationRange
-                            (replaceBySubExpressionFix expressionRange negatedValue)
-                        ]
-
-                _ ->
-                    onlyErrors []
+        Expression.Negation negatedExpression ->
+            onlyErrors
+                (negationChecks { parentRange = expressionRange, negatedExpression = negatedExpression })
 
         Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
@@ -2086,6 +2068,29 @@ recordLeavesRangesHelp nodes foundRanges =
 
                 _ ->
                     Nothing
+
+
+negationChecks : { parentRange : Range, negatedExpression : Node Expression } -> List (Rule.Error {})
+negationChecks checkInfo =
+    case AstHelpers.removeParens checkInfo.negatedExpression of
+        Node range (Expression.Negation negatedValue) ->
+            let
+                doubleNegationRange : Range
+                doubleNegationRange =
+                    { start = checkInfo.parentRange.start
+                    , end = { row = range.start.row, column = range.start.column + 1 }
+                    }
+            in
+            [ Rule.errorWithFix
+                { message = "Unnecessary double number negation"
+                , details = [ "Negating a number twice is the same as the number itself." ]
+                }
+                doubleNegationRange
+                (replaceBySubExpressionFix checkInfo.parentRange negatedValue)
+            ]
+
+        _ ->
+            []
 
 
 fullyAppliedPrefixOperatorChecks :
