@@ -805,7 +805,7 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
-import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getSpecificFunction, getSpecificFunctionCall, qualifiedToString)
+import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, getSpecificFunctionCall, qualifiedToString)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match as Match exposing (Match(..))
@@ -3952,7 +3952,7 @@ stringReverseChecks checkInfo =
         _ ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
-                (getSpecificFunction ( [ "String" ], "reverse" ))
+                (AstHelpers.getSpecificFunction ( [ "String" ], "reverse" ))
                 checkInfo
 
 
@@ -5995,7 +5995,7 @@ listReverseChecks checkInfo =
         _ ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
-                (getSpecificFunction ( [ "List" ], "reverse" ))
+                (AstHelpers.getSpecificFunction ( [ "List" ], "reverse" ))
                 checkInfo
 
 
