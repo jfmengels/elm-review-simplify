@@ -1595,17 +1595,15 @@ expressionVisitorHelp (Node expressionRange expression) context =
         -----------------------------------
         -- FULLY APPLIED PREFIX OPERATOR --
         -----------------------------------
-        Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), Node leftRange _, Node rightRange _ ] ->
+        Expression.Application [ Node.Node operatorRange (Expression.PrefixOperator operator), left, right ] ->
             onlyErrors
-                [ Rule.errorWithFix
-                    { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
-                    , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+                (fullyAppliedPrefixOperatorChecks
+                    { operator = operator
+                    , operatorRange = operatorRange
+                    , left = left
+                    , right = right
                     }
-                    operatorRange
-                    [ Fix.removeRange { start = operatorRange.start, end = leftRange.start }
-                    , Fix.insertAt rightRange.start (operator ++ " ")
-                    ]
-                ]
+                )
 
         -------------------
         -- RECORD UPDATE --
@@ -2088,6 +2086,25 @@ recordLeavesRangesHelp nodes foundRanges =
 
                 _ ->
                     Nothing
+
+
+fullyAppliedPrefixOperatorChecks :
+    { operator : String
+    , operatorRange : Range
+    , left : Node Expression
+    , right : Node Expression
+    }
+    -> List (Rule.Error {})
+fullyAppliedPrefixOperatorChecks checkInfo =
+    [ Rule.errorWithFix
+        { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+        , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+        }
+        checkInfo.operatorRange
+        [ Fix.removeRange { start = checkInfo.operatorRange.start, end = (Node.range checkInfo.left).start }
+        , Fix.insertAt (Node.range checkInfo.right).start (checkInfo.operator ++ " ")
+        ]
+    ]
 
 
 recordAccessChecks : Range -> Maybe Range -> String -> List (Node RecordSetter) -> List (Error {})
