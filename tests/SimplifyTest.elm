@@ -17422,7 +17422,7 @@ a = Random.uniform a []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.uniform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17440,7 +17440,7 @@ a = Random.uniform a <| []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.uniform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17458,7 +17458,7 @@ a = [] |> Random.uniform a
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.uniform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17493,7 +17493,7 @@ a = Random.weighted ( w, a ) []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.weighted"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17511,7 +17511,7 @@ a = Random.weighted ( w, a ) <| []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.weighted"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17529,7 +17529,7 @@ a = [] |> Random.weighted ( w, a )
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.weighted"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17547,7 +17547,7 @@ a = Random.weighted tuple []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.weighted"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17565,7 +17565,7 @@ a = Random.weighted tuple <| []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.weighted"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17583,7 +17583,7 @@ a = [] |> Random.weighted tuple
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                             , under = "Random.weighted"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

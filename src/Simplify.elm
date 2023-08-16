@@ -6476,7 +6476,7 @@ randomUniformChecks checkInfo =
                 in
                 [ Rule.errorWithFix
                     { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                    , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value" ]
+                    , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
@@ -6499,7 +6499,7 @@ randomWeightedChecks checkInfo =
             if AstHelpers.isEmptyList otherOptionsArg then
                 [ Rule.errorWithFix
                     { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                    , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value" ]
+                    , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
                     }
                     checkInfo.fnRange
                     (case Node.value checkInfo.firstArg of
