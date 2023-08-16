@@ -4925,8 +4925,8 @@ listAppendChecks checkInfo =
                 checkInfo.fnRange
                 (if checkInfo.usingRightPizza then
                     Fix.insertAt
-                        (rangeWithoutListBrackets secondListRange).start
-                        (checkInfo.extractSourceCode (rangeWithoutListBrackets firstListRange) ++ ",")
+                        (rangeWithoutBoundaries secondListRange).start
+                        (checkInfo.extractSourceCode (rangeWithoutBoundaries firstListRange) ++ ",")
                         :: keepOnlyFix
                             { parentRange = checkInfo.parentRange
                             , keep = secondListRange
@@ -4952,13 +4952,6 @@ listAppendChecks checkInfo =
 
         _ ->
             []
-
-
-rangeWithoutListBrackets : Range -> Range
-rangeWithoutListBrackets listRange =
-    { start = { row = listRange.start.row, column = listRange.start.column + 1 }
-    , end = { row = listRange.end.row, column = listRange.end.column - 1 }
-    }
 
 
 listHeadExistsError : { message : String, details : List String }
@@ -8329,6 +8322,13 @@ removeFunctionAndFirstArg checkInfo secondArgRange =
 
     else
         Fix.removeRange { start = checkInfo.fnRange.start, end = secondArgRange.start }
+
+
+rangeWithoutBoundaries : Range -> Range
+rangeWithoutBoundaries listRange =
+    { start = { row = listRange.start.row, column = listRange.start.column + 1 }
+    , end = { row = listRange.end.row, column = listRange.end.column - 1 }
+    }
 
 
 removeBoundariesFix : Node a -> List Fix
