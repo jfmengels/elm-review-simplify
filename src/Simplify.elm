@@ -1548,9 +1548,9 @@ expressionVisitorHelp (Node expressionRange expression) context =
         -----------------
         -- APPLICATION --
         -----------------
-        Expression.Application (applied :: applicationFirstArg :: applicationArgsAfterFirst) ->
-            case ( applied, ( applicationFirstArg, applicationArgsAfterFirst ) ) of
-                ( Node fnRange (Expression.FunctionOrValue _ fnName), ( firstArg, restOfArguments ) ) ->
+        Expression.Application (applied :: firstArg :: argsAfterFirst) ->
+            case applied of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
                     case
                         ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
                             |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
@@ -1561,7 +1561,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                                     (toCheckInfo
                                         { fnRange = fnRange
                                         , firstArg = firstArg
-                                        , argsAfterFirst = restOfArguments
+                                        , argsAfterFirst = argsAfterFirst
                                         , usingRightPizza = False
                                         }
                                     )
@@ -1570,7 +1570,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                         Nothing ->
                             onlyErrors []
 
-                ( Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))), ( firstArg, _ ) ) ->
+                Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))) ->
                     onlyErrors
                         (appliedLambdaChecks
                             { lambdaRange = lambdaRange
@@ -1579,15 +1579,20 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             }
                         )
 
-                ( Node operatorRange (Expression.PrefixOperator operator), ( left, right :: [] ) ) ->
-                    onlyErrors
-                        (fullyAppliedPrefixOperatorChecks
-                            { operator = operator
-                            , operatorRange = operatorRange
-                            , left = left
-                            , right = right
-                            }
-                        )
+                Node operatorRange (Expression.PrefixOperator operator) ->
+                    case argsAfterFirst of
+                        right :: [] ->
+                            onlyErrors
+                                (fullyAppliedPrefixOperatorChecks
+                                    { operator = operator
+                                    , operatorRange = operatorRange
+                                    , left = firstArg
+                                    , right = right
+                                    }
+                                )
+
+                        _ ->
+                            onlyErrors []
 
                 _ ->
                     onlyErrors []
