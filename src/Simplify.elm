@@ -1415,6 +1415,125 @@ expressionVisitor node context =
         )
 
 
+{-| From the `elm/core` readme:
+
+>
+> ### Default Imports
+
+> The modules in this package are so common, that some of them are imported by default in all Elm files. So it is as if every Elm file starts with these imports:
+>
+>     import Basics exposing (..)
+>     import List exposing (List, (::))
+>     import Maybe exposing (Maybe(..))
+>     import Result exposing (Result(..))
+>     import String exposing (String)
+>     import Char exposing (Char)
+>     import Tuple
+>     import Debug
+>     import Platform exposing (Program)
+>     import Platform.Cmd as Cmd exposing (Cmd)
+>     import Platform.Sub as Sub exposing (Sub)
+
+-}
+implicitImports : ImportLookup
+implicitImports =
+    [ ( [ "Basics" ], { alias = Nothing, exposed = ExposedAll } )
+    , ( [ "List" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "List", "(::)" ]) } )
+    , ( [ "Maybe" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Maybe", "Just", "Nothing" ]) } )
+    , ( [ "Result" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Result", "Ok", "Err" ]) } )
+    , ( [ "String" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "String") } )
+    , ( [ "Char" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "Char") } )
+    , ( [ "Tuple" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
+    , ( [ "Debug" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
+    , ( [ "Platform" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "Program") } )
+    , ( [ "Platform", "Cmd" ], { alias = Just [ "Cmd" ], exposed = ExposedSome (Set.singleton "Cmd") } )
+    , ( [ "Platform", "Sub" ], { alias = Just [ "Sub" ], exposed = ExposedSome (Set.singleton "Sub") } )
+    ]
+        |> Dict.fromList
+
+
+{-| Merge a given new import with an existing import lookup.
+This is strongly preferred over Dict.insert since the implicit default imports can be overridden
+-}
+insertImport : ModuleName -> { alias : Maybe ModuleName, exposed : Exposed } -> ImportLookup -> ImportLookup
+insertImport moduleName importInfoToAdd importLookup =
+    Dict.update moduleName
+        (\existingImport ->
+            let
+                newImportInfo : { alias : Maybe ModuleName, exposed : Exposed }
+                newImportInfo =
+                    case existingImport of
+                        Nothing ->
+                            importInfoToAdd
+
+                        Just import_ ->
+                            { alias = findMap .alias [ import_, importInfoToAdd ]
+                            , exposed = exposedMerge ( import_.exposed, importInfoToAdd.exposed )
+                            }
+            in
+            Just newImportInfo
+        )
+        importLookup
+
+
+exposedMerge : ( Exposed, Exposed ) -> Exposed
+exposedMerge exposedTuple =
+    case exposedTuple of
+        ( ExposedAll, _ ) ->
+            ExposedAll
+
+        ( ExposedSome _, ExposedAll ) ->
+            ExposedAll
+
+        ( ExposedSome aSet, ExposedSome bSet ) ->
+            ExposedSome (Set.union aSet bSet)
+
+
+qualify : ( ModuleName, String ) -> QualifyResources a -> ( ModuleName, String )
+qualify ( moduleName, name ) qualifyResources =
+    let
+        qualification : ModuleName
+        qualification =
+            case qualifyResources.importLookup |> Dict.get moduleName of
+                Nothing ->
+                    moduleName
+
+                Just import_ ->
+                    let
+                        moduleImportedName : ModuleName
+                        moduleImportedName =
+                            import_.alias |> Maybe.withDefault moduleName
+                    in
+                    if not (isExposedFrom import_.exposed name) then
+                        moduleImportedName
+
+                    else
+                        let
+                            isShadowed : Bool
+                            isShadowed =
+                                isBindingInScope qualifyResources name
+                        in
+                        if isShadowed then
+                            moduleImportedName
+
+                        else
+                            []
+    in
+    ( qualification, name )
+
+
+isBindingInScope :
+    { a
+        | moduleBindings : Set String
+        , localBindings : RangeDict (Set String)
+    }
+    -> String
+    -> Bool
+isBindingInScope resources name =
+    Set.member name resources.moduleBindings
+        || RangeDict.any (\bindings -> Set.member name bindings) resources.localBindings
+
+
 {-| Whenever you add ranges on expression enter, the same ranges should be removed on expression exit.
 Having one function finding unique ranges and a function for extracting bindings there ensures said consistency.
 
@@ -1514,6 +1633,21 @@ onlyErrors errors =
     , rightSidesOfPlusPlus = RangeDict.empty
     , inferredConstants = []
     }
+
+
+firstThatReportsError : List (a -> List (Error {})) -> a -> List (Error {})
+firstThatReportsError remainingChecks data =
+    findMap
+        (\checkFn ->
+            case checkFn data of
+                [] ->
+                    Nothing
+
+                firstError :: afterFirstError ->
+                    Just (firstError :: afterFirstError)
+        )
+        remainingChecks
+        |> Maybe.withDefault []
 
 
 expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
@@ -1925,281 +2059,6 @@ expressionVisitorHelp (Node expressionRange expression) context =
             onlyErrors []
 
 
-{-| From the `elm/core` readme:
-
->
-> ### Default Imports
-
-> The modules in this package are so common, that some of them are imported by default in all Elm files. So it is as if every Elm file starts with these imports:
->
->     import Basics exposing (..)
->     import List exposing (List, (::))
->     import Maybe exposing (Maybe(..))
->     import Result exposing (Result(..))
->     import String exposing (String)
->     import Char exposing (Char)
->     import Tuple
->     import Debug
->     import Platform exposing (Program)
->     import Platform.Cmd as Cmd exposing (Cmd)
->     import Platform.Sub as Sub exposing (Sub)
-
--}
-implicitImports : ImportLookup
-implicitImports =
-    [ ( [ "Basics" ], { alias = Nothing, exposed = ExposedAll } )
-    , ( [ "List" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "List", "(::)" ]) } )
-    , ( [ "Maybe" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Maybe", "Just", "Nothing" ]) } )
-    , ( [ "Result" ], { alias = Nothing, exposed = ExposedSome (Set.fromList [ "Result", "Ok", "Err" ]) } )
-    , ( [ "String" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "String") } )
-    , ( [ "Char" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "Char") } )
-    , ( [ "Tuple" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
-    , ( [ "Debug" ], { alias = Nothing, exposed = ExposedSome Set.empty } )
-    , ( [ "Platform" ], { alias = Nothing, exposed = ExposedSome (Set.singleton "Program") } )
-    , ( [ "Platform", "Cmd" ], { alias = Just [ "Cmd" ], exposed = ExposedSome (Set.singleton "Cmd") } )
-    , ( [ "Platform", "Sub" ], { alias = Just [ "Sub" ], exposed = ExposedSome (Set.singleton "Sub") } )
-    ]
-        |> Dict.fromList
-
-
-{-| Merge a given new import with an existing import lookup.
-This is strongly preferred over Dict.insert since the implicit default imports can be overridden
--}
-insertImport : ModuleName -> { alias : Maybe ModuleName, exposed : Exposed } -> ImportLookup -> ImportLookup
-insertImport moduleName importInfoToAdd importLookup =
-    Dict.update moduleName
-        (\existingImport ->
-            let
-                newImportInfo : { alias : Maybe ModuleName, exposed : Exposed }
-                newImportInfo =
-                    case existingImport of
-                        Nothing ->
-                            importInfoToAdd
-
-                        Just import_ ->
-                            { alias = findMap .alias [ import_, importInfoToAdd ]
-                            , exposed = exposedMerge ( import_.exposed, importInfoToAdd.exposed )
-                            }
-            in
-            Just newImportInfo
-        )
-        importLookup
-
-
-exposedMerge : ( Exposed, Exposed ) -> Exposed
-exposedMerge exposedTuple =
-    case exposedTuple of
-        ( ExposedAll, _ ) ->
-            ExposedAll
-
-        ( ExposedSome _, ExposedAll ) ->
-            ExposedAll
-
-        ( ExposedSome aSet, ExposedSome bSet ) ->
-            ExposedSome (Set.union aSet bSet)
-
-
-qualify : ( ModuleName, String ) -> QualifyResources a -> ( ModuleName, String )
-qualify ( moduleName, name ) qualifyResources =
-    let
-        qualification : ModuleName
-        qualification =
-            case qualifyResources.importLookup |> Dict.get moduleName of
-                Nothing ->
-                    moduleName
-
-                Just import_ ->
-                    let
-                        moduleImportedName : ModuleName
-                        moduleImportedName =
-                            import_.alias |> Maybe.withDefault moduleName
-                    in
-                    if not (isExposedFrom import_.exposed name) then
-                        moduleImportedName
-
-                    else
-                        let
-                            isShadowed : Bool
-                            isShadowed =
-                                isBindingInScope qualifyResources name
-                        in
-                        if isShadowed then
-                            moduleImportedName
-
-                        else
-                            []
-    in
-    ( qualification, name )
-
-
-isBindingInScope :
-    { a
-        | moduleBindings : Set String
-        , localBindings : RangeDict (Set String)
-    }
-    -> String
-    -> Bool
-isBindingInScope resources name =
-    Set.member name resources.moduleBindings
-        || RangeDict.any (\bindings -> Set.member name bindings) resources.localBindings
-
-
-distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
-distributeFieldAccess kind recordRange branches (Node fieldRange fieldName) =
-    case recordLeavesRanges branches of
-        Just records ->
-            [ let
-                fieldAccessRange : Range
-                fieldAccessRange =
-                    { start = recordRange.end, end = fieldRange.end }
-              in
-              Rule.errorWithFix
-                { message = "Field access can be simplified"
-                , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
-                }
-                fieldAccessRange
-                (Fix.removeRange fieldAccessRange
-                    :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
-                )
-            ]
-
-        Nothing ->
-            []
-
-
-injectRecordAccessIntoLetExpression : Range -> Node Expression -> Node String -> Error {}
-injectRecordAccessIntoLetExpression recordRange letBody (Node fieldRange fieldName) =
-    let
-        removalRange : Range
-        removalRange =
-            { start = recordRange.end, end = fieldRange.end }
-    in
-    Rule.errorWithFix
-        { message = "Field access can be simplified"
-        , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
-        }
-        removalRange
-        (Fix.removeRange removalRange
-            :: replaceSubExpressionByRecordAccessFix fieldName letBody
-        )
-
-
-recordLeavesRanges : List (Node Expression) -> Maybe (List Range)
-recordLeavesRanges nodes =
-    recordLeavesRangesHelp nodes []
-
-
-recordLeavesRangesHelp : List (Node Expression) -> List Range -> Maybe (List Range)
-recordLeavesRangesHelp nodes foundRanges =
-    case nodes of
-        [] ->
-            Just foundRanges
-
-        (Node range expr) :: rest ->
-            case expr of
-                Expression.IfBlock _ thenBranch elseBranch ->
-                    recordLeavesRangesHelp (thenBranch :: elseBranch :: rest) foundRanges
-
-                Expression.LetExpression letIn ->
-                    recordLeavesRangesHelp (letIn.expression :: rest) foundRanges
-
-                Expression.ParenthesizedExpression child ->
-                    recordLeavesRangesHelp (child :: rest) foundRanges
-
-                Expression.CaseExpression caseOf ->
-                    recordLeavesRangesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
-
-                Expression.RecordExpr _ ->
-                    recordLeavesRangesHelp rest (range :: foundRanges)
-
-                Expression.RecordUpdateExpression _ _ ->
-                    recordLeavesRangesHelp rest (range :: foundRanges)
-
-                _ ->
-                    Nothing
-
-
-negationChecks : { parentRange : Range, negatedExpression : Node Expression } -> List (Error {})
-negationChecks checkInfo =
-    case AstHelpers.removeParens checkInfo.negatedExpression of
-        Node range (Expression.Negation negatedValue) ->
-            let
-                doubleNegationRange : Range
-                doubleNegationRange =
-                    { start = checkInfo.parentRange.start
-                    , end = { row = range.start.row, column = range.start.column + 1 }
-                    }
-            in
-            [ Rule.errorWithFix
-                { message = "Unnecessary double number negation"
-                , details = [ "Negating a number twice is the same as the number itself." ]
-                }
-                doubleNegationRange
-                (replaceBySubExpressionFix checkInfo.parentRange negatedValue)
-            ]
-
-        _ ->
-            []
-
-
-fullyAppliedPrefixOperatorChecks :
-    { operator : String
-    , operatorRange : Range
-    , left : Node Expression
-    , right : Node Expression
-    }
-    -> List (Error {})
-fullyAppliedPrefixOperatorChecks checkInfo =
-    [ Rule.errorWithFix
-        { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
-        , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
-        }
-        checkInfo.operatorRange
-        [ Fix.removeRange { start = checkInfo.operatorRange.start, end = (Node.range checkInfo.left).start }
-        , Fix.insertAt (Node.range checkInfo.right).start (checkInfo.operator ++ " ")
-        ]
-    ]
-
-
-recordAccessChecks : Range -> Maybe Range -> String -> List (Node Expression.RecordSetter) -> List (Error {})
-recordAccessChecks nodeRange recordNameRange fieldName setters =
-    case
-        findMap
-            (\(Node _ ( Node _ setterField, setterValue )) ->
-                if setterField == fieldName then
-                    Just setterValue
-
-                else
-                    Nothing
-            )
-            setters
-    of
-        Just setter ->
-            [ Rule.errorWithFix
-                { message = "Field access can be simplified"
-                , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
-                }
-                nodeRange
-                (replaceBySubExpressionFix nodeRange setter)
-            ]
-
-        Nothing ->
-            case recordNameRange of
-                Just rnr ->
-                    [ Rule.errorWithFix
-                        { message = "Field access can be simplified"
-                        , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
-                        }
-                        nodeRange
-                        [ Fix.replaceRangeBy { start = nodeRange.start, end = rnr.start } ""
-                        , Fix.replaceRangeBy { start = rnr.end, end = nodeRange.end } ("." ++ fieldName)
-                        ]
-                    ]
-
-                Nothing ->
-                    []
-
-
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , expectNaN : Bool
@@ -2376,21 +2235,6 @@ type alias CompositionCheckInfo =
     , right : Node Expression
     , rightRange : Range
     }
-
-
-firstThatReportsError : List (a -> List (Error {})) -> a -> List (Error {})
-firstThatReportsError remainingChecks data =
-    case remainingChecks of
-        [] ->
-            []
-
-        checkFn :: restOfFns ->
-            case checkFn data of
-                [] ->
-                    firstThatReportsError restOfFns data
-
-                errors ->
-                    errors
 
 
 compositionChecks : List (CompositionCheckInfo -> List (Error {}))
@@ -7748,49 +7592,6 @@ determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable node =
                 Nothing
 
 
-getComparableExpression : Node Expression -> Maybe (List Expression)
-getComparableExpression =
-    getComparableExpressionHelper 1
-
-
-getComparableExpressionHelper : Int -> Node Expression -> Maybe (List Expression)
-getComparableExpressionHelper sign (Node _ expression) =
-    case expression of
-        Expression.Integer int ->
-            Just [ Expression.Integer (sign * int) ]
-
-        Expression.Hex hex ->
-            Just [ Expression.Integer (sign * hex) ]
-
-        Expression.Floatable float ->
-            Just [ Expression.Floatable (toFloat sign * float) ]
-
-        Expression.Negation expr ->
-            getComparableExpressionHelper (-1 * sign) expr
-
-        Expression.Literal string ->
-            Just [ Expression.Literal string ]
-
-        Expression.CharLiteral char ->
-            Just [ Expression.CharLiteral char ]
-
-        Expression.ParenthesizedExpression expr ->
-            getComparableExpressionHelper 1 expr
-
-        Expression.TupledExpression exprs ->
-            exprs
-                |> traverse (getComparableExpressionHelper 1)
-                |> Maybe.map List.concat
-
-        Expression.ListExpr exprs ->
-            exprs
-                |> traverse (getComparableExpressionHelper 1)
-                |> Maybe.map List.concat
-
-        _ ->
-            Nothing
-
-
 
 -- RECORD UPDATE
 
@@ -8067,6 +7868,60 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
                     introducesVariableOrUsesTypeConstructor context remaining
 
 
+
+-- NEGATION
+
+
+negationChecks : { parentRange : Range, negatedExpression : Node Expression } -> List (Error {})
+negationChecks checkInfo =
+    case AstHelpers.removeParens checkInfo.negatedExpression of
+        Node range (Expression.Negation negatedValue) ->
+            let
+                doubleNegationRange : Range
+                doubleNegationRange =
+                    { start = checkInfo.parentRange.start
+                    , end = { row = range.start.row, column = range.start.column + 1 }
+                    }
+            in
+            [ Rule.errorWithFix
+                { message = "Unnecessary double number negation"
+                , details = [ "Negating a number twice is the same as the number itself." ]
+                }
+                doubleNegationRange
+                (replaceBySubExpressionFix checkInfo.parentRange negatedValue)
+            ]
+
+        _ ->
+            []
+
+
+
+-- FULLY APPLIED PREFIX OPERATORS
+
+
+fullyAppliedPrefixOperatorChecks :
+    { operator : String
+    , operatorRange : Range
+    , left : Node Expression
+    , right : Node Expression
+    }
+    -> List (Error {})
+fullyAppliedPrefixOperatorChecks checkInfo =
+    [ Rule.errorWithFix
+        { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+        , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+        }
+        checkInfo.operatorRange
+        [ Fix.removeRange { start = checkInfo.operatorRange.start, end = (Node.range checkInfo.left).start }
+        , Fix.insertAt (Node.range checkInfo.right).start (checkInfo.operator ++ " ")
+        ]
+    ]
+
+
+
+-- APPLIED LAMBDA
+
+
 appliedLambdaChecks : { lambdaRange : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> List (Error {})
 appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
     case lambda.args of
@@ -8128,6 +7983,10 @@ appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
                 }
                 lambdaRange
             ]
+
+
+
+-- CASE OF
 
 
 booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
@@ -8213,7 +8072,7 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
 
 
 
---
+-- LET IN
 
 
 letInChecks : Expression.LetBlock -> List (Error {})
@@ -8250,13 +8109,122 @@ letKeyWordRange range =
     }
 
 
-rangeContainsLocation : Location -> Range -> Bool
-rangeContainsLocation location =
-    \range ->
-        not
-            ((Range.compareLocations location range.start == LT)
-                || (Range.compareLocations location range.end == GT)
+
+-- RECORD ACCESS
+
+
+recordAccessChecks : Range -> Maybe Range -> String -> List (Node Expression.RecordSetter) -> List (Error {})
+recordAccessChecks nodeRange recordNameRange fieldName setters =
+    case
+        findMap
+            (\(Node _ ( Node _ setterField, setterValue )) ->
+                if setterField == fieldName then
+                    Just setterValue
+
+                else
+                    Nothing
             )
+            setters
+    of
+        Just setter ->
+            [ Rule.errorWithFix
+                { message = "Field access can be simplified"
+                , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                }
+                nodeRange
+                (replaceBySubExpressionFix nodeRange setter)
+            ]
+
+        Nothing ->
+            case recordNameRange of
+                Just rnr ->
+                    [ Rule.errorWithFix
+                        { message = "Field access can be simplified"
+                        , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
+                        }
+                        nodeRange
+                        [ Fix.replaceRangeBy { start = nodeRange.start, end = rnr.start } ""
+                        , Fix.replaceRangeBy { start = rnr.end, end = nodeRange.end } ("." ++ fieldName)
+                        ]
+                    ]
+
+                Nothing ->
+                    []
+
+
+distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> List (Error {})
+distributeFieldAccess kind recordRange branches (Node fieldRange fieldName) =
+    case recordLeavesRanges branches of
+        Just records ->
+            [ let
+                fieldAccessRange : Range
+                fieldAccessRange =
+                    { start = recordRange.end, end = fieldRange.end }
+              in
+              Rule.errorWithFix
+                { message = "Field access can be simplified"
+                , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+                }
+                fieldAccessRange
+                (Fix.removeRange fieldAccessRange
+                    :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
+                )
+            ]
+
+        Nothing ->
+            []
+
+
+injectRecordAccessIntoLetExpression : Range -> Node Expression -> Node String -> Error {}
+injectRecordAccessIntoLetExpression recordRange letBody (Node fieldRange fieldName) =
+    let
+        removalRange : Range
+        removalRange =
+            { start = recordRange.end, end = fieldRange.end }
+    in
+    Rule.errorWithFix
+        { message = "Field access can be simplified"
+        , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+        }
+        removalRange
+        (Fix.removeRange removalRange
+            :: replaceSubExpressionByRecordAccessFix fieldName letBody
+        )
+
+
+recordLeavesRanges : List (Node Expression) -> Maybe (List Range)
+recordLeavesRanges nodes =
+    recordLeavesRangesHelp nodes []
+
+
+recordLeavesRangesHelp : List (Node Expression) -> List Range -> Maybe (List Range)
+recordLeavesRangesHelp nodes foundRanges =
+    case nodes of
+        [] ->
+            Just foundRanges
+
+        (Node range expr) :: rest ->
+            case expr of
+                Expression.IfBlock _ thenBranch elseBranch ->
+                    recordLeavesRangesHelp (thenBranch :: elseBranch :: rest) foundRanges
+
+                Expression.LetExpression letIn ->
+                    recordLeavesRangesHelp (letIn.expression :: rest) foundRanges
+
+                Expression.ParenthesizedExpression child ->
+                    recordLeavesRangesHelp (child :: rest) foundRanges
+
+                Expression.CaseExpression caseOf ->
+                    recordLeavesRangesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
+
+                Expression.RecordExpr _ ->
+                    recordLeavesRangesHelp rest (range :: foundRanges)
+
+                Expression.RecordUpdateExpression _ _ ->
+                    recordLeavesRangesHelp rest (range :: foundRanges)
+
+                _ ->
+                    Nothing
 
 
 
@@ -8323,6 +8291,15 @@ rangeBetweenExclusive ( aRange, bRange ) =
         -- EQ | LT
         _ ->
             { start = aRange.end, end = bRange.start }
+
+
+rangeContainsLocation : Location -> Range -> Bool
+rangeContainsLocation location =
+    \range ->
+        not
+            ((Range.compareLocations location range.start == LT)
+                || (Range.compareLocations location range.end == GT)
+            )
 
 
 removeFunctionFromFunctionCall : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Fix
@@ -8913,6 +8890,49 @@ combineResultValuesHelp lookupTable nodes soFar =
 
         [] ->
             Just soFar
+
+
+getComparableExpression : Node Expression -> Maybe (List Expression)
+getComparableExpression =
+    getComparableExpressionHelper 1
+
+
+getComparableExpressionHelper : Int -> Node Expression -> Maybe (List Expression)
+getComparableExpressionHelper sign (Node _ expression) =
+    case expression of
+        Expression.Integer int ->
+            Just [ Expression.Integer (sign * int) ]
+
+        Expression.Hex hex ->
+            Just [ Expression.Integer (sign * hex) ]
+
+        Expression.Floatable float ->
+            Just [ Expression.Floatable (toFloat sign * float) ]
+
+        Expression.Negation expr ->
+            getComparableExpressionHelper (-1 * sign) expr
+
+        Expression.Literal string ->
+            Just [ Expression.Literal string ]
+
+        Expression.CharLiteral char ->
+            Just [ Expression.CharLiteral char ]
+
+        Expression.ParenthesizedExpression expr ->
+            getComparableExpressionHelper 1 expr
+
+        Expression.TupledExpression exprs ->
+            exprs
+                |> traverse (getComparableExpressionHelper 1)
+                |> Maybe.map List.concat
+
+        Expression.ListExpr exprs ->
+            exprs
+                |> traverse (getComparableExpressionHelper 1)
+                |> Maybe.map List.concat
+
+        _ ->
+            Nothing
 
 
 
