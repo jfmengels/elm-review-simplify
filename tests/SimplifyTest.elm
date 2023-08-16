@@ -35,6 +35,7 @@ all =
         , parserTests
         , jsonDecodeTests
         , htmlAttributesTests
+        , randomTests
         , recordAccessTests
         , letTests
         , pipelineTests
@@ -17380,6 +17381,214 @@ a = Html.Attributes.classList (( x, False ) :: y :: tail)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Html.Attributes
 a = Html.Attributes.classList (y :: tail)
+"""
+                        ]
+        ]
+
+
+
+-- Random
+
+
+randomTests : Test
+randomTests =
+    Test.describe "Random"
+        [ randomUniformTests
+        , randomWeightedChecks
+        ]
+
+
+randomUniformTests : Test
+randomUniformTests =
+    Test.describe "uniform"
+        [ test "should not report Random.uniform used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.uniform
+b = Random.uniform []
+c = Random.uniform first
+d = Random.uniform head tail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Random.uniform a [] by Random.constant a" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.uniform a []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.uniform"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant a
+"""
+                        ]
+        , test "should replace Random.uniform a <| [] by Random.constant a" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.uniform a <| []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.uniform"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant a
+"""
+                        ]
+        , test "should replace [] |> Random.uniform a by Random.constant a" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = [] |> Random.uniform a
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.uniform"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant a
+"""
+                        ]
+        ]
+
+
+randomWeightedChecks : Test
+randomWeightedChecks =
+    Test.describe "weighted"
+        [ test "should not report Random.uniform used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.weighted
+b = Random.weighted []
+c = Random.weighted first
+d = Random.weighted head tail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Random.weighted ( w, a ) [] by Random.constant a" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.weighted ( w, a ) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.weighted"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant a
+"""
+                        ]
+        , test "should replace Random.weighted ( w, a ) <| [] by Random.constant a" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.weighted ( w, a ) <| []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.weighted"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant a
+"""
+                        ]
+        , test "should replace [] |> Random.weighted ( w, a ) by Random.constant a" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = [] |> Random.weighted ( w, a )
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.weighted"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant a
+"""
+                        ]
+        , test "should replace Random.weighted tuple [] by Random.constant (Tuple.first tuple)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.weighted tuple []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.weighted"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (Tuple.first tuple)
+"""
+                        ]
+        , test "should replace Random.weighted tuple <| [] by Random.constant (Tuple.first tuple)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.weighted tuple <| []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.weighted"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (Tuple.first tuple)
+"""
+                        ]
+        , test "should replace [] |> Random.weighted tuple by Random.constant (Tuple.first tuple)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = [] |> Random.weighted tuple
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                            , under = "Random.weighted"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (Tuple.first tuple)
 """
                         ]
         ]
