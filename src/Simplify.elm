@@ -798,6 +798,15 @@ All of these also apply for `Sub`.
     Random.weighted tuple []
     --> Random.constant (Tuple.first tuple)
 
+    Random.list 0 generator
+    --> Random.constant []
+
+    Random.list 1 generator
+    --> Random.map List.singleton generator
+
+    Random.list n (Random.constant el)
+    --> Random.constant (List.repeat n el)
+
 -}
 
 import Dict exposing (Dict)
@@ -2196,6 +2205,7 @@ functionCallChecks =
         , ( ( [ "Parser", "Advanced" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Random" ], "uniform" ), randomUniformChecks )
         , ( ( [ "Random" ], "weighted" ), randomWeightedChecks )
+        , ( ( [ "Random" ], "list" ), randomListChecks )
         ]
 
 
@@ -6162,21 +6172,6 @@ listMapNChecks { n } checkInfo =
         []
 
 
-multiAlways : Int -> String -> QualifyResources a -> String
-multiAlways alwaysCount alwaysResultExpressionAsString qualifyResources =
-    case alwaysCount of
-        0 ->
-            alwaysResultExpressionAsString
-
-        1 ->
-            qualifiedToString (qualify ( [ "Basics" ], "always" ) qualifyResources)
-                ++ " "
-                ++ alwaysResultExpressionAsString
-
-        alwaysCountPositive ->
-            "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
-
-
 listUnzipChecks : CheckInfo -> List (Error {})
 listUnzipChecks checkInfo =
     case Node.value checkInfo.firstArg of
@@ -6528,6 +6523,108 @@ randomWeightedChecks checkInfo =
 
         Nothing ->
             []
+
+
+randomListChecks : CheckInfo -> List (Error {})
+randomListChecks checkInfo =
+    let
+        maybeElementGeneratorArg : Maybe (Node Expression)
+        maybeElementGeneratorArg =
+            secondArg checkInfo
+    in
+    firstThatReportsError
+        [ \() ->
+            case AstHelpers.getUncomputedIntValue checkInfo.firstArg of
+                Just 1 ->
+                    [ Rule.errorWithFix
+                        { message = "Random.list 1 can be replaced by Random.map List.singleton"
+                        , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy
+                            (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                            (qualifiedToString (qualify ( [ "Random" ], "map" ) checkInfo)
+                                ++ " "
+                                ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) checkInfo)
+                            )
+                        ]
+                    ]
+
+                Just 0 ->
+                    let
+                        replacement : String
+                        replacement =
+                            replacementWithIrrelevantLastArg
+                                { forNoLastArg =
+                                    qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                        ++ " []"
+                                , lastArg = maybeElementGeneratorArg
+                                , resources = checkInfo
+                                }
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Random.list 0 can be replaced by Random.constant []"
+                        , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with " ++ replacement ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
+                    ]
+
+                _ ->
+                    []
+        , \() ->
+            case maybeElementGeneratorArg of
+                Just elementGeneratorArg ->
+                    case AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) checkInfo.lookupTable elementGeneratorArg of
+                        Just constantCall ->
+                            [ Rule.errorWithFix
+                                { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                                , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                                }
+                                checkInfo.fnRange
+                                (if checkInfo.usingRightPizza then
+                                    [ Fix.replaceRangeBy
+                                        { start = (Node.range elementGeneratorArg).start
+                                        , end = (Node.range constantCall.firstArg).start
+                                        }
+                                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                            ++ " ("
+                                        )
+                                    , Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify ( [ "List" ], "repeat" ) checkInfo))
+                                    , Fix.removeRange
+                                        { start = (Node.range constantCall.firstArg).end
+                                        , end = (Node.range elementGeneratorArg).end
+                                        }
+                                    , Fix.insertAt (Node.range checkInfo.firstArg).end ")"
+                                    ]
+
+                                 else
+                                    [ Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                            ++ " ("
+                                            ++ qualifiedToString (qualify ( [ "List" ], "repeat" ) checkInfo)
+                                        )
+                                    , Fix.removeRange
+                                        { start = (Node.range elementGeneratorArg).start
+                                        , end = (Node.range constantCall.firstArg).start
+                                        }
+                                    , Fix.replaceRangeBy
+                                        { start = (Node.range constantCall.firstArg).end
+                                        , end = (Node.range elementGeneratorArg).end
+                                        }
+                                        ")"
+                                    ]
+                                )
+                            ]
+
+                        Nothing ->
+                            []
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 
@@ -8509,6 +8606,32 @@ toIdentityFix config =
 
         Just (Node lastArgRange _) ->
             keepOnlyFix { parentRange = config.resources.parentRange, keep = lastArgRange }
+
+
+multiAlways : Int -> String -> QualifyResources a -> String
+multiAlways alwaysCount alwaysResultExpressionAsString qualifyResources =
+    case alwaysCount of
+        0 ->
+            alwaysResultExpressionAsString
+
+        1 ->
+            qualifiedToString (qualify ( [ "Basics" ], "always" ) qualifyResources)
+                ++ " "
+                ++ alwaysResultExpressionAsString
+
+        alwaysCountPositive ->
+            "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
+
+
+replacementWithIrrelevantLastArg : { resources : QualifyResources a, lastArg : Maybe arg, forNoLastArg : String } -> String
+replacementWithIrrelevantLastArg config =
+    case config.lastArg of
+        Nothing ->
+            qualifiedToString (qualify ( [ "Basics" ], "always" ) config.resources)
+                ++ (" (" ++ config.forNoLastArg ++ ")")
+
+        Just _ ->
+            config.forNoLastArg
 
 
 {-| Use in combination with

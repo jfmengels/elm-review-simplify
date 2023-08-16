@@ -17395,6 +17395,7 @@ randomTests =
     Test.describe "Random"
         [ randomUniformTests
         , randomWeightedChecks
+        , randomListTests
         ]
 
 
@@ -17589,6 +17590,346 @@ a = [] |> Random.weighted tuple
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
 a = Random.constant (Tuple.first tuple)
+"""
+                        ]
+        ]
+
+
+randomListTests : Test
+randomListTests =
+    Test.describe "Random.list"
+        [ test "should not report Random.uniform used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list
+b = Random.list n
+c = Random.list 2 generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Random.list 1 by Random.map List.singleton" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
+                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.map List.singleton
+"""
+                        ]
+        , test "should replace 1 |> Random.list by Random.map List.singleton" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = 1 |> Random.list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
+                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.map List.singleton
+"""
+                        ]
+        , test "should replace Random.list 1 generator by Random.map List.singleton generator" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list 1 generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
+                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.map List.singleton generator
+"""
+                        ]
+        , test "should replace Random.list 1 <| generator by Random.map List.singleton <| generator" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list 1 <| generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
+                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.map List.singleton <| generator
+"""
+                        ]
+        , test "should replace generator |> Random.list 1 by generator |> Random.map List.singleton" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = generator |> Random.list 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
+                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = generator |> Random.map List.singleton
+"""
+                        ]
+        , test "should replace Random.list 0 generator by Random.constant []" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list 0 generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 0 can be replaced by Random.constant []"
+                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant []
+"""
+                        ]
+        , test "should replace Random.list 0 <| generator by Random.constant []" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list 0 <| generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 0 can be replaced by Random.constant []"
+                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant []
+"""
+                        ]
+        , test "should replace generator |> Random.list 0 by Random.constant []" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = generator |> Random.list 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 0 can be replaced by Random.constant []"
+                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant []
+"""
+                        ]
+        , test "should replace Random.list 0 by always (Random.constant [])" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list 0 can be replaced by Random.constant []"
+                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with always (Random.constant [])." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = always (Random.constant [])
+"""
+                        ]
+        , test "should replace Random.list n (Random.constant el) by Random.constant (List.repeat n el)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list n (Random.constant el)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (List.repeat n el)
+"""
+                        ]
+        , test "should replace Random.list n (Random.constant <| el) by Random.constant (List.repeat n el)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list n (Random.constant <| el)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (List.repeat n el)
+"""
+                        ]
+        , test "should replace Random.list n (el |> Random.constant) by Random.constant (List.repeat n el)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list n (el |> Random.constant)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (List.repeat n el)
+"""
+                        ]
+        , test "should replace Random.list n <| Random.constant el by Random.constant (List.repeat n <| el)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list n <| Random.constant el
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (List.repeat n <| el)
+"""
+                        ]
+        , test "should replace Random.list n <| Random.constant <| el by Random.constant (List.repeat n <| el)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list n <| Random.constant <| el
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (List.repeat n <| el)
+"""
+                        ]
+        , test "should replace Random.list n <| (el |> Random.constant) by Random.constant (List.repeat n <| el)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list n <| (el |> Random.constant)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (List.repeat n <| el)
+"""
+                        ]
+        , test "should replace Random.constant el |> Random.list n by Random.constant (el |> List.repeat n)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.constant el |> Random.list n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (el |> List.repeat n)
+"""
+                        ]
+        , test "should replace el |> Random.constant |> Random.list n by Random.constant (el |> List.repeat n)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = el |> Random.constant |> Random.list n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (el |> List.repeat n)
+"""
+                        ]
+        , test "should replace (Random.constant <| el) |> Random.list n by Random.constant (el |> List.repeat n)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = (Random.constant <| el) |> Random.list n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
+                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant (el |> List.repeat n)
 """
                         ]
         ]
