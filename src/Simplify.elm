@@ -471,7 +471,7 @@ Destructuring using case expressions
     List.map identity list
     --> list
 
-    List.filter (\a -> True) list
+    List.filter (always True) list
     --> list
 
     List.filter (always False) list
@@ -625,7 +625,7 @@ Destructuring using case expressions
     List.reverse (List.reverse list)
     --> list
 
-    List.sortBy (\_ -> a) list
+    List.sortBy (always a) list
     --> list
 
     List.sortBy identity list
