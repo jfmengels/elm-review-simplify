@@ -1828,8 +1828,8 @@ expressionVisitorHelp (Node expressionRange expression) context =
                 Expression.IfBlock _ thenBranch elseBranch ->
                     onlyErrors (distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field)
 
-                Expression.CaseExpression { cases } ->
-                    onlyErrors (distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second cases) field)
+                Expression.CaseExpression caseOf ->
+                    onlyErrors (distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second caseOf.cases) field)
 
                 _ ->
                     onlyErrors []
@@ -2100,14 +2100,14 @@ recordLeavesRangesHelp nodes foundRanges =
                 Expression.IfBlock _ thenBranch elseBranch ->
                     recordLeavesRangesHelp (thenBranch :: elseBranch :: rest) foundRanges
 
-                Expression.LetExpression { expression } ->
-                    recordLeavesRangesHelp (expression :: rest) foundRanges
+                Expression.LetExpression letIn ->
+                    recordLeavesRangesHelp (letIn.expression :: rest) foundRanges
 
                 Expression.ParenthesizedExpression child ->
                     recordLeavesRangesHelp (child :: rest) foundRanges
 
-                Expression.CaseExpression { cases } ->
-                    recordLeavesRangesHelp (List.map Tuple.second cases ++ rest) foundRanges
+                Expression.CaseExpression caseOf ->
+                    recordLeavesRangesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
 
                 Expression.RecordExpr _ ->
                     recordLeavesRangesHelp rest (range :: foundRanges)
@@ -4566,61 +4566,73 @@ resultMapErrorCompositionChecks checkInfo =
 
 listConcatChecks : CheckInfo -> List (Error {})
 listConcatChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr list ->
-            case list of
-                (Node elementRange _) :: [] ->
-                    [ Rule.errorWithFix
-                        { message = "Unnecessary use of List.concat on a list with 1 element"
-                        , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                        }
-                        checkInfo.parentRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = elementRange.start }
-                        , Fix.removeRange { start = elementRange.end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
-
-                (firstListElement :: restOfListElements) as args ->
-                    case findEmptyLiteral list of
-                        Just { element, removalRange } ->
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr list ->
+                    case list of
+                        (Node elementRange _) :: [] ->
                             [ Rule.errorWithFix
-                                { message = "Found empty list in the list given List.concat"
-                                , details = [ "This element is unnecessary and can be removed." ]
+                                { message = "Unnecessary use of List.concat on a list with 1 element"
+                                , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
                                 }
-                                element
-                                [ Fix.removeRange removalRange ]
+                                checkInfo.parentRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = elementRange.start }
+                                , Fix.removeRange { start = elementRange.end, end = checkInfo.parentRange.end }
+                                ]
                             ]
 
-                        Nothing ->
-                            if List.all AstHelpers.isListLiteral list then
-                                [ Rule.errorWithFix
-                                    { message = "Expression could be simplified to be a single List"
-                                    , details = [ "Try moving all the elements into a single list." ]
-                                    }
-                                    checkInfo.parentRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                        ++ List.concatMap removeBoundariesFix args
-                                    )
-                                ]
+                        firstListElement :: restOfListElements ->
+                            firstThatReportsError
+                                [ \() ->
+                                    case findEmptyLiteral list of
+                                        Just emptyLiteral ->
+                                            [ Rule.errorWithFix
+                                                { message = "Found empty list in the list given List.concat"
+                                                , details = [ "This element is unnecessary and can be removed." ]
+                                                }
+                                                emptyLiteral.element
+                                                [ Fix.removeRange emptyLiteral.removalRange ]
+                                            ]
 
-                            else
-                                case findConsecutiveListLiterals firstListElement restOfListElements of
-                                    [] ->
-                                        []
-
-                                    fixes ->
+                                        Nothing ->
+                                            []
+                                , \() ->
+                                    if List.all AstHelpers.isListLiteral list then
                                         [ Rule.errorWithFix
-                                            { message = "Consecutive literal lists should be merged"
-                                            , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                            { message = "Expression could be simplified to be a single List"
+                                            , details = [ "Try moving all the elements into a single list." ]
                                             }
-                                            checkInfo.fnRange
-                                            fixes
+                                            checkInfo.parentRange
+                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                                ++ List.concatMap removeBoundariesFix (firstListElement :: restOfListElements)
+                                            )
                                         ]
+
+                                    else
+                                        []
+                                , \() ->
+                                    case findConsecutiveListLiterals firstListElement restOfListElements of
+                                        firstFix :: fixesAFterFirst ->
+                                            [ Rule.errorWithFix
+                                                { message = "Consecutive literal lists should be merged"
+                                                , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (firstFix :: fixesAFterFirst)
+                                            ]
+
+                                        [] ->
+                                            []
+                                ]
+                                ()
+
+                        _ ->
+                            []
 
                 _ ->
                     []
-
-        _ ->
+        , \() ->
             case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just match ->
                     [ Rule.errorWithFix
@@ -4636,50 +4648,62 @@ listConcatChecks checkInfo =
 
                 Nothing ->
                     []
+        ]
+        ()
 
 
 findEmptyLiteral : List (Node Expression) -> Maybe { element : Range, removalRange : Range }
-findEmptyLiteral nodes =
-    case nodes of
+findEmptyLiteral elements =
+    case elements of
         [] ->
             Nothing
 
-        ((Node range _) as head) :: rest ->
+        head :: rest ->
+            let
+                headRange : Range
+                headRange =
+                    Node.range head
+            in
             if AstHelpers.isEmptyList head then
                 let
                     end : Location
                     end =
                         case rest of
                             [] ->
-                                range.end
+                                headRange.end
 
                             (Node nextItem _) :: _ ->
                                 nextItem.start
                 in
                 Just
-                    { element = range
-                    , removalRange = { start = range.start, end = end }
+                    { element = headRange
+                    , removalRange = { start = headRange.start, end = end }
                     }
 
             else
-                findEmptyLiteralHelp rest range.end
+                findEmptyLiteralHelp rest headRange.end
 
 
 findEmptyLiteralHelp : List (Node Expression) -> Location -> Maybe { element : Range, removalRange : Range }
-findEmptyLiteralHelp nodes previousItemEnd =
-    case nodes of
+findEmptyLiteralHelp elements previousItemEnd =
+    case elements of
         [] ->
             Nothing
 
-        ((Node range _) as head) :: rest ->
+        head :: rest ->
+            let
+                headRange : Range
+                headRange =
+                    Node.range head
+            in
             if AstHelpers.isEmptyList head then
                 Just
-                    { element = range
-                    , removalRange = { start = previousItemEnd, end = range.end }
+                    { element = headRange
+                    , removalRange = { start = previousItemEnd, end = headRange.end }
                     }
 
             else
-                findEmptyLiteralHelp rest range.end
+                findEmptyLiteralHelp rest headRange.end
 
 
 findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix
@@ -7659,8 +7683,8 @@ replaceSingleElementListBySingleValue lookupTable node =
         Expression.IfBlock _ thenBranch elseBranch ->
             combineSingleElementFixes lookupTable [ thenBranch, elseBranch ] []
 
-        Expression.CaseExpression { cases } ->
-            combineSingleElementFixes lookupTable (List.map Tuple.second cases) []
+        Expression.CaseExpression caseOf ->
+            combineSingleElementFixes lookupTable (List.map Tuple.second caseOf.cases) []
 
         _ ->
             Nothing
@@ -8566,8 +8590,8 @@ isAlwaysMaybe lookupTable baseNode =
                 _ ->
                     Undetermined
 
-        Expression.LambdaExpression { expression } ->
-            getMaybeValues lookupTable expression
+        Expression.LambdaExpression lambda ->
+            getMaybeValues lookupTable lambda.expression
                 |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
 
         _ ->
@@ -8585,8 +8609,8 @@ isAlwaysEmptyList lookupTable node =
                 _ ->
                     False
 
-        Expression.LambdaExpression { expression } ->
-            AstHelpers.isEmptyList expression
+        Expression.LambdaExpression lambda ->
+            AstHelpers.isEmptyList lambda.expression
 
         _ ->
             False
@@ -8679,8 +8703,8 @@ isAlwaysResult lookupTable baseNode =
                 _ ->
                     Nothing
 
-        Expression.LambdaExpression { expression } ->
-            getResultValues lookupTable expression
+        Expression.LambdaExpression lambda ->
+            getResultValues lookupTable lambda.expression
                 |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
 
         _ ->
@@ -8727,14 +8751,14 @@ getMaybeValues lookupTable baseNode =
                 _ ->
                     Undetermined
 
-        Expression.LetExpression { expression } ->
-            getMaybeValues lookupTable expression
+        Expression.LetExpression letIn ->
+            getMaybeValues lookupTable letIn.expression
 
         Expression.IfBlock _ thenBranch elseBranch ->
             combineMaybeValues lookupTable [ thenBranch, elseBranch ]
 
-        Expression.CaseExpression { cases } ->
-            combineMaybeValues lookupTable (List.map Tuple.second cases)
+        Expression.CaseExpression caseOf ->
+            combineMaybeValues lookupTable (List.map Tuple.second caseOf.cases)
 
         _ ->
             Undetermined
@@ -8930,11 +8954,6 @@ findMap mapper nodes =
                     findMap mapper rest
 
 
-findMapNeighboring : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
-findMapNeighboring tryMap list =
-    findMapNeighboringAfter Nothing tryMap list
-
-
 findMapNeighboringAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
 findMapNeighboringAfter before tryMap list =
     case list of
@@ -8948,6 +8967,11 @@ findMapNeighboringAfter before tryMap list =
 
                 Nothing ->
                     findMapNeighboringAfter (Just now) tryMap after
+
+
+findMapNeighboring : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
+findMapNeighboring tryMap list =
+    findMapNeighboringAfter Nothing tryMap list
 
 
 neighboringMap : ({ before : Maybe a, current : a, after : Maybe a } -> b) -> List a -> List b
