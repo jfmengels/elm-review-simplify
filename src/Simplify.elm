@@ -2809,6 +2809,7 @@ consChecks checkInfo =
     case Node.value checkInfo.right of
         Expression.ListExpr tailElements ->
             let
+                fix : List Fix
                 fix =
                     case tailElements of
                         [] ->
