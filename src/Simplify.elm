@@ -2929,8 +2929,8 @@ negateCompositionCheck checkInfo =
     firstThatReportsError
         [ \() ->
             case
-                ( getNegateFunction checkInfo.lookupTable checkInfo.left
-                , getNegateFunction checkInfo.lookupTable checkInfo.right
+                ( AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.left
+                , AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.right
                 )
             of
                 ( Just _, Just _ ) ->
@@ -2948,7 +2948,7 @@ negateCompositionCheck checkInfo =
                 ( _, Nothing ) ->
                     []
         , \() ->
-            case getNegateFunction checkInfo.lookupTable checkInfo.left of
+            case AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.left of
                 Just leftNegateRange ->
                     case getNegateComposition checkInfo.lookupTable checkInfo.fromLeftToRight checkInfo.right of
                         Just rightNotRange ->
@@ -2966,7 +2966,7 @@ negateCompositionCheck checkInfo =
                 Nothing ->
                     []
         , \() ->
-            case getNegateFunction checkInfo.lookupTable checkInfo.right of
+            case AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.right of
                 Just rightNegateRange ->
                     case getNegateComposition checkInfo.lookupTable (not checkInfo.fromLeftToRight) checkInfo.left of
                         Just leftNotRange ->
@@ -3001,11 +3001,11 @@ getNegateComposition lookupTable takeFirstFunction node =
                     Node.range right
             in
             if takeFirstFunction then
-                getNegateFunction lookupTable right
+                AstHelpers.getNegateFunction lookupTable right
                     |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
 
             else
-                getNegateFunction lookupTable left
+                AstHelpers.getNegateFunction lookupTable left
                     |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
 
         Expression.OperatorApplication ">>" _ left right ->
@@ -3019,11 +3019,11 @@ getNegateComposition lookupTable takeFirstFunction node =
                     Node.range right
             in
             if takeFirstFunction then
-                getNegateFunction lookupTable left
+                AstHelpers.getNegateFunction lookupTable left
                     |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
 
             else
-                getNegateFunction lookupTable right
+                AstHelpers.getNegateFunction lookupTable right
                     |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
 
         _ ->
@@ -3032,22 +3032,7 @@ getNegateComposition lookupTable takeFirstFunction node =
 
 basicsNegateChecks : CheckInfo -> List (Error {})
 basicsNegateChecks checkInfo =
-    removeAlongWithOtherFunctionCheck negateNegateCompositionErrorMessage getNegateFunction checkInfo
-
-
-getNegateFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
-getNegateFunction lookupTable baseNode =
-    case AstHelpers.removeParens baseNode of
-        Node range (Expression.FunctionOrValue _ "negate") ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable range of
-                Just [ "Basics" ] ->
-                    Just range
-
-                _ ->
-                    Nothing
-
-        _ ->
-            Nothing
+    removeAlongWithOtherFunctionCheck negateNegateCompositionErrorMessage AstHelpers.getNegateFunction checkInfo
 
 
 

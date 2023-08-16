@@ -8,6 +8,7 @@ module Simplify.AstHelpers exposing
     , getListLiteral
     , getListSingleton
     , getListSingletonCall
+    , getNegateFunction
     , getNotFunction
     , getOrder
     , getSpecificFunction
@@ -319,6 +320,21 @@ getCollapsedValueOrFunction baseNode =
 getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNotFunction lookupTable baseNode =
     getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
+
+
+getNegateFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
+getNegateFunction lookupTable baseNode =
+    case removeParens baseNode of
+        Node range (Expression.FunctionOrValue _ "negate") ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable range of
+                Just [ "Basics" ] ->
+                    Just range
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
