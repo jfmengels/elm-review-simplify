@@ -1565,7 +1565,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             )
                         )
 
-                _ ->
+                Nothing ->
                     onlyErrors []
 
         -------------------
@@ -1626,106 +1626,113 @@ expressionVisitorHelp (Node expressionRange expression) context =
         ----------
         -- (<|) --
         ----------
-        Expression.OperatorApplication "<|" _ (Node fnRange (Expression.FunctionOrValue _ fnName)) firstArg ->
-            case
-                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
-            of
-                Just checkFn ->
-                    onlyErrors
-                        (checkFn
-                            (toCheckInfo
-                                { fnRange = fnRange
-                                , firstArg = firstArg
-                                , argsAfterFirst = []
-                                , usingRightPizza = False
-                                }
-                            )
-                        )
+        Expression.OperatorApplication "<|" _ pipedInto lastArg ->
+            case pipedInto of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
+                    case
+                        ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                            |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+                    of
+                        Just checkFn ->
+                            onlyErrors
+                                (checkFn
+                                    (toCheckInfo
+                                        { fnRange = fnRange
+                                        , firstArg = lastArg
+                                        , argsAfterFirst = []
+                                        , usingRightPizza = False
+                                        }
+                                    )
+                                )
 
-                _ ->
-                    onlyErrors []
+                        Nothing ->
+                            onlyErrors []
 
-        Expression.OperatorApplication "<|" _ (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast))) lastArg ->
-            case
-                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
-            of
-                Just checkFn ->
-                    errorsAndRangesToIgnore
-                        (checkFn
-                            (toCheckInfo
-                                { fnRange = fnRange
-                                , firstArg = firstArg
-                                , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                , usingRightPizza = False
-                                }
-                            )
-                        )
-                        (RangeDict.singleton applicationRange ())
+                Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast)) ->
+                    case
+                        ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                            |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+                    of
+                        Just checkFn ->
+                            errorsAndRangesToIgnore
+                                (checkFn
+                                    (toCheckInfo
+                                        { fnRange = fnRange
+                                        , firstArg = firstArg
+                                        , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
+                                        , usingRightPizza = False
+                                        }
+                                    )
+                                )
+                                (RangeDict.singleton applicationRange ())
 
-                Nothing ->
-                    onlyErrors []
+                        Nothing ->
+                            onlyErrors []
 
-        Expression.OperatorApplication "<|" _ left right ->
-            onlyErrors (leftPipelineChecks context left right)
+                pipedIntoOther ->
+                    onlyErrors (leftPipelineChecks context pipedIntoOther lastArg)
 
         ----------
         -- (|>) --
         ----------
-        Expression.OperatorApplication "|>" _ firstArg (Node fnRange (Expression.FunctionOrValue _ fnName)) ->
-            case
-                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
-            of
-                Just checkFn ->
-                    onlyErrors
-                        (checkFn
-                            (toCheckInfo
-                                { fnRange = fnRange
-                                , firstArg = firstArg
-                                , argsAfterFirst = []
-                                , usingRightPizza = True
-                                }
-                            )
-                        )
+        Expression.OperatorApplication "|>" _ lastArg pipedInto ->
+            case pipedInto of
+                Node fnRange (Expression.FunctionOrValue _ fnName) ->
+                    case
+                        ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                            |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+                    of
+                        Just checkFn ->
+                            onlyErrors
+                                (checkFn
+                                    (toCheckInfo
+                                        { fnRange = fnRange
+                                        , firstArg = lastArg
+                                        , argsAfterFirst = []
+                                        , usingRightPizza = True
+                                        }
+                                    )
+                                )
 
-                _ ->
-                    onlyErrors []
+                        Nothing ->
+                            onlyErrors []
 
-        Expression.OperatorApplication "|>" _ lastArg (Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast))) ->
-            case
-                ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
-                    |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
-            of
-                Just checkFn ->
-                    errorsAndRangesToIgnore
-                        (checkFn
-                            (toCheckInfo
-                                { fnRange = fnRange
-                                , firstArg = firstArg
-                                , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                , usingRightPizza = True
-                                }
-                            )
-                        )
-                        (RangeDict.singleton applicationRange ())
+                Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast)) ->
+                    case
+                        ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange
+                            |> Maybe.andThen (\moduleName -> Dict.get ( moduleName, fnName ) functionCallChecks)
+                    of
+                        Just checkFn ->
+                            errorsAndRangesToIgnore
+                                (checkFn
+                                    (toCheckInfo
+                                        { fnRange = fnRange
+                                        , firstArg = firstArg
+                                        , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
+                                        , usingRightPizza = True
+                                        }
+                                    )
+                                )
+                                (RangeDict.singleton applicationRange ())
 
-                _ ->
-                    onlyErrors []
+                        Nothing ->
+                            onlyErrors []
 
-        Expression.OperatorApplication "|>" _ left right ->
-            onlyErrors (rightPipelineChecks context left right)
+                pipedIntoOther ->
+                    onlyErrors (rightPipelineChecks context lastArg pipedIntoOther)
 
-        Expression.OperatorApplication ">>" _ left (Node _ (Expression.OperatorApplication ">>" _ right _)) ->
+        ----------
+        -- (>>) --
+        ----------
+        Expression.OperatorApplication ">>" _ left composedRight ->
             let
-                leftRange : Range
-                leftRange =
-                    Node.range left
+                ( right, parentRange ) =
+                    case composedRight of
+                        Node _ (Expression.OperatorApplication ">>" _ nextRight _) ->
+                            ( nextRight, { start = (Node.range left).start, end = (Node.range nextRight).end } )
 
-                rightRange : Range
-                rightRange =
-                    Node.range right
+                        endRight ->
+                            ( endRight, expressionRange )
             in
             onlyErrors
                 (firstThatReportsError compositionChecks
@@ -1734,23 +1741,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     , fromLeftToRight = True
-                    , parentRange = { start = leftRange.start, end = rightRange.end }
-                    , left = left
-                    , leftRange = leftRange
-                    , right = right
-                    , rightRange = rightRange
-                    }
-                )
-
-        Expression.OperatorApplication ">>" _ left right ->
-            onlyErrors
-                (firstThatReportsError compositionChecks
-                    { lookupTable = context.lookupTable
-                    , importLookup = context.importLookup
-                    , moduleBindings = context.moduleBindings
-                    , localBindings = context.localBindings
-                    , fromLeftToRight = True
-                    , parentRange = expressionRange
+                    , parentRange = parentRange
                     , left = left
                     , leftRange = Node.range left
                     , right = right
@@ -1758,15 +1749,18 @@ expressionVisitorHelp (Node expressionRange expression) context =
                     }
                 )
 
-        Expression.OperatorApplication "<<" _ (Node _ (Expression.OperatorApplication "<<" _ _ left)) right ->
+        ----------
+        -- (<<) --
+        ----------
+        Expression.OperatorApplication "<<" _ composedLeft right ->
             let
-                leftRange : Range
-                leftRange =
-                    Node.range left
+                ( left, parentRange ) =
+                    case composedLeft of
+                        Node _ (Expression.OperatorApplication "<<" _ _ nextLeft) ->
+                            ( nextLeft, { start = (Node.range nextLeft).start, end = (Node.range right).end } )
 
-                rightRange : Range
-                rightRange =
-                    Node.range right
+                        endLeft ->
+                            ( endLeft, expressionRange )
             in
             onlyErrors
                 (firstThatReportsError compositionChecks
@@ -1775,23 +1769,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     , fromLeftToRight = False
-                    , parentRange = { start = leftRange.start, end = rightRange.end }
-                    , left = left
-                    , leftRange = leftRange
-                    , right = right
-                    , rightRange = rightRange
-                    }
-                )
-
-        Expression.OperatorApplication "<<" _ left right ->
-            onlyErrors
-                (firstThatReportsError compositionChecks
-                    { lookupTable = context.lookupTable
-                    , importLookup = context.importLookup
-                    , moduleBindings = context.moduleBindings
-                    , localBindings = context.localBindings
-                    , fromLeftToRight = False
-                    , parentRange = expressionRange
+                    , parentRange = parentRange
                     , left = left
                     , leftRange = Node.range left
                     , right = right
@@ -1799,6 +1777,9 @@ expressionVisitorHelp (Node expressionRange expression) context =
                     }
                 )
 
+        ---------------------
+        -- OTHER OPERATION --
+        ---------------------
         Expression.OperatorApplication operator _ left right ->
             case Dict.get operator operatorChecks of
                 Just checkFn ->
@@ -1837,21 +1818,28 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             }
                     , rangesToIgnore = RangeDict.empty
                     , rightSidesOfPlusPlus =
-                        if operator == "++" then
-                            RangeDict.singleton (Node.range (AstHelpers.removeParens right)) ()
+                        case operator of
+                            "++" ->
+                                RangeDict.singleton (Node.range (AstHelpers.removeParens right)) ()
 
-                        else
-                            RangeDict.empty
+                            _ ->
+                                RangeDict.empty
                     , inferredConstants = []
                     }
 
                 Nothing ->
                     onlyErrors []
 
+        --------------
+        -- NEGATION --
+        --------------
         Expression.Negation negatedExpression ->
             onlyErrors
                 (negationChecks { parentRange = expressionRange, negatedExpression = negatedExpression })
 
+        -------------------
+        -- RECORD ACCESS --
+        -------------------
         Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
