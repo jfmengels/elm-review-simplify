@@ -17770,6 +17770,80 @@ import Random
 a = always (Random.constant [])
 """
                         ]
+
+        ---
+        , test "should replace Random.list -1 generator by Random.constant []" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list -1 generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list with a negative length can be replaced by Random.constant []"
+                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant []
+"""
+                        ]
+        , test "should replace Random.list -1 <| generator by Random.constant []" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list -1 <| generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list with a negative length can be replaced by Random.constant []"
+                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant []
+"""
+                        ]
+        , test "should replace generator |> Random.list -1 by Random.constant []" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = generator |> Random.list -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list with a negative length can be replaced by Random.constant []"
+                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.constant []
+"""
+                        ]
+        , test "should replace Random.list -1 by always (Random.constant [])" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.list -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.list with a negative length can be replaced by Random.constant []"
+                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with always (Random.constant [])." ]
+                            , under = "Random.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = always (Random.constant [])
+"""
+                        ]
         , test "should replace Random.list n (Random.constant el) by Random.constant (List.repeat n el)" <|
             \() ->
                 """module A exposing (..)
