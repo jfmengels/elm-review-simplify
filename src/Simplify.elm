@@ -3880,8 +3880,8 @@ stringSliceChecks checkInfo =
                                )
                     then
                         [ Rule.errorWithFix
-                            { message = "The call to String.slice will result in \"\""
-                            , details = [ "You can replace this slice operation by \"\"." ]
+                            { message = "The call to String.slice will result in " ++ emptyStringAsString
+                            , details = [ "You can replace this slice operation by " ++ emptyStringAsString ++ "." ]
                             }
                             checkInfo.fnRange
                             (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
@@ -3923,7 +3923,7 @@ stringLeftChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
             ]
 
         ( Node _ (Expression.Integer 0), _ ) ->
@@ -3957,7 +3957,7 @@ stringRightChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
             ]
 
         ( Node _ (Expression.Integer 0), _ ) ->
@@ -4000,7 +4000,7 @@ stringJoinChecks checkInfo =
                         , details = [ "You can replace this call by an empty string." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                        [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
                     ]
 
                 _ ->
@@ -4049,7 +4049,7 @@ stringRepeatChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "\"\"" ]
+                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
             ]
 
         _ ->
