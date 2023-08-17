@@ -809,7 +809,7 @@ All of these also apply for `Sub`.
     Random.map identity generator
     --> generator
 
-    Random.map (always a)
+    Random.map (always a) generator
     --> Random.constant a
 
     Random.map f (Random.constant x)
