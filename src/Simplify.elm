@@ -6773,15 +6773,15 @@ collectionMapChecks collection checkInfo =
                 checkInfo
         , \() ->
             case secondArg checkInfo of
-                Just listArg ->
-                    if collection.isEmpty checkInfo.lookupTable listArg then
+                Just collectionArg ->
+                    if collection.isEmpty checkInfo.lookupTable collectionArg then
                         [ Rule.errorWithFix
                             -- TODO rework error info
                             { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
                             , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
                             }
                             checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg })
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
                         ]
 
                     else
