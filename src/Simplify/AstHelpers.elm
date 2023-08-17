@@ -3,7 +3,7 @@ module Simplify.AstHelpers exposing
     , declarationListBindings
     , emptyStringAsString
     , getBool
-    , getBooleanPattern
+    , getBoolPattern
     , getCollapsedCons
     , getListLiteral
     , getListSingleton
@@ -858,8 +858,8 @@ getTuple expressionNode =
             Nothing
 
 
-getBooleanPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
-getBooleanPattern lookupTable node =
+getBoolPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
+getBoolPattern lookupTable node =
     case Node.value node of
         Pattern.NamedPattern { name } _ ->
             case name of
@@ -881,7 +881,7 @@ getBooleanPattern lookupTable node =
                     Nothing
 
         Pattern.ParenthesizedPattern pattern ->
-            getBooleanPattern lookupTable pattern
+            getBoolPattern lookupTable pattern
 
         _ ->
             Nothing

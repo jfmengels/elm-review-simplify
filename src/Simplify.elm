@@ -8307,7 +8307,7 @@ booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> 
 booleanCaseOfChecks lookupTable parentRange { expression, cases } =
     case cases of
         ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
-            case AstHelpers.getBooleanPattern lookupTable firstPattern of
+            case AstHelpers.getBoolPattern lookupTable firstPattern of
                 Just isTrueFirst ->
                     let
                         expressionRange : Range
