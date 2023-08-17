@@ -6522,6 +6522,22 @@ randomMapChecks checkInfo =
         ()
 
 
+randomMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+randomMapCompositionChecks checkInfo =
+    firstThatReportsError
+        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
+        , \() -> randomMapAlwaysCompositionChecks checkInfo
+        ]
+        ()
+
+
+randomMapAlwaysErrorInfo : { message : String, details : List String }
+randomMapAlwaysErrorInfo =
+    { message = "Always mapping to the same value is equivalent to Random.constant"
+    , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+    }
+
+
 randomMapAlwaysChecks : CheckInfo -> List (Error {})
 randomMapAlwaysChecks checkInfo =
     case getAlwaysResult checkInfo checkInfo.firstArg of
@@ -6535,9 +6551,7 @@ randomMapAlwaysChecks checkInfo =
                         ( "", "" )
             in
             [ Rule.errorWithFix
-                { message = "Always mapping to the same value is equivalent to Random.constant"
-                , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
-                }
+                randomMapAlwaysErrorInfo
                 checkInfo.fnRange
                 (case secondArg checkInfo of
                     Nothing ->
@@ -6572,9 +6586,30 @@ randomMapAlwaysChecks checkInfo =
             []
 
 
-randomMapCompositionChecks : CompositionCheckInfo -> List (Error {})
-randomMapCompositionChecks checkInfo =
-    pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
+randomMapAlwaysCompositionChecks : CompositionCheckInfo -> List (Error {})
+randomMapAlwaysCompositionChecks checkInfo =
+    let
+        ( earlier, later ) =
+            if checkInfo.fromLeftToRight then
+                ( checkInfo.left, checkInfo.right )
+
+            else
+                ( checkInfo.right, checkInfo.left )
+    in
+    if
+        AstHelpers.isSpecificValueOrFunction [ "Basics" ] "always" checkInfo.lookupTable earlier
+            && AstHelpers.isSpecificValueOrFunction [ "Random" ] "map" checkInfo.lookupTable later
+    then
+        [ Rule.errorWithFix
+            randomMapAlwaysErrorInfo
+            (Node.range later)
+            [ Fix.replaceRangeBy checkInfo.parentRange
+                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo))
+            ]
+        ]
+
+    else
+        []
 
 
 

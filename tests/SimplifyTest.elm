@@ -17771,8 +17771,6 @@ import Random
 a = always (Random.constant [])
 """
                         ]
-
-        ---
         , test "should replace Random.list -1 generator by Random.constant []" <|
             \() ->
                 """module A exposing (..)
@@ -18262,7 +18260,6 @@ a = Random.map (f x |> always) generator
 a = Random.constant (f x)
 """
                         ]
-
         , test "should replace Random.map (\\_ -> x) by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
@@ -18503,8 +18500,38 @@ a = f x |> always |> Random.map
 a = always (Random.constant (f x))
 """
                         ]
-
-        --
+        , test "should replace always >> Random.map by Random.constant" <|
+            \() ->
+                """module A exposing (..)
+a = always >> Random.map
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Always mapping to the same value is equivalent to Random.constant"
+                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            , under = "Random.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Random.constant
+"""
+                        ]
+        , test "should replace Random.map << always by Random.constant" <|
+            \() ->
+                """module A exposing (..)
+a = Random.map << always
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Always mapping to the same value is equivalent to Random.constant"
+                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            , under = "Random.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Random.constant
+"""
+                        ]
         , test "should replace Random.map f (Random.constant x) by Random.constant (f x)" <|
             \() ->
                 """module A exposing (..)
