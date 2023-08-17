@@ -1861,15 +1861,15 @@ expressionVisitorHelp (Node expressionRange expression) context =
         ----------
         -- (>>) --
         ----------
-        Expression.OperatorApplication ">>" _ left composedRight ->
+        Expression.OperatorApplication ">>" _ earlier composedLater ->
             let
-                ( right, parentRange ) =
-                    case composedRight of
-                        Node _ (Expression.OperatorApplication ">>" _ nextRight _) ->
-                            ( nextRight, { start = (Node.range left).start, end = (Node.range nextRight).end } )
+                ( later, parentRange ) =
+                    case composedLater of
+                        Node _ (Expression.OperatorApplication ">>" _ later_ _) ->
+                            ( later_, { start = (Node.range earlier).start, end = (Node.range later_).end } )
 
-                        endRight ->
-                            ( endRight, expressionRange )
+                        endLater ->
+                            ( endLater, expressionRange )
             in
             onlyErrors
                 (firstThatReportsError compositionChecks
@@ -1879,25 +1879,23 @@ expressionVisitorHelp (Node expressionRange expression) context =
                     , localBindings = context.localBindings
                     , fromLeftToRight = True
                     , parentRange = parentRange
-                    , left = left
-                    , leftRange = Node.range left
-                    , right = right
-                    , rightRange = Node.range right
+                    , earlier = earlier
+                    , later = later
                     }
                 )
 
         ----------
         -- (<<) --
         ----------
-        Expression.OperatorApplication "<<" _ composedLeft right ->
+        Expression.OperatorApplication "<<" _ composedLeft earlier ->
             let
-                ( left, parentRange ) =
+                ( later, parentRange ) =
                     case composedLeft of
-                        Node _ (Expression.OperatorApplication "<<" _ _ nextLeft) ->
-                            ( nextLeft, { start = (Node.range nextLeft).start, end = (Node.range right).end } )
+                        Node _ (Expression.OperatorApplication "<<" _ _ later_) ->
+                            ( later_, { start = (Node.range later_).start, end = (Node.range earlier).end } )
 
-                        endLeft ->
-                            ( endLeft, expressionRange )
+                        endLater ->
+                            ( endLater, expressionRange )
             in
             onlyErrors
                 (firstThatReportsError compositionChecks
@@ -1907,10 +1905,8 @@ expressionVisitorHelp (Node expressionRange expression) context =
                     , localBindings = context.localBindings
                     , fromLeftToRight = False
                     , parentRange = parentRange
-                    , left = left
-                    , leftRange = Node.range left
-                    , right = right
-                    , rightRange = Node.range right
+                    , earlier = earlier
+                    , later = later
                     }
                 )
 
@@ -2263,19 +2259,17 @@ type alias CompositionCheckInfo =
     , localBindings : RangeDict (Set String)
     , fromLeftToRight : Bool
     , parentRange : Range
-    , left : Node Expression
-    , leftRange : Range
-    , right : Node Expression
-    , rightRange : Range
+    , earlier : Node Expression
+    , later : Node Expression
     }
 
 
 compositionChecks : List (CompositionCheckInfo -> List (Error {}))
 compositionChecks =
-    [ identityCompositionCheck
-    , notNotCompositionCheck
-    , negateCompositionCheck
-    , alwaysCompositionCheck
+    [ basicsIdentityCompositionChecks
+    , basicsNotCompositionChecks
+    , basicsNegateCompositionChecks
+    , basicsAlwaysCompositionCheck
     , maybeMapCompositionChecks
     , randomMapCompositionChecks
     , resultMapCompositionChecks
@@ -2791,29 +2785,63 @@ consChecks checkInfo =
             []
 
 
+toggleCompositionChecks : ( ModuleName, String ) -> CompositionCheckInfo -> List (Error {})
+toggleCompositionChecks toggle checkInfo =
+    let
+        errorInfo : { message : String, details : List String }
+        errorInfo =
+            let
+                toggleFullyQualifiedAsString : String
+                toggleFullyQualifiedAsString =
+                    qualifiedToString toggle
+            in
+            { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
+            , details = [ "Composing " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " cancels each other out." ]
+            }
 
--- NUMBERS
+        getToggleFn : Node Expression -> Maybe Range
+        getToggleFn =
+            AstHelpers.getSpecificValueOrFunction toggle checkInfo.lookupTable
 
+        maybeEarlierToggleFn : Maybe Range
+        maybeEarlierToggleFn =
+            getToggleFn checkInfo.earlier
 
-negateNegateCompositionErrorMessage : { message : String, details : List String }
-negateNegateCompositionErrorMessage =
-    { message = "Unnecessary double negation"
-    , details = [ "Composing `negate` with `negate` cancel each other out." ]
-    }
+        maybeLaterToggleFn : Maybe Range
+        maybeLaterToggleFn =
+            getToggleFn checkInfo.later
 
+        getToggleComposition : { earlierToLater : Bool } -> Node Expression -> Maybe { removeFix : List Fix, range : Range }
+        getToggleComposition takeFirstFunction expressionNode =
+            case AstHelpers.getComposition expressionNode of
+                Just composition ->
+                    if takeFirstFunction.earlierToLater then
+                        getToggleFn composition.earlier
+                            |> Maybe.map
+                                (\toggleFn ->
+                                    { range = toggleFn
+                                    , removeFix = keepOnlyFix { parentRange = composition.parentRange, keep = Node.range composition.later }
+                                    }
+                                )
 
-negateCompositionCheck : CompositionCheckInfo -> List (Error {})
-negateCompositionCheck checkInfo =
+                    else
+                        getToggleFn composition.later
+                            |> Maybe.map
+                                (\toggleFn ->
+                                    { range = toggleFn
+                                    , removeFix = keepOnlyFix { parentRange = composition.parentRange, keep = Node.range composition.earlier }
+                                    }
+                                )
+
+                Nothing ->
+                    Nothing
+    in
     firstThatReportsError
         [ \() ->
-            case
-                ( AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.left
-                , AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.right
-                )
-            of
+            case ( maybeEarlierToggleFn, maybeLaterToggleFn ) of
                 ( Just _, Just _ ) ->
                     [ Rule.errorWithFix
-                        negateNegateCompositionErrorMessage
+                        errorInfo
                         checkInfo.parentRange
                         [ Fix.replaceRangeBy checkInfo.parentRange
                             (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
@@ -2826,16 +2854,16 @@ negateCompositionCheck checkInfo =
                 ( _, Nothing ) ->
                     []
         , \() ->
-            case AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.left of
-                Just leftNegateRange ->
-                    case getNegateComposition checkInfo.lookupTable checkInfo.fromLeftToRight checkInfo.right of
-                        Just rightNotRange ->
+            case maybeEarlierToggleFn of
+                Just earlierToggleFn ->
+                    case getToggleComposition { earlierToLater = True } checkInfo.later of
+                        Just laterToggle ->
                             [ Rule.errorWithFix
-                                negateNegateCompositionErrorMessage
-                                { start = leftNegateRange.start, end = rightNotRange.end }
-                                [ Fix.removeRange { start = leftNegateRange.start, end = checkInfo.rightRange.start }
-                                , Fix.removeRange rightNotRange
-                                ]
+                                errorInfo
+                                (Range.combine [ earlierToggleFn, laterToggle.range ])
+                                (laterToggle.removeFix
+                                    ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later }
+                                )
                             ]
 
                         Nothing ->
@@ -2844,16 +2872,16 @@ negateCompositionCheck checkInfo =
                 Nothing ->
                     []
         , \() ->
-            case AstHelpers.getNegateFunction checkInfo.lookupTable checkInfo.right of
-                Just rightNegateRange ->
-                    case getNegateComposition checkInfo.lookupTable (not checkInfo.fromLeftToRight) checkInfo.left of
-                        Just leftNotRange ->
+            case maybeLaterToggleFn of
+                Just laterToggleFn ->
+                    case getToggleComposition { earlierToLater = False } checkInfo.earlier of
+                        Just earlierToggle ->
                             [ Rule.errorWithFix
-                                negateNegateCompositionErrorMessage
-                                { start = leftNotRange.start, end = rightNegateRange.end }
-                                [ Fix.removeRange leftNotRange
-                                , Fix.removeRange { start = checkInfo.leftRange.end, end = rightNegateRange.end }
-                                ]
+                                errorInfo
+                                (Range.combine [ earlierToggle.range, laterToggleFn ])
+                                (earlierToggle.removeFix
+                                    ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
+                                )
                             ]
 
                         Nothing ->
@@ -2865,52 +2893,31 @@ negateCompositionCheck checkInfo =
         ()
 
 
-getNegateComposition : ModuleNameLookupTable -> Bool -> Node Expression -> Maybe Range
-getNegateComposition lookupTable takeFirstFunction node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.OperatorApplication "<<" _ left right ->
-            let
-                leftRange : Range
-                leftRange =
-                    Node.range left
+toggleChainErrorInfo : ( ModuleName, String ) -> { message : String, details : List String }
+toggleChainErrorInfo toggle =
+    let
+        toggleFullyQualifiedAsString : String
+        toggleFullyQualifiedAsString =
+            qualifiedToString toggle
+    in
+    -- TODO rework error info
+    { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
+    , details = [ "Composing " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " cancels each other out." ]
+    }
 
-                rightRange : Range
-                rightRange =
-                    Node.range right
-            in
-            if takeFirstFunction then
-                AstHelpers.getNegateFunction lookupTable right
-                    |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
 
-            else
-                AstHelpers.getNegateFunction lookupTable left
-                    |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
 
-        Expression.OperatorApplication ">>" _ left right ->
-            let
-                leftRange : Range
-                leftRange =
-                    Node.range left
+-- NEGATE
 
-                rightRange : Range
-                rightRange =
-                    Node.range right
-            in
-            if takeFirstFunction then
-                AstHelpers.getNegateFunction lookupTable left
-                    |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
 
-            else
-                AstHelpers.getNegateFunction lookupTable right
-                    |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
-
-        _ ->
-            Nothing
+basicsNegateCompositionChecks : CompositionCheckInfo -> List (Error {})
+basicsNegateCompositionChecks checkInfo =
+    toggleCompositionChecks ( [ "Basics" ], "negate" ) checkInfo
 
 
 basicsNegateChecks : CheckInfo -> List (Error {})
 basicsNegateChecks checkInfo =
-    removeAlongWithOtherFunctionCheck negateNegateCompositionErrorMessage AstHelpers.getNegateFunction checkInfo
+    removeAlongWithOtherFunctionCheck (toggleChainErrorInfo ( [ "Basics" ], "negate" )) AstHelpers.getNegateFunction checkInfo
 
 
 
@@ -2921,7 +2928,7 @@ basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
     firstThatReportsError
         [ notOnKnownBoolCheck
-        , removeAlongWithOtherFunctionCheck notNotCompositionErrorMessage AstHelpers.getNotFunction
+        , removeAlongWithOtherFunctionCheck (toggleChainErrorInfo ( [ "Basics" ], "not" )) AstHelpers.getNotFunction
         , isNotOnBooleanOperatorCheck
         ]
         checkInfo
@@ -3009,107 +3016,9 @@ isNegatableOperator op =
             Nothing
 
 
-notNotCompositionCheck : CompositionCheckInfo -> List (Error {})
-notNotCompositionCheck checkInfo =
-    let
-        notOnLeft : Maybe Range
-        notOnLeft =
-            AstHelpers.getNotFunction checkInfo.lookupTable checkInfo.left
-
-        notOnRight : Maybe Range
-        notOnRight =
-            AstHelpers.getNotFunction checkInfo.lookupTable checkInfo.right
-    in
-    case ( notOnLeft, notOnRight ) of
-        ( Just _, Just _ ) ->
-            [ Rule.errorWithFix
-                notNotCompositionErrorMessage
-                checkInfo.parentRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
-                ]
-            ]
-
-        ( Just leftNotRange, _ ) ->
-            case getNotComposition checkInfo.lookupTable checkInfo.fromLeftToRight checkInfo.right of
-                Just rightNotRange ->
-                    [ Rule.errorWithFix
-                        notNotCompositionErrorMessage
-                        { start = leftNotRange.start, end = rightNotRange.end }
-                        [ Fix.removeRange { start = leftNotRange.start, end = checkInfo.rightRange.start }
-                        , Fix.removeRange rightNotRange
-                        ]
-                    ]
-
-                Nothing ->
-                    []
-
-        ( _, Just rightNotRange ) ->
-            case getNotComposition checkInfo.lookupTable (not checkInfo.fromLeftToRight) checkInfo.left of
-                Just leftNotRange ->
-                    [ Rule.errorWithFix
-                        notNotCompositionErrorMessage
-                        { start = leftNotRange.start, end = rightNotRange.end }
-                        [ Fix.removeRange leftNotRange
-                        , Fix.removeRange { start = checkInfo.leftRange.end, end = rightNotRange.end }
-                        ]
-                    ]
-
-                Nothing ->
-                    []
-
-        _ ->
-            []
-
-
-notNotCompositionErrorMessage : { message : String, details : List String }
-notNotCompositionErrorMessage =
-    { message = "Unnecessary double negation"
-    , details = [ "Composing `not` with `not` cancel each other out." ]
-    }
-
-
-getNotComposition : ModuleNameLookupTable -> Bool -> Node Expression -> Maybe Range
-getNotComposition lookupTable takeFirstFunction node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.OperatorApplication "<<" _ left right ->
-            let
-                leftRange : Range
-                leftRange =
-                    Node.range left
-
-                rightRange : Range
-                rightRange =
-                    Node.range right
-            in
-            if takeFirstFunction then
-                AstHelpers.getNotFunction lookupTable right
-                    |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
-
-            else
-                AstHelpers.getNotFunction lookupTable left
-                    |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
-
-        Expression.OperatorApplication ">>" _ left right ->
-            let
-                leftRange : Range
-                leftRange =
-                    Node.range left
-
-                rightRange : Range
-                rightRange =
-                    Node.range right
-            in
-            if takeFirstFunction then
-                AstHelpers.getNotFunction lookupTable left
-                    |> Maybe.map (\_ -> { start = leftRange.start, end = rightRange.start })
-
-            else
-                AstHelpers.getNotFunction lookupTable right
-                    |> Maybe.map (\_ -> { start = leftRange.end, end = rightRange.end })
-
-        _ ->
-            Nothing
+basicsNotCompositionChecks : CompositionCheckInfo -> List (Error {})
+basicsNotCompositionChecks checkInfo =
+    toggleCompositionChecks ( [ "Basics" ], "not" ) checkInfo
 
 
 orChecks : OperatorCheckInfo -> List (Error {})
@@ -3555,29 +3464,27 @@ basicsIdentityChecks checkInfo =
     ]
 
 
-identityCompositionErrorMessage : { message : String, details : List String }
-identityCompositionErrorMessage =
+basicsIdentityCompositionErrorMessage : { message : String, details : List String }
+basicsIdentityCompositionErrorMessage =
     { message = "`identity` should be removed"
     , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
     }
 
 
-identityCompositionCheck : CompositionCheckInfo -> List (Error {})
-identityCompositionCheck checkInfo =
-    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.right then
+basicsIdentityCompositionChecks : CompositionCheckInfo -> List (Error {})
+basicsIdentityCompositionChecks checkInfo =
+    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.later then
         [ Rule.errorWithFix
-            identityCompositionErrorMessage
-            checkInfo.rightRange
-            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-            ]
+            basicsIdentityCompositionErrorMessage
+            (Node.range checkInfo.later)
+            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier })
         ]
 
-    else if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.left then
+    else if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.earlier then
         [ Rule.errorWithFix
-            identityCompositionErrorMessage
-            checkInfo.leftRange
-            [ Fix.removeRange { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-            ]
+            basicsIdentityCompositionErrorMessage
+            (Node.range checkInfo.earlier)
+            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later })
         ]
 
     else
@@ -3608,31 +3515,20 @@ basicsAlwaysChecks checkInfo =
             []
 
 
-alwaysCompositionErrorMessage : { message : String, details : List String }
-alwaysCompositionErrorMessage =
+basicsAlwaysCompositionErrorMessage : { message : String, details : List String }
+basicsAlwaysCompositionErrorMessage =
     { message = "Function composed with always will be ignored"
     , details = [ "`always` will swallow the function composed into it." ]
     }
 
 
-alwaysCompositionCheck : CompositionCheckInfo -> List (Error {})
-alwaysCompositionCheck checkInfo =
-    if checkInfo.fromLeftToRight then
-        if isAlwaysCall checkInfo.lookupTable checkInfo.right then
-            [ Rule.errorWithFix
-                alwaysCompositionErrorMessage
-                checkInfo.rightRange
-                [ Fix.removeRange (fixToLeftRange checkInfo) ]
-            ]
-
-        else
-            []
-
-    else if isAlwaysCall checkInfo.lookupTable checkInfo.left then
+basicsAlwaysCompositionCheck : CompositionCheckInfo -> List (Error {})
+basicsAlwaysCompositionCheck checkInfo =
+    if isAlwaysCall checkInfo.lookupTable checkInfo.later then
         [ Rule.errorWithFix
-            alwaysCompositionErrorMessage
-            checkInfo.leftRange
-            [ Fix.removeRange (fixToRightRange checkInfo) ]
+            basicsAlwaysCompositionErrorMessage
+            (Node.range checkInfo.later)
+            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later })
         ]
 
     else
@@ -3844,7 +3740,7 @@ stringReverseChecks checkInfo =
         _ ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
-                (AstHelpers.getSpecificFunction ( [ "String" ], "reverse" ))
+                (AstHelpers.getSpecificValueOrFunction ( [ "String" ], "reverse" ))
                 checkInfo
 
 
@@ -4258,22 +4154,14 @@ resultMapErrorChecks checkInfo =
 
 resultMapErrorCompositionChecks : CompositionCheckInfo -> List (Error {})
 resultMapErrorCompositionChecks checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
-    case AstHelpers.getSpecificReducedFunctionCall ( [ "Result" ], "mapError" ) checkInfo.lookupTable later of
+    case AstHelpers.getSpecificReducedFunctionCall ( [ "Result" ], "mapError" ) checkInfo.lookupTable checkInfo.later of
         Nothing ->
             []
 
         Just resultMapErrorCall ->
             firstThatReportsError
                 [ \() ->
-                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Err" ) checkInfo.lookupTable earlier of
+                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Err" ) checkInfo.lookupTable checkInfo.earlier of
                         Nothing ->
                             []
 
@@ -4295,7 +4183,7 @@ resultMapErrorCompositionChecks checkInfo =
                                 )
                             ]
                 , \() ->
-                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable earlier of
+                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.earlier of
                         Nothing ->
                             []
 
@@ -4545,44 +4433,19 @@ listConcatMapChecks checkInfo =
 
 concatAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
 concatAndMapCompositionCheck checkInfo =
-    if checkInfo.fromLeftToRight then
-        if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" checkInfo.lookupTable checkInfo.right then
-            case Node.value (AstHelpers.removeParens checkInfo.left) of
-                Expression.Application (leftFunction :: _ :: []) ->
-                    if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable leftFunction then
-                        [ Rule.errorWithFix
-                            { message = "List.map and List.concat can be combined using List.concatMap"
-                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
-                            }
-                            checkInfo.rightRange
-                            [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-                            , Fix.replaceRangeBy (Node.range leftFunction)
-                                (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
-                            ]
-                        ]
-
-                    else
-                        []
-
-                _ ->
-                    []
-
-        else
-            []
-
-    else if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" checkInfo.lookupTable checkInfo.left then
-        case Node.value (AstHelpers.removeParens checkInfo.right) of
-            Expression.Application (rightFunction :: _ :: []) ->
-                if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable rightFunction then
+    if AstHelpers.isSpecificValueOrFunction [ "List" ] "concat" checkInfo.lookupTable checkInfo.later then
+        case Node.value (AstHelpers.removeParens checkInfo.earlier) of
+            Expression.Application (earlierFunction :: _ :: []) ->
+                if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable earlierFunction then
                     [ Rule.errorWithFix
                         { message = "List.map and List.concat can be combined using List.concatMap"
                         , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
                         }
-                        checkInfo.leftRange
-                        [ Fix.removeRange { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-                        , Fix.replaceRangeBy (Node.range rightFunction)
+                        (Node.range checkInfo.later)
+                        (Fix.replaceRangeBy (Node.range earlierFunction)
                             (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
-                        ]
+                            :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
+                        )
                     ]
 
                 else
@@ -4945,17 +4808,9 @@ dictToListMapChecks listMapCheckInfo =
 
 dictToListMapCompositionChecks : CompositionCheckInfo -> List (Error {})
 dictToListMapCompositionChecks checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
     case
-        AstHelpers.getSpecificReducedFunction ( [ "Dict" ], "toList" ) checkInfo.lookupTable earlier
-            |> Maybe.andThen (\_ -> AstHelpers.getSpecificReducedFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable later)
+        AstHelpers.getSpecificReducedFunction ( [ "Dict" ], "toList" ) checkInfo.lookupTable checkInfo.earlier
+            |> Maybe.andThen (\_ -> AstHelpers.getSpecificReducedFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.later)
     of
         Nothing ->
             []
@@ -5443,26 +5298,18 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
 
 foldAndSetToListCompositionChecks : String -> CompositionCheckInfo -> List (Error {})
 foldAndSetToListCompositionChecks foldOperationName checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
-    case AstHelpers.getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable later of
+    case AstHelpers.getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable checkInfo.later of
         Just listFoldCall ->
             case listFoldCall.argsAfterFirst of
                 -- initial and reduce arguments are present
                 _ :: [] ->
-                    if AstHelpers.isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable earlier then
+                    if AstHelpers.isSpecificValueOrFunction [ "Set" ] "toList" checkInfo.lookupTable checkInfo.earlier then
                         [ Rule.errorWithFix
                             { message = "To fold a set, you don't need to convert to a List"
                             , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
                             }
                             listFoldCall.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range later }
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later }
                                 ++ [ Fix.replaceRangeBy listFoldCall.fnRange
                                         (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
                                    ]
@@ -5687,65 +5534,38 @@ collectJusts lookupTable list acc =
 
 filterAndMapCompositionCheck : CompositionCheckInfo -> List (Error {})
 filterAndMapCompositionCheck checkInfo =
-    if checkInfo.fromLeftToRight then
-        case Node.value (AstHelpers.removeParens checkInfo.right) of
-            Expression.Application (rightFunction :: arg :: []) ->
-                if AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" checkInfo.lookupTable rightFunction && AstHelpers.isIdentity checkInfo.lookupTable arg then
-                    case Node.value (AstHelpers.removeParens checkInfo.left) of
-                        Expression.Application (leftFunction :: _ :: []) ->
-                            if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable leftFunction then
-                                [ Rule.errorWithFix
-                                    { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                                    , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                                    }
-                                    checkInfo.rightRange
-                                    [ Fix.removeRange { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
-                                    , Fix.replaceRangeBy (Node.range leftFunction)
-                                        (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
-                                    ]
-                                ]
+    case Node.value (AstHelpers.removeParens checkInfo.later) of
+        Expression.Application (laterFunction :: arg :: []) ->
+            if
+                AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" checkInfo.lookupTable laterFunction
+                    && AstHelpers.isIdentity checkInfo.lookupTable arg
+            then
+                case Node.value (AstHelpers.removeParens checkInfo.earlier) of
+                    Expression.Application (earlierFunction :: _ :: []) ->
+                        if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable earlierFunction then
+                            [ Rule.errorWithFix
+                                -- TODO rework error info
+                                { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                                , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                                }
+                                (Node.range checkInfo.later)
+                                (Fix.replaceRangeBy (Node.range earlierFunction)
+                                    (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
+                                    :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
+                                )
+                            ]
 
-                            else
-                                []
-
-                        _ ->
+                        else
                             []
 
-                else
-                    []
+                    _ ->
+                        []
 
-            _ ->
+            else
                 []
 
-    else
-        case Node.value (AstHelpers.removeParens checkInfo.left) of
-            Expression.Application (leftFunction :: arg :: []) ->
-                if AstHelpers.isSpecificValueOrFunction [ "List" ] "filterMap" checkInfo.lookupTable leftFunction && AstHelpers.isIdentity checkInfo.lookupTable arg then
-                    case Node.value (AstHelpers.removeParens checkInfo.right) of
-                        Expression.Application (rightFunction :: _ :: []) ->
-                            if AstHelpers.isSpecificValueOrFunction [ "List" ] "map" checkInfo.lookupTable rightFunction then
-                                [ Rule.errorWithFix
-                                    { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                                    , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                                    }
-                                    checkInfo.leftRange
-                                    [ Fix.removeRange { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-                                    , Fix.replaceRangeBy (Node.range rightFunction)
-                                        (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
-                                    ]
-                                ]
-
-                            else
-                                []
-
-                        _ ->
-                            []
-
-                else
-                    []
-
-            _ ->
-                []
+        _ ->
+            []
 
 
 listRangeChecks : CheckInfo -> List (Error {})
@@ -5808,7 +5628,7 @@ listReverseChecks checkInfo =
         _ ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
-                (AstHelpers.getSpecificFunction ( [ "List" ], "reverse" ))
+                (AstHelpers.getSpecificValueOrFunction ( [ "List" ], "reverse" ))
                 checkInfo
 
 
@@ -6115,20 +5935,12 @@ setFromListSingletonError =
 
 setFromListSingletonCompositionChecks : CompositionCheckInfo -> List (Error {})
 setFromListSingletonCompositionChecks checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
-    case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "fromList" ) checkInfo.lookupTable later of
+    case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "fromList" ) checkInfo.lookupTable checkInfo.later of
         Just listFoldCall ->
-            if AstHelpers.isSpecificValueOrFunction [ "List" ] "singleton" checkInfo.lookupTable earlier then
+            if AstHelpers.isSpecificValueOrFunction [ "List" ] "singleton" checkInfo.lookupTable checkInfo.earlier then
                 [ Rule.errorWithFix
                     setFromListSingletonError
-                    listFoldCall.fnRange
+                    listFoldCall
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo))
                     ]
@@ -6608,21 +6420,13 @@ randomMapAlwaysChecks checkInfo =
 
 randomMapAlwaysCompositionChecks : CompositionCheckInfo -> List (Error {})
 randomMapAlwaysCompositionChecks checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
     if
-        AstHelpers.isSpecificValueOrFunction [ "Basics" ] "always" checkInfo.lookupTable earlier
-            && AstHelpers.isSpecificValueOrFunction [ "Random" ] "map" checkInfo.lookupTable later
+        AstHelpers.isSpecificValueOrFunction [ "Basics" ] "always" checkInfo.lookupTable checkInfo.earlier
+            && AstHelpers.isSpecificValueOrFunction [ "Random" ] "map" checkInfo.lookupTable checkInfo.later
     then
         [ Rule.errorWithFix
             randomMapAlwaysErrorInfo
-            (Node.range later)
+            (Node.range checkInfo.later)
             [ Fix.replaceRangeBy checkInfo.parentRange
                 (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo))
             ]
@@ -6899,17 +6703,9 @@ pureToMapCompositionChecks :
     -> CompositionCheckInfo
     -> List (Error {})
 pureToMapCompositionChecks mappable checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
     case
-        ( AstHelpers.getSpecificValueOrFunction ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable earlier
-        , AstHelpers.getSpecificFunctionCall ( mappable.moduleName, mappable.map ) checkInfo.lookupTable later
+        ( AstHelpers.getSpecificValueOrFunction ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable checkInfo.earlier
+        , AstHelpers.getSpecificFunctionCall ( mappable.moduleName, mappable.map ) checkInfo.lookupTable checkInfo.later
         )
     of
         ( Just _, Just mapCall ) ->
@@ -7165,25 +6961,17 @@ resultToMaybeChecks checkInfo =
 
 resultToMaybeCompositionChecks : CompositionCheckInfo -> List (Error {})
 resultToMaybeCompositionChecks checkInfo =
-    let
-        ( earlier, later ) =
-            if checkInfo.fromLeftToRight then
-                ( checkInfo.left, checkInfo.right )
-
-            else
-                ( checkInfo.right, checkInfo.left )
-    in
-    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "toMaybe" ) checkInfo.lookupTable later of
+    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "toMaybe" ) checkInfo.lookupTable checkInfo.later of
         Nothing ->
             []
 
         Just resultToMaybeFunction ->
-            if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Err" checkInfo.lookupTable earlier then
+            if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Err" checkInfo.lookupTable checkInfo.earlier then
                 [ Rule.errorWithFix
                     { message = "Using Result.toMaybe on an error will result in Nothing"
                     , details = [ "You can replace this call by always Nothing." ]
                     }
-                    resultToMaybeFunction.fnRange
+                    resultToMaybeFunction
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                             ++ " "
@@ -7192,12 +6980,12 @@ resultToMaybeCompositionChecks checkInfo =
                     ]
                 ]
 
-            else if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Ok" checkInfo.lookupTable earlier then
+            else if AstHelpers.isSpecificValueOrFunction [ "Result" ] "Ok" checkInfo.lookupTable checkInfo.earlier then
                 [ Rule.errorWithFix
                     { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
                     , details = [ "You can replace this call by Just." ]
                     }
-                    resultToMaybeFunction.fnRange
+                    resultToMaybeFunction
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                     ]

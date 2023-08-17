@@ -1496,8 +1496,8 @@ a = not >> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not >> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1512,8 +1512,8 @@ a = a >> not >> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not >> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1528,8 +1528,8 @@ a = not >> not >> a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not >> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1544,8 +1544,8 @@ a = not << not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not << not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1560,8 +1560,8 @@ a = not << not << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not << not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1576,8 +1576,8 @@ a = a << not << not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not << not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1592,8 +1592,8 @@ a = (not >> a) << not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not >> a) << not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1615,8 +1615,8 @@ a = not (not x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not (not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1631,8 +1631,8 @@ a = x |> not |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1647,8 +1647,8 @@ a = (x |> not) |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not) |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1663,8 +1663,8 @@ a = (not <| x) |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not <| x) |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1679,8 +1679,8 @@ a = not x |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not x |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1695,8 +1695,8 @@ a = not <| not x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `not` with `not` cancel each other out." ]
+                            { message = "Unnecessary double Basics.not"
+                            , details = [ "Composing Basics.not with Basics.not cancels each other out." ]
                             , under = "not <| not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2724,8 +2724,8 @@ a = negate >> negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate >> negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2740,8 +2740,8 @@ a = a >> negate >> negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate >> negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2756,8 +2756,8 @@ a = negate >> negate >> a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate >> negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2772,8 +2772,8 @@ a = negate << negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate << negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2788,8 +2788,8 @@ a = negate << negate << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate << negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2804,8 +2804,8 @@ a = a << negate << negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate << negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2820,8 +2820,8 @@ a = (negate >> a) << negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate >> a) << negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2843,8 +2843,8 @@ a = negate <| negate x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double negation"
-                            , details = [ "Composing `negate` with `negate` cancel each other out." ]
+                            { message = "Unnecessary double Basics.negate"
+                            , details = [ "Composing Basics.negate with Basics.negate cancels each other out." ]
                             , under = "negate <| negate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

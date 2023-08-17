@@ -5,13 +5,13 @@ module Simplify.AstHelpers exposing
     , getBool
     , getBoolPattern
     , getCollapsedCons
+    , getComposition
     , getListLiteral
     , getListSingleton
     , getListSingletonCall
     , getNegateFunction
     , getNotFunction
     , getOrder
-    , getSpecificFunction
     , getSpecificFunctionCall
     , getSpecificReducedFunction
     , getSpecificReducedFunctionCall
@@ -83,15 +83,15 @@ isSpecificValueOrFunction moduleName fnName lookupTable node =
             False
 
 
-getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe { fnRange : Range }
+getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificValueOrFunction ( moduleName, fnName ) lookupTable node =
     case removeParens node of
-        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
+        Node rangeInParens (Expression.FunctionOrValue _ foundFnName) ->
             if
                 (foundFnName == fnName)
-                    && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+                    && (ModuleNameLookupTable.moduleNameAt lookupTable rangeInParens == Just moduleName)
             then
-                Just { fnRange = noneRange }
+                Just rangeInParens
 
             else
                 Nothing
@@ -136,23 +136,6 @@ getListSingletonCall lookupTable expressionNode =
                     Nothing
 
         Nothing ->
-            Nothing
-
-
-getSpecificFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificFunction ( moduleName, name ) lookupTable baseNode =
-    case removeParens baseNode of
-        Node fnRange (Expression.FunctionOrValue _ foundName) ->
-            if
-                (foundName == name)
-                    && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
-            then
-                Just fnRange
-
-            else
-                Nothing
-
-        _ ->
             Nothing
 
 
@@ -317,21 +300,50 @@ getCollapsedValueOrFunction baseNode =
             Nothing
 
 
+{-| TODO replace by getSpecificValueOrFunction
+-}
 getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNotFunction lookupTable baseNode =
-    getSpecificFunction ( [ "Basics" ], "not" ) lookupTable baseNode
+    getSpecificValueOrFunction ( [ "Basics" ], "not" ) lookupTable baseNode
 
 
+{-| TODO replace by getSpecificValueOrFunction
+-}
 getNegateFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
 getNegateFunction lookupTable baseNode =
-    case removeParens baseNode of
-        Node range (Expression.FunctionOrValue _ "negate") ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable range of
-                Just [ "Basics" ] ->
-                    Just range
+    getSpecificValueOrFunction ( [ "Basics" ], "negate" ) lookupTable baseNode
 
-                _ ->
-                    Nothing
+
+getComposition : Node Expression -> Maybe { parentRange : Range, earlier : Node Expression, later : Node Expression }
+getComposition expressionNode =
+    let
+        inParensNode =
+            removeParens expressionNode
+    in
+    case Node.value inParensNode of
+        Expression.OperatorApplication "<<" _ composedLater earlier ->
+            let
+                ( later, parentRange ) =
+                    case composedLater of
+                        Node _ (Expression.OperatorApplication "<<" _ _ later_) ->
+                            ( later_, { start = (Node.range later_).start, end = (Node.range earlier).end } )
+
+                        endLater ->
+                            ( endLater, Node.range inParensNode )
+            in
+            Just { earlier = earlier, later = later, parentRange = parentRange }
+
+        Expression.OperatorApplication ">>" _ earlier composedLater ->
+            let
+                ( later, parentRange ) =
+                    case composedLater of
+                        Node _ (Expression.OperatorApplication ">>" _ later_ _) ->
+                            ( later_, { start = (Node.range earlier).start, end = (Node.range later_).end } )
+
+                        endLater ->
+                            ( endLater, Node.range inParensNode )
+            in
+            Just { earlier = earlier, later = later, parentRange = parentRange }
 
         _ ->
             Nothing
