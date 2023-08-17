@@ -92,7 +92,6 @@ Below is the list of all kinds of simplifications this rule applies.
     if condition then False else True
     --> not condition
 
-
     a =
         if condition then
             if not condition then
