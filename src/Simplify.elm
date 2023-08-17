@@ -806,6 +806,15 @@ All of these also apply for `Sub`.
     Random.list n (Random.constant el)
     --> Random.constant (List.repeat n el)
 
+    Random.map identity generator
+    --> generator
+
+    Random.map (always a)
+    --> Random.constant a
+
+    Random.map f (Random.constant x)
+    --> Random.constant (f x)
+
 -}
 
 import Dict exposing (Dict)
@@ -2205,6 +2214,7 @@ functionCallChecks =
         , ( ( [ "Random" ], "uniform" ), randomUniformChecks )
         , ( ( [ "Random" ], "weighted" ), randomWeightedChecks )
         , ( ( [ "Random" ], "list" ), randomListChecks )
+        , ( ( [ "Random" ], "map" ), randomMapChecks )
         ]
 
 
@@ -2267,6 +2277,7 @@ compositionChecks =
     , negateCompositionCheck
     , alwaysCompositionCheck
     , maybeMapCompositionChecks
+    , randomMapCompositionChecks
     , resultMapCompositionChecks
     , resultMapErrorCompositionChecks
     , filterAndMapCompositionCheck
@@ -4127,131 +4138,14 @@ maybeMapChecks : CheckInfo -> List (Error {})
 maybeMapChecks checkInfo =
     firstThatReportsError
         [ \() -> collectionMapChecks maybeCollection checkInfo
-        , \() ->
-            case Match.maybeAndThen (getMaybeValues checkInfo.lookupTable) (secondArg checkInfo) of
-                Determined (Just justRanges) ->
-                    [ Rule.errorWithFix
-                        { message = "Calling Maybe.map on a value that is Just"
-                        , details = [ "The function can be called without Maybe.map." ]
-                        }
-                        checkInfo.fnRange
-                        (if checkInfo.usingRightPizza then
-                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            , Fix.insertAt (Node.range checkInfo.firstArg).end
-                                (" |> " ++ qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                            ]
-                                ++ List.map Fix.removeRange justRanges
-
-                         else
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " (")
-                            , Fix.insertAt checkInfo.parentRange.end ")"
-                            ]
-                                ++ List.map Fix.removeRange justRanges
-                        )
-                    ]
-
-                _ ->
-                    []
+        , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
         ]
         ()
 
 
 maybeMapCompositionChecks : CompositionCheckInfo -> List (Error {})
 maybeMapCompositionChecks checkInfo =
-    if checkInfo.fromLeftToRight then
-        case ( AstHelpers.removeParens checkInfo.left, Node.value (AstHelpers.removeParens checkInfo.right) ) of
-            ( Node justRange (Expression.FunctionOrValue _ "Just"), Expression.Application ((Node maybeMapRange (Expression.FunctionOrValue _ "map")) :: (Node mapperFunctionRange _) :: []) ) ->
-                if
-                    (ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable justRange == Just [ "Maybe" ])
-                        && (ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable maybeMapRange == Just [ "Maybe" ])
-                then
-                    [ Rule.errorWithFix
-                        { message = "Calling Maybe.map on a value that is Just"
-                        , details = [ "The function can be called without Maybe.map." ]
-                        }
-                        maybeMapRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                        , Fix.insertAt mapperFunctionRange.end " >> Just"
-                        ]
-                    ]
-
-                else
-                    []
-
-            _ ->
-                []
-
-    else
-        case ( Node.value (AstHelpers.removeParens checkInfo.left), AstHelpers.removeParens checkInfo.right ) of
-            ( Expression.Application ((Node maybeMapRange (Expression.FunctionOrValue _ "map")) :: (Node mapperFunctionRange _) :: []), Node justRange (Expression.FunctionOrValue _ "Just") ) ->
-                if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable justRange == Just [ "Maybe" ] && ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable maybeMapRange == Just [ "Maybe" ] then
-                    [ Rule.errorWithFix
-                        { message = "Calling Maybe.map on a value that is Just"
-                        , details = [ "The function can be called without Maybe.map." ]
-                        }
-                        maybeMapRange
-                        [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " << ")
-                        , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
-
-                else
-                    []
-
-            _ ->
-                []
-
-
-resultMapCompositionChecks : CompositionCheckInfo -> List (Error {})
-resultMapCompositionChecks checkInfo =
-    if checkInfo.fromLeftToRight then
-        case ( AstHelpers.removeParens checkInfo.left, Node.value (AstHelpers.removeParens checkInfo.right) ) of
-            ( Node justRange (Expression.FunctionOrValue _ "Ok"), Expression.Application ((Node resultMapRange (Expression.FunctionOrValue _ "map")) :: (Node mapperFunctionRange _) :: []) ) ->
-                if
-                    (ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable justRange == Just [ "Result" ])
-                        && (ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable resultMapRange == Just [ "Result" ])
-                then
-                    [ Rule.errorWithFix
-                        { message = "Calling Result.map on a value that is Ok"
-                        , details = [ "The function can be called without Result.map." ]
-                        }
-                        resultMapRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                        , Fix.insertAt mapperFunctionRange.end
-                            (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Ok" ) checkInfo))
-                        ]
-                    ]
-
-                else
-                    []
-
-            _ ->
-                []
-
-    else
-        case ( Node.value (AstHelpers.removeParens checkInfo.left), AstHelpers.removeParens checkInfo.right ) of
-            ( Expression.Application ((Node resultMapRange (Expression.FunctionOrValue _ "map")) :: (Node mapperFunctionRange _) :: []), Node justRange (Expression.FunctionOrValue _ "Ok") ) ->
-                if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable justRange == Just [ "Result" ] && ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable resultMapRange == Just [ "Result" ] then
-                    [ Rule.errorWithFix
-                        { message = "Calling Result.map on a value that is Ok"
-                        , details = [ "The function can be called without Result.map." ]
-                        }
-                        resultMapRange
-                        [ Fix.replaceRangeBy
-                            { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                            (qualifiedToString (qualify ( [ "Result" ], "Ok" ) checkInfo) ++ " << ")
-                        , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
-
-                else
-                    []
-
-            _ ->
-                []
+    pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
 
 
 
@@ -4262,35 +4156,14 @@ resultMapChecks : CheckInfo -> List (Error {})
 resultMapChecks checkInfo =
     firstThatReportsError
         [ \() -> collectionMapChecks resultCollection checkInfo
-        , \() ->
-            case Maybe.andThen (getResultValues checkInfo.lookupTable) (secondArg checkInfo) of
-                Just (Ok okRanges) ->
-                    [ Rule.errorWithFix
-                        { message = "Calling Result.map on a value that is Ok"
-                        , details = [ "The function can be called without Result.map." ]
-                        }
-                        checkInfo.fnRange
-                        (if checkInfo.usingRightPizza then
-                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            , Fix.insertAt (Node.range checkInfo.firstArg).end
-                                (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Ok" ) checkInfo))
-                            ]
-                                ++ List.map Fix.removeRange okRanges
-
-                         else
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                (qualifiedToString (qualify ( [ "Result" ], "Ok" ) checkInfo) ++ " (")
-                            , Fix.insertAt checkInfo.parentRange.end ")"
-                            ]
-                                ++ List.map Fix.removeRange okRanges
-                        )
-                    ]
-
-                _ ->
-                    []
+        , \() -> mapPureChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
         ]
         ()
+
+
+resultMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultMapCompositionChecks checkInfo =
+    pureToMapCompositionChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
 
 
 resultMapErrorOnErrErrorInfo : { message : String, details : List String }
@@ -6639,6 +6512,71 @@ randomListChecks checkInfo =
         ()
 
 
+randomMapChecks : CheckInfo -> List (Error {})
+randomMapChecks checkInfo =
+    firstThatReportsError
+        [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
+        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
+        , \() -> randomMapAlwaysChecks checkInfo
+        ]
+        ()
+
+
+randomMapAlwaysChecks : CheckInfo -> List (Error {})
+randomMapAlwaysChecks checkInfo =
+    case getAlwaysResult checkInfo checkInfo.firstArg of
+        Just (Node alwaysMapResultRange alwaysMapResult) ->
+            let
+                ( leftParenIfRequired, rightParenIfRequired ) =
+                    if needsParens alwaysMapResult then
+                        ( "(", ")" )
+
+                    else
+                        ( "", "" )
+            in
+            [ Rule.errorWithFix
+                { message = "Always mapping to the same value is equivalent to Random.constant"
+                , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                }
+                checkInfo.fnRange
+                (case secondArg checkInfo of
+                    Nothing ->
+                        [ Fix.replaceRangeBy
+                            { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
+                            (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                                ++ " ("
+                                ++ qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                ++ " "
+                                ++ leftParenIfRequired
+                            )
+                        , Fix.replaceRangeBy
+                            { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
+                            (rightParenIfRequired ++ ")")
+                        ]
+
+                    Just _ ->
+                        [ Fix.replaceRangeBy
+                            { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
+                            (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                ++ " "
+                                ++ leftParenIfRequired
+                            )
+                        , Fix.replaceRangeBy
+                            { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
+                            rightParenIfRequired
+                        ]
+                )
+            ]
+
+        Nothing ->
+            []
+
+
+randomMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+randomMapCompositionChecks checkInfo =
+    pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
+
+
 
 --
 
@@ -6791,17 +6729,19 @@ collectionMapChecks :
     -> CheckInfo
     -> List (Error {})
 collectionMapChecks collection checkInfo =
-    let
-        maybeListArg : Maybe (Node Expression)
-        maybeListArg =
-            secondArg checkInfo
-    in
     firstThatReportsError
         [ \() ->
-            case maybeListArg of
+            mapIdentityChecks
+                { moduleName = AstHelpers.moduleNameFromString collection.moduleName
+                , represents = collection.represents
+                }
+                checkInfo
+        , \() ->
+            case secondArg checkInfo of
                 Just listArg ->
                     if collection.isEmpty checkInfo.lookupTable listArg then
                         [ Rule.errorWithFix
+                            -- TODO rework error info
                             { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
                             , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
                             }
@@ -6814,22 +6754,142 @@ collectionMapChecks collection checkInfo =
 
                 Nothing ->
                     []
-        , \() ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                [ Rule.errorWithFix
-                    { message = "Using " ++ collection.moduleName ++ ".map with an identity function is the same as not using " ++ collection.moduleName ++ ".map"
-                    , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
-                    }
-                    checkInfo.fnRange
-                    (toIdentityFix
-                        { lastArg = maybeListArg, resources = checkInfo }
-                    )
-                ]
-
-            else
-                []
         ]
         ()
+
+
+{-| TODO merge with identityError
+-}
+mapIdentityChecks :
+    { a
+        | moduleName : ModuleName
+        , represents : String
+    }
+    -> CheckInfo
+    -> List (Error {})
+mapIdentityChecks mappable checkInfo =
+    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+        [ Rule.errorWithFix
+            -- TODO rework error info
+            { message = "Using " ++ qualifiedToString ( mappable.moduleName, "map" ) ++ " with an identity function is the same as not using " ++ qualifiedToString ( mappable.moduleName, "map" )
+            , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself." ]
+            }
+            checkInfo.fnRange
+            (toIdentityFix
+                { lastArg = secondArg checkInfo, resources = checkInfo }
+            )
+        ]
+
+    else
+        []
+
+
+mapPureChecks :
+    { a | moduleName : List String, pure : String, map : String }
+    -> CheckInfo
+    -> List (Error {})
+mapPureChecks mappable checkInfo =
+    case secondArg checkInfo of
+        Just mappableArg ->
+            case pureCallsInAllBranches ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable mappableArg of
+                Just pureCalls ->
+                    let
+                        mappingArgRange : Range
+                        mappingArgRange =
+                            Node.range checkInfo.firstArg
+
+                        removePureCalls : List Fix
+                        removePureCalls =
+                            List.concatMap
+                                (\pureCall ->
+                                    keepOnlyFix
+                                        { parentRange = pureCall.nodeRange
+                                        , keep = Node.range pureCall.firstArg
+                                        }
+                                )
+                                pureCalls
+                    in
+                    [ Rule.errorWithFix
+                        -- TODO reword error info
+                        { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
+                        , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (if checkInfo.usingRightPizza then
+                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
+                            , Fix.insertAt mappingArgRange.end
+                                (" |> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
+                            ]
+                                ++ removePureCalls
+
+                         else
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = mappingArgRange.start }
+                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo) ++ " (")
+                            , Fix.insertAt checkInfo.parentRange.end ")"
+                            ]
+                                ++ removePureCalls
+                        )
+                    ]
+
+                Nothing ->
+                    []
+
+        Nothing ->
+            []
+
+
+pureToMapCompositionChecks :
+    { a | moduleName : ModuleName, pure : String, map : String }
+    -> CompositionCheckInfo
+    -> List (Error {})
+pureToMapCompositionChecks mappable checkInfo =
+    let
+        ( earlier, later ) =
+            if checkInfo.fromLeftToRight then
+                ( checkInfo.left, checkInfo.right )
+
+            else
+                ( checkInfo.right, checkInfo.left )
+    in
+    case
+        ( AstHelpers.getSpecificValueOrFunction ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable earlier
+        , AstHelpers.getSpecificFunctionCall ( mappable.moduleName, mappable.map ) checkInfo.lookupTable later
+        )
+    of
+        ( Just _, Just mapCall ) ->
+            let
+                mapperFunctionRange : Range
+                mapperFunctionRange =
+                    Node.range mapCall.firstArg
+
+                fixes : List Fix
+                fixes =
+                    if checkInfo.fromLeftToRight then
+                        [ Fix.removeRange
+                            { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
+                        , Fix.insertAt mapperFunctionRange.end
+                            (" >> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
+                        ]
+
+                    else
+                        [ Fix.replaceRangeBy
+                            { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
+                            (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo) ++ " << ")
+                        , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
+                        ]
+            in
+            [ Rule.errorWithFix
+                -- TODO reword error info
+                { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
+                , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
+                }
+                mapCall.fnRange
+                fixes
+            ]
+
+        _ ->
+            []
 
 
 maybeAndThenChecks : CheckInfo -> List (Error {})
@@ -8909,6 +8969,50 @@ isAlwaysResult lookupTable baseNode =
 
         _ ->
             Nothing
+
+
+pureCallsInAllBranches :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    -> Node Expression
+    ->
+        Maybe
+            (List
+                { argsAfterFirst : List (Node Expression)
+                , firstArg : Node Expression
+                , fnRange : Range
+                , nodeRange : Range
+                }
+            )
+pureCallsInAllBranches pureFullyQualified lookupTable baseNode =
+    let
+        node : Node Expression
+        node =
+            AstHelpers.removeParens baseNode
+    in
+    case AstHelpers.getSpecificFunctionCall pureFullyQualified lookupTable node of
+        Just pureCall ->
+            Just [ pureCall ]
+
+        Nothing ->
+            case Node.value node of
+                Expression.LetExpression letIn ->
+                    pureCallsInAllBranches pureFullyQualified lookupTable letIn.expression
+
+                Expression.IfBlock _ thenBranch elseBranch ->
+                    traverse
+                        (\branchExpression -> pureCallsInAllBranches pureFullyQualified lookupTable branchExpression)
+                        [ thenBranch, elseBranch ]
+                        |> Maybe.map List.concat
+
+                Expression.CaseExpression caseOf ->
+                    traverse
+                        (\( _, caseExpression ) -> pureCallsInAllBranches pureFullyQualified lookupTable caseExpression)
+                        caseOf.cases
+                        |> Maybe.map List.concat
+
+                _ ->
+                    Nothing
 
 
 getMaybeValues : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Range))
