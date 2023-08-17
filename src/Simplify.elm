@@ -2931,13 +2931,18 @@ notOnKnownBoolCheck : CheckInfo -> List (Error {})
 notOnKnownBoolCheck checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
+            let
+                notBoolAsString : String
+                notBoolAsString =
+                    AstHelpers.boolToString (not bool)
+            in
             [ Rule.errorWithFix
-                { message = "Expression is equal to " ++ AstHelpers.boolToString (not bool)
+                { message = "Expression is equal to " ++ notBoolAsString
                 , details = [ "You can replace the call to `not` by the boolean value directly." ]
                 }
                 checkInfo.parentRange
                 [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString (not bool) ) checkInfo))
+                    (qualifiedToString (qualify ( [ "Basics" ], notBoolAsString ) checkInfo))
                 ]
             ]
 
@@ -3445,10 +3450,10 @@ equalityChecks isEqual checkInfo =
                             []
 
                         else
-                            [ comparisonError isEqual checkInfo.parentRange ]
+                            [ comparisonError isEqual checkInfo ]
 
                     Normalize.ConfirmedInequality ->
-                        [ comparisonError (not isEqual) checkInfo.parentRange ]
+                        [ comparisonError (not isEqual) checkInfo ]
 
                     Normalize.Unconfirmed ->
                         []
@@ -3498,14 +3503,14 @@ comparisonChecks operatorFunction operatorCheckInfo =
             (Normalize.getNumberValue operatorCheckInfo.right)
     of
         Just bool ->
-            [ comparisonError bool operatorCheckInfo.parentRange ]
+            [ comparisonError bool operatorCheckInfo ]
 
         Nothing ->
             []
 
 
-comparisonError : Bool -> Range -> Error {}
-comparisonError bool range =
+comparisonError : Bool -> QualifyResources { a | parentRange : Range } -> Error {}
+comparisonError bool checkInfo =
     let
         boolAsString : String
         boolAsString =
@@ -3517,8 +3522,10 @@ comparisonError bool range =
             [ "Based on the values and/or the context, we can determine that the value of this operation will always be " ++ boolAsString ++ "."
             ]
         }
-        range
-        [ Fix.replaceRangeBy range boolAsString ]
+        checkInfo.parentRange
+        [ Fix.replaceRangeBy checkInfo.parentRange
+            (qualifiedToString (qualify ( [ "Basics" ], boolAsString ) checkInfo))
+        ]
 
 
 
@@ -3756,16 +3763,18 @@ stringIsEmptyChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.Literal str ->
             let
-                replacementValue : String
-                replacementValue =
+                replacementValueAsString : String
+                replacementValueAsString =
                     AstHelpers.boolToString (str == "")
             in
             [ Rule.errorWithFix
-                { message = "The call to String.isEmpty will result in " ++ replacementValue
-                , details = [ "You can replace this call by " ++ replacementValue ++ "." ]
+                { message = "The call to String.isEmpty will result in " ++ replacementValueAsString
+                , details = [ "You can replace this call by " ++ replacementValueAsString ++ "." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange replacementValue ]
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], replacementValueAsString ) checkInfo))
+                ]
             ]
 
         _ ->
@@ -5306,19 +5315,28 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> List (Error {})
                 boolBinaryOperationChecks operation initialIsDetermining =
                     if initialIsDetermining == operation.determining then
+                        let
+                            determiningAsString : String
+                            determiningAsString =
+                                AstHelpers.boolToString operation.determining
+                        in
                         [ Rule.errorWithFix
-                            { message = "The call to List." ++ foldOperationName ++ " will result in " ++ AstHelpers.boolToString operation.determining
-                            , details = [ "You can replace this call by " ++ AstHelpers.boolToString operation.determining ++ "." ]
+                            { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in " ++ determiningAsString
+                            , details = [ "You can replace this call by " ++ determiningAsString ++ "." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix (AstHelpers.boolToString operation.determining) checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                            (replaceByEmptyFix (qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) checkInfo))
+                                checkInfo.parentRange
+                                (thirdArg checkInfo)
+                                checkInfo
+                            )
                         ]
 
                     else
                         -- initialIsTrue /= operation.determining
                         [ Rule.errorWithFix
-                            { message = "Use List." ++ operation.list ++ " identity instead"
-                            , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using List." ++ operation.list ++ " identity." ]
+                            { message = "Use " ++ qualifiedToString ( [ "List" ], operation.list ) ++ " identity instead"
+                            , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ qualifiedToString ( [ "List" ], operation.list ) ++ " identity." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
