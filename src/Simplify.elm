@@ -6534,7 +6534,7 @@ randomListChecks checkInfo =
     in
     firstThatReportsError
         [ \() ->
-            case AstHelpers.getUncomputedIntValue checkInfo.firstArg of
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 1 ->
                     [ Rule.errorWithFix
                         { message = "Random.list 1 can be replaced by Random.map List.singleton"
