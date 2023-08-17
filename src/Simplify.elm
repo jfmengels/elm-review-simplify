@@ -6550,25 +6550,38 @@ randomListChecks checkInfo =
                         ]
                     ]
 
-                Just 0 ->
-                    let
-                        replacement : String
-                        replacement =
-                            replacementWithIrrelevantLastArg
-                                { forNoLastArg =
-                                    qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
-                                        ++ " []"
-                                , lastArg = maybeElementGeneratorArg
-                                , resources = checkInfo
-                                }
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Random.list 0 can be replaced by Random.constant []"
-                        , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with " ++ replacement ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
-                    ]
+                Just non1Length ->
+                    if non1Length <= 0 then
+                        let
+                            replacement : String
+                            replacement =
+                                replacementWithIrrelevantLastArg
+                                    { forNoLastArg =
+                                        qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                            ++ " []"
+                                    , lastArg = maybeElementGeneratorArg
+                                    , resources = checkInfo
+                                    }
+
+                            callDescription : String
+                            callDescription =
+                                case non1Length of
+                                    0 ->
+                                        "Random.list 0"
+
+                                    _ ->
+                                        "Random.list with a negative length"
+                        in
+                        [ Rule.errorWithFix
+                            { message = callDescription ++ " can be replaced by Random.constant []"
+                            , details = [ callDescription ++ " always generates an empty list. This means you can replace the call with " ++ replacement ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
+                        ]
+
+                    else
+                        []
 
                 _ ->
                     []
