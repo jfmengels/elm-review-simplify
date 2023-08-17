@@ -5502,7 +5502,7 @@ listAllChecks checkInfo =
                         , details = [ "You can replace this call by True." ]
                         }
                         checkInfo.fnRange
-                        (replaceByBoolFix checkInfo.parentRange maybeListArg True checkInfo)
+                        (replaceByBoolWithIrrelevantLastArgFix { lastArg = maybeListArg, replacement = True, checkInfo = checkInfo })
                     ]
 
                 _ ->
@@ -5542,24 +5542,26 @@ listAnyChecks checkInfo =
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
-                        (replaceByBoolFix checkInfo.parentRange maybeListArg False checkInfo)
+                        (replaceByBoolWithIrrelevantLastArgFix { lastArg = maybeListArg, replacement = False, checkInfo = checkInfo })
                     ]
 
                 _ ->
-                    case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
-                        Nothing ->
-                            []
+                    []
+        , \() ->
+            case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
+                Nothing ->
+                    []
 
-                        Just rangesToRemove ->
-                            [ Rule.errorWithFix
-                                { message = "Use List.member instead"
-                                , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
-                                }
-                                checkInfo.fnRange
-                                (Fix.replaceRangeBy checkInfo.fnRange "List.member"
-                                    :: List.map Fix.removeRange rangesToRemove
-                                )
-                            ]
+                Just rangesToRemove ->
+                    [ Rule.errorWithFix
+                        { message = "Use List.member instead"
+                        , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                        }
+                        checkInfo.fnRange
+                        (Fix.replaceRangeBy checkInfo.fnRange "List.member"
+                            :: List.map Fix.removeRange rangesToRemove
+                        )
+                    ]
         ]
         ()
 
@@ -7575,22 +7577,24 @@ collectionInsertChecks collection checkInfo =
 
 collectionMemberChecks : Collection -> CheckInfo -> List (Error {})
 collectionMemberChecks collection checkInfo =
-    let
-        collectionArg : Maybe (Node Expression)
-        collectionArg =
-            secondArg checkInfo
-    in
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
-        Just (Exactly 0) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyDescription ++ " will result in False"
-                , details = [ "You can replace this call by False." ]
-                }
-                checkInfo.fnRange
-                (replaceByBoolFix checkInfo.parentRange collectionArg False checkInfo)
-            ]
+    case secondArg checkInfo of
+        Just collectionArg ->
+            case collection.determineSize checkInfo.lookupTable collectionArg of
+                Just (Exactly 0) ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyDescription ++ " will result in False"
+                        , details = [ "You can replace this call by False." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
+                        ]
+                    ]
 
-        _ ->
+                _ ->
+                    []
+
+        Nothing ->
             []
 
 
@@ -8660,21 +8664,28 @@ replaceByEmptyFix empty parentRange lastArg qualifyResources =
     ]
 
 
-replaceByBoolFix : Range -> Maybe a -> Bool -> QualifyResources b -> List Fix
-replaceByBoolFix parentRange lastArg replacementValue qualifyResources =
-    [ case lastArg of
+replaceByBoolWithIrrelevantLastArgFix :
+    { replacement : Bool, lastArg : Maybe a, checkInfo : QualifyResources { b | parentRange : Range } }
+    -> List Fix
+replaceByBoolWithIrrelevantLastArgFix config =
+    let
+        replacementAsString : String
+        replacementAsString =
+            qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString config.replacement ) config.checkInfo)
+    in
+    case config.lastArg of
         Just _ ->
-            Fix.replaceRangeBy parentRange (AstHelpers.boolToString replacementValue)
+            [ Fix.replaceRangeBy config.checkInfo.parentRange replacementAsString ]
 
         Nothing ->
-            Fix.replaceRangeBy parentRange
+            [ Fix.replaceRangeBy config.checkInfo.parentRange
                 ("("
-                    ++ qualifiedToString (qualify ( [ "Basics" ], "always" ) qualifyResources)
+                    ++ qualifiedToString (qualify ( [ "Basics" ], "always" ) config.checkInfo)
                     ++ " "
-                    ++ qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString replacementValue ) qualifyResources)
+                    ++ replacementAsString
                     ++ ")"
                 )
-    ]
+            ]
 
 
 identityError :
