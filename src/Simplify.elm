@@ -3399,7 +3399,11 @@ equalityChecks isEqual checkInfo =
         ]
 
     else
-        case Maybe.map2 Tuple.pair (getNotCall checkInfo.lookupTable checkInfo.left) (getNotCall checkInfo.lookupTable checkInfo.right) of
+        case
+            Maybe.map2 Tuple.pair
+                (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
+                (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
+        of
             Just ( notRangeLeft, notRangeRight ) ->
                 [ Rule.errorWithFix
                     { message = "Unnecessary negation on both sides"
@@ -3450,21 +3454,6 @@ equalityChecks isEqual checkInfo =
 
                     Normalize.Unconfirmed ->
                         []
-
-
-getNotCall : ModuleNameLookupTable -> Node Expression -> Maybe Range
-getNotCall lookupTable baseExpressionNode =
-    case Node.value (AstHelpers.removeParens baseExpressionNode) of
-        Expression.Application ((Node notRange (Expression.FunctionOrValue _ "not")) :: _) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable notRange of
-                Just [ "Basics" ] ->
-                    Just notRange
-
-                _ ->
-                    Nothing
-
-        _ ->
-            Nothing
 
 
 alwaysSameDetails : List String
