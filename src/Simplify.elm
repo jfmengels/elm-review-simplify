@@ -1872,7 +1872,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             ( endLater, expressionRange )
             in
             onlyErrors
-                (firstThatReportsError compositionChecks
+                (compositionChecks
                     { lookupTable = context.lookupTable
                     , importLookup = context.importLookup
                     , moduleBindings = context.moduleBindings
@@ -1898,7 +1898,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             ( endLater, expressionRange )
             in
             onlyErrors
-                (firstThatReportsError compositionChecks
+                (compositionChecks
                     { lookupTable = context.lookupTable
                     , importLookup = context.importLookup
                     , moduleBindings = context.moduleBindings
@@ -2264,24 +2264,102 @@ type alias CompositionCheckInfo =
     }
 
 
-compositionChecks : List (CompositionCheckInfo -> List (Error {}))
-compositionChecks =
-    [ basicsIdentityCompositionChecks
-    , basicsNotCompositionChecks
-    , basicsNegateCompositionChecks
-    , basicsAlwaysCompositionChecks
-    , maybeMapCompositionChecks
-    , randomMapCompositionChecks
-    , resultMapCompositionChecks
-    , resultMapErrorCompositionChecks
-    , listFilterMapCompositionChecks
-    , listConcatCompositionChecks
-    , listFoldlCompositionChecks
-    , listFoldrCompositionChecks
-    , setFromListCompositionChecks
-    , listMapCompositionChecks
-    , resultToMaybeCompositionChecks
-    ]
+compositionChecks : CompositionCheckInfo -> List (Error {})
+compositionChecks checkInfo =
+    firstThatReportsError
+        [ \() -> basicsIdentityCompositionChecks checkInfo
+        , \() -> basicsNotCompositionChecks checkInfo
+        , \() -> basicsNegateCompositionChecks checkInfo
+        , \() ->
+            case
+                ( AstHelpers.getCollapsedAndReducedValueOrFunctionCall checkInfo.earlier
+                , AstHelpers.getCollapsedAndReducedValueOrFunctionCall checkInfo.later
+                )
+            of
+                ( Just earlierFnOrCall, Just laterFnOrCall ) ->
+                    case
+                        ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange
+                        , ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange
+                        )
+                    of
+                        ( Just earlierFnModuleName, Just laterFnModuleName ) ->
+                            case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
+                                Just compositionIntoChecksForSpecificLater ->
+                                    compositionIntoChecksForSpecificLater
+                                        { lookupTable = checkInfo.lookupTable
+                                        , importLookup = checkInfo.importLookup
+                                        , moduleBindings = checkInfo.moduleBindings
+                                        , localBindings = checkInfo.localBindings
+                                        , fromLeftToRight = checkInfo.fromLeftToRight
+                                        , parentRange = checkInfo.parentRange
+                                        , later =
+                                            { range = laterFnOrCall.nodeRange
+                                            , fnRange = laterFnOrCall.fnRange
+                                            , args = laterFnOrCall.args
+                                            }
+                                        , earlier =
+                                            { range = earlierFnOrCall.nodeRange
+                                            , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
+                                            , fnRange = earlierFnOrCall.fnRange
+                                            , args = earlierFnOrCall.args
+                                            }
+                                        }
+
+                                Nothing ->
+                                    []
+
+                        ( Nothing, _ ) ->
+                            []
+
+                        ( _, Nothing ) ->
+                            []
+
+                ( Nothing, _ ) ->
+                    []
+
+                ( _, Nothing ) ->
+                    []
+        ]
+        ()
+
+
+type alias CompositionIntoCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , importLookup : ImportLookup
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
+    , fromLeftToRight : Bool
+    , parentRange : Range
+    , later :
+        { range : Range
+        , fnRange : Range
+        , args : List (Node Expression)
+        }
+    , earlier :
+        { range : Range
+        , fn : ( ModuleName, String )
+        , fnRange : Range
+        , args : List (Node Expression)
+        }
+    }
+
+
+compositionIntoChecks : Dict ( ModuleName, String ) (CompositionIntoCheckInfo -> List (Error {}))
+compositionIntoChecks =
+    Dict.fromList
+        [ ( ( [ "Basics" ], "always" ), basicsAlwaysCompositionChecks )
+        , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
+        , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
+        , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
+        , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
+        , ( ( [ "List" ], "map" ), listMapCompositionChecks )
+        , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
+        , ( ( [ "List" ], "concat" ), listConcatCompositionChecks )
+        , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
+        , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
+        , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
+        , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
+        ]
 
 
 removeAlongWithOtherFunctionCheck :
@@ -3523,17 +3601,17 @@ basicsAlwaysCompositionErrorMessage =
     }
 
 
-basicsAlwaysCompositionChecks : CompositionCheckInfo -> List (Error {})
+basicsAlwaysCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 basicsAlwaysCompositionChecks checkInfo =
-    case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) checkInfo.lookupTable checkInfo.later of
-        Just _ ->
+    case checkInfo.later.args of
+        _ :: [] ->
             [ Rule.errorWithFix
                 basicsAlwaysCompositionErrorMessage
-                (Node.range checkInfo.later)
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later })
+                checkInfo.later.range
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range })
             ]
 
-        Nothing ->
+        _ ->
             []
 
 
@@ -4002,7 +4080,7 @@ maybeMapChecks checkInfo =
         ()
 
 
-maybeMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+maybeMapCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 maybeMapCompositionChecks checkInfo =
     pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
 
@@ -4020,7 +4098,7 @@ resultMapChecks checkInfo =
         ()
 
 
-resultMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultMapCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 resultMapCompositionChecks checkInfo =
     pureToMapCompositionChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
 
@@ -4106,49 +4184,41 @@ resultMapErrorChecks checkInfo =
         ()
 
 
-resultMapErrorCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 resultMapErrorCompositionChecks checkInfo =
-    case AstHelpers.getSpecificReducedFunctionCall ( [ "Result" ], "mapError" ) checkInfo.lookupTable checkInfo.later of
-        Nothing ->
+    case checkInfo.later.args of
+        (Node errorMappingArgRange _) :: _ ->
+            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                ( ( [ "Result" ], "Err" ), [] ) ->
+                    [ Rule.errorWithFix
+                        resultMapErrorOnErrErrorInfo
+                        checkInfo.later.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
+                            ++ [ if checkInfo.fromLeftToRight then
+                                    -- >>
+                                    Fix.insertAt checkInfo.parentRange.end
+                                        (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
+
+                                 else
+                                    -- <<
+                                    Fix.insertAt checkInfo.parentRange.start
+                                        (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
+                               ]
+                        )
+                    ]
+
+                ( ( [ "Result" ], "Ok" ), [] ) ->
+                    [ Rule.errorWithFix
+                        resultMapErrorOnOkErrorInfo
+                        checkInfo.later.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange })
+                    ]
+
+                _ ->
+                    []
+
+        [] ->
             []
-
-        Just resultMapErrorCall ->
-            firstThatReportsError
-                [ \() ->
-                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Err" ) checkInfo.lookupTable checkInfo.earlier of
-                        Nothing ->
-                            []
-
-                        Just _ ->
-                            [ Rule.errorWithFix
-                                resultMapErrorOnErrErrorInfo
-                                resultMapErrorCall.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultMapErrorCall.firstArg }
-                                    ++ [ if checkInfo.fromLeftToRight then
-                                            -- >>
-                                            Fix.insertAt checkInfo.parentRange.end
-                                                (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
-
-                                         else
-                                            -- <<
-                                            Fix.insertAt checkInfo.parentRange.start
-                                                (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
-                                       ]
-                                )
-                            ]
-                , \() ->
-                    case AstHelpers.getSpecificReducedFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.earlier of
-                        Nothing ->
-                            []
-
-                        Just okFunction ->
-                            [ Rule.errorWithFix
-                                resultMapErrorOnOkErrorInfo
-                                resultMapErrorCall.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = okFunction.fnRange })
-                            ]
-                ]
-                ()
 
 
 
@@ -4385,27 +4455,23 @@ listConcatMapChecks checkInfo =
         ()
 
 
-listConcatCompositionChecks : CompositionCheckInfo -> List (Error {})
+listConcatCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 listConcatCompositionChecks checkInfo =
-    case AstHelpers.getSpecificValueOrFunction ( [ "List" ], "concat" ) checkInfo.lookupTable checkInfo.later of
-        Just _ ->
-            case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.earlier of
-                Just listMapCallEarlier ->
-                    [ Rule.errorWithFix
-                        { message = "List.map and List.concat can be combined using List.concatMap"
-                        , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
-                        }
-                        (Node.range checkInfo.later)
-                        (Fix.replaceRangeBy listMapCallEarlier.fnRange
-                            (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
-                            :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
-                        )
-                    ]
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "List" ], "map" ), _ :: [] ) ->
+            [ Rule.errorWithFix
+                { message = "List.map and List.concat can be combined using List.concatMap"
+                , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                }
+                -- TODO switch to later.fnRange
+                checkInfo.later.range
+                (Fix.replaceRangeBy checkInfo.earlier.fnRange
+                    (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
+                    :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
+                )
+            ]
 
-                Nothing ->
-                    []
-
-        Nothing ->
+        _ ->
             []
 
 
@@ -4744,32 +4810,33 @@ dictToListMapChecks listMapCheckInfo =
             []
 
 
-listMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+listMapCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 listMapCompositionChecks checkInfo =
     case
-        AstHelpers.getSpecificReducedFunction ( [ "Dict" ], "toList" ) checkInfo.lookupTable checkInfo.earlier
-            |> Maybe.andThen (\_ -> AstHelpers.getSpecificReducedFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.later)
+        ( ( checkInfo.earlier.fn, checkInfo.earlier.args )
+        , checkInfo.later.args
+        )
     of
-        Nothing ->
-            []
-
-        Just listMapCall ->
+        ( ( ( [ "Dict" ], "toList" ), [] ), elementMappingArg :: [] ) ->
             let
                 error : { toEntryAspectList : String, tuplePart : String } -> Error {}
                 error info =
                     Rule.errorWithFix
                         (dictToListMapErrorInfo info)
-                        listMapCall.fnRange
+                        checkInfo.later.fnRange
                         [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) checkInfo)) ]
             in
-            if AstHelpers.isTupleFirstAccess checkInfo.lookupTable listMapCall.firstArg then
+            if AstHelpers.isTupleFirstAccess checkInfo.lookupTable elementMappingArg then
                 [ error { tuplePart = "first", toEntryAspectList = "keys" } ]
 
-            else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable listMapCall.firstArg then
+            else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
                 [ error { tuplePart = "second", toEntryAspectList = "values" } ]
 
             else
                 []
+
+        _ ->
+            []
 
 
 listMemberChecks : CheckInfo -> List (Error {})
@@ -5218,48 +5285,40 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 ()
 
 
-listFoldlCompositionChecks : CompositionCheckInfo -> List (Error {})
+listFoldlCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 listFoldlCompositionChecks checkInfo =
     foldAndSetToListCompositionChecks "foldl" checkInfo
 
 
-listFoldrCompositionChecks : CompositionCheckInfo -> List (Error {})
+listFoldrCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 listFoldrCompositionChecks checkInfo =
     foldAndSetToListCompositionChecks "foldr" checkInfo
 
 
-foldAndSetToListCompositionChecks : String -> CompositionCheckInfo -> List (Error {})
+foldAndSetToListCompositionChecks : String -> CompositionIntoCheckInfo -> List (Error {})
 foldAndSetToListCompositionChecks foldOperationName checkInfo =
-    case AstHelpers.getSpecificFunctionCall ( [ "List" ], foldOperationName ) checkInfo.lookupTable checkInfo.later of
-        Just listFoldCall ->
-            case listFoldCall.argsAfterFirst of
-                -- initial and reduce arguments are present
-                _ :: [] ->
-                    if AstHelpers.isSpecificValueOrFunction ( [ "Set" ], "toList" ) checkInfo.lookupTable checkInfo.earlier then
-                        [ Rule.errorWithFix
-                            { message = "To fold a set, you don't need to convert to a List"
-                            , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
-                            }
-                            listFoldCall.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later }
-                                ++ [ Fix.replaceRangeBy listFoldCall.fnRange
-                                        (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
-                                   ]
-                            )
-                        ]
+    case checkInfo.later.args of
+        -- initial and reduce arguments are present
+        _ :: _ :: [] ->
+            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                ( ( [ "Set" ], "toList" ), [] ) ->
+                    [ Rule.errorWithFix
+                        { message = "To fold a set, you don't need to convert to a List"
+                        , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
+                        }
+                        checkInfo.later.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
+                            ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
+                                    (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
+                               ]
+                        )
+                    ]
 
-                    else
-                        []
-
-                -- composition onto fully constructed value (compile-time error)
-                _ :: _ :: _ ->
+                _ ->
                     []
 
-                -- reduce argument is missing
-                [] ->
-                    []
-
-        Nothing ->
+        -- composition onto fully constructed value (compile-time error)
+        _ ->
             []
 
 
@@ -5464,32 +5523,33 @@ collectJusts lookupTable list acc =
                     Nothing
 
 
-listFilterMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+listFilterMapCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 listFilterMapCompositionChecks checkInfo =
-    case AstHelpers.getSpecificFunctionCall ( [ "List" ], "filterMap" ) checkInfo.lookupTable checkInfo.later of
-        Just listFilterMapCallLater ->
-            if AstHelpers.isIdentity checkInfo.lookupTable listFilterMapCallLater.firstArg then
-                case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.earlier of
-                    Just listMapCallEarlier ->
+    case checkInfo.later.args of
+        elementToMaybeMappingArg :: [] ->
+            if AstHelpers.isIdentity checkInfo.lookupTable elementToMaybeMappingArg then
+                case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                    ( ( [ "List" ], "map" ), _ :: [] ) ->
                         [ Rule.errorWithFix
                             -- TODO rework error info
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
                             }
-                            (Node.range checkInfo.later)
-                            (Fix.replaceRangeBy listMapCallEarlier.fnRange
+                            -- TODO use laterFnRange
+                            checkInfo.later.range
+                            (Fix.replaceRangeBy checkInfo.earlier.fnRange
                                 (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
-                                :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
+                                :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
                             )
                         ]
 
-                    Nothing ->
+                    _ ->
                         []
 
             else
                 []
 
-        Nothing ->
+        _ ->
             []
 
 
@@ -5854,23 +5914,19 @@ setFromListSingletonError =
     }
 
 
-setFromListCompositionChecks : CompositionCheckInfo -> List (Error {})
+setFromListCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 setFromListCompositionChecks checkInfo =
-    case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "fromList" ) checkInfo.lookupTable checkInfo.later of
-        Just listFoldCall ->
-            if AstHelpers.isSpecificValueOrFunction ( [ "List" ], "singleton" ) checkInfo.lookupTable checkInfo.earlier then
-                [ Rule.errorWithFix
-                    setFromListSingletonError
-                    listFoldCall
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo))
-                    ]
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "List" ], "singleton" ), [] ) ->
+            [ Rule.errorWithFix
+                setFromListSingletonError
+                checkInfo.later.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo))
                 ]
+            ]
 
-            else
-                []
-
-        Nothing ->
+        _ ->
             []
 
 
@@ -6274,7 +6330,7 @@ randomMapChecks checkInfo =
         ()
 
 
-randomMapCompositionChecks : CompositionCheckInfo -> List (Error {})
+randomMapCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 randomMapCompositionChecks checkInfo =
     firstThatReportsError
         [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
@@ -6338,22 +6394,20 @@ randomMapAlwaysChecks checkInfo =
             []
 
 
-randomMapAlwaysCompositionChecks : CompositionCheckInfo -> List (Error {})
+randomMapAlwaysCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 randomMapAlwaysCompositionChecks checkInfo =
-    if
-        AstHelpers.isSpecificValueOrFunction ( [ "Basics" ], "always" ) checkInfo.lookupTable checkInfo.earlier
-            && AstHelpers.isSpecificValueOrFunction ( [ "Random" ], "map" ) checkInfo.lookupTable checkInfo.later
-    then
-        [ Rule.errorWithFix
-            randomMapAlwaysErrorInfo
-            (Node.range checkInfo.later)
-            [ Fix.replaceRangeBy checkInfo.parentRange
-                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo))
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "Basics" ], "always" ), [] ) ->
+            [ Rule.errorWithFix
+                randomMapAlwaysErrorInfo
+                checkInfo.later.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo))
+                ]
             ]
-        ]
 
-    else
-        []
+        _ ->
+            []
 
 
 
@@ -6620,20 +6674,16 @@ mapPureChecks mappable checkInfo =
 
 pureToMapCompositionChecks :
     { a | moduleName : ModuleName, pure : String, map : String }
-    -> CompositionCheckInfo
+    -> CompositionIntoCheckInfo
     -> List (Error {})
 pureToMapCompositionChecks mappable checkInfo =
     case
-        ( AstHelpers.getSpecificValueOrFunction ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable checkInfo.earlier
-        , AstHelpers.getSpecificFunctionCall ( mappable.moduleName, mappable.map ) checkInfo.lookupTable checkInfo.later
+        ( checkInfo.earlier.fn == ( mappable.moduleName, mappable.pure )
+        , checkInfo.later.args
         )
     of
-        ( Just _, Just mapCall ) ->
+        ( True, (Node mapperFunctionRange _) :: _ ) ->
             let
-                mapperFunctionRange : Range
-                mapperFunctionRange =
-                    Node.range mapCall.firstArg
-
                 fixes : List Fix
                 fixes =
                     if checkInfo.fromLeftToRight then
@@ -6655,7 +6705,7 @@ pureToMapCompositionChecks mappable checkInfo =
                 { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
                 , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
                 }
-                mapCall.fnRange
+                checkInfo.later.fnRange
                 fixes
             ]
 
@@ -6879,40 +6929,41 @@ resultToMaybeChecks checkInfo =
             []
 
 
-resultToMaybeCompositionChecks : CompositionCheckInfo -> List (Error {})
+resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
 resultToMaybeCompositionChecks checkInfo =
-    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "toMaybe" ) checkInfo.lookupTable checkInfo.later of
-        Nothing ->
+    let
+        resultToMaybeFunctionRange : Range
+        resultToMaybeFunctionRange =
+            checkInfo.later.fnRange
+    in
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "Result" ], "Err" ), [] ) ->
+            [ Rule.errorWithFix
+                { message = "Using Result.toMaybe on an error will result in Nothing"
+                , details = [ "You can replace this call by always Nothing." ]
+                }
+                resultToMaybeFunctionRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                        ++ " "
+                        ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
+                    )
+                ]
+            ]
+
+        ( ( [ "Result" ], "Ok" ), [] ) ->
+            [ Rule.errorWithFix
+                { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                , details = [ "You can replace this call by Just." ]
+                }
+                resultToMaybeFunctionRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                ]
+            ]
+
+        _ ->
             []
-
-        Just resultToMaybeFunction ->
-            if AstHelpers.isSpecificValueOrFunction ( [ "Result" ], "Err" ) checkInfo.lookupTable checkInfo.earlier then
-                [ Rule.errorWithFix
-                    { message = "Using Result.toMaybe on an error will result in Nothing"
-                    , details = [ "You can replace this call by always Nothing." ]
-                    }
-                    resultToMaybeFunction
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
-                            ++ " "
-                            ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
-                        )
-                    ]
-                ]
-
-            else if AstHelpers.isSpecificValueOrFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.earlier then
-                [ Rule.errorWithFix
-                    { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
-                    , details = [ "You can replace this call by Just." ]
-                    }
-                    resultToMaybeFunction
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                    ]
-                ]
-
-            else
-                []
 
 
 leftPipelineChecks : ModuleContext -> Node Expression -> Node Expression -> List (Error {})
