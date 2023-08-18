@@ -6524,8 +6524,54 @@ setCollection =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
     , nameForSize = "size"
-    , determineSize = collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList { moduleName = [ "Set" ], singletonArgCount = 1 }
+    , determineSize = setDetermineSize
     }
+
+
+setDetermineSize :
+    ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe CollectionSize
+setDetermineSize lookupTable expressionNode =
+    findMap (\f -> f ())
+        [ \() ->
+            case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expressionNode of
+                Just _ ->
+                    Just (Exactly 0)
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expressionNode of
+                Just _ ->
+                    Just (Exactly 1)
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expressionNode of
+                Just fromListCall ->
+                    case AstHelpers.getListLiteral fromListCall.firstArg of
+                        Just [] ->
+                            Just (Exactly 0)
+
+                        Just (_ :: []) ->
+                            Just (Exactly 1)
+
+                        Just (el0 :: el1 :: el2Up) ->
+                            case traverse getComparableExpression (el0 :: el1 :: el2Up) of
+                                Nothing ->
+                                    Just NotEmpty
+
+                                Just comparableExpressions ->
+                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
+
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+        ]
 
 
 dictCollection : Collection
@@ -6540,8 +6586,59 @@ dictCollection =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
     , nameForSize = "size"
-    , determineSize = collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList { moduleName = [ "Dict" ], singletonArgCount = 2 }
+    , determineSize = dictDetermineSize
     }
+
+
+dictDetermineSize :
+    ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe CollectionSize
+dictDetermineSize lookupTable expressionNode =
+    findMap (\f -> f ())
+        [ \() ->
+            case AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expressionNode of
+                Just _ ->
+                    Just (Exactly 0)
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "singleton" ) lookupTable expressionNode of
+                Just singletonCall ->
+                    case singletonCall.argsAfterFirst of
+                        _ :: [] ->
+                            Just (Exactly 1)
+
+                        _ ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expressionNode of
+                Just fromListCall ->
+                    case AstHelpers.getListLiteral fromListCall.firstArg of
+                        Just [] ->
+                            Just (Exactly 0)
+
+                        Just (_ :: []) ->
+                            Just (Exactly 1)
+
+                        Just (el0 :: el1 :: el2Up) ->
+                            case traverse getComparableExpressionInTupleFirst (el0 :: el1 :: el2Up) of
+                                Nothing ->
+                                    Just NotEmpty
+
+                                Just comparableExpressions ->
+                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
+
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+        ]
 
 
 type alias Mappable =
@@ -7715,57 +7812,6 @@ combineSingleElementFixes lookupTable nodes soFar =
 
                 Just fixes ->
                     combineSingleElementFixes lookupTable restOfNodes (fixes ++ soFar)
-
-
-collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList :
-    { moduleName : ModuleName, singletonArgCount : Int }
-    -> ModuleNameLookupTable
-    -> Node Expression
-    -> Maybe CollectionSize
-collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList config lookupTable expressionNode =
-    findMap (\f -> f ())
-        [ \() ->
-            case AstHelpers.getSpecificValueOrFunction ( config.moduleName, "empty" ) lookupTable expressionNode of
-                Just _ ->
-                    Just (Exactly 0)
-
-                Nothing ->
-                    Nothing
-        , \() ->
-            case AstHelpers.getSpecificFunctionCall ( config.moduleName, "singleton" ) lookupTable expressionNode of
-                Just singletonCall ->
-                    if 1 + List.length singletonCall.argsAfterFirst == config.singletonArgCount then
-                        Just (Exactly 1)
-
-                    else
-                        Nothing
-
-                Nothing ->
-                    Nothing
-        , \() ->
-            case AstHelpers.getSpecificFunctionCall ( config.moduleName, "fromList" ) lookupTable expressionNode of
-                Just fromListCall ->
-                    case AstHelpers.getListLiteral fromListCall.firstArg of
-                        Just [] ->
-                            Just (Exactly 0)
-
-                        Just (_ :: []) ->
-                            Just (Exactly 1)
-
-                        Just (el0 :: el1 :: el2Up) ->
-                            case traverse getComparableExpression (el0 :: el1 :: el2Up) of
-                                Nothing ->
-                                    Just NotEmpty
-
-                                Just comparableExpressions ->
-                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
-
-                        Nothing ->
-                            Nothing
-
-                _ ->
-                    Nothing
-        ]
 
 
 
@@ -9143,6 +9189,16 @@ combineResultValuesHelp lookupTable nodes soFar =
 
         [] ->
             Just soFar
+
+
+getComparableExpressionInTupleFirst : Node Expression -> Maybe (List Expression)
+getComparableExpressionInTupleFirst expressionNode =
+    case AstHelpers.getTuple expressionNode of
+        Just tuple ->
+            getComparableExpression tuple.first
+
+        Nothing ->
+            Nothing
 
 
 getComparableExpression : Node Expression -> Maybe (List Expression)

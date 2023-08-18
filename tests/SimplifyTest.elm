@@ -16434,6 +16434,7 @@ dictSizeTests =
 a = Dict.size
 a = Dict.size b
 a = Dict.size (Dict.fromList [b, c, d])
+a = Dict.size (Dict.fromList [((),1), ((),2), ((),3)])
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16483,6 +16484,94 @@ a = Dict.singleton x y |> Dict.size
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 1
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList []) by 0" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList [])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The call to Dict.fromList will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.size (Dict.empty)
+"""
+                        , Review.Test.error
+                            { message = "The size of the Dict is 0"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList [a]) by 1" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList [a])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 1"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList [(1,1), (2,1), (3,1)]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1)])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 3"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 3"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())]) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The size of the Dict is 3"
+                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
 """
                         ]
         ]
