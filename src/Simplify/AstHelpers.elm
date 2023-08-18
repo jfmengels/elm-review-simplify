@@ -80,23 +80,6 @@ isSpecificValueOrFunction ( moduleName, name ) lookupTable node =
             False
 
 
-getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificValueOrFunction ( moduleName, name ) lookupTable node =
-    case removeParens node of
-        Node rangeInParens (Expression.FunctionOrValue _ foundName) ->
-            if
-                (foundName == name)
-                    && (ModuleNameLookupTable.moduleNameAt lookupTable rangeInParens == Just moduleName)
-            then
-                Just rangeInParens
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
-
-
 isSpecificCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
 isSpecificCall ( moduleName, fnName ) lookupTable node =
     case Node.value (removeParens node) of
@@ -212,25 +195,35 @@ getValueOrFunctionCall expressionNode =
 
 {-| Parses functions without arguments and lambdas that are reducible to a function without arguments
 -}
-getSpecificReducedFn : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificReducedFn ( moduleName, name ) lookupTable expressionNode =
-    case getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode of
+getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
+    case getValueOrFunction expressionNode of
         Just normalFn ->
-            Just normalFn
+            if
+                (normalFn.name /= name)
+                    || (ModuleNameLookupTable.moduleNameAt lookupTable normalFn.range /= Just moduleName)
+            then
+                Nothing
+
+            else
+                Just normalFn.range
 
         Nothing ->
-            case getReducedLambda expressionNode of
+            Nothing
+
+
+getValueOrFunction : Node Expression -> Maybe { name : String, range : Range }
+getValueOrFunction expressionNode =
+    case removeParens expressionNode of
+        Node rangeInParens (Expression.FunctionOrValue _ foundName) ->
+            Just { range = rangeInParens, name = foundName }
+
+        nonFunctionOrValueNode ->
+            case getReducedLambda nonFunctionOrValueNode of
                 Just reducedLambdaToFn ->
                     case ( reducedLambdaToFn.lambdaPatterns, reducedLambdaToFn.callArguments ) of
                         ( [], [] ) ->
-                            if
-                                (reducedLambdaToFn.fnName /= name)
-                                    || (ModuleNameLookupTable.moduleNameAt lookupTable reducedLambdaToFn.fnRange /= Just moduleName)
-                            then
-                                Nothing
-
-                            else
-                                Just reducedLambdaToFn.fnRange
+                            Just { range = reducedLambdaToFn.fnRange, name = reducedLambdaToFn.fnName }
 
                         ( _ :: _, _ ) ->
                             Nothing
@@ -337,9 +330,11 @@ getComposition expressionNode =
             Nothing
 
 
+{-| TODO replace by getSpecificValueOrFunction directly
+-}
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleFirstAccess lookupTable expressionNode =
-    case getSpecificReducedFn ( [ "Tuple" ], "first" ) lookupTable expressionNode of
+    case getSpecificValueOrFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
         Just _ ->
             True
 
@@ -347,9 +342,11 @@ isTupleFirstAccess lookupTable expressionNode =
             isTupleFirstPatternLambda expressionNode
 
 
+{-| TODO replace by getSpecificValueOrFunction directly
+-}
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
-    case getSpecificReducedFn ( [ "Tuple" ], "second" ) lookupTable expressionNode of
+    case getSpecificValueOrFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
         Just _ ->
             True
 
