@@ -3667,7 +3667,7 @@ stringFromListChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Calling String.fromList [] will result in " ++ emptyStringAsString
+                { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " [] will result in " ++ emptyStringAsString
                 , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                 }
                 checkInfo.fnRange
@@ -3676,8 +3676,8 @@ stringFromListChecks checkInfo =
 
         Expression.ListExpr (onlyChar :: []) ->
             [ Rule.errorWithFix
-                { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
-                , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " with a list with a single char is the same as String.fromChar with the contained char"
+                , details = [ "You can replace this call by " ++ qualifiedToString ( [ "String" ], "fromChar" ) ++ " with the contained char." ]
                 }
                 checkInfo.fnRange
                 (replaceBySubExpressionFix checkInfo.parentRange onlyChar
@@ -4239,7 +4239,7 @@ listConcatChecks checkInfo =
                     case list of
                         (Node elementRange _) :: [] ->
                             [ Rule.errorWithFix
-                                { message = "Unnecessary use of List.concat on a list with 1 element"
+                                { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " on a list with 1 element"
                                 , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
                                 }
                                 checkInfo.parentRange
@@ -4254,7 +4254,7 @@ listConcatChecks checkInfo =
                                     case findEmptyLiteral list of
                                         Just emptyLiteral ->
                                             [ Rule.errorWithFix
-                                                { message = "Found empty list in the list given List.concat"
+                                                { message = "Found empty list in the list given " ++ qualifiedToString ( [ "List" ], "concat" )
                                                 , details = [ "This element is unnecessary and can be removed." ]
                                                 }
                                                 emptyLiteral.element
@@ -4302,8 +4302,8 @@ listConcatChecks checkInfo =
             case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just match ->
                     [ Rule.errorWithFix
-                        { message = "List.map and List.concat can be combined using List.concatMap"
-                        , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                        { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
+                        , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                         }
                         checkInfo.fnRange
                         [ removeFunctionFromFunctionCall checkInfo
@@ -4396,8 +4396,8 @@ listConcatMapChecks checkInfo =
         [ \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
-                    { message = "Using List.concatMap with an identity function is the same as using List.concat"
-                    , details = [ "You can replace this call by List.concat." ]
+                    { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString ( [ "List" ], "concat" ) ++ ""
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "concat" ) ++ "." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy
@@ -4426,8 +4426,8 @@ listConcatMapChecks checkInfo =
                     case replaceSingleElementListBySingleValue checkInfo.lookupTable lambda.expression of
                         Just fixes ->
                             [ Rule.errorWithFix
-                                { message = "Use List.map instead"
-                                , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                                { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
+                                , details = [ "The function passed to " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " always returns a list with a single element." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy checkInfo.fnRange
@@ -4445,7 +4445,7 @@ listConcatMapChecks checkInfo =
             case secondArg checkInfo of
                 Just (Node listRange (Expression.ListExpr (listElement :: []))) ->
                     [ Rule.errorWithFix
-                        { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
                         , details = [ "You can replace this call by a call to the function directly." ]
                         }
                         checkInfo.fnRange
@@ -4465,8 +4465,8 @@ listConcatCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "List" ], "map" ), _ :: [] ) ->
             [ Rule.errorWithFix
-                { message = "List.map and List.concat can be combined using List.concatMap"
-                , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                { message = qualifiedToString ( [ "List" ], "map" ) ++ " and List.concat can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ ""
+                , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                 }
                 -- TODO switch to later.fnRange
                 checkInfo.later.range
@@ -4503,8 +4503,8 @@ listIndexedMapChecks checkInfo =
                                             { start = firstRange.start, end = secondRange.start }
                             in
                             [ Rule.errorWithFix
-                                { message = "Use List.map instead"
-                                , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                                { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
+                                , details = [ "Using " ++ qualifiedToString ( [ "List" ], "indexedMap" ) ++ " while ignoring the first argument is the same thing as calling List.map." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy checkInfo.fnRange
@@ -4522,8 +4522,8 @@ listIndexedMapChecks checkInfo =
             case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just alwaysCall ->
                     [ Rule.errorWithFix
-                        { message = "Use List.map instead"
-                        , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
+                        { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
+                        , details = [ "Using " ++ qualifiedToString ( [ "List" ], "indexedMap" ) ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
                         }
                         checkInfo.fnRange
                         (Fix.replaceRangeBy checkInfo.fnRange
@@ -4541,7 +4541,7 @@ listIndexedMapChecks checkInfo =
 listAppendEmptyErrorInfo : { message : String, details : List String }
 listAppendEmptyErrorInfo =
     { message = "Appending [] doesn't have any effect"
-    , details = [ "You can remove the List.append function and the []." ]
+    , details = [ "You can remove the " ++ qualifiedToString ( [ "List" ], "append" ) ++ " function and the []." ]
     }
 
 
@@ -4614,7 +4614,7 @@ listAppendChecks checkInfo =
 
 listHeadExistsError : { message : String, details : List String }
 listHeadExistsError =
-    { message = "Using List.head on a list with a first element will result in Just that element"
+    { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on a list with a first element will result in Just that element"
     , details = [ "You can replace this call by Just the first list element." ]
     }
 
@@ -4643,7 +4643,7 @@ listHeadChecks checkInfo =
             case Node.value listArg of
                 Expression.ListExpr [] ->
                     [ Rule.errorWithFix
-                        { message = "Using List.head on an empty list will result in Nothing"
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on an empty list will result in Nothing"
                         , details = [ "You can replace this call by Nothing." ]
                         }
                         checkInfo.fnRange
@@ -4673,14 +4673,14 @@ listHeadChecks checkInfo =
 
 listTailExistsError : { message : String, details : List String }
 listTailExistsError =
-    { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+    { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with some elements will result in Just the elements after the first"
     , details = [ "You can replace this call by Just the list elements after the first." ]
     }
 
 
 listEmptyTailExistsError : { message : String, details : List String }
 listEmptyTailExistsError =
-    { message = "Using List.tail on a list with a single element will result in Just the empty list"
+    { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with a single element will result in Just the empty list"
     , details = [ "You can replace this call by Just the empty list." ]
     }
 
@@ -4699,7 +4699,7 @@ listTailChecks checkInfo =
                     case listLiteral of
                         [] ->
                             [ Rule.errorWithFix
-                                { message = "Using List.tail on an empty list will result in Nothing"
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on an empty list will result in Nothing"
                                 , details = [ "You can replace this call by Nothing." ]
                                 }
                                 checkInfo.fnRange
@@ -4775,7 +4775,7 @@ dictToListMapErrorInfo info =
         toEntryAspectListAsQualifiedString =
             qualifiedToString ( [ "Dict" ], info.toEntryAspectList )
     in
-    { message = "Using Dict.toList, then List.map Tuple." ++ info.tuplePart ++ " is the same as using " ++ toEntryAspectListAsQualifiedString
+    { message = "Using " ++ qualifiedToString ( [ "Dict" ], "toList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], info.tuplePart ) ++ " is the same as using " ++ toEntryAspectListAsQualifiedString
     , details = [ "Using " ++ toEntryAspectListAsQualifiedString ++ " directly is meant for this exact purpose and will also be faster." ]
     }
 
@@ -4894,7 +4894,7 @@ listMemberChecks checkInfo =
 
                     else
                         [ Rule.errorWithFix
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             }
                             checkInfo.fnRange
@@ -4911,7 +4911,7 @@ listMemberChecks checkInfo =
                             Node.range element
                     in
                     [ Rule.errorWithFix
-                        { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on an list with a single element is equivalent to directly checking for equality"
                         , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                         }
                         checkInfo.fnRange
@@ -4934,7 +4934,7 @@ listMemberChecks checkInfo =
                     case listLiteral of
                         [] ->
                             [ Rule.errorWithFix
-                                { message = "Using List.member on an empty list will result in False"
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on an empty list will result in False"
                                 , details = [ "You can replace this call by False." ]
                                 }
                                 checkInfo.fnRange
@@ -4993,7 +4993,7 @@ listSumChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.sum on [] will result in 0"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "sum" ) ++ " on [] will result in 0"
                 , details = [ "You can replace this call by 0." ]
                 }
                 checkInfo.fnRange
@@ -5018,7 +5018,7 @@ listProductChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.product on [] will result in 1"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "product" ) ++ " on [] will result in 1"
                 , details = [ "You can replace this call by 1." ]
                 }
                 checkInfo.fnRange
@@ -5027,7 +5027,7 @@ listProductChecks checkInfo =
 
         Expression.ListExpr (element :: []) ->
             [ Rule.errorWithFix
-                { message = "List.product on a list with a single element will result in the element itself"
+                { message = qualifiedToString ( [ "List" ], "product" ) ++ " on a list with a single element will result in the element itself"
                 , details = [ "You can replace this call by the single element itself." ]
                 }
                 checkInfo.fnRange
@@ -5043,7 +5043,7 @@ listMinimumChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.minimum on [] will result in Nothing"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "minimum" ) ++ " on [] will result in Nothing"
                 , details = [ "You can replace this call by Nothing." ]
                 }
                 checkInfo.fnRange
@@ -5054,7 +5054,7 @@ listMinimumChecks checkInfo =
 
         Expression.ListExpr ((Node elementRange _) :: []) ->
             [ Rule.errorWithFix
-                { message = "List.minimum on a list with a single element will result in Just the element itself"
+                { message = qualifiedToString ( [ "List" ], "minimum" ) ++ " on a list with a single element will result in Just the element itself"
                 , details = [ "You can replace this call by Just the single element itself." ]
                 }
                 checkInfo.fnRange
@@ -5073,7 +5073,7 @@ listMaximumChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.maximum on [] will result in Nothing"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "maximum" ) ++ " on [] will result in Nothing"
                 , details = [ "You can replace this call by Nothing." ]
                 }
                 checkInfo.fnRange
@@ -5084,7 +5084,7 @@ listMaximumChecks checkInfo =
 
         Expression.ListExpr ((Node elementRange _) :: []) ->
             [ Rule.errorWithFix
-                { message = "List.maximum on a list with a single element will result in Just the element itself"
+                { message = qualifiedToString ( [ "List" ], "maximum" ) ++ " on a list with a single element will result in Just the element itself"
                 , details = [ "You can replace this call by Just the single element itself." ]
                 }
                 checkInfo.fnRange
@@ -5125,10 +5125,15 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                     let
                         fixWith : List Fix -> List (Error {})
                         fixWith fixes =
+                            let
+                                replacementOperationAsString : String
+                                replacementOperationAsString =
+                                    qualifiedToString ( [ "List" ], operation.list )
+                            in
                             [ Rule.errorWithFix
-                                { message = "Use List." ++ operation.list ++ " instead"
+                                { message = "Use " ++ replacementOperationAsString ++ " instead"
                                 , details =
-                                    [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using List." ++ operation.list ++ "." ]
+                                    [ "Using " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 fixes
@@ -5201,9 +5206,14 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
 
                     else
                         -- initialIsTrue /= operation.determining
+                        let
+                            replacementOperationAsString : String
+                            replacementOperationAsString =
+                                qualifiedToString ( [ "List" ], operation.list ) ++ " identity"
+                        in
                         [ Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( [ "List" ], operation.list ) ++ " identity instead"
-                            , details = [ "Using List." ++ foldOperationName ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ qualifiedToString ( [ "List" ], operation.list ) ++ " identity." ]
+                            { message = "Use " ++ replacementOperationAsString ++ " instead"
+                            , details = [ "Using " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
@@ -5223,7 +5233,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 Just setToListCall ->
                                     [ Rule.errorWithFix
                                         { message = "To fold a set, you don't need to convert to a List"
-                                        , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
+                                        , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
                                         }
                                         checkInfo.fnRange
                                         (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
@@ -5241,7 +5251,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 , \() ->
                     if Maybe.withDefault False (Maybe.map AstHelpers.isEmptyList maybeListArg) then
                         [ Rule.errorWithFix
-                            { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                            { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             }
                             checkInfo.fnRange
@@ -5255,7 +5265,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         Just reduceAlwaysResult ->
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 [ Rule.errorWithFix
-                                    { message = "The call to List." ++ foldOperationName ++ " will result in the initial accumulator"
+                                    { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
                                     , details = [ "You can replace this call by the initial accumulator." ]
                                     }
                                     checkInfo.fnRange
@@ -5327,7 +5337,7 @@ foldAndSetToListCompositionChecks foldOperationName checkInfo =
                 ( ( [ "Set" ], "toList" ), [] ) ->
                     [ Rule.errorWithFix
                         { message = "To fold a set, you don't need to convert to a List"
-                        , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
+                        , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
                         }
                         checkInfo.later.fnRange
                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
@@ -5359,7 +5369,7 @@ listAllChecks checkInfo =
                     case Node.value (AstHelpers.removeParens listArg) of
                         Expression.ListExpr [] ->
                             [ Rule.errorWithFix
-                                { message = "The call to List.all will result in True"
+                                { message = "The call to " ++ qualifiedToString ( [ "List" ], "all" ) ++ " will result in True"
                                 , details = [ "You can replace this call by True." ]
                                 }
                                 checkInfo.fnRange
@@ -5377,7 +5387,7 @@ listAllChecks checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
-                        { message = "The call to List.all will result in True"
+                        { message = "The call to " ++ qualifiedToString ( [ "List" ], "all" ) ++ " will result in True"
                         , details = [ "You can replace this call by True." ]
                         }
                         checkInfo.fnRange
@@ -5402,7 +5412,7 @@ listAnyChecks checkInfo =
             case maybeListArg of
                 Just (Expression.ListExpr []) ->
                     [ Rule.errorWithFix
-                        { message = "The call to List.any will result in False"
+                        { message = "The call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
@@ -5417,7 +5427,7 @@ listAnyChecks checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined False ->
                     [ Rule.errorWithFix
-                        { message = "The call to List.any will result in False"
+                        { message = "The call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
@@ -5433,8 +5443,8 @@ listAnyChecks checkInfo =
 
                 Just rangesToRemove ->
                     [ Rule.errorWithFix
-                        { message = "Use List.member instead"
-                        , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                        { message = "Use " ++ qualifiedToString ( [ "List" ], "member" ) ++ " instead"
+                        , details = [ "This call to List.any checks for the presence of a value, which what " ++ qualifiedToString ( [ "List" ], "member" ) ++ " is for." ]
                         }
                         checkInfo.fnRange
                         (Fix.replaceRangeBy checkInfo.fnRange "List.member"
@@ -5453,8 +5463,8 @@ listFilterMapChecks checkInfo =
                 Determined (Just { ranges, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
-                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
-                            , details = [ "You can remove the `Just`s and replace the call by List.map." ]
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
+                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
@@ -5465,7 +5475,7 @@ listFilterMapChecks checkInfo =
 
                     else
                         [ Rule.errorWithFix
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                             , details = [ "You can remove this call and replace it by the list itself." ]
                             }
                             checkInfo.fnRange
@@ -5476,7 +5486,7 @@ listFilterMapChecks checkInfo =
 
                 Determined Nothing ->
                     [ Rule.errorWithFix
-                        { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in an empty list"
                         , details = [ "You can remove this call and replace it by an empty list." ]
                         }
                         checkInfo.fnRange
@@ -5494,7 +5504,8 @@ listFilterMapChecks checkInfo =
                                 case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable listArg of
                                     Just listMapCall ->
                                         [ Rule.errorWithFix
-                                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                                            -- TODO rework error info
+                                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ ""
                                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
                                             }
                                             { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
@@ -5512,7 +5523,7 @@ listFilterMapChecks checkInfo =
                                         case collectJusts checkInfo.lookupTable list [] of
                                             Just justRanges ->
                                                 [ Rule.errorWithFix
-                                                    { message = "Unnecessary use of List.filterMap identity"
+                                                    { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
                                                     , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
                                                     }
                                                     { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
@@ -5572,8 +5583,8 @@ listFilterMapCompositionChecks checkInfo =
                     ( ( [ "List" ], "map" ), _ :: [] ) ->
                         [ Rule.errorWithFix
                             -- TODO rework error info
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
+                            , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                             }
                             -- TODO use laterFnRange
                             checkInfo.later.range
@@ -5601,8 +5612,8 @@ listRangeChecks checkInfo =
                 Just first ->
                     if first > second then
                         [ Rule.errorWithFix
-                            { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
+                            { message = "The call to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " will result in []"
+                            , details = [ "The second argument to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " is bigger than the first one, therefore you can replace this list by an empty list." ]
                             }
                             checkInfo.fnRange
                             (replaceByEmptyFix "[]" checkInfo.parentRange (Just second) checkInfo)
@@ -5624,8 +5635,8 @@ listRepeatChecks checkInfo =
         Just intValue ->
             if intValue < 1 then
                 [ Rule.errorWithFix
-                    { message = "List.repeat will result in an empty list"
-                    , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                    { message = qualifiedToString ( [ "List" ], "repeat" ) ++ " will result in an empty list"
+                    , details = [ "Using " ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
                     }
                     checkInfo.fnRange
                     (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
@@ -5643,7 +5654,7 @@ listReverseChecks checkInfo =
     case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.reverse on [] will result in []"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ " on [] will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
                 checkInfo.fnRange
@@ -5662,7 +5673,7 @@ listSortChecks checkInfo =
     case checkInfo.firstArg of
         Node _ (Expression.ListExpr []) ->
             [ Rule.errorWithFix
-                { message = "Using List.sort on [] will result in []"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "sort" ) ++ " on [] will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
                 checkInfo.fnRange
@@ -5691,7 +5702,7 @@ listSortByChecks checkInfo =
     case secondArg checkInfo of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
-                { message = "Using List.sortBy on [] will result in []"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " on [] will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
                 checkInfo.fnRange
@@ -5725,8 +5736,8 @@ listSortByChecks checkInfo =
                 Nothing ->
                     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                         [ Rule.errorWithFix
-                            { message = "Using List.sortBy identity is the same as using List.sort"
-                            , details = [ "You can replace this call by List.sort." ]
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " identity is the same as using " ++ qualifiedToString ( [ "List" ], "sort" )
+                            , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "sort" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
@@ -5747,7 +5758,7 @@ listSortWithChecks checkInfo =
     case secondArg checkInfo of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
-                { message = "Using List.sortWith on [] will result in []"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "sortWith" ) ++ " on [] will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
                 checkInfo.fnRange
@@ -5795,8 +5806,8 @@ listSortWithChecks checkInfo =
                     case order of
                         LT ->
                             [ Rule.errorWithFix
-                                { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
-                                , details = [ "You can replace this call by List.reverse." ]
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "sortWith" ) ++ " (\\_ _ -> LT) is the same as using " ++ qualifiedToString ( [ "List" ], "reverse" )
+                                , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy
@@ -5834,7 +5845,7 @@ listTakeChecks checkInfo =
         case Maybe.andThen (determineListLength checkInfo.lookupTable) listArg of
             Just (Exactly 0) ->
                 [ Rule.errorWithFix
-                    { message = "Using List.take on [] will result in []"
+                    { message = "Using " ++ qualifiedToString ( [ "List" ], "take" ) ++ " on [] will result in []"
                     , details = [ "You can replace this call by []." ]
                     }
                     checkInfo.fnRange
@@ -5878,7 +5889,7 @@ listDropChecks checkInfo =
         case Maybe.andThen (determineListLength checkInfo.lookupTable) (secondArg checkInfo) of
             Just (Exactly 0) ->
                 [ Rule.errorWithFix
-                    { message = "Using List.drop on [] will result in []"
+                    { message = "Using " ++ qualifiedToString ( [ "List" ], "drop" ) ++ " on [] will result in []"
                     , details = [ "You can replace this call by []." ]
                     }
                     checkInfo.fnRange
@@ -5898,7 +5909,7 @@ listMapNChecks { n } checkInfo =
                 multiAlways (n - List.length checkInfo.argsAfterFirst) "[]" checkInfo
         in
         [ Rule.errorWithFix
-            { message = "Using List.map" ++ String.fromInt n ++ " with any list being [] will result in []"
+            { message = "Using " ++ qualifiedToString ( [ "List" ], "map" ++ String.fromInt n ) ++ " with any list being [] will result in []"
             , details = [ "You can replace this call by " ++ callReplacement ++ "." ]
             }
             checkInfo.fnRange
@@ -5914,7 +5925,7 @@ listUnzipChecks checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ListExpr [] ->
             [ Rule.errorWithFix
-                { message = "Using List.unzip on [] will result in ( [], [] )"
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "unzip" ) ++ " on [] will result in ( [], [] )"
                 , details = [ "You can replace this call by ( [], [] )." ]
                 }
                 checkInfo.fnRange
@@ -5949,8 +5960,8 @@ setFromListSingletonChecks checkInfo =
 
 setFromListSingletonError : { message : String, details : List String }
 setFromListSingletonError =
-    { message = "Set.fromList with a single element can be replaced using Set.singleton"
-    , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+    { message = qualifiedToString ( [ "Set" ], "fromList" ) ++ " with a single element can be replaced using " ++ qualifiedToString ( [ "Set" ], "singleton" )
+    , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Set" ], "singleton" ) ++ " with the list element itself." ]
     }
 
 
@@ -6045,7 +6056,7 @@ subAndCmdBatchChecks moduleName checkInfo =
 
 htmlAttributesClassListFalseElementError : { message : String, details : List String }
 htmlAttributesClassListFalseElementError =
-    { message = "In a Html.Attributes.classList, a tuple paired with False can be removed"
+    { message = "In a " ++ qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ ", a tuple paired with False can be removed"
     , details = [ "You can remove the tuple list element where the second part is False." ]
     }
 
@@ -6103,8 +6114,8 @@ htmlAttributesClassListChecks checkInfo =
         singleTrueChecks : { a | first : Node Expression } -> List (Error {})
         singleTrueChecks { first } =
             [ Rule.errorWithFix
-                { message = "Html.Attributes.classList with a single tuple paired with True can be replaced with Html.Attributes.class"
-                , details = [ "You can replace this call by Html.Attributes.class with the String from the single tuple list element." ]
+                { message = qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" )
+                , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" ) ++ " with the String from the single tuple list element." ]
                 }
                 checkInfo.fnRange
                 (replaceBySubExpressionFix (Node.range listArg) first
@@ -6257,8 +6268,8 @@ randomListChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 1 ->
                     [ Rule.errorWithFix
-                        { message = "Random.list 1 can be replaced by Random.map List.singleton"
-                        , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                        { message = qualifiedToString ( [ "Random" ], "list" ) ++ " 1 can be replaced by Random.map List.singleton"
+                        , details = [ "This " ++ qualifiedToString ( [ "Random" ], "list" ) ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
                         [ Fix.replaceRangeBy
@@ -6310,9 +6321,18 @@ randomListChecks checkInfo =
                 Just elementGeneratorArg ->
                     case AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) checkInfo.lookupTable elementGeneratorArg of
                         Just constantCall ->
+                            let
+                                currentAsString : String
+                                currentAsString =
+                                    qualifiedToString ( [ "Random" ], "list" ) ++ " n (" ++ qualifiedToString ( [ "Random" ], "constant" ) ++ " el)"
+
+                                replacementAsString : String
+                                replacementAsString =
+                                    qualifiedToString ( [ "Random" ], "constant" ) ++ " (List.repeat n el)"
+                            in
                             [ Rule.errorWithFix
-                                { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                                , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                                { message = currentAsString ++ " can be replaced by " ++ replacementAsString
+                                , details = [ currentAsString ++ " generates the same value for each of the n elements. This means you can replace the call with " ++ replacementAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (if checkInfo.usingRightPizza then
@@ -7470,7 +7490,7 @@ collectionFromListChecks collection checkInfo =
                     emptyAsString checkInfo collection
             in
             [ Rule.errorWithFix
-                { message = "The call to " ++ collection.moduleName ++ ".fromList will result in " ++ collectionEmptyAsString
+                { message = "The call to " ++ qualifiedToString ( AstHelpers.moduleNameFromString collection.moduleName, "fromList" ) ++ " will result in " ++ collectionEmptyAsString
                 , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
@@ -7486,7 +7506,7 @@ collectionToListChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "The call to " ++ collection.moduleName ++ ".toList will result in []"
+                { message = "The call to " ++ qualifiedToString ( AstHelpers.moduleNameFromString collection.moduleName, "toList" ) ++ " will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
                 checkInfo.fnRange
