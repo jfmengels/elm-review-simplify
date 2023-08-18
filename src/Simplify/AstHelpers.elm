@@ -4,7 +4,6 @@ module Simplify.AstHelpers exposing
     , emptyStringAsString
     , getBool
     , getBoolPattern
-    , getCollapsedAndReducedValueOrFunctionCall
     , getCollapsedCons
     , getComposition
     , getListLiteral
@@ -19,6 +18,7 @@ module Simplify.AstHelpers exposing
     , getTuple
     , getTypeExposeIncludingVariants
     , getUncomputedNumberValue
+    , getValueOrFunctionCall
     , isBinaryOperation
     , isEmptyList
     , isIdentity
@@ -241,7 +241,9 @@ getFunctionCall baseNode =
             Nothing
 
 
-getCollapsedAndReducedValueOrFunctionCall :
+{-| Parse a value or the collapsed function or a lambda fully reduced to a function
+-}
+getValueOrFunctionCall :
     Node Expression
     ->
         Maybe
@@ -250,7 +252,7 @@ getCollapsedAndReducedValueOrFunctionCall :
             , fnRange : Range
             , args : List (Node Expression)
             }
-getCollapsedAndReducedValueOrFunctionCall expressionNode =
+getValueOrFunctionCall expressionNode =
     case getCollapsedValueOrFunctionCall expressionNode of
         Just valueOrCall ->
             Just valueOrCall
