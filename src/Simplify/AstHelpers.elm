@@ -72,11 +72,11 @@ removeParensFromPattern node =
             node
 
 
-isSpecificValueOrFunction : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificValueOrFunction moduleName fnName lookupTable node =
+isSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificValueOrFunction ( moduleName, name ) lookupTable node =
     case removeParens node of
-        Node noneRange (Expression.FunctionOrValue _ foundFnName) ->
-            (foundFnName == fnName)
+        Node noneRange (Expression.FunctionOrValue _ foundName) ->
+            (foundName == name)
                 && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
 
         _ ->
@@ -84,11 +84,11 @@ isSpecificValueOrFunction moduleName fnName lookupTable node =
 
 
 getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificValueOrFunction ( moduleName, fnName ) lookupTable node =
+getSpecificValueOrFunction ( moduleName, name ) lookupTable node =
     case removeParens node of
-        Node rangeInParens (Expression.FunctionOrValue _ foundFnName) ->
+        Node rangeInParens (Expression.FunctionOrValue _ foundName) ->
             if
-                (foundFnName == fnName)
+                (foundName == name)
                     && (ModuleNameLookupTable.moduleNameAt lookupTable rangeInParens == Just moduleName)
             then
                 Just rangeInParens
@@ -100,8 +100,8 @@ getSpecificValueOrFunction ( moduleName, fnName ) lookupTable node =
             Nothing
 
 
-isSpecificCall : ModuleName -> String -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificCall moduleName fnName lookupTable node =
+isSpecificCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificCall ( moduleName, fnName ) lookupTable node =
     case Node.value (removeParens node) of
         Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
             (foundFnName == fnName)
@@ -317,6 +317,7 @@ getNegateFunction lookupTable baseNode =
 getComposition : Node Expression -> Maybe { parentRange : Range, earlier : Node Expression, later : Node Expression }
 getComposition expressionNode =
     let
+        inParensNode : Node Expression
         inParensNode =
             removeParens expressionNode
     in
@@ -857,7 +858,7 @@ getBool lookupTable expressionNode =
 
 isSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
 isSpecificBool specificBool lookupTable expressionNode =
-    isSpecificValueOrFunction [ "Basics" ] (boolToString specificBool) lookupTable expressionNode
+    isSpecificValueOrFunction ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
 
 
 getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
@@ -899,15 +900,20 @@ getBoolPattern lookupTable node =
             Nothing
 
 
+isSpecificOrder : Order -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificOrder specificOrder lookupTable expression =
+    isSpecificValueOrFunction ( [ "Basics" ], orderToString specificOrder ) lookupTable expression
+
+
 getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
 getOrder lookupTable expression =
-    if isSpecificValueOrFunction [ "Basics" ] "LT" lookupTable expression then
+    if isSpecificOrder LT lookupTable expression then
         Just LT
 
-    else if isSpecificValueOrFunction [ "Basics" ] "EQ" lookupTable expression then
+    else if isSpecificOrder EQ lookupTable expression then
         Just EQ
 
-    else if isSpecificValueOrFunction [ "Basics" ] "GT" lookupTable expression then
+    else if isSpecificOrder GT lookupTable expression then
         Just GT
 
     else
