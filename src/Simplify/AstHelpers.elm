@@ -14,7 +14,6 @@ module Simplify.AstHelpers exposing
     , getNotFunction
     , getOrder
     , getSpecificFunctionCall
-    , getSpecificReducedFunction
     , getSpecificReducedFunctionCall
     , getSpecificValueOrFunction
     , getTuple
