@@ -23,6 +23,8 @@ module Simplify.AstHelpers exposing
     , isSpecificBool
     , isSpecificCall
     , isSpecificValueOrFunction
+    , isTupleFirstAccess
+    , isTupleSecondAccess
     , letDeclarationListBindings
     , moduleNameFromString
     , nameOfExpose
@@ -326,6 +328,26 @@ getComposition expressionNode =
 
         _ ->
             Nothing
+
+
+isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
+isTupleFirstAccess lookupTable expressionNode =
+    case getSpecificValueOrFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
+        Just _ ->
+            True
+
+        Nothing ->
+            isTupleFirstPatternLambda expressionNode
+
+
+isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
+isTupleSecondAccess lookupTable expressionNode =
+    case getSpecificValueOrFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
+        Just _ ->
+            True
+
+        Nothing ->
+            isTupleSecondPatternLambda expressionNode
 
 
 isTupleFirstPatternLambda : Node Expression -> Bool
