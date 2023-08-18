@@ -5220,17 +5220,22 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         Nothing ->
                             []
                 , \() ->
-                    if Maybe.withDefault False (Maybe.map AstHelpers.isEmptyList maybeListArg) then
-                        [ Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
-                        ]
+                    case maybeListArg of
+                        Just listArg ->
+                            if AstHelpers.isEmptyList listArg then
+                                [ Rule.errorWithFix
+                                    { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
+                                    , details = [ "You can replace this call by the initial accumulator." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
+                                ]
 
-                    else
-                        []
+                            else
+                                []
+
+                        Nothing ->
+                            []
                 , \() ->
                     case getAlwaysResult checkInfo checkInfo.firstArg of
                         Just reduceAlwaysResult ->
