@@ -3653,31 +3653,39 @@ reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
 
 stringFromListChecks : CheckInfo -> List (Error {})
 stringFromListChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " [] will result in " ++ emptyStringAsString
-                , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " [] will result in " ++ emptyStringAsString
+                        , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+                    ]
 
-        Expression.ListExpr (onlyChar :: []) ->
-            [ Rule.errorWithFix
-                { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " with a list with a single char is the same as String.fromChar with the contained char"
-                , details = [ "You can replace this call by " ++ qualifiedToString ( [ "String" ], "fromChar" ) ++ " with the contained char." ]
-                }
-                checkInfo.fnRange
-                (replaceBySubExpressionFix checkInfo.parentRange onlyChar
-                    ++ [ Fix.insertAt checkInfo.parentRange.start
-                            (qualifiedToString (qualify ( [ "String" ], "fromChar" ) checkInfo) ++ " ")
-                       ]
-                )
-            ]
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just listSingletonArg ->
+                    [ Rule.errorWithFix
+                        { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " with a list with a single char is the same as String.fromChar with the contained char"
+                        , details = [ "You can replace this call by " ++ qualifiedToString ( [ "String" ], "fromChar" ) ++ " with the contained char." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element
+                            ++ [ Fix.insertAt checkInfo.parentRange.start
+                                    (qualifiedToString (qualify ( [ "String" ], "fromChar" ) checkInfo) ++ " ")
+                               ]
+                        )
+                    ]
 
-        _ ->
-            []
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 stringIsEmptyChecks : CheckInfo -> List (Error {})
@@ -4655,7 +4663,7 @@ listHeadChecks checkInfo =
                 _ ->
                     []
         , \() ->
-            case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
+            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                 Just single ->
                     justFirstElementError single.element
 
@@ -4689,38 +4697,26 @@ listTailChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case Node.value listArg of
-                Expression.ListExpr listLiteral ->
-                    case listLiteral of
-                        [] ->
-                            [ Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on an empty list will result in Nothing"
-                                , details = [ "You can replace this call by Nothing." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                                ]
-                            ]
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on an empty list will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                        ]
+                    ]
 
-                        _ :: [] ->
-                            [ Rule.errorWithFix
-                                listEmptyTailExistsError
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy (Node.range listArg) "[]"
-                                , Fix.replaceRangeBy checkInfo.fnRange
-                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                                ]
-                            ]
-
-                        (Node headRange _) :: (Node tailFirstRange _) :: _ ->
-                            [ Rule.errorWithFix
-                                listTailExistsError
-                                checkInfo.fnRange
-                                [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
-                                , Fix.replaceRangeBy checkInfo.fnRange
-                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                                ]
-                            ]
+                Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
+                    [ Rule.errorWithFix
+                        listTailExistsError
+                        checkInfo.fnRange
+                        [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
+                        , Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                        ]
+                    ]
 
                 Expression.OperatorApplication "::" _ _ tail ->
                     [ Rule.errorWithFix
@@ -4736,7 +4732,7 @@ listTailChecks checkInfo =
                 _ ->
                     []
         , \() ->
-            case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
+            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                 Just _ ->
                     [ Rule.errorWithFix
                         listEmptyTailExistsError
@@ -4905,10 +4901,21 @@ listMemberChecks checkInfo =
                         )
                     ]
             in
-            case Node.value (AstHelpers.removeParens listArg) of
-                Expression.ListExpr listLiteral ->
-                    case listLiteral of
-                        [] ->
+            firstThatReportsError
+                [ \() ->
+                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                        Just single ->
+                            if isNeedle single.element then
+                                listMemberExistsError
+
+                            else
+                                singleNonNormalizedEqualElementError single.element
+
+                        Nothing ->
+                            []
+                , \() ->
+                    case Node.value (AstHelpers.removeParens listArg) of
+                        Expression.ListExpr [] ->
                             [ Rule.errorWithFix
                                 { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on an empty list will result in False"
                                 , details = [ "You can replace this call by False." ]
@@ -4919,36 +4926,24 @@ listMemberChecks checkInfo =
                                 ]
                             ]
 
-                        head :: tail ->
-                            if List.any isNeedle (head :: tail) then
+                        Expression.ListExpr (el0 :: el1 :: el2Up) ->
+                            if List.any isNeedle (el0 :: el1 :: el2Up) then
                                 listMemberExistsError
 
                             else
-                                case tail of
-                                    [] ->
-                                        singleNonNormalizedEqualElementError head
+                                []
 
-                                    _ :: _ ->
-                                        []
-
-                Expression.OperatorApplication "::" _ head tail ->
-                    if List.any isNeedle (head :: getBeforeLastCons tail) then
-                        listMemberExistsError
-
-                    else
-                        []
-
-                _ ->
-                    case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
-                        Just single ->
-                            if isNeedle single.element then
+                        Expression.OperatorApplication "::" _ head tail ->
+                            if List.any isNeedle (head :: getBeforeLastCons tail) then
                                 listMemberExistsError
 
                             else
-                                singleNonNormalizedEqualElementError single.element
+                                []
 
-                        Nothing ->
+                        _ ->
                             []
+                ]
+                ()
 
         Nothing ->
             []
@@ -4966,112 +4961,144 @@ getBeforeLastCons (Node _ expression) =
 
 listSumChecks : CheckInfo -> List (Error {})
 listSumChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "sum" ) ++ " on [] will result in 0"
-                , details = [ "You can replace this call by 0." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "sum" ) ++ " on [] will result in 0"
+                        , details = [ "You can replace this call by 0." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
+                    ]
 
-        Expression.ListExpr (element :: []) ->
-            [ Rule.errorWithFix
-                { message = "Summing a list with a single element will result in the element itself"
-                , details = [ "You can replace this call by the single element itself." ]
-                }
-                checkInfo.fnRange
-                (replaceBySubExpressionFix checkInfo.parentRange element)
-            ]
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just listSingletonArg ->
+                    [ Rule.errorWithFix
+                        { message = "Summing a list with a single element will result in the element itself"
+                        , details = [ "You can replace this call by the single element itself." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
+                    ]
 
-        _ ->
-            []
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listProductChecks : CheckInfo -> List (Error {})
 listProductChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "product" ) ++ " on [] will result in 1"
-                , details = [ "You can replace this call by 1." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "1" ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "product" ) ++ " on [] will result in 1"
+                        , details = [ "You can replace this call by 1." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "1" ]
+                    ]
 
-        Expression.ListExpr (element :: []) ->
-            [ Rule.errorWithFix
-                { message = qualifiedToString ( [ "List" ], "product" ) ++ " on a list with a single element will result in the element itself"
-                , details = [ "You can replace this call by the single element itself." ]
-                }
-                checkInfo.fnRange
-                (replaceBySubExpressionFix checkInfo.parentRange element)
-            ]
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just listSingletonArg ->
+                    [ Rule.errorWithFix
+                        { message = qualifiedToString ( [ "List" ], "product" ) ++ " on a list with a single element will result in the element itself"
+                        , details = [ "You can replace this call by the single element itself." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
+                    ]
 
-        _ ->
-            []
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listMinimumChecks : CheckInfo -> List (Error {})
 listMinimumChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "minimum" ) ++ " on [] will result in Nothing"
-                , details = [ "You can replace this call by Nothing." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "minimum" ) ++ " on [] will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                        ]
+                    ]
 
-        Expression.ListExpr ((Node elementRange _) :: []) ->
-            [ Rule.errorWithFix
-                { message = qualifiedToString ( [ "List" ], "minimum" ) ++ " on a list with a single element will result in Just the element itself"
-                , details = [ "You can replace this call by Just the single element itself." ]
-                }
-                checkInfo.fnRange
-                (Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                    :: keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = elementRange }
-                )
-            ]
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just listSingletonArg ->
+                    [ Rule.errorWithFix
+                        { message = qualifiedToString ( [ "List" ], "minimum" ) ++ " on a list with a single element will result in Just the element itself"
+                        , details = [ "You can replace this call by Just the single element itself." ]
+                        }
+                        checkInfo.fnRange
+                        (Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                            :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingletonArg.element
+                        )
+                    ]
 
-        _ ->
-            []
+                _ ->
+                    []
+        ]
+        ()
 
 
 listMaximumChecks : CheckInfo -> List (Error {})
 listMaximumChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "maximum" ) ++ " on [] will result in Nothing"
-                , details = [ "You can replace this call by Nothing." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "maximum" ) ++ " on [] will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                        ]
+                    ]
 
-        Expression.ListExpr ((Node elementRange _) :: []) ->
-            [ Rule.errorWithFix
-                { message = qualifiedToString ( [ "List" ], "maximum" ) ++ " on a list with a single element will result in Just the element itself"
-                , details = [ "You can replace this call by Just the single element itself." ]
-                }
-                checkInfo.fnRange
-                (Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                    :: keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = elementRange }
-                )
-            ]
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just listSingletonArg ->
+                    [ Rule.errorWithFix
+                        { message = qualifiedToString ( [ "List" ], "maximum" ) ++ " on a list with a single element will result in Just the element itself"
+                        , details = [ "You can replace this call by Just the single element itself." ]
+                        }
+                        checkInfo.fnRange
+                        (Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                            :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingletonArg.element
+                        )
+                    ]
 
-        _ ->
-            []
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listFoldlChecks : CheckInfo -> List (Error {})
@@ -5346,23 +5373,18 @@ listAllChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case maybeListArg of
-                Just listArg ->
-                    case Node.value (AstHelpers.removeParens listArg) of
-                        Expression.ListExpr [] ->
-                            [ Rule.errorWithFix
-                                { message = "The call to " ++ qualifiedToString ( [ "List" ], "all" ) ++ " will result in True"
-                                , details = [ "You can replace this call by True." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                                ]
-                            ]
+                Just (Node _ (Expression.ListExpr [])) ->
+                    [ Rule.errorWithFix
+                        { message = "The call to " ++ qualifiedToString ( [ "List" ], "all" ) ++ " will result in True"
+                        , details = [ "You can replace this call by True." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                        ]
+                    ]
 
-                        _ ->
-                            []
-
-                Nothing ->
+                _ ->
                     []
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
@@ -5384,14 +5406,14 @@ listAllChecks checkInfo =
 listAnyChecks : CheckInfo -> List (Error {})
 listAnyChecks checkInfo =
     let
-        maybeListArg : Maybe Expression
+        maybeListArg : Maybe (Node Expression)
         maybeListArg =
-            Maybe.map (AstHelpers.removeParens >> Node.value) (secondArg checkInfo)
+            secondArg checkInfo
     in
     firstThatReportsError
         [ \() ->
             case maybeListArg of
-                Just (Expression.ListExpr []) ->
+                Just (Node _ (Expression.ListExpr [])) ->
                     [ Rule.errorWithFix
                         { message = "The call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
@@ -5635,78 +5657,107 @@ listRepeatChecks checkInfo =
 
 listReverseChecks : CheckInfo -> List (Error {})
 listReverseChecks checkInfo =
-    case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ " on [] will result in []"
-                , details = [ "You can replace this call by []." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ " on [] will result in []"
+                        , details = [ "You can replace this call by []." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                    ]
 
-        _ ->
+                _ ->
+                    []
+        , \() ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
                 (AstHelpers.getSpecificValueOrFunction ( [ "List" ], "reverse" ))
                 checkInfo
+        ]
+        ()
 
 
 listSortChecks : CheckInfo -> List (Error {})
 listSortChecks checkInfo =
-    case checkInfo.firstArg of
-        Node _ (Expression.ListExpr []) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "sort" ) ++ " on [] will result in []"
-                , details = [ "You can replace this call by []." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case checkInfo.firstArg of
+                Node _ (Expression.ListExpr []) ->
+                    [ Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "sort" ) ++ " on [] will result in []"
+                        , details = [ "You can replace this call by []." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                    ]
 
-        Node singletonListRange (Expression.ListExpr (_ :: [])) ->
-            [ Rule.errorWithFix
-                { message = "Sorting a list with a single element will result in the list itself"
-                , details = [ "You can replace this call by the list itself." ]
-                }
-                checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = singletonListRange
-                    }
-                )
-            ]
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    [ Rule.errorWithFix
+                        { message = "Sorting a list with a single element will result in the list itself"
+                        , details = [ "You can replace this call by the list itself." ]
+                        }
+                        checkInfo.fnRange
+                        (keepOnlyFix
+                            { parentRange = checkInfo.parentRange
+                            , keep = Node.range checkInfo.firstArg
+                            }
+                        )
+                    ]
 
-        _ ->
-            []
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listSortByChecks : CheckInfo -> List (Error {})
 listSortByChecks checkInfo =
-    case secondArg checkInfo of
-        Just (Node _ (Expression.ListExpr [])) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " on [] will result in []"
-                , details = [ "You can replace this call by []." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            ]
+    firstThatReportsError
+        [ case secondArg checkInfo of
+            Just listArg ->
+                firstThatReportsError
+                    [ \() ->
+                        case listArg of
+                            Node _ (Expression.ListExpr []) ->
+                                [ Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " on [] will result in []"
+                                    , details = [ "You can replace this call by []." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                                ]
 
-        Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
-            [ Rule.errorWithFix
-                { message = "Sorting a list with a single element will result in the list itself"
-                , details = [ "You can replace this call by the list itself." ]
-                }
-                checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = singletonListRange
-                    }
-                )
-            ]
+                            _ ->
+                                []
+                    , \() ->
+                        case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                            Just _ ->
+                                [ Rule.errorWithFix
+                                    { message = "Sorting a list with a single element will result in the list itself"
+                                    , details = [ "You can replace this call by the list itself." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix
+                                        { parentRange = checkInfo.parentRange
+                                        , keep = Node.range listArg
+                                        }
+                                    )
+                                ]
 
-        _ ->
+                            Nothing ->
+                                []
+                    ]
+
+            Nothing ->
+                \() -> []
+        , \() ->
             case getAlwaysResult checkInfo checkInfo.firstArg of
                 Just _ ->
                     [ identityError
@@ -5718,51 +5769,69 @@ listSortByChecks checkInfo =
                     ]
 
                 Nothing ->
-                    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                        [ Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " identity is the same as using " ++ qualifiedToString ( [ "List" ], "sort" )
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "sort" ) ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.fnRange.start
-                                , end = (Node.range checkInfo.firstArg).end
-                                }
-                                (qualifiedToString (qualify ( [ "List" ], "sort" ) checkInfo))
-                            ]
-                        ]
+                    []
+        , \() ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                [ Rule.errorWithFix
+                    { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " identity is the same as using " ++ qualifiedToString ( [ "List" ], "sort" )
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "sort" ) ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    [ Fix.replaceRangeBy
+                        { start = checkInfo.fnRange.start
+                        , end = (Node.range checkInfo.firstArg).end
+                        }
+                        (qualifiedToString (qualify ( [ "List" ], "sort" ) checkInfo))
+                    ]
+                ]
 
-                    else
-                        -- firstArg isn't identity
-                        []
+            else
+                []
+        ]
+        ()
 
 
 listSortWithChecks : CheckInfo -> List (Error {})
 listSortWithChecks checkInfo =
-    case secondArg checkInfo of
-        Just (Node _ (Expression.ListExpr [])) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "sortWith" ) ++ " on [] will result in []"
-                , details = [ "You can replace this call by []." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            ]
+    firstThatReportsError
+        [ case secondArg checkInfo of
+            Just listArg ->
+                firstThatReportsError
+                    [ \() ->
+                        case listArg of
+                            Node _ (Expression.ListExpr []) ->
+                                [ Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "sortWith" ) ++ " on [] will result in []"
+                                    , details = [ "You can replace this call by []." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                                ]
 
-        Just (Node singletonListRange (Expression.ListExpr (_ :: []))) ->
-            [ Rule.errorWithFix
-                { message = "Sorting a list with a single element will result in the list itself"
-                , details = [ "You can replace this call by the list itself." ]
-                }
-                checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = singletonListRange
-                    }
-                )
-            ]
+                            _ ->
+                                []
+                    , \() ->
+                        case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                            Just _ ->
+                                [ Rule.errorWithFix
+                                    { message = "Sorting a list with a single element will result in the list itself"
+                                    , details = [ "You can replace this call by the list itself." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix
+                                        { parentRange = checkInfo.parentRange
+                                        , keep = Node.range listArg
+                                        }
+                                    )
+                                ]
 
-        _ ->
+                            _ ->
+                                []
+                    ]
+
+            Nothing ->
+                \() -> []
+        , \() ->
             let
                 alwaysAlwaysOrder : Maybe Order
                 alwaysAlwaysOrder =
@@ -5771,9 +5840,6 @@ listSortWithChecks checkInfo =
                         |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
             in
             case alwaysAlwaysOrder of
-                Nothing ->
-                    []
-
                 Just order ->
                     let
                         fixToIdentity : List (Error {})
@@ -5806,6 +5872,11 @@ listSortWithChecks checkInfo =
 
                         GT ->
                             fixToIdentity
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listTakeChecks : CheckInfo -> List (Error {})
@@ -5985,71 +6056,79 @@ setFromListCompositionChecks checkInfo =
 
 subAndCmdBatchChecks : String -> CheckInfo -> List (Error {})
 subAndCmdBatchChecks moduleName checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
-            [ Rule.errorWithFix
-                { message = "Replace by " ++ moduleName ++ ".batch"
-                , details = [ moduleName ++ ".batch [] and " ++ moduleName ++ ".none are equivalent but the latter is more idiomatic in Elm code" ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
-                ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case Node.value checkInfo.firstArg of
+                Expression.ListExpr [] ->
+                    [ Rule.errorWithFix
+                        { message = "Replace by " ++ moduleName ++ ".batch"
+                        , details = [ moduleName ++ ".batch [] and " ++ moduleName ++ ".none are equivalent but the latter is more idiomatic in Elm code" ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
+                        ]
+                    ]
 
-        Expression.ListExpr (listElement :: []) ->
-            [ Rule.errorWithFix
-                { message = "Unnecessary " ++ moduleName ++ ".batch"
-                , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
-                }
-                checkInfo.fnRange
-                (replaceBySubExpressionFix checkInfo.parentRange listElement)
-            ]
-
-        Expression.ListExpr args ->
-            neighboringMap
-                (\arg ->
-                    case AstHelpers.removeParens arg.current of
-                        Node batchRange (Expression.FunctionOrValue _ "none") ->
-                            if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just [ "Platform", moduleName ] then
-                                let
-                                    argRange : Range
-                                    argRange =
-                                        Node.range arg.current
-                                in
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Unnecessary " ++ moduleName ++ ".none"
-                                        , details = [ moduleName ++ ".none will be ignored by " ++ moduleName ++ ".batch." ]
-                                        }
-                                        argRange
-                                        (case arg.before of
-                                            Just (Node prevRange _) ->
-                                                [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
-
-                                            Nothing ->
-                                                case arg.after of
-                                                    Just (Node nextRange _) ->
-                                                        [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
+                Expression.ListExpr (arg0 :: arg1 :: arg2Up) ->
+                    neighboringMap
+                        (\arg ->
+                            case AstHelpers.removeParens arg.current of
+                                Node batchRange (Expression.FunctionOrValue _ "none") ->
+                                    if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just [ "Platform", moduleName ] then
+                                        let
+                                            argRange : Range
+                                            argRange =
+                                                Node.range arg.current
+                                        in
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "Unnecessary " ++ moduleName ++ ".none"
+                                                , details = [ moduleName ++ ".none will be ignored by " ++ moduleName ++ ".batch." ]
+                                                }
+                                                argRange
+                                                (case arg.before of
+                                                    Just (Node prevRange _) ->
+                                                        [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
 
                                                     Nothing ->
-                                                        [ Fix.replaceRangeBy checkInfo.parentRange
-                                                            (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
-                                                        ]
-                                        )
-                                    )
+                                                        case arg.after of
+                                                            Just (Node nextRange _) ->
+                                                                [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
 
-                            else
-                                Nothing
+                                                            Nothing ->
+                                                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                                                    (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
+                                                                ]
+                                                )
+                                            )
 
-                        _ ->
-                            Nothing
-                )
-                args
-                |> List.filterMap identity
+                                    else
+                                        Nothing
 
-        _ ->
-            []
+                                _ ->
+                                    Nothing
+                        )
+                        (arg0 :: arg1 :: arg2Up)
+                        |> List.filterMap identity
+
+                _ ->
+                    []
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just listSingletonArg ->
+                    [ Rule.errorWithFix
+                        { message = "Unnecessary " ++ moduleName ++ ".batch"
+                        , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
+                    ]
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 
@@ -6175,17 +6254,17 @@ htmlAttributesClassListChecks checkInfo =
 
 oneOfChecks : CheckInfo -> List (Error {})
 oneOfChecks checkInfo =
-    case AstHelpers.removeParens checkInfo.firstArg of
-        Node _ (Expression.ListExpr [ listElement ]) ->
+    case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+        Just listSingletonArg ->
             [ Rule.errorWithFix
                 { message = "Unnecessary oneOf"
                 , details = [ "There is only a single element in the list of elements to try out." ]
                 }
                 checkInfo.fnRange
-                (replaceBySubExpressionFix checkInfo.parentRange listElement)
+                (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
             ]
 
-        _ ->
+        Nothing ->
             []
 
 
