@@ -5,6 +5,7 @@ module Simplify.AstHelpers exposing
     , getBool
     , getBoolPattern
     , getCollapsedCons
+    , getCollapsedValueOrFunctionCall
     , getComposition
     , getListLiteral
     , getListSingleton
@@ -241,7 +242,7 @@ getFunctionCall baseNode =
             Nothing
 
 
-getCollapsedValueOrFunction :
+getCollapsedValueOrFunctionCall :
     Node Expression
     ->
         Maybe
@@ -250,7 +251,7 @@ getCollapsedValueOrFunction :
             , fnRange : Range
             , args : List (Node Expression)
             }
-getCollapsedValueOrFunction baseNode =
+getCollapsedValueOrFunctionCall baseNode =
     let
         step :
             { firstArg : Node Expression, argsAfterFirst : List (Node Expression), fed : Node Expression }
@@ -264,7 +265,7 @@ getCollapsedValueOrFunction baseNode =
                     , args = fed.args ++ (layer.firstArg :: layer.argsAfterFirst)
                     }
                 )
-                (getCollapsedValueOrFunction layer.fed)
+                (getCollapsedValueOrFunctionCall layer.fed)
     in
     case removeParens baseNode of
         Node fnRange (Expression.FunctionOrValue _ fnName) ->
@@ -590,7 +591,7 @@ getReducedLambdaToCall expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
-            case getCollapsedValueOrFunction lambda.expression of
+            case getCollapsedValueOrFunctionCall lambda.expression of
                 Just call ->
                     let
                         ( reducedCallArguments, reducedLambdaPatterns ) =
