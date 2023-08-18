@@ -3595,8 +3595,7 @@ stringFromListChecks checkInfo =
                 , details = [ "You can replace this call by String.fromChar with the contained char." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range onlyChar }
-                    ++ parenthesizeIfNeededFix onlyChar
+                (replaceBySubExpressionFix checkInfo.parentRange onlyChar
                     ++ [ Fix.insertAt checkInfo.parentRange.start
                             (qualifiedToString (qualify ( [ "String" ], "fromChar" ) checkInfo) ++ " ")
                        ]
@@ -4073,7 +4072,7 @@ resultMapErrorChecks checkInfo =
                             , Fix.insertAt (Node.range checkInfo.firstArg).end
                                 (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
                             ]
-                                ++ keepOnlyFix { parentRange = errCall.nodeRange, keep = Node.range errCall.firstArg }
+                                ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
 
                          else
                             -- application or <|
@@ -4082,7 +4081,7 @@ resultMapErrorChecks checkInfo =
                                 (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " (")
                             , Fix.insertAt checkInfo.parentRange.end ")"
                             ]
-                                ++ keepOnlyFix { parentRange = errCall.nodeRange, keep = Node.range errCall.firstArg }
+                                ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
                         )
                     ]
         , \() ->
@@ -4476,8 +4475,8 @@ listAppendEmptyErrorInfo =
 listAppendChecks : CheckInfo -> List (Error {})
 listAppendChecks checkInfo =
     case ( checkInfo.firstArg, secondArg checkInfo ) of
-        ( Node _ (Expression.ListExpr []), secondListArgument ) ->
-            case secondListArgument of
+        ( Node _ (Expression.ListExpr []), maybeSecondListArg ) ->
+            case maybeSecondListArg of
                 Nothing ->
                     [ Rule.errorWithFix
                         { listAppendEmptyErrorInfo
@@ -4489,18 +4488,18 @@ listAppendChecks checkInfo =
                         ]
                     ]
 
-                Just (Node secondListRange _) ->
+                Just secondListArg ->
                     [ Rule.errorWithFix
                         listAppendEmptyErrorInfo
                         checkInfo.fnRange
-                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = secondListRange })
+                        (replaceBySubExpressionFix checkInfo.parentRange secondListArg)
                     ]
 
-        ( Node firstListRange _, Just (Node _ (Expression.ListExpr [])) ) ->
+        ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
             [ Rule.errorWithFix
                 listAppendEmptyErrorInfo
                 checkInfo.fnRange
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = firstListRange })
+                (replaceBySubExpressionFix checkInfo.parentRange firstList)
             ]
 
         ( Node firstListRange (Expression.ListExpr (_ :: _)), Just (Node secondListRange (Expression.ListExpr (_ :: _))) ) ->
@@ -4550,12 +4549,12 @@ listHeadExistsError =
 listHeadChecks : CheckInfo -> List (Error {})
 listHeadChecks checkInfo =
     let
-        justFirstElementError : Range -> List (Error {})
+        justFirstElementError : Node Expression -> List (Error {})
         justFirstElementError keep =
             [ Rule.errorWithFix
                 listHeadExistsError
                 checkInfo.fnRange
-                (keepOnlyFix { parentRange = Node.range listArg, keep = keep }
+                (replaceBySubExpressionFix (Node.range listArg) keep
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange
                             (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                        ]
@@ -4580,31 +4579,18 @@ listHeadChecks checkInfo =
                         ]
                     ]
 
-                Expression.ListExpr ((Node headRange head) :: _) ->
-                    if needsParens head then
-                        [ Rule.errorWithFix
-                            listHeadExistsError
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = Node.range listArg, keep = headRange }
-                                ++ parenthesizeFix headRange
-                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                                   ]
-                            )
-                        ]
+                Expression.ListExpr (head :: _) ->
+                    justFirstElementError head
 
-                    else
-                        justFirstElementError headRange
-
-                Expression.OperatorApplication "::" _ (Node headRange _) _ ->
-                    justFirstElementError headRange
+                Expression.OperatorApplication "::" _ head _ ->
+                    justFirstElementError head
 
                 _ ->
                     []
         , \() ->
             case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
                 Just single ->
-                    justFirstElementError (Node.range single.element)
+                    justFirstElementError single.element
 
                 Nothing ->
                     []
@@ -4669,11 +4655,11 @@ listTailChecks checkInfo =
                                 ]
                             ]
 
-                Expression.OperatorApplication "::" _ _ (Node tailRange _) ->
+                Expression.OperatorApplication "::" _ _ tail ->
                     [ Rule.errorWithFix
                         listTailExistsError
                         checkInfo.fnRange
-                        (keepOnlyFix { parentRange = Node.range listArg, keep = tailRange }
+                        (replaceBySubExpressionFix (Node.range listArg) tail
                             ++ [ Fix.replaceRangeBy checkInfo.fnRange
                                     (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                                ]
@@ -4922,17 +4908,13 @@ listSumChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
             ]
 
-        Expression.ListExpr ((Node elementRange _) :: []) ->
+        Expression.ListExpr (element :: []) ->
             [ Rule.errorWithFix
                 { message = "Summing a list with a single element will result in the element itself"
                 , details = [ "You can replace this call by the single element itself." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = elementRange
-                    }
-                )
+                (replaceBySubExpressionFix checkInfo.parentRange element)
             ]
 
         _ ->
@@ -4951,17 +4933,13 @@ listProductChecks checkInfo =
                 [ Fix.replaceRangeBy checkInfo.parentRange "1" ]
             ]
 
-        Expression.ListExpr ((Node elementRange _) :: []) ->
+        Expression.ListExpr (element :: []) ->
             [ Rule.errorWithFix
                 { message = "List.product on a list with a single element will result in the element itself"
                 , details = [ "You can replace this call by the single element itself." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = elementRange
-                    }
-                )
+                (replaceBySubExpressionFix checkInfo.parentRange element)
             ]
 
         _ ->
@@ -4988,13 +4966,9 @@ listMinimumChecks checkInfo =
                 , details = [ "You can replace this call by Just the single element itself." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = elementRange
-                    }
-                    ++ [ Fix.insertAt checkInfo.parentRange.start
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
-                       ]
+                (Fix.replaceRangeBy checkInfo.fnRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                    :: keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = elementRange }
                 )
             ]
 
@@ -5022,13 +4996,9 @@ listMaximumChecks checkInfo =
                 , details = [ "You can replace this call by Just the single element itself." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = elementRange
-                    }
-                    ++ [ Fix.insertAt checkInfo.parentRange.start
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
-                       ]
+                (Fix.replaceRangeBy checkInfo.fnRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                    :: keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = elementRange }
                 )
             ]
 
@@ -5164,7 +5134,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                         , details = [ "Using Set." ++ foldOperationName ++ " directly is meant for this exact purpose and will also be faster." ]
                                         }
                                         checkInfo.fnRange
-                                        (keepOnlyFix { parentRange = setToListCall.nodeRange, keep = Node.range setToListCall.firstArg }
+                                        (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
                                             ++ [ Fix.replaceRangeBy checkInfo.fnRange
                                                     (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
                                                ]
@@ -5869,11 +5839,7 @@ setFromListSingletonChecks checkInfo =
             [ Rule.errorWithFix
                 setFromListSingletonError
                 checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = Node.range checkInfo.firstArg
-                    , keep = Node.range listSingleton.element
-                    }
-                    ++ parenthesizeIfNeededFix listSingleton.element
+                (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingleton.element
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo)) ]
                 )
             ]
@@ -6043,8 +6009,7 @@ htmlAttributesClassListChecks checkInfo =
                 , details = [ "You can replace this call by Html.Attributes.class with the String from the single tuple list element." ]
                 }
                 checkInfo.fnRange
-                (keepOnlyFix { parentRange = Node.range listArg, keep = Node.range first }
-                    ++ parenthesizeIfNeededFix first
+                (replaceBySubExpressionFix (Node.range listArg) first
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange
                             (qualifiedToString (qualify ( [ "Html", "Attributes" ], "class" ) checkInfo))
                        ]
@@ -7743,7 +7708,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                     , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
                     }
                     (targetIfKeyword nodeRange)
-                    (keepOnlyFix { parentRange = nodeRange, keep = Node.range trueBranch })
+                    (replaceBySubExpressionFix nodeRange trueBranch)
                 ]
                 (RangeDict.singleton (Node.range condition) ())
 
@@ -7771,7 +7736,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                             , details = [ "The expression can be replaced by the condition." ]
                             }
                             (targetIfKeyword nodeRange)
-                            (keepOnlyFix { parentRange = nodeRange, keep = Node.range condition })
+                            (replaceBySubExpressionFix nodeRange condition)
                         ]
 
                 ( Determined False, Determined True ) ->
@@ -7805,7 +7770,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                                     , details = [ "The expression can be replaced by the contents of either branch." ]
                                     }
                                     (targetIfKeyword nodeRange)
-                                    (keepOnlyFix { parentRange = nodeRange, keep = Node.range trueBranch })
+                                    (replaceBySubExpressionFix nodeRange trueBranch)
                                 ]
 
                         _ ->
