@@ -5859,26 +5859,27 @@ listDropChecks checkInfo =
     in
     firstThatReportsError
         [ \() ->
-            if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
-                [ -- TODO use identityError
-                  Rule.errorWithFix
-                    (case maybeListArg of
-                        Just _ ->
-                            { message = "Dropping 0 items from a list will result in the list itself"
-                            , details = [ "You can replace this call by the list itself." ]
-                            }
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just 0 ->
+                    [ -- TODO use identityError
+                      Rule.errorWithFix
+                        (case maybeListArg of
+                            Just _ ->
+                                { message = "Dropping 0 items from a list will result in the list itself"
+                                , details = [ "You can replace this call by the list itself." ]
+                                }
 
-                        Nothing ->
-                            { message = "Dropping 0 items from a list will result in the list itself"
-                            , details = [ "You can replace this function by identity." ]
-                            }
-                    )
-                    checkInfo.fnRange
-                    (toIdentityFix { lastArg = maybeListArg, resources = checkInfo })
-                ]
+                            Nothing ->
+                                { message = "Dropping 0 items from a list will result in the list itself"
+                                , details = [ "You can replace this function by identity." ]
+                                }
+                        )
+                        checkInfo.fnRange
+                        (toIdentityFix { lastArg = maybeListArg, resources = checkInfo })
+                    ]
 
-            else
-                []
+                _ ->
+                    []
         , \() ->
             case maybeListArg of
                 Just listArg ->
