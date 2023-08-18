@@ -4132,32 +4132,37 @@ resultMapErrorChecks checkInfo =
             else
                 []
         , \() ->
-            case Maybe.andThen (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) checkInfo.lookupTable) maybeResultArg of
+            case maybeResultArg of
+                Just resultArg ->
+                    case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
+                        Just errCall ->
+                            [ Rule.errorWithFix
+                                resultMapErrorOnErrErrorInfo
+                                checkInfo.fnRange
+                                (if checkInfo.usingRightPizza then
+                                    -- |>
+                                    [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                    , Fix.insertAt (Node.range checkInfo.firstArg).end
+                                        (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
+                                    ]
+                                        ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
+
+                                 else
+                                    -- application or <|
+                                    [ Fix.replaceRangeBy
+                                        { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                        (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " (")
+                                    , Fix.insertAt checkInfo.parentRange.end ")"
+                                    ]
+                                        ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
+                                )
+                            ]
+
+                        Nothing ->
+                            []
+
                 Nothing ->
                     []
-
-                Just errCall ->
-                    [ Rule.errorWithFix
-                        resultMapErrorOnErrErrorInfo
-                        checkInfo.fnRange
-                        (if checkInfo.usingRightPizza then
-                            -- |>
-                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                            , Fix.insertAt (Node.range checkInfo.firstArg).end
-                                (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
-                            ]
-                                ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
-
-                         else
-                            -- application or <|
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " (")
-                            , Fix.insertAt checkInfo.parentRange.end ")"
-                            ]
-                                ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
-                        )
-                    ]
         , \() ->
             case maybeResultArg of
                 Nothing ->
@@ -5582,23 +5587,26 @@ listFilterMapCompositionChecks checkInfo =
 
 listRangeChecks : CheckInfo -> List (Error {})
 listRangeChecks checkInfo =
-    case Maybe.andThen (Evaluate.getInt checkInfo) (secondArg checkInfo) of
-        Just second ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just first ->
-                    if first > second then
+    case secondArg checkInfo of
+        Just rangeEndArg ->
+            case ( Evaluate.getInt checkInfo checkInfo.firstArg, Evaluate.getInt checkInfo rangeEndArg ) of
+                ( Just rangeStartValue, Just rangeEndValue ) ->
+                    if rangeStartValue > rangeEndValue then
                         [ Rule.errorWithFix
                             { message = "The call to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " will result in []"
                             , details = [ "The second argument to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " is bigger than the first one, therefore you can replace this list by an empty list." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix "[]" checkInfo.parentRange (Just second) checkInfo)
+                            (replaceByEmptyFix "[]" checkInfo.parentRange (Just rangeEndValue) checkInfo)
                         ]
 
                     else
                         []
 
-                Nothing ->
+                ( Nothing, _ ) ->
+                    []
+
+                ( _, Nothing ) ->
                     []
 
         Nothing ->
@@ -5758,10 +5766,9 @@ listSortWithChecks checkInfo =
             let
                 alwaysAlwaysOrder : Maybe Order
                 alwaysAlwaysOrder =
-                    Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
-                        (Maybe.andThen (getAlwaysResult checkInfo)
-                            (getAlwaysResult checkInfo checkInfo.firstArg)
-                        )
+                    getAlwaysResult checkInfo checkInfo.firstArg
+                        |> Maybe.andThen (getAlwaysResult checkInfo)
+                        |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
             in
             case alwaysAlwaysOrder of
                 Nothing ->
@@ -5804,76 +5811,94 @@ listSortWithChecks checkInfo =
 listTakeChecks : CheckInfo -> List (Error {})
 listTakeChecks checkInfo =
     let
-        listArg : Maybe (Node Expression)
-        listArg =
+        maybeListArg : Maybe (Node Expression)
+        maybeListArg =
             secondArg checkInfo
     in
-    if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
-        [ Rule.errorWithFix
-            { message = "Taking 0 items from a list will result in []"
-            , details = [ "You can replace this call by []." ]
-            }
-            checkInfo.fnRange
-            (replaceByEmptyFix "[]" checkInfo.parentRange listArg checkInfo)
-        ]
-
-    else
-        case Maybe.andThen (determineListLength checkInfo.lookupTable) listArg of
-            Just (Exactly 0) ->
+    firstThatReportsError
+        [ \() ->
+            if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
                 [ Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString ( [ "List" ], "take" ) ++ " on [] will result in []"
+                    { message = "Taking 0 items from a list will result in []"
                     , details = [ "You can replace this call by []." ]
                     }
                     checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                    (replaceByEmptyFix "[]" checkInfo.parentRange maybeListArg checkInfo)
                 ]
 
-            _ ->
+            else
                 []
+        , \() ->
+            case maybeListArg of
+                Just listArg ->
+                    case determineListLength checkInfo.lookupTable listArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "take" ) ++ " on [] will result in []"
+                                , details = [ "You can replace this call by []." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                            ]
+
+                        _ ->
+                            []
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listDropChecks : CheckInfo -> List (Error {})
 listDropChecks checkInfo =
-    if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
-        case secondArg checkInfo of
-            Just (Node secondArgRange _) ->
-                [ Rule.errorWithFix
-                    { message = "Dropping 0 items from a list will result in the list itself"
-                    , details = [ "You can replace this call by the list itself." ]
-                    }
-                    checkInfo.fnRange
-                    [ if checkInfo.usingRightPizza then
-                        Fix.removeRange { start = secondArgRange.end, end = checkInfo.parentRange.end }
+    let
+        maybeListArg : Maybe (Node Expression)
+        maybeListArg =
+            secondArg checkInfo
+    in
+    firstThatReportsError
+        [ \() ->
+            if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
+                [ -- TODO use identityError
+                  Rule.errorWithFix
+                    (case maybeListArg of
+                        Just _ ->
+                            { message = "Dropping 0 items from a list will result in the list itself"
+                            , details = [ "You can replace this call by the list itself." ]
+                            }
 
-                      else
-                        Fix.removeRange { start = checkInfo.parentRange.start, end = secondArgRange.start }
-                    ]
+                        Nothing ->
+                            { message = "Dropping 0 items from a list will result in the list itself"
+                            , details = [ "You can replace this function by identity." ]
+                            }
+                    )
+                    checkInfo.fnRange
+                    (toIdentityFix { lastArg = maybeListArg, resources = checkInfo })
                 ]
 
-            Nothing ->
-                [ Rule.errorWithFix
-                    { message = "Dropping 0 items from a list will result in the list itself"
-                    , details = [ "You can replace this function by identity." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
-                    ]
-                ]
-
-    else
-        case Maybe.andThen (determineListLength checkInfo.lookupTable) (secondArg checkInfo) of
-            Just (Exactly 0) ->
-                [ Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString ( [ "List" ], "drop" ) ++ " on [] will result in []"
-                    , details = [ "You can replace this call by []." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                ]
-
-            _ ->
+            else
                 []
+        , \() ->
+            case maybeListArg of
+                Just listArg ->
+                    case determineListLength checkInfo.lookupTable listArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "drop" ) ++ " on [] will result in []"
+                                , details = [ "You can replace this call by []." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                            ]
+
+                        _ ->
+                            []
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 listMapNChecks : { n : Int } -> CheckInfo -> List (Error {})
@@ -7243,8 +7268,8 @@ collectionRemoveChecks collection checkInfo =
 collectionIntersectChecks : Collection -> CheckInfo -> List (Error {})
 collectionIntersectChecks collection checkInfo =
     let
-        collectionArg : Maybe (Node Expression)
-        collectionArg =
+        maybeCollectionArg : Maybe (Node Expression)
+        maybeCollectionArg =
             secondArg checkInfo
 
         collectionEmptyAsString : String
@@ -7260,23 +7285,28 @@ collectionIntersectChecks collection checkInfo =
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange collectionArg checkInfo)
+                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
                     ]
 
                 _ ->
                     []
         , \() ->
-            case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
-                Just (Exactly 0) ->
-                    [ Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "intersect" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                        , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange collectionArg checkInfo)
-                    ]
+            case maybeCollectionArg of
+                Just collectionArg ->
+                    case collection.determineSize checkInfo.lookupTable collectionArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "intersect" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                                , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
+                            ]
 
-                _ ->
+                        _ ->
+                            []
+
+                Nothing ->
                     []
         ]
         ()
@@ -7285,8 +7315,8 @@ collectionIntersectChecks collection checkInfo =
 collectionDiffChecks : Collection -> CheckInfo -> List (Error {})
 collectionDiffChecks collection checkInfo =
     let
-        collectionArg : Maybe (Node Expression)
-        collectionArg =
+        maybeCollectionArg : Maybe (Node Expression)
+        maybeCollectionArg =
             secondArg checkInfo
 
         collectionEmptyAsString : String
@@ -7302,25 +7332,30 @@ collectionDiffChecks collection checkInfo =
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange collectionArg checkInfo)
+                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
                     ]
 
                 _ ->
                     []
         , \() ->
-            case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
-                Just (Exactly 0) ->
-                    [ Rule.errorWithFix
-                        { message = "Diffing a " ++ collection.represents ++ " with " ++ collectionEmptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
-                        , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                        , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
+            case maybeCollectionArg of
+                Just collectionArg ->
+                    case collection.determineSize checkInfo.lookupTable collectionArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Diffing a " ++ collection.represents ++ " with " ++ collectionEmptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
+                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                                ]
+                            ]
 
-                _ ->
+                        _ ->
+                            []
+
+                Nothing ->
                     []
         ]
         ()
@@ -7375,24 +7410,29 @@ collectionUnionChecks collection checkInfo =
 
 collectionInsertChecks : Collection -> CheckInfo -> List (Error {})
 collectionInsertChecks collection checkInfo =
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
-        Just (Exactly 0) ->
-            [ Rule.errorWithFix
-                { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ emptyAsString checkInfo collection
-                , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo))
-                , if checkInfo.usingRightPizza then
-                    Fix.removeRange { start = checkInfo.parentRange.start, end = checkInfo.fnRange.start }
+    case secondArg checkInfo of
+        Just collectionArg ->
+            case collection.determineSize checkInfo.lookupTable collectionArg of
+                Just (Exactly 0) ->
+                    [ Rule.errorWithFix
+                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ emptyAsString checkInfo collection
+                        , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo))
+                        , if checkInfo.usingRightPizza then
+                            Fix.removeRange { start = checkInfo.parentRange.start, end = checkInfo.fnRange.start }
 
-                  else
-                    Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                ]
-            ]
+                          else
+                            Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                        ]
+                    ]
 
-        _ ->
+                _ ->
+                    []
+
+        Nothing ->
             []
 
 
@@ -7508,17 +7548,26 @@ collectionPartitionChecks collection checkInfo =
         collectionEmptyAsString =
             emptyAsString checkInfo collection
     in
-    case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
-        Just (Exactly 0) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
-                , details = [ "You can replace this call by ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )") ]
-            ]
+    firstThatReportsError
+        [ \() ->
+            case secondArg checkInfo of
+                Just collectionArg ->
+                    case collection.determineSize checkInfo.lookupTable collectionArg of
+                        Just (Exactly 0) ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
+                                , details = [ "You can replace this call by ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )") ]
+                            ]
 
-        _ ->
+                        _ ->
+                            []
+
+                Nothing ->
+                    []
+        , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     case secondArg checkInfo of
@@ -7562,6 +7611,8 @@ collectionPartitionChecks collection checkInfo =
 
                 Undetermined ->
                     []
+        ]
+        ()
 
 
 maybeWithDefaultChecks : CheckInfo -> List (Error {})
