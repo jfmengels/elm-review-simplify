@@ -4799,14 +4799,23 @@ dictToListMapChecks listMapCheckInfo =
                                        ]
                                 )
                     in
-                    if AstHelpers.isTupleFirstAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
-                        [ error { tuplePart = "first", toEntryAspectList = "keys" } ]
+                    firstThatReportsError
+                        [ \() ->
+                            case AstHelpers.getSpecificValueOrFunction ( [ "Tuple" ], "first" ) listMapCheckInfo.lookupTable listMapCheckInfo.firstArg of
+                                Just _ ->
+                                    [ error { tuplePart = "first", toEntryAspectList = "keys" } ]
 
-                    else if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
-                        [ error { tuplePart = "second", toEntryAspectList = "values" } ]
+                                Nothing ->
+                                    []
+                        , \() ->
+                            case AstHelpers.getSpecificValueOrFunction ( [ "Tuple" ], "second" ) listMapCheckInfo.lookupTable listMapCheckInfo.firstArg of
+                                Just _ ->
+                                    [ error { tuplePart = "second", toEntryAspectList = "values" } ]
 
-                    else
-                        []
+                                Nothing ->
+                                    []
+                        ]
+                        ()
 
                 Nothing ->
                     []
@@ -4831,14 +4840,23 @@ listMapCompositionChecks checkInfo =
                         checkInfo.later.fnRange
                         [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) checkInfo)) ]
             in
-            if AstHelpers.isTupleFirstAccess checkInfo.lookupTable elementMappingArg then
-                [ error { tuplePart = "first", toEntryAspectList = "keys" } ]
+            firstThatReportsError
+                [ \() ->
+                    case AstHelpers.getSpecificValueOrFunction ( [ "Tuple" ], "first" ) checkInfo.lookupTable elementMappingArg of
+                        Just _ ->
+                            [ error { tuplePart = "first", toEntryAspectList = "keys" } ]
 
-            else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
-                [ error { tuplePart = "second", toEntryAspectList = "values" } ]
+                        Nothing ->
+                            []
+                , \() ->
+                    case AstHelpers.getSpecificValueOrFunction ( [ "Tuple" ], "second" ) checkInfo.lookupTable elementMappingArg of
+                        Just _ ->
+                            [ error { tuplePart = "second", toEntryAspectList = "values" } ]
 
-            else
-                []
+                        Nothing ->
+                            []
+                ]
+                ()
 
         _ ->
             []
