@@ -4434,7 +4434,7 @@ listIndexedMapChecks checkInfo =
                                 { message = "Use List.map instead"
                                 , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
                                 }
-                                patternRange
+                                checkInfo.fnRange
                                 [ Fix.replaceRangeBy checkInfo.fnRange
                                     (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
                                 , Fix.removeRange rangeToRemove
@@ -4453,7 +4453,7 @@ listIndexedMapChecks checkInfo =
                         { message = "Use List.map instead"
                         , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
                         }
-                        alwaysCall.fnRange
+                        checkInfo.fnRange
                         (Fix.replaceRangeBy checkInfo.fnRange
                             (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
                             :: replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg

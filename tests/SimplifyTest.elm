@@ -9112,7 +9112,7 @@ a = List.indexedMap (\\_ y -> y) x
                         [ Review.Test.error
                             { message = "Use List.map instead"
                             , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
-                            , under = "_"
+                            , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.map (\\y -> y) x
@@ -9128,7 +9128,7 @@ a = List.indexedMap (\\_ -> f) x
                         [ Review.Test.error
                             { message = "Use List.map instead"
                             , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
-                            , under = "_"
+                            , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.map (f) x
@@ -9144,7 +9144,7 @@ a = List.indexedMap (always f) x
                         [ Review.Test.error
                             { message = "Use List.map instead"
                             , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
-                            , under = "always"
+                            , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.map f x
@@ -9160,7 +9160,7 @@ a = List.indexedMap (always <| f y) x
                         [ Review.Test.error
                             { message = "Use List.map instead"
                             , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
-                            , under = "always"
+                            , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.map (f y) x
@@ -9176,7 +9176,7 @@ a = List.indexedMap (f y |> always) x
                         [ Review.Test.error
                             { message = "Use List.map instead"
                             , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
-                            , under = "always"
+                            , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.map (f y) x
