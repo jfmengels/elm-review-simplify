@@ -16820,7 +16820,7 @@ a = Cmd.map identity cmd
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.map with an identity function is the same as not using Cmd.map"
+                            { message = "Using Platform.Cmd.map with an identity function is the same as not using Platform.Cmd.map"
                             , details = [ "You can remove this call and replace it by the command itself." ]
                             , under = "Cmd.map"
                             }
@@ -16836,7 +16836,7 @@ a = Cmd.map f Cmd.none
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.map on Cmd.none will result in Cmd.none"
+                            { message = "Using Platform.Cmd.map on Cmd.none will result in Cmd.none"
                             , details = [ "You can replace this call by Cmd.none." ]
                             , under = "Cmd.map"
                             }
@@ -16983,7 +16983,7 @@ a = Sub.map identity sub
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.map with an identity function is the same as not using Sub.map"
+                            { message = "Using Platform.Sub.map with an identity function is the same as not using Platform.Sub.map"
                             , details = [ "You can remove this call and replace it by the subscription itself." ]
                             , under = "Sub.map"
                             }
@@ -16999,7 +16999,7 @@ a = Sub.map f Sub.none
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.map on Sub.none will result in Sub.none"
+                            { message = "Using Platform.Sub.map on Sub.none will result in Sub.none"
                             , details = [ "You can replace this call by Sub.none." ]
                             , under = "Sub.map"
                             }

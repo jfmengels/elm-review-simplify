@@ -6447,7 +6447,7 @@ randomMapAlwaysCompositionChecks checkInfo =
 
 
 type alias Collection =
-    { moduleName : String
+    { moduleName : ModuleName
     , represents : String
     , emptyAsString : QualifyResources {} -> String
     , emptyDescription : String
@@ -6472,7 +6472,7 @@ emptyAsString qualifyResources emptiable =
 
 listCollection : Collection
 listCollection =
-    { moduleName = "List"
+    { moduleName = [ "List" ]
     , represents = "list"
     , emptyAsString = \_ -> "[]"
     , emptyDescription = "[]"
@@ -6484,7 +6484,7 @@ listCollection =
 
 setCollection : Collection
 setCollection =
-    { moduleName = "Set"
+    { moduleName = [ "Set" ]
     , represents = "set"
     , emptyAsString =
         \resources ->
@@ -6500,7 +6500,7 @@ setCollection =
 
 dictCollection : Collection
 dictCollection =
-    { moduleName = "Dict"
+    { moduleName = [ "Dict" ]
     , represents = "Dict"
     , emptyAsString =
         \resources ->
@@ -6515,7 +6515,7 @@ dictCollection =
 
 
 type alias Mappable =
-    { moduleName : String
+    { moduleName : ModuleName
     , represents : String
     , emptyAsString : QualifyResources {} -> String
     , emptyDescription : String
@@ -6524,7 +6524,7 @@ type alias Mappable =
 
 
 type alias Defaultable =
-    { moduleName : String
+    { moduleName : ModuleName
     , represents : String
     , emptyAsString : QualifyResources {} -> String
     , emptyDescription : String
@@ -6535,7 +6535,7 @@ type alias Defaultable =
 
 maybeCollection : Defaultable
 maybeCollection =
-    { moduleName = "Maybe"
+    { moduleName = [ "Maybe" ]
     , represents = "maybe"
     , emptyAsString =
         \resources ->
@@ -6552,7 +6552,7 @@ maybeCollection =
 
 resultCollection : Defaultable
 resultCollection =
-    { moduleName = "Result"
+    { moduleName = [ "Result" ]
     , represents = "result"
     , emptyAsString =
         \resources ->
@@ -6569,7 +6569,7 @@ resultCollection =
 
 cmdCollection : Mappable
 cmdCollection =
-    { moduleName = "Cmd"
+    { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
     , emptyAsString =
         \resources ->
@@ -6583,7 +6583,7 @@ cmdCollection =
 
 subCollection : Mappable
 subCollection =
-    { moduleName = "Sub"
+    { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
     , emptyAsString =
         \resources ->
@@ -6597,7 +6597,7 @@ subCollection =
 
 collectionMapChecks :
     { a
-        | moduleName : String
+        | moduleName : ModuleName
         , represents : String
         , emptyDescription : String
         , emptyAsString : QualifyResources {} -> String
@@ -6607,19 +6607,14 @@ collectionMapChecks :
     -> List (Error {})
 collectionMapChecks collection checkInfo =
     firstThatReportsError
-        [ \() ->
-            mapIdentityChecks
-                { moduleName = AstHelpers.moduleNameFromString collection.moduleName
-                , represents = collection.represents
-                }
-                checkInfo
+        [ \() -> mapIdentityChecks collection checkInfo
         , \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
                         [ Rule.errorWithFix
                             -- TODO rework error info
-                            { message = "Using " ++ collection.moduleName ++ ".map on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
+                            { message = "Using " ++ qualifiedToString ( collection.moduleName, "map" ) ++ " on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
                             , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
                             }
                             checkInfo.fnRange
@@ -6775,7 +6770,7 @@ maybeAndThenChecks checkInfo =
                     case getMaybeValues checkInfo.lookupTable maybeArg of
                         Determined (Just justRanges) ->
                             [ Rule.errorWithFix
-                                { message = "Calling " ++ maybeCollection.moduleName ++ ".andThen on a value that is known to be Just"
+                                { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
                                 , details = [ "You can remove the Just and just call the function directly." ]
                                 }
                                 checkInfo.fnRange
@@ -6786,7 +6781,7 @@ maybeAndThenChecks checkInfo =
 
                         Determined Nothing ->
                             [ Rule.errorWithFix
-                                { message = "Using " ++ maybeCollection.moduleName ++ ".andThen on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
+                                { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
                                 , details = [ "You can replace this call by " ++ maybeEmptyAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -6803,19 +6798,19 @@ maybeAndThenChecks checkInfo =
                 Determined (Just { ranges, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
-                            { message = "Use " ++ maybeCollection.moduleName ++ ".map instead"
-                            , details = [ "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            { message = "Use " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ " instead"
+                            , details = [ "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ maybeCollection.moduleName ], "map" ) checkInfo))
+                                (qualifiedToString (qualify ( maybeCollection.moduleName, "map" ) checkInfo))
                                 :: List.map Fix.removeRange ranges
                             )
                         ]
 
                     else
                         [ Rule.errorWithFix
-                            { message = "Using Maybe.andThen with a function that will always return Just is the same as not using Maybe.andThen"
+                            { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" )
                             , details = [ "You can remove this call and replace it by the value itself." ]
                             }
                             checkInfo.fnRange
@@ -6826,7 +6821,7 @@ maybeAndThenChecks checkInfo =
 
                 Determined Nothing ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ maybeCollection.moduleName ++ ".andThen with a function that will always return Nothing will result in Nothing"
+                        { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Nothing will result in Nothing"
                         , details = [ "You can remove this call and replace it by Nothing." ]
                         }
                         checkInfo.fnRange
@@ -6853,7 +6848,7 @@ resultAndThenChecks checkInfo =
                     case getResultValues checkInfo.lookupTable resultArg of
                         Just (Ok okRanges) ->
                             [ Rule.errorWithFix
-                                { message = "Calling " ++ resultCollection.moduleName ++ ".andThen on a value that is known to be Ok"
+                                { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
                                 , details = [ "You can remove the Ok and just call the function directly." ]
                                 }
                                 checkInfo.fnRange
@@ -6864,7 +6859,7 @@ resultAndThenChecks checkInfo =
 
                         Just (Err _) ->
                             [ Rule.errorWithFix
-                                { message = "Using " ++ resultCollection.moduleName ++ ".andThen on an error will result in the error"
+                                { message = "Using " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on an error will result in the error"
                                 , details = [ "You can replace this call by the error itself." ]
                                 }
                                 checkInfo.fnRange
@@ -6886,7 +6881,7 @@ resultAndThenChecks checkInfo =
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ resultCollection.moduleName ], "map" ) checkInfo))
+                                (qualifiedToString (qualify ( resultCollection.moduleName, "map" ) checkInfo))
                                 :: List.map Fix.removeRange ranges
                             )
                         ]
@@ -7174,7 +7169,7 @@ collectionFilterChecks collection checkInfo =
                     case collection.determineSize checkInfo.lookupTable collectionArg of
                         Just (Exactly 0) ->
                             [ Rule.errorWithFix
-                                { message = "Using " ++ collection.moduleName ++ ".filter on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
                                 , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -7190,7 +7185,7 @@ collectionFilterChecks collection checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return True is the same as not using " ++ collection.moduleName ++ ".filter"
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " with a function that will always return True is the same as not using " ++ qualifiedToString ( collection.moduleName, "filter" )
                         , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
                         }
                         checkInfo.fnRange
@@ -7201,7 +7196,7 @@ collectionFilterChecks collection checkInfo =
 
                 Determined False ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".filter with a function that will always return False will result in " ++ collectionEmptyAsString
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ collectionEmptyAsString
                         , details = [ "You can remove this call and replace it by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7226,7 +7221,7 @@ collectionRemoveChecks collection checkInfo =
                             emptyAsString checkInfo collection
                     in
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".remove on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "remove" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7256,7 +7251,7 @@ collectionIntersectChecks collection checkInfo =
             case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "intersect" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7269,7 +7264,7 @@ collectionIntersectChecks collection checkInfo =
             case Maybe.andThen (collection.determineSize checkInfo.lookupTable) collectionArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".intersect on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "intersect" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7378,12 +7373,12 @@ collectionInsertChecks collection checkInfo =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "Use " ++ collection.moduleName ++ ".singleton instead of inserting in " ++ emptyAsString checkInfo collection
-                , details = [ "You can replace this call by " ++ collection.moduleName ++ ".singleton." ]
+                { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ emptyAsString checkInfo collection
+                , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
                 }
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify ( [ collection.moduleName ], "singleton" ) checkInfo))
+                    (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo))
                 , if checkInfo.usingRightPizza then
                     Fix.removeRange { start = checkInfo.parentRange.start, end = checkInfo.fnRange.start }
 
@@ -7403,7 +7398,7 @@ collectionMemberChecks collection checkInfo =
             case collection.determineSize checkInfo.lookupTable collectionArg of
                 Just (Exactly 0) ->
                     [ Rule.errorWithFix
-                        { message = "Using " ++ collection.moduleName ++ ".member on " ++ collection.emptyDescription ++ " will result in False"
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ collection.emptyDescription ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
@@ -7424,7 +7419,7 @@ collectionIsEmptyChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in True"
+                { message = "The call to " ++ qualifiedToString ( collection.moduleName, "isEmpty" ) ++ " will result in True"
                 , details = [ "You can replace this call by True." ]
                 }
                 checkInfo.fnRange
@@ -7435,7 +7430,7 @@ collectionIsEmptyChecks collection checkInfo =
 
         Just _ ->
             [ Rule.errorWithFix
-                { message = "The call to " ++ collection.moduleName ++ ".isEmpty will result in False"
+                { message = "The call to " ++ qualifiedToString ( collection.moduleName, "isEmpty" ) ++ " will result in False"
                 , details = [ "You can replace this call by False." ]
                 }
                 checkInfo.fnRange
@@ -7474,7 +7469,7 @@ collectionFromListChecks collection checkInfo =
                     emptyAsString checkInfo collection
             in
             [ Rule.errorWithFix
-                { message = "The call to " ++ qualifiedToString ( AstHelpers.moduleNameFromString collection.moduleName, "fromList" ) ++ " will result in " ++ collectionEmptyAsString
+                { message = "The call to " ++ qualifiedToString ( collection.moduleName, "fromList" ) ++ " will result in " ++ collectionEmptyAsString
                 , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                 }
                 checkInfo.fnRange
@@ -7490,7 +7485,7 @@ collectionToListChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "The call to " ++ qualifiedToString ( AstHelpers.moduleNameFromString collection.moduleName, "toList" ) ++ " will result in []"
+                { message = "The call to " ++ qualifiedToString ( collection.moduleName, "toList" ) ++ " will result in []"
                 , details = [ "You can replace this call by []." ]
                 }
                 checkInfo.fnRange
@@ -7511,7 +7506,7 @@ collectionPartitionChecks collection checkInfo =
     case Maybe.andThen (collection.determineSize checkInfo.lookupTable) (secondArg checkInfo) of
         Just (Exactly 0) ->
             [ Rule.errorWithFix
-                { message = "Using " ++ collection.moduleName ++ ".partition on " ++ collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
+                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
                 , details = [ "You can replace this call by ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )." ]
                 }
                 checkInfo.fnRange
