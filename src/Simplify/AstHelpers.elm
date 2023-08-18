@@ -67,31 +67,26 @@ removeParensFromPattern patternNode =
 
 
 getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
-getListSingleton lookupTable baseExpressionNode =
-    case Node.value (removeParens baseExpressionNode) of
-        Expression.ListExpr [ element ] ->
+getListSingleton lookupTable expressionNode =
+    case expressionNode of
+        Node _ (Expression.ListExpr (element :: [])) ->
             Just { element = element }
 
-        Expression.ListExpr _ ->
+        Node _ (Expression.ListExpr _) ->
             Nothing
 
-        _ ->
-            getListSingletonCall lookupTable baseExpressionNode
+        nonListLiteralNode ->
+            case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable nonListLiteralNode of
+                Just singletonCall ->
+                    case singletonCall.argsAfterFirst of
+                        [] ->
+                            Just { element = singletonCall.firstArg }
 
+                        _ :: _ ->
+                            Nothing
 
-getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
-getListSingletonCall lookupTable expressionNode =
-    case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
-        Just singletonCall ->
-            case singletonCall.argsAfterFirst of
-                [] ->
-                    Just { element = singletonCall.firstArg }
-
-                _ :: _ ->
+                Nothing ->
                     Nothing
-
-        Nothing ->
-            Nothing
 
 
 {-| Parses calls and lambdas that are reducible to a call
