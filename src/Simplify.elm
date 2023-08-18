@@ -6057,11 +6057,12 @@ htmlAttributesClassListChecks checkInfo =
         getTupleWithSpecificSecond specificBool expressionNode =
             case AstHelpers.getTuple expressionNode of
                 Just tuple ->
-                    if AstHelpers.isSpecificBool specificBool checkInfo.lookupTable tuple.second then
-                        Just { range = tuple.range, first = tuple.first }
+                    case AstHelpers.getSpecificBool specificBool checkInfo.lookupTable tuple.second of
+                        Just _ ->
+                            Just { range = tuple.range, first = tuple.first }
 
-                    else
-                        Nothing
+                        Nothing ->
+                            Nothing
 
                 Nothing ->
                     Nothing
@@ -6489,7 +6490,9 @@ setCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
     , emptyDescription = "Set.empty"
-    , isEmpty = AstHelpers.isSpecificValueOrFunction ( [ "Set" ], "empty" )
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Set" ] 1
     }
@@ -6503,7 +6506,9 @@ dictCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
     , emptyDescription = "Dict.empty"
-    , isEmpty = AstHelpers.isSpecificValueOrFunction ( [ "Dict" ], "empty" )
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
     , nameForSize = "size"
     , determineSize = determineIfCollectionIsEmpty [ "Dict" ] 2
     }
@@ -6536,7 +6541,9 @@ maybeCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
     , emptyDescription = "Nothing"
-    , isEmpty = AstHelpers.isSpecificValueOrFunction ( [ "Maybe" ], "Nothing" )
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
     , isSomethingConstructor =
         \resources ->
             qualifiedToString (qualify ( [ "Maybe" ], "Just" ) resources)
@@ -6551,7 +6558,9 @@ resultCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
     , emptyDescription = "an error"
-    , isEmpty = AstHelpers.isSpecificFunctionCall ( [ "Result" ], "Err" )
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
     , isSomethingConstructor =
         \resources ->
             qualifiedToString (qualify ( [ "Result" ], "Ok" ) resources)
@@ -6566,7 +6575,9 @@ cmdCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
     , emptyDescription = "Cmd.none"
-    , isEmpty = AstHelpers.isSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" )
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
     }
 
 
@@ -6578,7 +6589,9 @@ subCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
     , emptyDescription = "Sub.none"
-    , isEmpty = AstHelpers.isSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" )
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
     }
 
 
@@ -7655,45 +7668,46 @@ combineSingleElementFixes lookupTable nodes soFar =
 
 determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
 determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable expressionNode =
-    if AstHelpers.isSpecificValueOrFunction ( moduleName, "empty" ) lookupTable expressionNode then
-        Just (Exactly 0)
+    case AstHelpers.getSpecificValueOrFunction ( moduleName, "empty" ) lookupTable expressionNode of
+        Just _ ->
+            Just (Exactly 0)
 
-    else
-        case Node.value (AstHelpers.removeParens expressionNode) of
-            Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: args) ->
-                if List.length args == singletonNumberOfArgs && ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    Just (Exactly 1)
+        Nothing ->
+            case Node.value (AstHelpers.removeParens expressionNode) of
+                Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: args) ->
+                    if List.length args == singletonNumberOfArgs && ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
+                        Just (Exactly 1)
 
-                else
+                    else
+                        Nothing
+
+                Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
+                    if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
+                        case moduleName of
+                            [ "Set" ] ->
+                                case list of
+                                    [] ->
+                                        Just (Exactly 0)
+
+                                    _ :: [] ->
+                                        Just (Exactly 1)
+
+                                    _ :: _ :: _ ->
+                                        case traverse getComparableExpression list of
+                                            Nothing ->
+                                                Just NotEmpty
+
+                                            Just comparableExpressions ->
+                                                comparableExpressions |> unique |> List.length |> Exactly |> Just
+
+                            _ ->
+                                Just (Exactly (List.length list))
+
+                    else
+                        Nothing
+
+                _ ->
                     Nothing
-
-            Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
-                if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                    case moduleName of
-                        [ "Set" ] ->
-                            case list of
-                                [] ->
-                                    Just (Exactly 0)
-
-                                _ :: [] ->
-                                    Just (Exactly 1)
-
-                                _ :: _ :: _ ->
-                                    case traverse getComparableExpression list of
-                                        Nothing ->
-                                            Just NotEmpty
-
-                                        Just comparableExpressions ->
-                                            comparableExpressions |> unique |> List.length |> Exactly |> Just
-
-                        _ ->
-                            Just (Exactly (List.length list))
-
-                else
-                    Nothing
-
-            _ ->
-                Nothing
 
 
 
@@ -9233,3 +9247,17 @@ uniqueHelp existing remaining accumulator =
 
             else
                 uniqueHelp (first :: existing) rest (first :: accumulator)
+
+
+
+-- MAYBE HELPERS
+
+
+isJust : Maybe a -> Bool
+isJust maybe =
+    case maybe of
+        Just _ ->
+            True
+
+        Nothing ->
+            False

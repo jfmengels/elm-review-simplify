@@ -10,6 +10,7 @@ module Simplify.AstHelpers exposing
     , getListSingleton
     , getListSingletonCall
     , getOrder
+    , getSpecificBool
     , getSpecificFunctionCall
     , getSpecificValueOrFunction
     , getTuple
@@ -20,9 +21,6 @@ module Simplify.AstHelpers exposing
     , isEmptyList
     , isIdentity
     , isListLiteral
-    , isSpecificBool
-    , isSpecificFunctionCall
-    , isSpecificValueOrFunction
     , isTupleFirstAccess
     , isTupleSecondAccess
     , letDeclarationListBindings
@@ -67,26 +65,6 @@ removeParensFromPattern patternNode =
 
         _ ->
             patternNode
-
-
-isSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
-    case getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode of
-        Just _ ->
-            True
-
-        Nothing ->
-            False
-
-
-isSpecificFunctionCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificFunctionCall ( moduleName, fnName ) lookupTable expressionNode =
-    case getSpecificFunctionCall ( moduleName, fnName ) lookupTable expressionNode of
-        Just _ ->
-            True
-
-        _ ->
-            False
 
 
 getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
@@ -706,19 +684,22 @@ getCollapsedCons expressionNode =
 
 getBool : ModuleNameLookupTable -> Node Expression -> Maybe Bool
 getBool lookupTable expressionNode =
-    if isSpecificBool True lookupTable expressionNode then
-        Just True
+    case getSpecificBool True lookupTable expressionNode of
+        Just _ ->
+            Just True
 
-    else if isSpecificBool False lookupTable expressionNode then
-        Just False
+        Nothing ->
+            case getSpecificBool False lookupTable expressionNode of
+                Just _ ->
+                    Just False
 
-    else
-        Nothing
+                Nothing ->
+                    Nothing
 
 
-isSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificBool specificBool lookupTable expressionNode =
-    isSpecificValueOrFunction ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
+getSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificBool specificBool lookupTable expressionNode =
+    getSpecificValueOrFunction ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
 
 
 getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
@@ -760,24 +741,29 @@ getBoolPattern lookupTable patternNode =
             Nothing
 
 
-isSpecificOrder : Order -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificOrder specificOrder lookupTable expression =
-    isSpecificValueOrFunction ( [ "Basics" ], orderToString specificOrder ) lookupTable expression
+getSpecificOrder : Order -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificOrder specificOrder lookupTable expression =
+    getSpecificValueOrFunction ( [ "Basics" ], orderToString specificOrder ) lookupTable expression
 
 
 getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
 getOrder lookupTable expression =
-    if isSpecificOrder LT lookupTable expression then
-        Just LT
+    case getSpecificOrder LT lookupTable expression of
+        Just _ ->
+            Just LT
 
-    else if isSpecificOrder EQ lookupTable expression then
-        Just EQ
+        Nothing ->
+            case getSpecificOrder EQ lookupTable expression of
+                Just _ ->
+                    Just EQ
 
-    else if isSpecificOrder GT lookupTable expression then
-        Just GT
+                Nothing ->
+                    case getSpecificOrder GT lookupTable expression of
+                        Just _ ->
+                            Just GT
 
-    else
-        Nothing
+                        Nothing ->
+                            Nothing
 
 
 isEmptyList : Node Expression -> Bool
