@@ -5424,83 +5424,100 @@ listAnyChecks checkInfo =
 
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks checkInfo =
-    case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-        Determined (Just { ranges, throughLambdaFunction }) ->
-            if throughLambdaFunction then
-                [ Rule.errorWithFix
-                    { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
-                    , details = [ "You can remove the `Just`s and replace the call by List.map." ]
-                    }
-                    checkInfo.fnRange
-                    (Fix.replaceRangeBy checkInfo.fnRange
-                        (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                        :: List.map Fix.removeRange ranges
-                    )
-                ]
-
-            else
-                [ Rule.errorWithFix
-                    { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
-                    , details = [ "You can remove this call and replace it by the list itself." ]
-                    }
-                    checkInfo.fnRange
-                    (toIdentityFix
-                        { lastArg = secondArg checkInfo, resources = checkInfo }
-                    )
-                ]
-
-        Determined Nothing ->
-            [ Rule.errorWithFix
-                { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                , details = [ "You can remove this call and replace it by an empty list." ]
-                }
-                checkInfo.fnRange
-                (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
-            ]
-
-        Undetermined ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                case Maybe.andThen (AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable) (secondArg checkInfo) of
-                    Just listArg ->
+    firstThatReportsError
+        [ \() ->
+            case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
+                Determined (Just { ranges, throughLambdaFunction }) ->
+                    if throughLambdaFunction then
                         [ Rule.errorWithFix
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                             }
-                            { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                            [ removeFunctionAndFirstArg checkInfo listArg.nodeRange
-                            , Fix.replaceRangeBy listArg.fnRange
-                                (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
-                            ]
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                                :: List.map Fix.removeRange ranges
+                            )
                         ]
 
-                    Nothing ->
-                        case secondArg checkInfo of
-                            Just (Node listRange (Expression.ListExpr list)) ->
-                                case collectJusts checkInfo.lookupTable list [] of
-                                    Just justRanges ->
+                    else
+                        [ Rule.errorWithFix
+                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
+                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            }
+                            checkInfo.fnRange
+                            (toIdentityFix
+                                { lastArg = secondArg checkInfo, resources = checkInfo }
+                            )
+                        ]
+
+                Determined Nothing ->
+                    [ Rule.errorWithFix
+                        { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
+                        , details = [ "You can remove this call and replace it by an empty list." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                    ]
+
+                Undetermined ->
+                    []
+        , \() ->
+            case secondArg checkInfo of
+                Just listArg ->
+                    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                        firstThatReportsError
+                            [ \() ->
+                                case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable listArg of
+                                    Just listMapCall ->
                                         [ Rule.errorWithFix
-                                            { message = "Unnecessary use of List.filterMap identity"
-                                            , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
+                                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
                                             }
                                             { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                            ((if checkInfo.usingRightPizza then
-                                                Fix.removeRange { start = listRange.end, end = (Node.range checkInfo.firstArg).end }
-
-                                              else
-                                                Fix.removeRange { start = checkInfo.fnRange.start, end = listRange.start }
-                                             )
-                                                :: List.map Fix.removeRange justRanges
-                                            )
+                                            [ removeFunctionAndFirstArg checkInfo listMapCall.nodeRange
+                                            , Fix.replaceRangeBy listMapCall.fnRange
+                                                (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
+                                            ]
                                         ]
 
                                     Nothing ->
                                         []
+                            , \() ->
+                                case listArg of
+                                    Node listRange (Expression.ListExpr list) ->
+                                        case collectJusts checkInfo.lookupTable list [] of
+                                            Just justRanges ->
+                                                [ Rule.errorWithFix
+                                                    { message = "Unnecessary use of List.filterMap identity"
+                                                    , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                                    }
+                                                    { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                                                    ((if checkInfo.usingRightPizza then
+                                                        Fix.removeRange { start = listRange.end, end = (Node.range checkInfo.firstArg).end }
 
-                            _ ->
-                                []
+                                                      else
+                                                        Fix.removeRange { start = checkInfo.fnRange.start, end = listRange.start }
+                                                     )
+                                                        :: List.map Fix.removeRange justRanges
+                                                    )
+                                                ]
 
-            else
-                []
+                                            Nothing ->
+                                                []
+
+                                    _ ->
+                                        []
+                            ]
+                            ()
+
+                    else
+                        []
+
+                Nothing ->
+                    []
+        ]
+        ()
 
 
 collectJusts : ModuleNameLookupTable -> List (Node Expression) -> List Range -> Maybe (List Range)
