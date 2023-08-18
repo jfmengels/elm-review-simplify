@@ -274,6 +274,38 @@ getCollapsedAndReducedValueOrFunctionCall expressionNode =
                     Nothing
 
 
+{-| Parses functions without arguments and lambdas that are reducible to a function without arguments
+-}
+getSpecificReducedFn : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificReducedFn ( moduleName, name ) lookupTable expressionNode =
+    case getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode of
+        Just normalFn ->
+            Just normalFn
+
+        Nothing ->
+            case getReducedLambdaToFn expressionNode of
+                Just reducedLambdaToFn ->
+                    case ( reducedLambdaToFn.lambdaPatterns, reducedLambdaToFn.callArguments ) of
+                        ( [], [] ) ->
+                            if
+                                (reducedLambdaToFn.fnName /= name)
+                                    || (ModuleNameLookupTable.moduleNameAt lookupTable reducedLambdaToFn.fnRange /= Just moduleName)
+                            then
+                                Nothing
+
+                            else
+                                Just reducedLambdaToFn.fnRange
+
+                        ( _ :: _, _ ) ->
+                            Nothing
+
+                        ( _, _ :: _ ) ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+
 getCollapsedValueOrFunctionCall :
     Node Expression
     ->
@@ -385,7 +417,7 @@ getComposition expressionNode =
 
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleFirstAccess lookupTable expressionNode =
-    case getSpecificReducedFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
+    case getSpecificReducedFn ( [ "Tuple" ], "first" ) lookupTable expressionNode of
         Just _ ->
             True
 
@@ -395,7 +427,7 @@ isTupleFirstAccess lookupTable expressionNode =
 
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
-    case getSpecificReducedFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
+    case getSpecificReducedFn ( [ "Tuple" ], "second" ) lookupTable expressionNode of
         Just _ ->
             True
 
@@ -489,51 +521,6 @@ isIdentity lookupTable baseNode =
 
         _ ->
             False
-
-
-{-| Parses variables and lambdas that are reducible to a variable
--}
-getSpecificReducedFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe { fnRange : Range }
-getSpecificReducedFunction ( moduleName, name ) lookupTable expressionNode =
-    Maybe.andThen
-        (\reducedFunction ->
-            if
-                (reducedFunction.fnName /= name)
-                    || (ModuleNameLookupTable.moduleNameAt lookupTable reducedFunction.fnRange /= Just moduleName)
-            then
-                Nothing
-
-            else
-                Just { fnRange = reducedFunction.fnRange }
-        )
-        (getReducedFunction expressionNode)
-
-
-{-| Parses variables and lambdas that are reducible to a variable
--}
-getReducedFunction : Node Expression -> Maybe { fnRange : Range, fnName : String }
-getReducedFunction expressionNode =
-    case removeParens expressionNode of
-        Node fnRange (Expression.FunctionOrValue _ fnName) ->
-            Just { fnRange = fnRange, fnName = fnName }
-
-        _ ->
-            Maybe.andThen
-                (\reducedLambdaToCall ->
-                    case ( reducedLambdaToCall.lambdaPatterns, reducedLambdaToCall.callArguments ) of
-                        ( [], [] ) ->
-                            Just { fnRange = reducedLambdaToCall.fnRange, fnName = reducedLambdaToCall.fnName }
-
-                        ( _ :: _, [] ) ->
-                            Nothing
-
-                        ( [], _ :: _ ) ->
-                            Nothing
-
-                        ( _ :: _, _ :: _ ) ->
-                            Nothing
-                )
-                (getReducedLambdaToFn expressionNode)
 
 
 {-| Parses calls and lambdas that are reducible to a call
