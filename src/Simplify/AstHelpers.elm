@@ -139,6 +139,8 @@ getListSingletonCall lookupTable expressionNode =
             Nothing
 
 
+{-| Neither collapsed, nor lambda-reduced
+-}
 getSpecificFunctionCall :
     ( ModuleName, String )
     -> ModuleNameLookupTable
@@ -258,7 +260,7 @@ getValueOrFunctionCall expressionNode =
             Just valueOrCall
 
         Nothing ->
-            case getReducedLambdaToFn expressionNode of
+            case getReducedLambda expressionNode of
                 Just reducedLambda ->
                     case ( reducedLambda.lambdaPatterns, reducedLambda.callArguments ) of
                         ( [], args ) ->
@@ -285,7 +287,7 @@ getSpecificReducedFn ( moduleName, name ) lookupTable expressionNode =
             Just normalFn
 
         Nothing ->
-            case getReducedLambdaToFn expressionNode of
+            case getReducedLambda expressionNode of
                 Just reducedLambdaToFn ->
                     case ( reducedLambdaToFn.lambdaPatterns, reducedLambdaToFn.callArguments ) of
                         ( [], [] ) ->
@@ -544,61 +546,32 @@ getSpecificReducedFunctionCall ( moduleName, name ) lookupTable expressionNode =
             Just call
 
         Nothing ->
-            Maybe.andThen
-                (\reducedLambdaToCall ->
+            case getReducedLambda expressionNode of
+                Just reducedLambdaToCall ->
                     case ( reducedLambdaToCall.lambdaPatterns, reducedLambdaToCall.callArguments ) of
-                        ( [], [] ) ->
-                            Nothing
-
-                        ( _ :: _, [] ) ->
-                            Nothing
-
-                        ( _ :: _, _ :: _ ) ->
-                            Nothing
-
                         ( [], firstArg :: argsAfterFirst ) ->
-                            Just
-                                { nodeRange = reducedLambdaToCall.nodeRange
-                                , fnRange = reducedLambdaToCall.fnRange
-                                , firstArg = firstArg
-                                , argsAfterFirst = argsAfterFirst
-                                }
-                )
-                (getSpecificReducedLambdaToCall ( moduleName, name ) lookupTable expressionNode)
+                            if
+                                (reducedLambdaToCall.fnName /= name)
+                                    || (ModuleNameLookupTable.moduleNameAt lookupTable reducedLambdaToCall.fnRange /= Just moduleName)
+                            then
+                                Nothing
 
+                            else
+                                Just
+                                    { nodeRange = reducedLambdaToCall.nodeRange
+                                    , fnRange = reducedLambdaToCall.fnRange
+                                    , firstArg = firstArg
+                                    , argsAfterFirst = argsAfterFirst
+                                    }
 
-getSpecificReducedLambdaToCall :
-    ( ModuleName, String )
-    -> ModuleNameLookupTable
-    -> Node Expression
-    ->
-        Maybe
-            { nodeRange : Range
-            , fnRange : Range
-            , callArguments : List (Node Expression)
-            , lambdaPatterns : List (Node Pattern)
-            }
-getSpecificReducedLambdaToCall ( moduleName, name ) lookupTable expressionNode =
-    getReducedLambdaToFn expressionNode
-        |> Maybe.andThen
-            (\reducedLambdaToCall ->
-                if
-                    (reducedLambdaToCall.fnName /= name)
-                        || (ModuleNameLookupTable.moduleNameAt lookupTable reducedLambdaToCall.fnRange /= Just moduleName)
-                then
+                        _ ->
+                            Nothing
+
+                Nothing ->
                     Nothing
 
-                else
-                    Just
-                        { nodeRange = reducedLambdaToCall.nodeRange
-                        , fnRange = reducedLambdaToCall.fnRange
-                        , callArguments = reducedLambdaToCall.callArguments
-                        , lambdaPatterns = reducedLambdaToCall.lambdaPatterns
-                        }
-            )
 
-
-getReducedLambdaToFn :
+getReducedLambda :
     Node Expression
     ->
         Maybe
@@ -608,7 +581,7 @@ getReducedLambdaToFn :
             , callArguments : List (Node Expression)
             , lambdaPatterns : List (Node Pattern)
             }
-getReducedLambdaToFn expressionNode =
+getReducedLambda expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
