@@ -13,7 +13,6 @@ module Simplify.AstHelpers exposing
     , getNotFunction
     , getOrder
     , getSpecificFunctionCall
-    , getSpecificReducedFunctionCall
     , getSpecificValueOrFunction
     , getTuple
     , getTypeExposeIncludingVariants
@@ -139,7 +138,7 @@ getListSingletonCall lookupTable expressionNode =
             Nothing
 
 
-{-| Neither collapsed, nor lambda-reduced
+{-| Parses calls and lambdas that are reducible to a call
 -}
 getSpecificFunctionCall :
     ( ModuleName, String )
@@ -152,94 +151,29 @@ getSpecificFunctionCall :
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
             }
-getSpecificFunctionCall ( moduleName, name ) lookupTable baseNode =
-    getFunctionCall baseNode
-        |> Maybe.andThen
-            (\call ->
-                if
-                    (call.fnName /= name)
-                        || (ModuleNameLookupTable.moduleNameAt lookupTable call.fnRange /= Just moduleName)
-                then
+getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode =
+    case getValueOrFunctionCall expressionNode of
+        Just call ->
+            case call.args of
+                firstArg :: argsAfterFirst ->
+                    if
+                        (call.fnName /= name)
+                            || (ModuleNameLookupTable.moduleNameAt lookupTable call.fnRange /= Just moduleName)
+                    then
+                        Nothing
+
+                    else
+                        Just
+                            { nodeRange = call.nodeRange
+                            , fnRange = call.fnRange
+                            , firstArg = firstArg
+                            , argsAfterFirst = argsAfterFirst
+                            }
+
+                [] ->
                     Nothing
 
-                else
-                    Just
-                        { nodeRange = call.nodeRange
-                        , fnRange = call.fnRange
-                        , firstArg = call.firstArg
-                        , argsAfterFirst = call.argsAfterFirst
-                        }
-            )
-
-
-getFunctionCall :
-    Node Expression
-    ->
-        Maybe
-            { nodeRange : Range
-            , fnName : String
-            , fnRange : Range
-            , firstArg : Node Expression
-            , argsAfterFirst : List (Node Expression)
-            }
-getFunctionCall baseNode =
-    case Node.value (removeParens baseNode) of
-        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsAfterFirst) ->
-            Just
-                { nodeRange = Node.range baseNode
-                , fnRange = fnRange
-                , fnName = fnName
-                , firstArg = firstArg
-                , argsAfterFirst = argsAfterFirst
-                }
-
-        Expression.OperatorApplication "|>" _ firstArg fedFunction ->
-            case fedFunction of
-                Node fnRange (Expression.FunctionOrValue _ fnName) ->
-                    Just
-                        { nodeRange = Node.range baseNode
-                        , fnRange = fnRange
-                        , fnName = fnName
-                        , firstArg = firstArg
-                        , argsAfterFirst = []
-                        }
-
-                Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst)) ->
-                    Just
-                        { nodeRange = Node.range baseNode
-                        , fnRange = fnRange
-                        , fnName = fnName
-                        , firstArg = firstArg
-                        , argsAfterFirst = argsAfterFirst
-                        }
-
-                _ ->
-                    Nothing
-
-        Expression.OperatorApplication "<|" _ fedFunction firstArg ->
-            case fedFunction of
-                Node fnRange (Expression.FunctionOrValue _ fnName) ->
-                    Just
-                        { nodeRange = Node.range baseNode
-                        , fnRange = fnRange
-                        , fnName = fnName
-                        , firstArg = firstArg
-                        , argsAfterFirst = []
-                        }
-
-                Node _ (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: argsAfterFirst)) ->
-                    Just
-                        { nodeRange = Node.range baseNode
-                        , fnRange = fnRange
-                        , fnName = fnName
-                        , firstArg = firstArg
-                        , argsAfterFirst = argsAfterFirst
-                        }
-
-                _ ->
-                    Nothing
-
-        _ ->
+        Nothing ->
             Nothing
 
 
@@ -255,7 +189,7 @@ getValueOrFunctionCall :
             , args : List (Node Expression)
             }
 getValueOrFunctionCall expressionNode =
-    case getCollapsedValueOrFunctionCall expressionNode of
+    case getCollapsedUnreducedValueOrFunctionCall expressionNode of
         Just valueOrCall ->
             Just valueOrCall
 
@@ -310,7 +244,7 @@ getSpecificReducedFn ( moduleName, name ) lookupTable expressionNode =
                     Nothing
 
 
-getCollapsedValueOrFunctionCall :
+getCollapsedUnreducedValueOrFunctionCall :
     Node Expression
     ->
         Maybe
@@ -319,7 +253,7 @@ getCollapsedValueOrFunctionCall :
             , fnRange : Range
             , args : List (Node Expression)
             }
-getCollapsedValueOrFunctionCall baseNode =
+getCollapsedUnreducedValueOrFunctionCall baseNode =
     let
         step :
             { firstArg : Node Expression, argsAfterFirst : List (Node Expression), fed : Node Expression }
@@ -333,7 +267,7 @@ getCollapsedValueOrFunctionCall baseNode =
                     , args = fed.args ++ (layer.firstArg :: layer.argsAfterFirst)
                     }
                 )
-                (getCollapsedValueOrFunctionCall layer.fed)
+                (getCollapsedUnreducedValueOrFunctionCall layer.fed)
     in
     case removeParens baseNode of
         Node fnRange (Expression.FunctionOrValue _ fnName) ->
@@ -527,50 +461,6 @@ isIdentity lookupTable baseNode =
             False
 
 
-{-| Parses calls and lambdas that are reducible to a call
--}
-getSpecificReducedFunctionCall :
-    ( ModuleName, String )
-    -> ModuleNameLookupTable
-    -> Node Expression
-    ->
-        Maybe
-            { nodeRange : Range
-            , fnRange : Range
-            , firstArg : Node Expression
-            , argsAfterFirst : List (Node Expression)
-            }
-getSpecificReducedFunctionCall ( moduleName, name ) lookupTable expressionNode =
-    case getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode of
-        Just call ->
-            Just call
-
-        Nothing ->
-            case getReducedLambda expressionNode of
-                Just reducedLambdaToCall ->
-                    case ( reducedLambdaToCall.lambdaPatterns, reducedLambdaToCall.callArguments ) of
-                        ( [], firstArg :: argsAfterFirst ) ->
-                            if
-                                (reducedLambdaToCall.fnName /= name)
-                                    || (ModuleNameLookupTable.moduleNameAt lookupTable reducedLambdaToCall.fnRange /= Just moduleName)
-                            then
-                                Nothing
-
-                            else
-                                Just
-                                    { nodeRange = reducedLambdaToCall.nodeRange
-                                    , fnRange = reducedLambdaToCall.fnRange
-                                    , firstArg = firstArg
-                                    , argsAfterFirst = argsAfterFirst
-                                    }
-
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-
-
 getReducedLambda :
     Node Expression
     ->
@@ -585,7 +475,7 @@ getReducedLambda expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
-            case getCollapsedValueOrFunctionCall lambda.expression of
+            case getCollapsedUnreducedValueOrFunctionCall lambda.expression of
                 Just call ->
                     let
                         ( reducedCallArguments, reducedLambdaPatterns ) =

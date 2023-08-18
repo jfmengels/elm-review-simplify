@@ -4779,7 +4779,7 @@ dictToListMapChecks : CheckInfo -> List (Error {})
 dictToListMapChecks listMapCheckInfo =
     case secondArg listMapCheckInfo of
         Just listArgument ->
-            case AstHelpers.getSpecificReducedFunctionCall ( [ "Dict" ], "toList" ) listMapCheckInfo.lookupTable listArgument of
+            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "toList" ) listMapCheckInfo.lookupTable listArgument of
                 Just dictToListCall ->
                     let
                         error : { toEntryAspectList : String, tuplePart : String } -> Error {}
