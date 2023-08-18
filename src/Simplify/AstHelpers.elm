@@ -387,31 +387,32 @@ getUncomputedNumberValue expressionNode =
 
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
 isIdentity lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            removeParens baseExpressionNode
-    in
-    case Node.value expressionWithoutParensNode of
-        Expression.FunctionOrValue _ "identity" ->
-            ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode == Just [ "Basics" ]
+    case getSpecificValueOrFunction ( [ "Basics" ], "identity" ) lookupTable baseExpressionNode of
+        Just _ ->
+            True
 
-        Expression.LambdaExpression lambda ->
-            case lambda.args of
-                arg :: [] ->
-                    case getVarPattern arg of
-                        Just patternName ->
-                            getExpressionName lambda.expression
-                                == Just patternName
+        Nothing ->
+            case removeParens baseExpressionNode of
+                Node _ (Expression.LambdaExpression lambda) ->
+                    case lambda.args of
+                        arg :: [] ->
+                            case getVarPattern arg of
+                                Just patternName ->
+                                    case Node.value lambda.expression of
+                                        Expression.FunctionOrValue [] resultName ->
+                                            resultName == patternName
+
+                                        _ ->
+                                            False
+
+                                _ ->
+                                    False
 
                         _ ->
                             False
 
                 _ ->
                     False
-
-        _ ->
-            False
 
 
 getReducedLambda :
@@ -630,16 +631,6 @@ letDeclarationListBindings letDeclarationList =
         |> List.map
             (\(Node _ declaration) -> letDeclarationBindings declaration)
         |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
-
-
-getExpressionName : Node Expression -> Maybe String
-getExpressionName expressionNode =
-    case Node.value (removeParens expressionNode) of
-        Expression.FunctionOrValue [] name ->
-            Just name
-
-        _ ->
-            Nothing
 
 
 isListLiteral : Node Expression -> Bool
