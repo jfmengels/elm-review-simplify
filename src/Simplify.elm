@@ -4411,17 +4411,22 @@ listConcatMapChecks checkInfo =
             else
                 []
         , \() ->
-            if isAlwaysEmptyList checkInfo.lookupTable checkInfo.firstArg then
-                [ Rule.errorWithFix
-                    { message = "List.concatMap will result in on an empty list"
-                    , details = [ "You can replace this call by an empty list." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                ]
+            case getAlwaysResult checkInfo checkInfo.firstArg of
+                Just alwaysResult ->
+                    if AstHelpers.isEmptyList alwaysResult then
+                        [ Rule.errorWithFix
+                            { message = qualifiedToString ( [ "List" ], "concatMap" ) ++ " will result in on an empty list"
+                            , details = [ "You can replace this call by an empty list." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                        ]
 
-            else
-                []
+                    else
+                        []
+
+                Nothing ->
+                    []
         , \() ->
             case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
                 Expression.LambdaExpression lambda ->
@@ -8896,24 +8901,6 @@ isAlwaysMaybe lookupTable baseExpressionNode =
 
         _ ->
             Undetermined
-
-
-isAlwaysEmptyList : ModuleNameLookupTable -> Node Expression -> Bool
-isAlwaysEmptyList lookupTable expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: alwaysValue :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    AstHelpers.isEmptyList alwaysValue
-
-                _ ->
-                    False
-
-        Expression.LambdaExpression lambda ->
-            AstHelpers.isEmptyList lambda.expression
-
-        _ ->
-            False
 
 
 getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
