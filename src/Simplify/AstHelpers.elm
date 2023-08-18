@@ -396,12 +396,12 @@ isIdentity lookupTable baseExpressionNode =
         Expression.FunctionOrValue _ "identity" ->
             ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode == Just [ "Basics" ]
 
-        Expression.LambdaExpression { args, expression } ->
-            case args of
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
                 arg :: [] ->
                     case getVarPattern arg of
                         Just patternName ->
-                            getExpressionName expression
+                            getExpressionName lambda.expression
                                 == Just patternName
 
                         _ ->
@@ -713,29 +713,18 @@ getTuple expressionNode =
 
 
 getBoolPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
-getBoolPattern lookupTable patternNode =
-    case Node.value patternNode of
-        Pattern.NamedPattern { name } _ ->
-            case name of
-                "True" ->
-                    if ModuleNameLookupTable.moduleNameFor lookupTable patternNode == Just [ "Basics" ] then
-                        Just True
+getBoolPattern lookupTable basePatternNode =
+    case removeParensFromPattern basePatternNode of
+        Node variantPatternRange (Pattern.NamedPattern variantPattern _) ->
+            case ( ModuleNameLookupTable.moduleNameAt lookupTable variantPatternRange, variantPattern.name ) of
+                ( Just [ "Basics" ], "True" ) ->
+                    Just True
 
-                    else
-                        Nothing
-
-                "False" ->
-                    if ModuleNameLookupTable.moduleNameFor lookupTable patternNode == Just [ "Basics" ] then
-                        Just False
-
-                    else
-                        Nothing
+                ( Just [ "Basics" ], "False" ) ->
+                    Just False
 
                 _ ->
                     Nothing
-
-        Pattern.ParenthesizedPattern pattern ->
-            getBoolPattern lookupTable pattern
 
         _ ->
             Nothing
@@ -857,8 +846,8 @@ nameOfExpose topLevelExpose =
         Exposing.InfixExpose name ->
             name
 
-        Exposing.TypeExpose { name } ->
-            name
+        Exposing.TypeExpose typeExpose ->
+            typeExpose.name
 
 
 
