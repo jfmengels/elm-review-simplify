@@ -2795,6 +2795,7 @@ toggleCompositionChecks toggle checkInfo =
                 toggleFullyQualifiedAsString =
                     qualifiedToString toggle
             in
+            -- TODO rework error info
             { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
             , details = [ "Composing " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " cancels each other out." ]
             }
@@ -2900,6 +2901,7 @@ toggleChainErrorInfo toggle =
         toggleFullyQualifiedAsString =
             qualifiedToString toggle
     in
+    -- TODO rework error info
     { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
     , details = [ "Composing " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " cancels each other out." ]
     }
