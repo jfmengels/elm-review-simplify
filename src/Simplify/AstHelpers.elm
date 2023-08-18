@@ -50,39 +50,39 @@ import Simplify.Normalize as Normalize
 
 
 removeParens : Node Expression -> Node Expression
-removeParens node =
-    case Node.value node of
-        Expression.ParenthesizedExpression expr ->
-            removeParens expr
+removeParens expressionNode =
+    case Node.value expressionNode of
+        Expression.ParenthesizedExpression expressionInsideOnePairOfParensNode ->
+            removeParens expressionInsideOnePairOfParensNode
 
         _ ->
-            node
+            expressionNode
 
 
 removeParensFromPattern : Node Pattern -> Node Pattern
-removeParensFromPattern node =
-    case Node.value node of
-        Pattern.ParenthesizedPattern pattern ->
-            removeParensFromPattern pattern
+removeParensFromPattern patternNode =
+    case Node.value patternNode of
+        Pattern.ParenthesizedPattern patternInsideOnePairOfParensNode ->
+            removeParensFromPattern patternInsideOnePairOfParensNode
 
         _ ->
-            node
+            patternNode
 
 
 isSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificValueOrFunction ( moduleName, name ) lookupTable node =
-    case removeParens node of
-        Node noneRange (Expression.FunctionOrValue _ foundName) ->
+isSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
+    case removeParens expressionNode of
+        Node fnRange (Expression.FunctionOrValue _ foundName) ->
             (foundName == name)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+                && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
 
         _ ->
             False
 
 
 isSpecificCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificCall ( moduleName, fnName ) lookupTable node =
-    case Node.value (removeParens node) of
+isSpecificCall ( moduleName, fnName ) lookupTable expressionNode =
+    case Node.value (removeParens expressionNode) of
         Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
             (foundFnName == fnName)
                 && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
@@ -92,8 +92,8 @@ isSpecificCall ( moduleName, fnName ) lookupTable node =
 
 
 getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
-getListSingleton lookupTable baseNode =
-    case Node.value (removeParens baseNode) of
+getListSingleton lookupTable baseExpressionNode =
+    case Node.value (removeParens baseExpressionNode) of
         Expression.ListExpr [ element ] ->
             Just { element = element }
 
@@ -101,7 +101,7 @@ getListSingleton lookupTable baseNode =
             Nothing
 
         _ ->
-            getListSingletonCall lookupTable baseNode
+            getListSingletonCall lookupTable baseExpressionNode
 
 
 getListSingletonCall : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
@@ -391,8 +391,8 @@ isTupleSecondPatternLambda expressionNode =
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
-getUncomputedNumberValue node =
-    case Node.value (removeParens node) of
+getUncomputedNumberValue expressionNode =
+    case Node.value (removeParens expressionNode) of
         Expression.Integer n ->
             Just (toFloat n)
 
@@ -410,15 +410,15 @@ getUncomputedNumberValue node =
 
 
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
-isIdentity lookupTable baseNode =
+isIdentity lookupTable baseExpressionNode =
     let
-        node : Node Expression
-        node =
-            removeParens baseNode
+        expressionWithoutParensNode : Node Expression
+        expressionWithoutParensNode =
+            removeParens baseExpressionNode
     in
-    case Node.value node of
+    case Node.value expressionWithoutParensNode of
         Expression.FunctionOrValue _ "identity" ->
-            ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ]
+            ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode == Just [ "Basics" ]
 
         Expression.LambdaExpression { args, expression } ->
             case args of
@@ -543,8 +543,8 @@ getCollapsedLambda expressionNode =
 
 
 getVarPattern : Node Pattern -> Maybe String
-getVarPattern node =
-    case Node.value node of
+getVarPattern patternNode =
+    case Node.value patternNode of
         Pattern.VarPattern name ->
             Just name
 
@@ -657,8 +657,8 @@ letDeclarationListBindings letDeclarationList =
 
 
 getExpressionName : Node Expression -> Maybe String
-getExpressionName node =
-    case Node.value (removeParens node) of
+getExpressionName expressionNode =
+    case Node.value (removeParens expressionNode) of
         Expression.FunctionOrValue [] name ->
             Just name
 
@@ -667,8 +667,8 @@ getExpressionName node =
 
 
 isListLiteral : Node Expression -> Bool
-isListLiteral node =
-    case Node.value node of
+isListLiteral expressionNode =
+    case Node.value expressionNode of
         Expression.ListExpr _ ->
             True
 
@@ -734,19 +734,19 @@ getTuple expressionNode =
 
 
 getBoolPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
-getBoolPattern lookupTable node =
-    case Node.value node of
+getBoolPattern lookupTable patternNode =
+    case Node.value patternNode of
         Pattern.NamedPattern { name } _ ->
             case name of
                 "True" ->
-                    if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
+                    if ModuleNameLookupTable.moduleNameFor lookupTable patternNode == Just [ "Basics" ] then
                         Just True
 
                     else
                         Nothing
 
                 "False" ->
-                    if ModuleNameLookupTable.moduleNameFor lookupTable node == Just [ "Basics" ] then
+                    if ModuleNameLookupTable.moduleNameFor lookupTable patternNode == Just [ "Basics" ] then
                         Just False
 
                     else
@@ -783,8 +783,8 @@ getOrder lookupTable expression =
 
 
 isEmptyList : Node Expression -> Bool
-isEmptyList node =
-    case Node.value (removeParens node) of
+isEmptyList expressionNode =
+    case Node.value (removeParens expressionNode) of
         Expression.ListExpr [] ->
             True
 
