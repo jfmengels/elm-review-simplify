@@ -8,7 +8,6 @@ module Simplify.AstHelpers exposing
     , getComposition
     , getListLiteral
     , getListSingleton
-    , getListSingletonCall
     , getOrder
     , getSpecificBool
     , getSpecificFunctionCall

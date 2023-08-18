@@ -6149,20 +6149,6 @@ htmlAttributesClassListChecks checkInfo =
         listArg =
             checkInfo.firstArg
 
-        getTupleWithSecond : Node Expression -> Maybe { range : Range, first : Node Expression, second : Bool }
-        getTupleWithSecond expressionNode =
-            case AstHelpers.getTuple expressionNode of
-                Just tuple ->
-                    case AstHelpers.getBool checkInfo.lookupTable tuple.second of
-                        Just bool ->
-                            Just { range = tuple.range, first = tuple.first, second = bool }
-
-                        Nothing ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-
         getTupleWithSpecificSecond : Bool -> Node Expression -> Maybe { range : Range, first : Node Expression }
         getTupleWithSpecificSecond specificBool expressionNode =
             case AstHelpers.getTuple expressionNode of
@@ -6176,53 +6162,58 @@ htmlAttributesClassListChecks checkInfo =
 
                 Nothing ->
                     Nothing
-
-        singleElementListChecks : { a | element : Node Expression } -> List (Error {})
-        singleElementListChecks single =
-            case getTupleWithSecond single.element of
-                Just tuple ->
-                    if tuple.second then
-                        singleTrueChecks tuple
-
-                    else
-                        [ Rule.errorWithFix htmlAttributesClassListFalseElementError
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy (Node.range listArg) "[]" ]
-                        ]
-
-                Nothing ->
-                    []
-
-        singleTrueChecks : { a | first : Node Expression } -> List (Error {})
-        singleTrueChecks { first } =
-            [ Rule.errorWithFix
-                { message = qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" )
-                , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" ) ++ " with the String from the single tuple list element." ]
-                }
-                checkInfo.fnRange
-                (replaceBySubExpressionFix (Node.range listArg) first
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Html", "Attributes" ], "class" ) checkInfo))
-                       ]
-                )
-            ]
     in
-    case AstHelpers.getListLiteral listArg of
-        Just (single :: []) ->
-            singleElementListChecks { element = single }
+    firstThatReportsError
+        [ \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                Just single ->
+                    case AstHelpers.getTuple single.element of
+                        Just tuple ->
+                            case AstHelpers.getBool checkInfo.lookupTable tuple.second of
+                                Just bool ->
+                                    if bool then
+                                        [ Rule.errorWithFix
+                                            { message = qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" )
+                                            , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" ) ++ " with the String from the single tuple list element." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (replaceBySubExpressionFix (Node.range listArg) tuple.first
+                                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                        (qualifiedToString (qualify ( [ "Html", "Attributes" ], "class" ) checkInfo))
+                                                   ]
+                                            )
+                                        ]
 
-        Just nonSingletonList ->
-            case findMapNeighboring (getTupleWithSpecificSecond False) nonSingletonList of
-                Just classPart ->
-                    [ Rule.errorWithFix htmlAttributesClassListFalseElementError
-                        checkInfo.fnRange
-                        (listLiteralElementRemoveFix classPart)
-                    ]
+                                    else
+                                        [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy (Node.range listArg) "[]" ]
+                                        ]
+
+                                Nothing ->
+                                    []
+
+                        Nothing ->
+                            []
 
                 Nothing ->
                     []
+        , \() ->
+            case AstHelpers.getListLiteral listArg of
+                Just (tuple0 :: tuple1 :: tuple2Up) ->
+                    case findMapNeighboring (getTupleWithSpecificSecond False) (tuple0 :: tuple1 :: tuple2Up) of
+                        Just classPart ->
+                            [ Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                checkInfo.fnRange
+                                (listLiteralElementRemoveFix classPart)
+                            ]
 
-        Nothing ->
+                        Nothing ->
+                            []
+
+                _ ->
+                    []
+        , \() ->
             case AstHelpers.getCollapsedCons listArg of
                 Just classParts ->
                     case findMapNeighboring (getTupleWithSpecificSecond False) classParts.consed of
@@ -6240,12 +6231,9 @@ htmlAttributesClassListChecks checkInfo =
                             []
 
                 Nothing ->
-                    case AstHelpers.getListSingletonCall checkInfo.lookupTable listArg of
-                        Just single ->
-                            singleElementListChecks single
-
-                        Nothing ->
-                            []
+                    []
+        ]
+        ()
 
 
 
