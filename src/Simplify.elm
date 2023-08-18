@@ -6551,7 +6551,7 @@ resultCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
     , emptyDescription = "an error"
-    , isEmpty = AstHelpers.isSpecificCall ( [ "Result" ], "Err" )
+    , isEmpty = AstHelpers.isSpecificFunctionCall ( [ "Result" ], "Err" )
     , isSomethingConstructor =
         \resources ->
             qualifiedToString (qualify ( [ "Result" ], "Ok" ) resources)

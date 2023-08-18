@@ -21,7 +21,7 @@ module Simplify.AstHelpers exposing
     , isIdentity
     , isListLiteral
     , isSpecificBool
-    , isSpecificCall
+    , isSpecificFunctionCall
     , isSpecificValueOrFunction
     , isTupleFirstAccess
     , isTupleSecondAccess
@@ -79,12 +79,11 @@ isSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
             False
 
 
-isSpecificCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
-isSpecificCall ( moduleName, fnName ) lookupTable expressionNode =
-    case Node.value (removeParens expressionNode) of
-        Expression.Application ((Node noneRange (Expression.FunctionOrValue _ foundFnName)) :: _ :: []) ->
-            (foundFnName == fnName)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable noneRange == Just moduleName)
+isSpecificFunctionCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificFunctionCall ( moduleName, fnName ) lookupTable expressionNode =
+    case getSpecificFunctionCall ( moduleName, fnName ) lookupTable expressionNode of
+        Just _ ->
+            True
 
         _ ->
             False
