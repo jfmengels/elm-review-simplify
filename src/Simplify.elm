@@ -3535,43 +3535,6 @@ basicsAlwaysCompositionChecks checkInfo =
             []
 
 
-getAlwaysArgument : ModuleNameLookupTable -> Node Expression -> Maybe { alwaysRange : Range, rangeToRemove : Range }
-getAlwaysArgument lookupTable node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: (Node argRange _) :: []) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
-                Just
-                    { alwaysRange = alwaysRange
-                    , rangeToRemove = { start = alwaysRange.start, end = argRange.start }
-                    }
-
-            else
-                Nothing
-
-        Expression.OperatorApplication "<|" _ (Node alwaysRange (Expression.FunctionOrValue _ "always")) (Node argRange _) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
-                Just
-                    { alwaysRange = alwaysRange
-                    , rangeToRemove = { start = alwaysRange.start, end = argRange.start }
-                    }
-
-            else
-                Nothing
-
-        Expression.OperatorApplication "|>" _ (Node argRange _) (Node alwaysRange (Expression.FunctionOrValue _ "always")) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange == Just [ "Basics" ] then
-                Just
-                    { alwaysRange = alwaysRange
-                    , rangeToRemove = { start = argRange.end, end = alwaysRange.end }
-                    }
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
-
-
 reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
 reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
     ( ( moduleName, name )
@@ -4484,17 +4447,17 @@ listIndexedMapChecks checkInfo =
                 _ ->
                     []
         , \() ->
-            case getAlwaysArgument checkInfo.lookupTable checkInfo.firstArg of
-                Just elementChangeArg ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) checkInfo.lookupTable checkInfo.firstArg of
+                Just alwaysCall ->
                     [ Rule.errorWithFix
                         { message = "Use List.map instead"
                         , details = [ "Using List.indexedMap while ignoring the first argument is the same thing as calling List.map." ]
                         }
-                        elementChangeArg.alwaysRange
-                        [ Fix.replaceRangeBy checkInfo.fnRange
+                        alwaysCall.fnRange
+                        (Fix.replaceRangeBy checkInfo.fnRange
                             (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                        , Fix.removeRange elementChangeArg.rangeToRemove
-                        ]
+                            :: replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg
+                        )
                     ]
 
                 Nothing ->
