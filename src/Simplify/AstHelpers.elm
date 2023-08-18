@@ -71,12 +71,11 @@ removeParensFromPattern patternNode =
 
 isSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
 isSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
-    case removeParens expressionNode of
-        Node fnRange (Expression.FunctionOrValue _ foundName) ->
-            (foundName == name)
-                && (ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName)
+    case getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode of
+        Just _ ->
+            True
 
-        _ ->
+        Nothing ->
             False
 
 
