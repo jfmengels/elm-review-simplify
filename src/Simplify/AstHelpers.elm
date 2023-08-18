@@ -4,8 +4,8 @@ module Simplify.AstHelpers exposing
     , emptyStringAsString
     , getBool
     , getBoolPattern
+    , getCollapsedAndReducedValueOrFunctionCall
     , getCollapsedCons
-    , getCollapsedValueOrFunctionCall
     , getComposition
     , getListLiteral
     , getListSingleton
@@ -240,6 +240,39 @@ getFunctionCall baseNode =
 
         _ ->
             Nothing
+
+
+getCollapsedAndReducedValueOrFunctionCall :
+    Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnName : String
+            , fnRange : Range
+            , args : List (Node Expression)
+            }
+getCollapsedAndReducedValueOrFunctionCall expressionNode =
+    case getCollapsedValueOrFunctionCall expressionNode of
+        Just valueOrCall ->
+            Just valueOrCall
+
+        Nothing ->
+            case getReducedLambdaToFn expressionNode of
+                Just reducedLambda ->
+                    case ( reducedLambda.lambdaPatterns, reducedLambda.callArguments ) of
+                        ( [], args ) ->
+                            Just
+                                { nodeRange = reducedLambda.nodeRange
+                                , fnName = reducedLambda.fnName
+                                , fnRange = reducedLambda.fnRange
+                                , args = args
+                                }
+
+                        ( _ :: _, _ ) ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
 
 
 getCollapsedValueOrFunctionCall :
@@ -501,7 +534,7 @@ getReducedFunction expressionNode =
                         ( _ :: _, _ :: _ ) ->
                             Nothing
                 )
-                (getReducedLambdaToCall expressionNode)
+                (getReducedLambdaToFn expressionNode)
 
 
 {-| Parses calls and lambdas that are reducible to a call
@@ -558,7 +591,7 @@ getSpecificReducedLambdaToCall :
             , lambdaPatterns : List (Node Pattern)
             }
 getSpecificReducedLambdaToCall ( moduleName, name ) lookupTable expressionNode =
-    getReducedLambdaToCall expressionNode
+    getReducedLambdaToFn expressionNode
         |> Maybe.andThen
             (\reducedLambdaToCall ->
                 if
@@ -577,7 +610,7 @@ getSpecificReducedLambdaToCall ( moduleName, name ) lookupTable expressionNode =
             )
 
 
-getReducedLambdaToCall :
+getReducedLambdaToFn :
     Node Expression
     ->
         Maybe
@@ -587,7 +620,7 @@ getReducedLambdaToCall :
             , callArguments : List (Node Expression)
             , lambdaPatterns : List (Node Pattern)
             }
-getReducedLambdaToCall expressionNode =
+getReducedLambdaToFn expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
