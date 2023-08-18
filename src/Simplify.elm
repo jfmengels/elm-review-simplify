@@ -3401,16 +3401,16 @@ equalityChecks isEqual checkInfo =
     else
         case
             Maybe.map2 Tuple.pair
-                (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
-                (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
+                (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
+                (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
         of
-            Just ( notRangeLeft, notRangeRight ) ->
+            Just ( leftNot, rightNot ) ->
                 [ Rule.errorWithFix
                     { message = "Unnecessary negation on both sides"
                     , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange notRangeLeft, Fix.removeRange notRangeRight ]
+                    [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
                 ]
 
             _ ->
