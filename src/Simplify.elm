@@ -4414,7 +4414,7 @@ listIndexedMapChecks checkInfo =
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
                     case Maybe.map AstHelpers.removeParensFromPattern (List.head lambda.args) of
-                        Just (Node patternRange Pattern.AllPattern) ->
+                        Just (Node _ Pattern.AllPattern) ->
                             let
                                 rangeToRemove : Range
                                 rangeToRemove =
