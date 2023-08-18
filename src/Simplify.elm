@@ -6524,7 +6524,7 @@ setCollection =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
     , nameForSize = "size"
-    , determineSize = determineIfCollectionIsEmpty [ "Set" ] 1
+    , determineSize = collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList { moduleName = [ "Set" ], singletonArgCount = 1 }
     }
 
 
@@ -6540,7 +6540,7 @@ dictCollection =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
     , nameForSize = "size"
-    , determineSize = determineIfCollectionIsEmpty [ "Dict" ] 2
+    , determineSize = collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList { moduleName = [ "Dict" ], singletonArgCount = 2 }
     }
 
 
@@ -7717,48 +7717,55 @@ combineSingleElementFixes lookupTable nodes soFar =
                     combineSingleElementFixes lookupTable restOfNodes (fixes ++ soFar)
 
 
-determineIfCollectionIsEmpty : ModuleName -> Int -> ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-determineIfCollectionIsEmpty moduleName singletonNumberOfArgs lookupTable expressionNode =
-    case AstHelpers.getSpecificValueOrFunction ( moduleName, "empty" ) lookupTable expressionNode of
-        Just _ ->
-            Just (Exactly 0)
+collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList :
+    { moduleName : ModuleName, singletonArgCount : Int }
+    -> ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe CollectionSize
+collectionOfComparablesDetermineSizeFromEmptySingletonOrFromList config lookupTable expressionNode =
+    findMap (\f -> f ())
+        [ \() ->
+            case AstHelpers.getSpecificValueOrFunction ( config.moduleName, "empty" ) lookupTable expressionNode of
+                Just _ ->
+                    Just (Exactly 0)
 
-        Nothing ->
-            case Node.value (AstHelpers.removeParens expressionNode) of
-                Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: args) ->
-                    if List.length args == singletonNumberOfArgs && ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( config.moduleName, "singleton" ) lookupTable expressionNode of
+                Just singletonCall ->
+                    if 1 + List.length singletonCall.argsAfterFirst == config.singletonArgCount then
                         Just (Exactly 1)
 
                     else
                         Nothing
 
-                Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "fromList")) :: (Node _ (Expression.ListExpr list)) :: []) ->
-                    if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just moduleName then
-                        case moduleName of
-                            [ "Set" ] ->
-                                case list of
-                                    [] ->
-                                        Just (Exactly 0)
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( config.moduleName, "fromList" ) lookupTable expressionNode of
+                Just fromListCall ->
+                    case AstHelpers.getListLiteral fromListCall.firstArg of
+                        Just [] ->
+                            Just (Exactly 0)
 
-                                    _ :: [] ->
-                                        Just (Exactly 1)
+                        Just (_ :: []) ->
+                            Just (Exactly 1)
 
-                                    _ :: _ :: _ ->
-                                        case traverse getComparableExpression list of
-                                            Nothing ->
-                                                Just NotEmpty
+                        Just (el0 :: el1 :: el2Up) ->
+                            case traverse getComparableExpression (el0 :: el1 :: el2Up) of
+                                Nothing ->
+                                    Just NotEmpty
 
-                                            Just comparableExpressions ->
-                                                comparableExpressions |> unique |> List.length |> Exactly |> Just
+                                Just comparableExpressions ->
+                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
 
-                            _ ->
-                                Just (Exactly (List.length list))
-
-                    else
-                        Nothing
+                        Nothing ->
+                            Nothing
 
                 _ ->
                     Nothing
+        ]
 
 
 

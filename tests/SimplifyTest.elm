@@ -16433,6 +16433,7 @@ dictSizeTests =
                 """module A exposing (..)
 a = Dict.size
 a = Dict.size b
+a = Dict.size (Dict.fromList [b, c, d])
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16450,22 +16451,6 @@ a = Dict.size Dict.empty
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
-"""
-                        ]
-        , test "should replace Dict.size (Dict.fromList [b, c, d]) by 3" <|
-            \() ->
-                """module A exposing (..)
-a = Dict.size (Dict.fromList [b, c, d])
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "The size of the Dict is 3"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
-                            , under = "Dict.size"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = 3
 """
                         ]
         , test "should replace Dict.empty |> Dict.size by 0" <|
