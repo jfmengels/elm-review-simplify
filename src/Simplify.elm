@@ -5468,7 +5468,7 @@ listFilterMapChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Just { ranges, throughLambdaFunction }) ->
+                Determined (Just { fixes, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
@@ -5477,7 +5477,7 @@ listFilterMapChecks checkInfo =
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
                                 (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                :: List.map Fix.removeRange ranges
+                                :: fixes
                             )
                         ]
 
@@ -6968,14 +6968,14 @@ maybeAndThenChecks checkInfo =
             case maybeMaybeArg of
                 Just maybeArg ->
                     case getMaybeValues checkInfo.lookupTable maybeArg of
-                        Determined (Just justRanges) ->
+                        Determined (Just justRangesRemoveFix) ->
                             [ Rule.errorWithFix
                                 { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
                                 , details = [ "You can remove the Just and just call the function directly." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    :: List.map Fix.removeRange justRanges
+                                    :: justRangesRemoveFix
                                 )
                             ]
 
@@ -6995,7 +6995,7 @@ maybeAndThenChecks checkInfo =
                     []
         , \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Just { ranges, throughLambdaFunction }) ->
+                Determined (Just { fixes, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Use " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ " instead"
@@ -7004,7 +7004,7 @@ maybeAndThenChecks checkInfo =
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
                                 (qualifiedToString (qualify ( maybeCollection.moduleName, "map" ) checkInfo))
-                                :: List.map Fix.removeRange ranges
+                                :: fixes
                             )
                         ]
 
@@ -7790,13 +7790,13 @@ maybeWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just maybeArg ->
             case getMaybeValues checkInfo.lookupTable maybeArg of
-                Determined (Just justRanges) ->
+                Determined (Just justRangesRemoveFix) ->
                     [ Rule.errorWithFix
                         { message = "Using Maybe.withDefault on a value that is Just will result in that value"
                         , details = [ "You can replace this call by the value wrapped in Just." ]
                         }
                         checkInfo.fnRange
-                        (List.map Fix.removeRange justRanges
+                        (justRangesRemoveFix
                             ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg }
                         )
                     ]
@@ -8366,6 +8366,22 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
             []
 
 
+isSimpleDestructurePattern : Node Pattern -> Bool
+isSimpleDestructurePattern (Node _ pattern) =
+    case pattern of
+        Pattern.TuplePattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.VarPattern _ ->
+            True
+
+        _ ->
+            False
+
+
 
 -- LET IN
 
@@ -8854,23 +8870,7 @@ needsParens expr =
             False
 
 
-isSimpleDestructurePattern : Node Pattern -> Bool
-isSimpleDestructurePattern (Node _ pattern) =
-    case pattern of
-        Pattern.TuplePattern _ ->
-            True
-
-        Pattern.RecordPattern _ ->
-            True
-
-        Pattern.VarPattern _ ->
-            True
-
-        _ ->
-            False
-
-
-isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { ranges : List Range, throughLambdaFunction : Bool })
+isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { fixes : List Fix, throughLambdaFunction : Bool })
 isAlwaysMaybe lookupTable baseExpressionNode =
     let
         expressionWithoutParensNode : Node Expression
@@ -8881,7 +8881,12 @@ isAlwaysMaybe lookupTable baseExpressionNode =
         Expression.FunctionOrValue _ "Just" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
                 Just [ "Maybe" ] ->
-                    Determined (Just { ranges = [ Node.range expressionWithoutParensNode ], throughLambdaFunction = False })
+                    Determined
+                        (Just
+                            { fixes = [ Fix.removeRange (Node.range expressionWithoutParensNode) ]
+                            , throughLambdaFunction = False
+                            }
+                        )
 
                 _ ->
                     Undetermined
@@ -8890,14 +8895,14 @@ isAlwaysMaybe lookupTable baseExpressionNode =
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
                     getMaybeValues lookupTable value
-                        |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
+                        |> Match.map (Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = False }))
 
                 _ ->
                     Undetermined
 
         Expression.LambdaExpression lambda ->
             getMaybeValues lookupTable lambda.expression
-                |> Match.map (Maybe.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
+                |> Match.map (Maybe.map (\ranges -> { fixes = ranges, throughLambdaFunction = True }))
 
         _ ->
             Undetermined
@@ -8988,60 +8993,33 @@ pureCallsInAllBranches pureFullyQualified lookupTable baseExpressionNode =
                     Nothing
 
 
-getMaybeValues : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Range))
+getMaybeValues : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
 getMaybeValues lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            AstHelpers.removeParens baseExpressionNode
-    in
-    case Node.value expressionWithoutParensNode of
-        Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: (Node argRange _) :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
-                Just [ "Maybe" ] ->
-                    Determined (Just [ { start = justRange.start, end = argRange.start } ])
+    case AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
+        Just justCall ->
+            Determined (Just (replaceBySubExpressionFix justCall.nodeRange justCall.firstArg))
 
-                _ ->
-                    Undetermined
-
-        Expression.OperatorApplication "|>" _ (Node argRange _) (Node justRange (Expression.FunctionOrValue _ "Just")) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
-                Just [ "Maybe" ] ->
-                    Determined (Just [ { start = argRange.end, end = justRange.end } ])
-
-                _ ->
-                    Undetermined
-
-        Expression.OperatorApplication "<|" _ (Node justRange (Expression.FunctionOrValue _ "Just")) (Node argRange _) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
-                Just [ "Maybe" ] ->
-                    Determined (Just [ { start = justRange.start, end = argRange.start } ])
-
-                _ ->
-                    Undetermined
-
-        Expression.FunctionOrValue _ "Nothing" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
-                Just [ "Maybe" ] ->
+        Nothing ->
+            case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable baseExpressionNode of
+                Just _ ->
                     Determined Nothing
 
-                _ ->
-                    Undetermined
+                Nothing ->
+                    case Node.value (AstHelpers.removeParens baseExpressionNode) of
+                        Expression.LetExpression letIn ->
+                            getMaybeValues lookupTable letIn.expression
 
-        Expression.LetExpression letIn ->
-            getMaybeValues lookupTable letIn.expression
+                        Expression.IfBlock _ thenBranch elseBranch ->
+                            combineMaybeValues lookupTable [ thenBranch, elseBranch ]
 
-        Expression.IfBlock _ thenBranch elseBranch ->
-            combineMaybeValues lookupTable [ thenBranch, elseBranch ]
+                        Expression.CaseExpression caseOf ->
+                            combineMaybeValues lookupTable (List.map Tuple.second caseOf.cases)
 
-        Expression.CaseExpression caseOf ->
-            combineMaybeValues lookupTable (List.map Tuple.second caseOf.cases)
-
-        _ ->
-            Undetermined
+                        _ ->
+                            Undetermined
 
 
-combineMaybeValues : ModuleNameLookupTable -> List (Node Expression) -> Match (Maybe (List Range))
+combineMaybeValues : ModuleNameLookupTable -> List (Node Expression) -> Match (Maybe (List Fix))
 combineMaybeValues lookupTable nodes =
     case nodes of
         node :: restOfNodes ->
@@ -9056,7 +9034,7 @@ combineMaybeValues lookupTable nodes =
             Undetermined
 
 
-combineMaybeValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Maybe (List Range) -> Match (Maybe (List Range))
+combineMaybeValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Maybe (List Fix) -> Match (Maybe (List Fix))
 combineMaybeValuesHelp lookupTable nodes soFar =
     case nodes of
         node :: restOfNodes ->

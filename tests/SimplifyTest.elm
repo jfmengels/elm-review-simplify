@@ -13723,7 +13723,7 @@ a = Maybe.andThen (
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Maybe.andThen f (Just x) by f (x)" <|
+        , test "should replace Maybe.andThen f (Just x) by f x" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.andThen f (Just x)
@@ -13736,7 +13736,7 @@ a = Maybe.andThen f (Just x)
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = f (x)
+a = f x
 """
                         ]
         , test "should replace Just x |> Maybe.andThen f by f (x)" <|
@@ -13797,7 +13797,7 @@ a = Maybe.withDefault x (Just y)
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (y)
+a = y
 """
                         ]
         , test "should replace Maybe.withDefault x <| (Just y) by y" <|
@@ -13813,7 +13813,7 @@ a = Maybe.withDefault x <| (Just y)
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (y)
+a = y
 """
                         ]
         , test "should replace (Just y) |> Maybe.withDefault x by y" <|
@@ -13829,7 +13829,7 @@ a = (Just y) |> Maybe.withDefault x
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (y)
+a = y
 """
                         ]
         , test "should replace y |> Just |> Maybe.withDefault x by y" <|
