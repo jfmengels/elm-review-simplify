@@ -4411,7 +4411,7 @@ listConcatMapChecks checkInfo =
             else
                 []
         , \() ->
-            case getAlwaysResult checkInfo checkInfo.firstArg of
+            case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                 Just alwaysResult ->
                     if AstHelpers.isEmptyList alwaysResult then
                         [ Rule.errorWithFix
@@ -5274,7 +5274,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         Nothing ->
                             []
                 , \() ->
-                    case getAlwaysResult checkInfo checkInfo.firstArg of
+                    case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                         Just reduceAlwaysResult ->
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 [ Rule.errorWithFix
@@ -5763,7 +5763,7 @@ listSortByChecks checkInfo =
             Nothing ->
                 \() -> []
         , \() ->
-            case getAlwaysResult checkInfo checkInfo.firstArg of
+            case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                 Just _ ->
                     [ identityError
                         { toFix = "List.sortBy (always a)"
@@ -5840,8 +5840,8 @@ listSortWithChecks checkInfo =
             let
                 alwaysAlwaysOrder : Maybe Order
                 alwaysAlwaysOrder =
-                    getAlwaysResult checkInfo checkInfo.firstArg
-                        |> Maybe.andThen (getAlwaysResult checkInfo)
+                    AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo)
                         |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
             in
             case alwaysAlwaysOrder of
@@ -6483,7 +6483,7 @@ randomMapAlwaysErrorInfo =
 
 randomMapAlwaysChecks : CheckInfo -> List (Error {})
 randomMapAlwaysChecks checkInfo =
-    case getAlwaysResult checkInfo checkInfo.firstArg of
+    case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
         Just (Node alwaysMapResultRange alwaysMapResult) ->
             let
                 ( leftParenIfRequired, rightParenIfRequired ) =
@@ -8901,60 +8901,6 @@ isAlwaysMaybe lookupTable baseExpressionNode =
 
         _ ->
             Undetermined
-
-
-getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
-getAlwaysResult inferResources expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: result :: []) ->
-            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Just result
-
-                _ ->
-                    Nothing
-
-        Expression.OperatorApplication "<|" _ (Node alwaysRange (Expression.FunctionOrValue _ "always")) result ->
-            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Just result
-
-                _ ->
-                    Nothing
-
-        Expression.OperatorApplication "|>" _ result (Node alwaysRange (Expression.FunctionOrValue _ "always")) ->
-            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Just result
-
-                _ ->
-                    Nothing
-
-        Expression.LambdaExpression lambda ->
-            case lambda.args of
-                -- invalid syntax
-                [] ->
-                    Nothing
-
-                (Node _ Pattern.AllPattern) :: [] ->
-                    Just lambda.expression
-
-                (Node _ Pattern.AllPattern) :: patternsAfter_ ->
-                    Just
-                        (Node (Node.range expressionNode)
-                            (Expression.LambdaExpression
-                                { args = patternsAfter_
-                                , expression = lambda.expression
-                                }
-                            )
-                        )
-
-                -- not an ignore-first
-                _ :: _ ->
-                    Nothing
-
-        _ ->
-            Nothing
 
 
 isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range { ranges : List Range, throughLambdaFunction : Bool })

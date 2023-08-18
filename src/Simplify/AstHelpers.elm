@@ -2,6 +2,7 @@ module Simplify.AstHelpers exposing
     ( boolToString
     , declarationListBindings
     , emptyStringAsString
+    , getAlwaysResult
     , getBool
     , getBoolPattern
     , getCollapsedCons
@@ -407,6 +408,60 @@ isIdentity lookupTable baseExpressionNode =
 
                 _ ->
                     False
+
+
+getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
+getAlwaysResult inferResources expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: result :: []) ->
+            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    Just result
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "<|" _ (Node alwaysRange (Expression.FunctionOrValue _ "always")) result ->
+            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    Just result
+
+                _ ->
+                    Nothing
+
+        Expression.OperatorApplication "|>" _ result (Node alwaysRange (Expression.FunctionOrValue _ "always")) ->
+            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    Just result
+
+                _ ->
+                    Nothing
+
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                -- invalid syntax
+                [] ->
+                    Nothing
+
+                (Node _ Pattern.AllPattern) :: [] ->
+                    Just lambda.expression
+
+                (Node _ Pattern.AllPattern) :: patternsAfter_ ->
+                    Just
+                        (Node (Node.range expressionNode)
+                            (Expression.LambdaExpression
+                                { args = patternsAfter_
+                                , expression = lambda.expression
+                                }
+                            )
+                        )
+
+                -- not an ignore-first
+                _ :: _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 getReducedLambda :
