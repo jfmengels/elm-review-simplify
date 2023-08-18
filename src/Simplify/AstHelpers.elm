@@ -9,8 +9,6 @@ module Simplify.AstHelpers exposing
     , getListLiteral
     , getListSingleton
     , getListSingletonCall
-    , getNegateFunction
-    , getNotFunction
     , getOrder
     , getSpecificFunctionCall
     , getSpecificValueOrFunction
@@ -301,20 +299,6 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
 
         _ ->
             Nothing
-
-
-{-| TODO replace by getSpecificValueOrFunction
--}
-getNotFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
-getNotFunction lookupTable baseNode =
-    getSpecificValueOrFunction ( [ "Basics" ], "not" ) lookupTable baseNode
-
-
-{-| TODO replace by getSpecificValueOrFunction
--}
-getNegateFunction : ModuleNameLookupTable -> Node Expression -> Maybe Range
-getNegateFunction lookupTable baseNode =
-    getSpecificValueOrFunction ( [ "Basics" ], "negate" ) lookupTable baseNode
 
 
 getComposition : Node Expression -> Maybe { parentRange : Range, earlier : Node Expression, later : Node Expression }

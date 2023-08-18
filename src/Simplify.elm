@@ -2996,7 +2996,10 @@ basicsNegateCompositionChecks checkInfo =
 
 basicsNegateChecks : CheckInfo -> List (Error {})
 basicsNegateChecks checkInfo =
-    removeAlongWithOtherFunctionCheck (toggleChainErrorInfo ( [ "Basics" ], "negate" )) AstHelpers.getNegateFunction checkInfo
+    removeAlongWithOtherFunctionCheck
+        (toggleChainErrorInfo ( [ "Basics" ], "negate" ))
+        (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "negate" ))
+        checkInfo
 
 
 
@@ -3007,7 +3010,9 @@ basicsNotChecks : CheckInfo -> List (Error {})
 basicsNotChecks checkInfo =
     firstThatReportsError
         [ notOnKnownBoolCheck
-        , removeAlongWithOtherFunctionCheck (toggleChainErrorInfo ( [ "Basics" ], "not" )) AstHelpers.getNotFunction
+        , removeAlongWithOtherFunctionCheck
+            (toggleChainErrorInfo ( [ "Basics" ], "not" ))
+            (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ))
         , isNotOnBooleanOperatorCheck
         ]
         checkInfo
