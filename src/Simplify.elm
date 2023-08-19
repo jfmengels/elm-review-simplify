@@ -6968,35 +6968,41 @@ maybeAndThenChecks checkInfo =
             secondArg checkInfo
     in
     firstThatReportsError
-        [ \() ->
-            case maybeMaybeArg of
-                Just maybeArg ->
-                    case justCallsOrNothingInAllBranches checkInfo.lookupTable maybeArg of
-                        Determined (Just justRangesRemoveFix) ->
-                            [ Rule.errorWithFix
-                                { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
-                                , details = [ "You can remove the Just and just call the function directly." ]
-                                }
-                                checkInfo.fnRange
-                                (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    :: justRangesRemoveFix
-                                )
-                            ]
+        [ case maybeMaybeArg of
+            Just maybeArg ->
+                firstThatReportsError
+                    [ \() ->
+                        case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
+                            Determined justCalls ->
+                                [ Rule.errorWithFix
+                                    { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
+                                    , details = [ "You can remove the Just and just call the function directly." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                        :: List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls
+                                    )
+                                ]
 
-                        Determined Nothing ->
-                            [ Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
-                                , details = [ "You can replace this call by " ++ maybeEmptyAsString ++ "." ]
-                                }
-                                checkInfo.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
-                            ]
+                            Undetermined ->
+                                []
+                    , \() ->
+                        case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable maybeArg of
+                            Determined _ ->
+                                [ Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
+                                    , details = [ "You can replace this call by " ++ maybeEmptyAsString ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
+                                ]
 
-                        Undetermined ->
-                            []
+                            Undetermined ->
+                                []
+                    ]
 
-                Nothing ->
-                    []
+            Nothing ->
+                \() -> []
         , \() ->
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined { fix, throughLambdaFunction } ->
@@ -7798,31 +7804,39 @@ maybeWithDefaultChecks : CheckInfo -> List (Error {})
 maybeWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just maybeArg ->
-            case justCallsOrNothingInAllBranches checkInfo.lookupTable maybeArg of
-                Determined (Just justRangesRemoveFix) ->
-                    [ Rule.errorWithFix
-                        { message = "Using Maybe.withDefault on a value that is Just will result in that value"
-                        , details = [ "You can replace this call by the value wrapped in Just." ]
-                        }
-                        checkInfo.fnRange
-                        (justRangesRemoveFix
-                            ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg }
-                        )
-                    ]
+            firstThatReportsError
+                [ \() ->
+                    case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
+                        Determined justCalls ->
+                            [ Rule.errorWithFix
+                                { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                                , details = [ "You can replace this call by the value wrapped in Just." ]
+                                }
+                                checkInfo.fnRange
+                                (List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls
+                                    ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg }
+                                )
+                            ]
 
-                Determined Nothing ->
-                    [ Rule.errorWithFix
-                        { message = "Using Maybe.withDefault on Nothing will result in the default value"
-                        , details = [ "You can replace this call by the default value." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                        , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
+                        Undetermined ->
+                            []
+                , \() ->
+                    case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable maybeArg of
+                        Determined _ ->
+                            [ Rule.errorWithFix
+                                { message = "Using Maybe.withDefault on Nothing will result in the default value"
+                                , details = [ "You can replace this call by the default value." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                                ]
+                            ]
 
-                Undetermined ->
-                    []
+                        Undetermined ->
+                            []
+                ]
+                ()
 
         Nothing ->
             []
@@ -8955,21 +8969,6 @@ constructs getSpecific throughLambdaFunction lookupTable baseExpressionNode =
 
         _ ->
             Undetermined
-
-
-justCallsOrNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
-justCallsOrNothingInAllBranches lookupTable baseExpressionNode =
-    case sameCallInAllBranches ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
-        Determined justCalls ->
-            Determined (Just (List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls))
-
-        Undetermined ->
-            case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) lookupTable baseExpressionNode of
-                Determined _ ->
-                    Determined Nothing
-
-                Undetermined ->
-                    Undetermined
 
 
 okCallsOrErrCallsInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Result (List Fix) (List Fix))
