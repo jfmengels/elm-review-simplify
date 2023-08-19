@@ -7073,7 +7073,7 @@ resultAndThenChecks checkInfo =
                     []
         , \() ->
             case isAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just (Ok { fix, throughLambdaFunction }) ->
+                Determined (Ok { fix, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Use Result.map instead"
@@ -8889,11 +8889,11 @@ isAlwaysMaybe lookupTable baseExpressionNode =
                 baseExpressionNode
 
 
-isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) { fix : List Fix, throughLambdaFunction : Bool })
+isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Match (Result (List Fix) { fix : List Fix, throughLambdaFunction : Bool })
 isAlwaysResult lookupTable baseExpressionNode =
     case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
         Just _ ->
-            Just
+            Determined
                 (Ok
                     { fix = [ Fix.removeRange (Node.range baseExpressionNode) ]
                     , throughLambdaFunction = False
@@ -8903,21 +8903,14 @@ isAlwaysResult lookupTable baseExpressionNode =
         Nothing ->
             case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
                 Just _ ->
-                    Just (Err [ Fix.removeRange (Node.range baseExpressionNode) ])
+                    Determined (Err [ Fix.removeRange (Node.range baseExpressionNode) ])
 
                 Nothing ->
-                    case
-                        returns
-                            okCallsOrErrCallsInAllBranches
-                            (\{ throughLambdaFunction } -> Result.map (\ranges -> { fix = ranges, throughLambdaFunction = throughLambdaFunction }))
-                            lookupTable
-                            baseExpressionNode
-                    of
-                        Determined determined ->
-                            Just determined
-
-                        Undetermined ->
-                            Nothing
+                    returns
+                        okCallsOrErrCallsInAllBranches
+                        (\{ throughLambdaFunction } -> Result.map (\ranges -> { fix = ranges, throughLambdaFunction = throughLambdaFunction }))
+                        lookupTable
+                        baseExpressionNode
 
 
 returns :
