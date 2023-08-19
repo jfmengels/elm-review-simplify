@@ -16,7 +16,7 @@ module Simplify.AstHelpers exposing
     , getTuple
     , getTypeExposeIncludingVariants
     , getUncomputedNumberValue
-    , getValueOrFunctionCall
+    , getValueOrFunctionOrFunctionCall
     , isBinaryOperation
     , isEmptyList
     , isIdentity
@@ -103,7 +103,7 @@ getSpecificFunctionCall :
             , argsAfterFirst : List (Node Expression)
             }
 getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode =
-    case getValueOrFunctionCall expressionNode of
+    case getValueOrFunctionOrFunctionCall expressionNode of
         Just call ->
             case call.args of
                 firstArg :: argsAfterFirst ->
@@ -130,7 +130,7 @@ getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode =
 
 {-| Parse a value or the collapsed function or a lambda fully reduced to a function
 -}
-getValueOrFunctionCall :
+getValueOrFunctionOrFunctionCall :
     Node Expression
     ->
         Maybe
@@ -139,7 +139,7 @@ getValueOrFunctionCall :
             , fnRange : Range
             , args : List (Node Expression)
             }
-getValueOrFunctionCall expressionNode =
+getValueOrFunctionOrFunctionCall expressionNode =
     case getCollapsedUnreducedValueOrFunctionCall expressionNode of
         Just valueOrCall ->
             Just valueOrCall

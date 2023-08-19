@@ -2272,8 +2272,8 @@ compositionChecks checkInfo =
         , \() -> basicsNegateCompositionChecks checkInfo
         , \() ->
             case
-                ( AstHelpers.getValueOrFunctionCall checkInfo.earlier
-                , AstHelpers.getValueOrFunctionCall checkInfo.later
+                ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
+                , AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.later
                 )
             of
                 ( Just earlierFnOrCall, Just laterFnOrCall ) ->
