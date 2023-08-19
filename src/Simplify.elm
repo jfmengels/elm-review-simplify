@@ -5468,7 +5468,7 @@ listFilterMapChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Just { fixes, throughLambdaFunction }) ->
+                Determined (Just { fix, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
@@ -5477,7 +5477,7 @@ listFilterMapChecks checkInfo =
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
                                 (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                :: fixes
+                                :: fix
                             )
                         ]
 
@@ -6864,7 +6864,7 @@ mapPureChecks mappable checkInfo =
     case secondArg checkInfo of
         Just mappableArg ->
             case sameCallInAllBranches ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable mappableArg of
-                Just pureCalls ->
+                Determined pureCalls ->
                     let
                         mappingArgRange : Range
                         mappingArgRange =
@@ -6904,7 +6904,7 @@ mapPureChecks mappable checkInfo =
                         )
                     ]
 
-                Nothing ->
+                Undetermined ->
                     []
 
         Nothing ->
@@ -6995,7 +6995,7 @@ maybeAndThenChecks checkInfo =
                     []
         , \() ->
             case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Just { fixes, throughLambdaFunction }) ->
+                Determined (Just { fix, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Use " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ " instead"
@@ -7004,7 +7004,7 @@ maybeAndThenChecks checkInfo =
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
                                 (qualifiedToString (qualify ( maybeCollection.moduleName, "map" ) checkInfo))
-                                :: fixes
+                                :: fix
                             )
                         ]
 
@@ -8871,46 +8871,72 @@ needsParens expr =
             False
 
 
-isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { fixes : List Fix, throughLambdaFunction : Bool })
-isAlwaysMaybe lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
+isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { fix : List Fix, throughLambdaFunction : Bool })
+isAlwaysMaybe lookupTable expressionNode =
+    case returnsSpecificInAllBranches ( [ "Maybe" ], "Just" ) lookupTable expressionNode of
+        Determined just ->
+            Determined (Just just)
+
+        Undetermined ->
+            case returnsNothingInAllBranches lookupTable expressionNode of
+                Determined _ ->
+                    Determined Nothing
+
+                Undetermined ->
+                    Undetermined
+
+
+returnsNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (List Range)
+returnsNothingInAllBranches lookupTable expressionNode =
+    returns (sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ))
+        (\_ ranges -> ranges)
+        lookupTable
+        expressionNode
+
+
+returnsSpecificInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
+returnsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode =
+    case AstHelpers.getSpecificValueOrFunction specificFullyQualifiedFn lookupTable expressionNode of
         Just _ ->
             Determined
-                (Just
-                    { fixes = [ Fix.removeRange (Node.range baseExpressionNode) ]
-                    , throughLambdaFunction = False
-                    }
-                )
+                { fix = [ Fix.removeRange (Node.range expressionNode) ]
+                , throughLambdaFunction = False
+                }
 
         Nothing ->
-            returns justCallsOrNothingInAllBranches
-                (\{ throughLambdaFunction } -> Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = throughLambdaFunction }))
+            returns (sameCallInAllBranches specificFullyQualifiedFn)
+                (\{ throughLambdaFunction } calls ->
+                    { fix = List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) calls
+                    , throughLambdaFunction = throughLambdaFunction
+                    }
+                )
                 lookupTable
-                baseExpressionNode
+                expressionNode
 
 
-isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Match (Result (List Fix) { fix : List Fix, throughLambdaFunction : Bool })
+returnsOkInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
+returnsOkInAllBranches lookupTable expressionNode =
+    returnsSpecificInAllBranches ( [ "Result" ], "Ok" ) lookupTable expressionNode
+
+
+returnsErrInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
+returnsErrInAllBranches lookupTable expressionNode =
+    returnsSpecificInAllBranches ( [ "Result" ], "Err" ) lookupTable expressionNode
+
+
+isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Match (Result { fix : List Fix, throughLambdaFunction : Bool } { fix : List Fix, throughLambdaFunction : Bool })
 isAlwaysResult lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
-        Just _ ->
-            Determined
-                (Ok
-                    { fix = [ Fix.removeRange (Node.range baseExpressionNode) ]
-                    , throughLambdaFunction = False
-                    }
-                )
+    case returnsOkInAllBranches lookupTable baseExpressionNode of
+        Determined determined ->
+            Determined (Ok determined)
 
-        Nothing ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
-                Just _ ->
-                    Determined (Err [ Fix.removeRange (Node.range baseExpressionNode) ])
+        Undetermined ->
+            case returnsErrInAllBranches lookupTable baseExpressionNode of
+                Determined determined ->
+                    Determined (Err determined)
 
-                Nothing ->
-                    returns
-                        okCallsOrErrCallsInAllBranches
-                        (\{ throughLambdaFunction } -> Result.map (\ranges -> { fix = ranges, throughLambdaFunction = throughLambdaFunction }))
-                        lookupTable
-                        baseExpressionNode
+                Undetermined ->
+                    Undetermined
 
 
 returns :
@@ -8941,30 +8967,30 @@ returns getSpecific throughLambdaFunction lookupTable baseExpressionNode =
 justCallsOrNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
 justCallsOrNothingInAllBranches lookupTable baseExpressionNode =
     case sameCallInAllBranches ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
-        Just justCalls ->
+        Determined justCalls ->
             Determined (Just (List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls))
 
-        Nothing ->
+        Undetermined ->
             case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) lookupTable baseExpressionNode of
-                Just _ ->
+                Determined _ ->
                     Determined Nothing
 
-                Nothing ->
+                Undetermined ->
                     Undetermined
 
 
 okCallsOrErrCallsInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Result (List Fix) (List Fix))
 okCallsOrErrCallsInAllBranches lookupTable baseExpressionNode =
     case sameCallInAllBranches ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
-        Just okCalls ->
+        Determined okCalls ->
             Determined (Ok (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls))
 
-        Nothing ->
+        Undetermined ->
             case sameCallInAllBranches ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
-                Just errCalls ->
+                Determined errCalls ->
                     Determined (Err (List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls))
 
-                Nothing ->
+                Undetermined ->
                     Undetermined
 
 
@@ -8973,7 +8999,7 @@ sameCallInAllBranches :
     -> ModuleNameLookupTable
     -> Node Expression
     ->
-        Maybe
+        Match
             (List
                 { argsAfterFirst : List (Node Expression)
                 , firstArg : Node Expression
@@ -8989,7 +9015,7 @@ sameValueOrFunctionInAllBranches :
     ( ModuleName, String )
     -> ModuleNameLookupTable
     -> Node Expression
-    -> Maybe (List Range)
+    -> Match (List Range)
 sameValueOrFunctionInAllBranches pureFullyQualified lookupTable baseExpressionNode =
     sameInAllBranches (AstHelpers.getSpecificValueOrFunction pureFullyQualified lookupTable) baseExpressionNode
 
@@ -8997,11 +9023,11 @@ sameValueOrFunctionInAllBranches pureFullyQualified lookupTable baseExpressionNo
 sameInAllBranches :
     (Node Expression -> Maybe info)
     -> Node Expression
-    -> Maybe (List info)
+    -> Match (List info)
 sameInAllBranches getSpecific baseExpressionNode =
     case getSpecific baseExpressionNode of
         Just specific ->
-            Just [ specific ]
+            Determined [ specific ]
 
         Nothing ->
             case Node.value (AstHelpers.removeParens baseExpressionNode) of
@@ -9009,19 +9035,19 @@ sameInAllBranches getSpecific baseExpressionNode =
                     sameInAllBranches getSpecific letIn.expression
 
                 Expression.IfBlock _ thenBranch elseBranch ->
-                    traverse
+                    Match.traverse
                         (\branchExpression -> sameInAllBranches getSpecific branchExpression)
                         [ thenBranch, elseBranch ]
-                        |> Maybe.map List.concat
+                        |> Match.map List.concat
 
                 Expression.CaseExpression caseOf ->
-                    traverse
+                    Match.traverse
                         (\( _, caseExpression ) -> sameInAllBranches getSpecific caseExpression)
                         caseOf.cases
-                        |> Maybe.map List.concat
+                        |> Match.map List.concat
 
                 _ ->
-                    Nothing
+                    Undetermined
 
 
 getComparableExpressionInTupleFirst : Node Expression -> Maybe (List Expression)
