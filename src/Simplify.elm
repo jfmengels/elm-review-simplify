@@ -4142,8 +4142,8 @@ resultMapErrorChecks checkInfo =
         , \() ->
             case maybeResultArg of
                 Just resultArg ->
-                    case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
-                        Just errCall ->
+                    case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
+                        Determined errCalls ->
                             [ Rule.errorWithFix
                                 resultMapErrorOnErrErrorInfo
                                 checkInfo.fnRange
@@ -4153,7 +4153,7 @@ resultMapErrorChecks checkInfo =
                                     , Fix.insertAt (Node.range checkInfo.firstArg).end
                                         (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
                                     ]
-                                        ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
+                                        ++ List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls
 
                                  else
                                     -- application or <|
@@ -4162,23 +4162,20 @@ resultMapErrorChecks checkInfo =
                                         (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " (")
                                     , Fix.insertAt checkInfo.parentRange.end ")"
                                     ]
-                                        ++ replaceBySubExpressionFix errCall.nodeRange errCall.firstArg
+                                        ++ List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls
                                 )
                             ]
 
-                        Nothing ->
+                        Undetermined ->
                             []
 
                 Nothing ->
                     []
         , \() ->
             case maybeResultArg of
-                Nothing ->
-                    []
-
                 Just resultArg ->
-                    case okCallsOrErrCallsInAllBranches checkInfo.lookupTable resultArg of
-                        Determined (Ok _) ->
+                    case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
+                        Determined _ ->
                             [ Rule.errorWithFix
                                 resultMapErrorOnOkErrorInfo
                                 checkInfo.fnRange
@@ -4187,6 +4184,9 @@ resultMapErrorChecks checkInfo =
 
                         _ ->
                             []
+
+                Nothing ->
+                    []
         ]
         ()
 
@@ -7056,35 +7056,41 @@ resultAndThenChecks checkInfo =
             secondArg checkInfo
     in
     firstThatReportsError
-        [ \() ->
-            case maybeResultArg of
-                Just resultArg ->
-                    case okCallsOrErrCallsInAllBranches checkInfo.lookupTable resultArg of
-                        Determined (Ok oksRemoveFix) ->
-                            [ Rule.errorWithFix
-                                { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
-                                , details = [ "You can remove the Ok and just call the function directly." ]
-                                }
-                                checkInfo.fnRange
-                                (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    :: oksRemoveFix
-                                )
-                            ]
+        [ case maybeResultArg of
+            Just resultArg ->
+                firstThatReportsError
+                    [ \() ->
+                        case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
+                            Determined okCalls ->
+                                [ Rule.errorWithFix
+                                    { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
+                                    , details = [ "You can remove the Ok and just call the function directly." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                        :: List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
+                                    )
+                                ]
 
-                        Determined (Err _) ->
-                            [ Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on an error will result in the error"
-                                , details = [ "You can replace this call by the error itself." ]
-                                }
-                                checkInfo.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
-                            ]
+                            Undetermined ->
+                                []
+                    , \() ->
+                        case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
+                            Determined _ ->
+                                [ Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on an error will result in the error"
+                                    , details = [ "You can replace this call by the error itself." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
+                                ]
 
-                        Undetermined ->
-                            []
+                            Undetermined ->
+                                []
+                    ]
 
-                Nothing ->
-                    []
+            Nothing ->
+                \() -> []
         , \() ->
             case isAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Determined (Ok { fix, throughLambdaFunction }) ->
@@ -7122,31 +7128,39 @@ resultWithDefaultChecks : CheckInfo -> List (Error {})
 resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just resultArg ->
-            case okCallsOrErrCallsInAllBranches checkInfo.lookupTable resultArg of
-                Determined (Ok oksRemoveFix) ->
-                    [ Rule.errorWithFix
-                        { message = "Using Result.withDefault on a value that is Ok will result in that value"
-                        , details = [ "You can replace this call by the value wrapped in Ok." ]
-                        }
-                        checkInfo.fnRange
-                        (oksRemoveFix
-                            ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg }
-                        )
-                    ]
+            firstThatReportsError
+                [ \() ->
+                    case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
+                        Determined okCalls ->
+                            [ Rule.errorWithFix
+                                { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                                , details = [ "You can replace this call by the value wrapped in Ok." ]
+                                }
+                                checkInfo.fnRange
+                                (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
+                                    ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg }
+                                )
+                            ]
 
-                Determined (Err _) ->
-                    [ Rule.errorWithFix
-                        { message = "Using Result.withDefault on an error will result in the default value"
-                        , details = [ "You can replace this call by the default value." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                        , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                        ]
-                    ]
+                        Undetermined ->
+                            []
+                , \() ->
+                    case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
+                        Determined _ ->
+                            [ Rule.errorWithFix
+                                { message = "Using Result.withDefault on an error will result in the default value"
+                                , details = [ "You can replace this call by the default value." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                                ]
+                            ]
 
-                Undetermined ->
-                    []
+                        Undetermined ->
+                            []
+                ]
+                ()
 
         Nothing ->
             []
@@ -7154,33 +7168,41 @@ resultWithDefaultChecks checkInfo =
 
 resultToMaybeChecks : CheckInfo -> List (Error {})
 resultToMaybeChecks checkInfo =
-    case okCallsOrErrCallsInAllBranches checkInfo.lookupTable checkInfo.firstArg of
-        Determined (Ok oksRemoveFix) ->
-            [ Rule.errorWithFix
-                { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
-                , details = [ "You can replace this call by the value itself wrapped in Just." ]
-                }
-                checkInfo.fnRange
-                (oksRemoveFix
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                       ]
-                )
-            ]
+    firstThatReportsError
+        [ \() ->
+            case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
+                Determined okCalls ->
+                    [ Rule.errorWithFix
+                        { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                        , details = [ "You can replace this call by the value itself wrapped in Just." ]
+                        }
+                        checkInfo.fnRange
+                        (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
+                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                               ]
+                        )
+                    ]
 
-        Determined (Err _) ->
-            [ Rule.errorWithFix
-                { message = "Using Result.toMaybe on an error will result in Nothing"
-                , details = [ "You can replace this call by Nothing." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                ]
-            ]
+                Undetermined ->
+                    []
+        , \() ->
+            case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable checkInfo.firstArg of
+                Determined _ ->
+                    [ Rule.errorWithFix
+                        { message = "Using Result.toMaybe on an error will result in Nothing"
+                        , details = [ "You can replace this call by Nothing." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
+                        ]
+                    ]
 
-        Undetermined ->
-            []
+                Undetermined ->
+                    []
+        ]
+        ()
 
 
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> List (Error {})
@@ -8969,21 +8991,6 @@ constructs getSpecific throughLambdaFunction lookupTable baseExpressionNode =
 
         _ ->
             Undetermined
-
-
-okCallsOrErrCallsInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Result (List Fix) (List Fix))
-okCallsOrErrCallsInAllBranches lookupTable baseExpressionNode =
-    case sameCallInAllBranches ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
-        Determined okCalls ->
-            Determined (Ok (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls))
-
-        Undetermined ->
-            case sameCallInAllBranches ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
-                Determined errCalls ->
-                    Determined (Err (List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls))
-
-                Undetermined ->
-                    Undetermined
 
 
 sameCallInAllBranches :
