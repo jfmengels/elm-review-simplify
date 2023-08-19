@@ -7046,14 +7046,14 @@ resultAndThenChecks checkInfo =
             case maybeResultArg of
                 Just resultArg ->
                     case getResultValues checkInfo.lookupTable resultArg of
-                        Just (Ok okRanges) ->
+                        Just (Ok oksRemoveFix) ->
                             [ Rule.errorWithFix
                                 { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
                                 , details = [ "You can remove the Ok and just call the function directly." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    :: List.map Fix.removeRange okRanges
+                                    :: oksRemoveFix
                                 )
                             ]
 
@@ -7073,7 +7073,7 @@ resultAndThenChecks checkInfo =
                     []
         , \() ->
             case isAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just (Ok { ranges, throughLambdaFunction }) ->
+                Just (Ok { fix, throughLambdaFunction }) ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Use Result.map instead"
@@ -7082,7 +7082,7 @@ resultAndThenChecks checkInfo =
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
                                 (qualifiedToString (qualify ( resultCollection.moduleName, "map" ) checkInfo))
-                                :: List.map Fix.removeRange ranges
+                                :: fix
                             )
                         ]
 
@@ -7108,13 +7108,13 @@ resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just resultArg ->
             case getResultValues checkInfo.lookupTable resultArg of
-                Just (Ok okRanges) ->
+                Just (Ok oksRemoveFix) ->
                     [ Rule.errorWithFix
                         { message = "Using Result.withDefault on a value that is Ok will result in that value"
                         , details = [ "You can replace this call by the value wrapped in Ok." ]
                         }
                         checkInfo.fnRange
-                        (List.map Fix.removeRange okRanges
+                        (oksRemoveFix
                             ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg }
                         )
                     ]
@@ -7140,13 +7140,13 @@ resultWithDefaultChecks checkInfo =
 resultToMaybeChecks : CheckInfo -> List (Error {})
 resultToMaybeChecks checkInfo =
     case getResultValues checkInfo.lookupTable checkInfo.firstArg of
-        Just (Ok okRanges) ->
+        Just (Ok oksRemoveFix) ->
             [ Rule.errorWithFix
                 { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
                 , details = [ "You can replace this call by the value itself wrapped in Just." ]
                 }
                 checkInfo.fnRange
-                (List.map Fix.removeRange okRanges
+                (oksRemoveFix
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange
                             (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                        ]
@@ -8908,7 +8908,7 @@ isAlwaysMaybe lookupTable baseExpressionNode =
             Undetermined
 
 
-isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range { ranges : List Range, throughLambdaFunction : Bool })
+isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) { fix : List Fix, throughLambdaFunction : Bool })
 isAlwaysResult lookupTable baseExpressionNode =
     let
         expressionWithoutParensNode : Node Expression
@@ -8919,7 +8919,12 @@ isAlwaysResult lookupTable baseExpressionNode =
         Expression.FunctionOrValue _ "Ok" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
                 Just [ "Result" ] ->
-                    Just (Ok { ranges = [ Node.range expressionWithoutParensNode ], throughLambdaFunction = False })
+                    Just
+                        (Ok
+                            { fix = [ Fix.removeRange (Node.range expressionWithoutParensNode) ]
+                            , throughLambdaFunction = False
+                            }
+                        )
 
                 _ ->
                     Nothing
@@ -8927,7 +8932,7 @@ isAlwaysResult lookupTable baseExpressionNode =
         Expression.FunctionOrValue _ "Err" ->
             case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
                 Just [ "Result" ] ->
-                    Just (Err (Node.range expressionWithoutParensNode))
+                    Just (Err [ Fix.removeRange (Node.range expressionWithoutParensNode) ])
 
                 _ ->
                     Nothing
@@ -8936,14 +8941,14 @@ isAlwaysResult lookupTable baseExpressionNode =
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
                     getResultValues lookupTable value
-                        |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = False }))
+                        |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = False }))
 
                 _ ->
                     Nothing
 
         Expression.LambdaExpression lambda ->
             getResultValues lookupTable lambda.expression
-                |> Maybe.map (Result.map (\ranges -> { ranges = ranges, throughLambdaFunction = True }))
+                |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = True }))
 
         _ ->
             Nothing
@@ -9060,76 +9065,33 @@ combineMaybeValuesHelp lookupTable nodes soFar =
             Determined soFar
 
 
-getResultValues : ModuleNameLookupTable -> Node Expression -> Maybe (Result Range (List Range))
+getResultValues : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
 getResultValues lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            AstHelpers.removeParens baseExpressionNode
-    in
-    case Node.value expressionWithoutParensNode of
-        Expression.Application ((Node okRange (Expression.FunctionOrValue _ "Ok")) :: (Node argRange _) :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable okRange of
-                Just [ "Result" ] ->
-                    Just (Ok [ { start = okRange.start, end = argRange.start } ])
+    case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
+        Just okCall ->
+            Just (Ok (replaceBySubExpressionFix (Node.range baseExpressionNode) okCall.firstArg))
 
-                _ ->
-                    Nothing
+        Nothing ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
+                Just errCall ->
+                    Just (Err (replaceBySubExpressionFix (Node.range baseExpressionNode) errCall.firstArg))
 
-        Expression.OperatorApplication "|>" _ (Node argRange _) (Node okRange (Expression.FunctionOrValue _ "Ok")) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable okRange of
-                Just [ "Result" ] ->
-                    Just (Ok [ { start = argRange.end, end = okRange.end } ])
+                Nothing ->
+                    case Node.value (AstHelpers.removeParens baseExpressionNode) of
+                        Expression.LetExpression letIn ->
+                            getResultValues lookupTable letIn.expression
 
-                _ ->
-                    Nothing
+                        Expression.IfBlock _ thenBranch elseBranch ->
+                            combineResultValues lookupTable [ thenBranch, elseBranch ]
 
-        Expression.OperatorApplication "<|" _ (Node okRange (Expression.FunctionOrValue _ "Ok")) (Node argRange _) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable okRange of
-                Just [ "Result" ] ->
-                    Just (Ok [ { start = okRange.start, end = argRange.start } ])
+                        Expression.CaseExpression caseOf ->
+                            combineResultValues lookupTable (List.map Tuple.second caseOf.cases)
 
-                _ ->
-                    Nothing
-
-        Expression.Application ((Node errRange (Expression.FunctionOrValue _ "Err")) :: (Node argRange _) :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable errRange of
-                Just [ "Result" ] ->
-                    Just (Err { start = errRange.start, end = argRange.start })
-
-                _ ->
-                    Nothing
-
-        Expression.OperatorApplication "|>" _ (Node argRange _) (Node errRange (Expression.FunctionOrValue _ "Err")) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable errRange of
-                Just [ "Result" ] ->
-                    Just (Err { start = argRange.end, end = errRange.end })
-
-                _ ->
-                    Nothing
-
-        Expression.OperatorApplication "<|" _ (Node errRange (Expression.FunctionOrValue _ "Err")) (Node argRange _) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable errRange of
-                Just [ "Result" ] ->
-                    Just (Err { start = errRange.start, end = argRange.start })
-
-                _ ->
-                    Nothing
-
-        Expression.LetExpression letIn ->
-            getResultValues lookupTable letIn.expression
-
-        Expression.IfBlock _ thenBranch elseBranch ->
-            combineResultValues lookupTable [ thenBranch, elseBranch ]
-
-        Expression.CaseExpression caseOf ->
-            combineResultValues lookupTable (List.map Tuple.second caseOf.cases)
-
-        _ ->
-            Nothing
+                        _ ->
+                            Nothing
 
 
-combineResultValues : ModuleNameLookupTable -> List (Node Expression) -> Maybe (Result Range (List Range))
+combineResultValues : ModuleNameLookupTable -> List (Node Expression) -> Maybe (Result (List Fix) (List Fix))
 combineResultValues lookupTable nodes =
     case nodes of
         node :: restOfNodes ->
@@ -9144,7 +9106,7 @@ combineResultValues lookupTable nodes =
             Nothing
 
 
-combineResultValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Result Range (List Range) -> Maybe (Result Range (List Range))
+combineResultValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Result (List Fix) (List Fix) -> Maybe (Result (List Fix) (List Fix))
 combineResultValuesHelp lookupTable nodes soFar =
     case nodes of
         node :: restOfNodes ->

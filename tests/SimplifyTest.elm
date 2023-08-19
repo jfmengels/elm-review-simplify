@@ -14619,7 +14619,7 @@ a = Result.andThen f (Ok x)
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = f (x)
+a = f x
 """
                         ]
         , test "should replace Ok x |> Result.andThen f by f (x)" <|
@@ -14680,7 +14680,7 @@ a = Result.withDefault x (Ok y)
                             , under = "Result.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (y)
+a = y
 """
                         ]
         , test "should replace Result.withDefault x <| (Ok y) by y" <|
@@ -14696,7 +14696,7 @@ a = Result.withDefault x <| (Ok y)
                             , under = "Result.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (y)
+a = y
 """
                         ]
         , test "should replace (Ok y) |> Result.withDefault x by y" <|
@@ -14712,7 +14712,7 @@ a = (Ok y) |> Result.withDefault x
                             , under = "Result.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (y)
+a = y
 """
                         ]
         , test "should replace y |> Ok |> Result.withDefault x by y" <|
@@ -14774,7 +14774,7 @@ a = Result.toMaybe (Ok b)
                             , under = "Result.toMaybe"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (b)
+a = Just b
 """
                         ]
         , test "should replace Result.toMaybe <| Ok a by Just <| a" <|
