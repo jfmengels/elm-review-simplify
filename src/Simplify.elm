@@ -5495,7 +5495,7 @@ listFilterMapChecks checkInfo =
                 Undetermined ->
                     []
         , \() ->
-            case returnsNothingInAllBranches checkInfo.lookupTable checkInfo.firstArg of
+            case returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in an empty list"
@@ -7032,7 +7032,7 @@ maybeAndThenChecks checkInfo =
                 Undetermined ->
                     []
         , \() ->
-            case returnsNothingInAllBranches checkInfo.lookupTable checkInfo.firstArg of
+            case returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Nothing will result in Nothing"
@@ -8913,11 +8913,6 @@ needsParens expr =
 
         _ ->
             False
-
-
-returnsNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (List Range)
-returnsNothingInAllBranches lookupTable expressionNode =
-    returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) lookupTable expressionNode
 
 
 returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match (List Range)
