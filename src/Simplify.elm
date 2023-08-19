@@ -9011,17 +9011,12 @@ sameValueOrFunctionInAllBranches :
     -> Node Expression
     -> Maybe (List Range)
 sameValueOrFunctionInAllBranches pureFullyQualified lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            AstHelpers.removeParens baseExpressionNode
-    in
-    case AstHelpers.getSpecificValueOrFunction pureFullyQualified lookupTable expressionWithoutParensNode of
+    case AstHelpers.getSpecificValueOrFunction pureFullyQualified lookupTable baseExpressionNode of
         Just valueOrFn ->
             Just [ valueOrFn ]
 
         Nothing ->
-            case Node.value expressionWithoutParensNode of
+            case Node.value (AstHelpers.removeParens baseExpressionNode) of
                 Expression.LetExpression letIn ->
                     sameValueOrFunctionInAllBranches pureFullyQualified lookupTable letIn.expression
 
