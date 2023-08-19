@@ -8974,23 +8974,20 @@ constructs :
     -> ModuleNameLookupTable
     -> Node Expression
     -> Match result
-constructs getSpecific throughLambdaFunction lookupTable baseExpressionNode =
-    case Node.value (AstHelpers.removeParens baseExpressionNode) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    getSpecific lookupTable value
-                        |> Match.map (\specific -> throughLambdaFunction { throughLambdaFunction = False } specific)
+constructs getSpecific throughLambdaFunction lookupTable expressionNode =
+    case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+        Just alwaysCall ->
+            getSpecific lookupTable alwaysCall.firstArg
+                |> Match.map (\specific -> throughLambdaFunction { throughLambdaFunction = False } specific)
+
+        Nothing ->
+            case Node.value (AstHelpers.removeParens expressionNode) of
+                Expression.LambdaExpression lambda ->
+                    getSpecific lookupTable lambda.expression
+                        |> Match.map (\specific -> throughLambdaFunction { throughLambdaFunction = True } specific)
 
                 _ ->
                     Undetermined
-
-        Expression.LambdaExpression lambda ->
-            getSpecific lookupTable lambda.expression
-                |> Match.map (\specific -> throughLambdaFunction { throughLambdaFunction = True } specific)
-
-        _ ->
-            Undetermined
 
 
 sameCallInAllBranches :
