@@ -6863,7 +6863,7 @@ mapPureChecks :
 mapPureChecks mappable checkInfo =
     case secondArg checkInfo of
         Just mappableArg ->
-            case pureCallsInAllBranches ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable mappableArg of
+            case sameCallInAllBranches ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable mappableArg of
                 Just pureCalls ->
                     let
                         mappingArgRange : Range
@@ -8872,89 +8872,70 @@ needsParens expr =
 
 isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { fixes : List Fix, throughLambdaFunction : Bool })
 isAlwaysMaybe lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            AstHelpers.removeParens baseExpressionNode
-    in
-    case Node.value expressionWithoutParensNode of
-        Expression.FunctionOrValue _ "Just" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
-                Just [ "Maybe" ] ->
-                    Determined
-                        (Just
-                            { fixes = [ Fix.removeRange (Node.range expressionWithoutParensNode) ]
-                            , throughLambdaFunction = False
-                            }
-                        )
+    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
+        Just _ ->
+            Determined
+                (Just
+                    { fixes = [ Fix.removeRange (Node.range baseExpressionNode) ]
+                    , throughLambdaFunction = False
+                    }
+                )
+
+        Nothing ->
+            case Node.value (AstHelpers.removeParens baseExpressionNode) of
+                Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                        Just [ "Basics" ] ->
+                            maybesInAllBranches lookupTable value
+                                |> Match.map (Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = False }))
+
+                        _ ->
+                            Undetermined
+
+                Expression.LambdaExpression lambda ->
+                    maybesInAllBranches lookupTable lambda.expression
+                        |> Match.map (Maybe.map (\ranges -> { fixes = ranges, throughLambdaFunction = True }))
 
                 _ ->
                     Undetermined
-
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    maybesInAllBranches lookupTable value
-                        |> Match.map (Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = False }))
-
-                _ ->
-                    Undetermined
-
-        Expression.LambdaExpression lambda ->
-            maybesInAllBranches lookupTable lambda.expression
-                |> Match.map (Maybe.map (\ranges -> { fixes = ranges, throughLambdaFunction = True }))
-
-        _ ->
-            Undetermined
 
 
 isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) { fix : List Fix, throughLambdaFunction : Bool })
 isAlwaysResult lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            AstHelpers.removeParens baseExpressionNode
-    in
-    case Node.value expressionWithoutParensNode of
-        Expression.FunctionOrValue _ "Ok" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
-                Just [ "Result" ] ->
-                    Just
-                        (Ok
-                            { fix = [ Fix.removeRange (Node.range expressionWithoutParensNode) ]
-                            , throughLambdaFunction = False
-                            }
-                        )
+    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
+        Just _ ->
+            Just
+                (Ok
+                    { fix = [ Fix.removeRange (Node.range baseExpressionNode) ]
+                    , throughLambdaFunction = False
+                    }
+                )
 
-                _ ->
-                    Nothing
+        Nothing ->
+            case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
+                Just _ ->
+                    Just (Err [ Fix.removeRange (Node.range baseExpressionNode) ])
 
-        Expression.FunctionOrValue _ "Err" ->
-            case ModuleNameLookupTable.moduleNameFor lookupTable expressionWithoutParensNode of
-                Just [ "Result" ] ->
-                    Just (Err [ Fix.removeRange (Node.range expressionWithoutParensNode) ])
+                Nothing ->
+                    case Node.value (AstHelpers.removeParens baseExpressionNode) of
+                        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
+                            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                                Just [ "Basics" ] ->
+                                    resultsInAllBranches lookupTable value
+                                        |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = False }))
 
-                _ ->
-                    Nothing
+                                _ ->
+                                    Nothing
 
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
-            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    resultsInAllBranches lookupTable value
-                        |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = False }))
+                        Expression.LambdaExpression lambda ->
+                            resultsInAllBranches lookupTable lambda.expression
+                                |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = True }))
 
-                _ ->
-                    Nothing
-
-        Expression.LambdaExpression lambda ->
-            resultsInAllBranches lookupTable lambda.expression
-                |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = True }))
-
-        _ ->
-            Nothing
+                        _ ->
+                            Nothing
 
 
-pureCallsInAllBranches :
+sameCallInAllBranches :
     ( ModuleName, String )
     -> ModuleNameLookupTable
     -> Node Expression
@@ -8967,7 +8948,7 @@ pureCallsInAllBranches :
                 , nodeRange : Range
                 }
             )
-pureCallsInAllBranches pureFullyQualified lookupTable baseExpressionNode =
+sameCallInAllBranches pureFullyQualified lookupTable baseExpressionNode =
     let
         expressionWithoutParensNode : Node Expression
         expressionWithoutParensNode =
@@ -8980,17 +8961,17 @@ pureCallsInAllBranches pureFullyQualified lookupTable baseExpressionNode =
         Nothing ->
             case Node.value expressionWithoutParensNode of
                 Expression.LetExpression letIn ->
-                    pureCallsInAllBranches pureFullyQualified lookupTable letIn.expression
+                    sameCallInAllBranches pureFullyQualified lookupTable letIn.expression
 
                 Expression.IfBlock _ thenBranch elseBranch ->
                     traverse
-                        (\branchExpression -> pureCallsInAllBranches pureFullyQualified lookupTable branchExpression)
+                        (\branchExpression -> sameCallInAllBranches pureFullyQualified lookupTable branchExpression)
                         [ thenBranch, elseBranch ]
                         |> Maybe.map List.concat
 
                 Expression.CaseExpression caseOf ->
                     traverse
-                        (\( _, caseExpression ) -> pureCallsInAllBranches pureFullyQualified lookupTable caseExpression)
+                        (\( _, caseExpression ) -> sameCallInAllBranches pureFullyQualified lookupTable caseExpression)
                         caseOf.cases
                         |> Maybe.map List.concat
 
