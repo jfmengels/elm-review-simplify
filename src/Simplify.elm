@@ -8943,24 +8943,14 @@ constructsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionN
                 expressionNode
 
 
-constructsOkInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
-constructsOkInAllBranches lookupTable expressionNode =
-    constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) lookupTable expressionNode
-
-
-constructsErrInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
-constructsErrInAllBranches lookupTable expressionNode =
-    constructsSpecificInAllBranches ( [ "Result" ], "Err" ) lookupTable expressionNode
-
-
 isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Match (Result { fix : List Fix, throughLambdaFunction : Bool } { fix : List Fix, throughLambdaFunction : Bool })
 isAlwaysResult lookupTable baseExpressionNode =
-    case constructsOkInAllBranches lookupTable baseExpressionNode of
+    case constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
         Determined determined ->
             Determined (Ok determined)
 
         Undetermined ->
-            case constructsErrInAllBranches lookupTable baseExpressionNode of
+            case constructsSpecificInAllBranches ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
                 Determined determined ->
                     Determined (Err determined)
 
