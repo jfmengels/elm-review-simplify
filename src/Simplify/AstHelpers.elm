@@ -381,17 +381,7 @@ isIdentity lookupTable baseExpressionNode =
                 Node _ (Expression.LambdaExpression lambda) ->
                     case lambda.args of
                         arg :: [] ->
-                            case getVarPattern arg of
-                                Just patternName ->
-                                    case Node.value lambda.expression of
-                                        Expression.FunctionOrValue [] resultName ->
-                                            resultName == patternName
-
-                                        _ ->
-                                            False
-
-                                _ ->
-                                    False
+                            variableMatchesPattern lambda.expression arg
 
                         _ ->
                             False
@@ -473,19 +463,7 @@ getReducedLambda expressionNode =
                     let
                         ( reducedCallArguments, reducedLambdaPatterns ) =
                             drop2EndingsWhile
-                                (\( argument, pattern ) ->
-                                    case Node.value (removeParens argument) of
-                                        Expression.FunctionOrValue [] argument0Name ->
-                                            case getVarPattern pattern of
-                                                Just pattern0Name ->
-                                                    pattern0Name == argument0Name
-
-                                                _ ->
-                                                    False
-
-                                        _ ->
-                                            False
-                                )
+                                (\( argument, pattern ) -> variableMatchesPattern argument pattern)
                                 ( call.args
                                 , lambda.patterns
                                 )
@@ -503,6 +481,16 @@ getReducedLambda expressionNode =
 
         _ ->
             Nothing
+
+
+variableMatchesPattern : Node Expression -> Node Pattern -> Bool
+variableMatchesPattern expression pattern =
+    case ( removeParensFromPattern pattern, removeParens expression ) of
+        ( Node _ (Pattern.VarPattern patternName), Node _ (Expression.FunctionOrValue [] argumentName) ) ->
+            patternName == argumentName
+
+        _ ->
+            False
 
 
 {-| Remove elements at the end of both given lists, then repeat for the previous elements until a given test returns False
@@ -553,19 +541,6 @@ getCollapsedLambda expressionNode =
                         { patterns = lambda.args ++ innerCollapsedLambda.patterns
                         , expression = innerCollapsedLambda.expression
                         }
-
-        _ ->
-            Nothing
-
-
-getVarPattern : Node Pattern -> Maybe String
-getVarPattern patternNode =
-    case Node.value patternNode of
-        Pattern.VarPattern name ->
-            Just name
-
-        Pattern.ParenthesizedPattern pattern ->
-            getVarPattern pattern
 
         _ ->
             Nothing
