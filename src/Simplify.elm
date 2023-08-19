@@ -5467,7 +5467,7 @@ listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case returnsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+            case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined { fix, throughLambdaFunction } ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
@@ -6998,7 +6998,7 @@ maybeAndThenChecks checkInfo =
                 Nothing ->
                     []
         , \() ->
-            case returnsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+            case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined { fix, throughLambdaFunction } ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
@@ -8881,14 +8881,14 @@ needsParens expr =
 
 returnsNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (List Range)
 returnsNothingInAllBranches lookupTable expressionNode =
-    returns (sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ))
+    constructs (sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ))
         (\_ ranges -> ranges)
         lookupTable
         expressionNode
 
 
-returnsSpecificInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
-returnsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode =
+constructsSpecificInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
+constructsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode =
     case AstHelpers.getSpecificValueOrFunction specificFullyQualifiedFn lookupTable expressionNode of
         Just _ ->
             Determined
@@ -8897,7 +8897,7 @@ returnsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode
                 }
 
         Nothing ->
-            returns (sameCallInAllBranches specificFullyQualifiedFn)
+            constructs (sameCallInAllBranches specificFullyQualifiedFn)
                 (\{ throughLambdaFunction } calls ->
                     { fix = List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) calls
                     , throughLambdaFunction = throughLambdaFunction
@@ -8907,24 +8907,24 @@ returnsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode
                 expressionNode
 
 
-returnsOkInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
-returnsOkInAllBranches lookupTable expressionNode =
-    returnsSpecificInAllBranches ( [ "Result" ], "Ok" ) lookupTable expressionNode
+constructsOkInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
+constructsOkInAllBranches lookupTable expressionNode =
+    constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) lookupTable expressionNode
 
 
-returnsErrInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
-returnsErrInAllBranches lookupTable expressionNode =
-    returnsSpecificInAllBranches ( [ "Result" ], "Err" ) lookupTable expressionNode
+constructsErrInAllBranches : ModuleNameLookupTable -> Node Expression -> Match { fix : List Fix, throughLambdaFunction : Bool }
+constructsErrInAllBranches lookupTable expressionNode =
+    constructsSpecificInAllBranches ( [ "Result" ], "Err" ) lookupTable expressionNode
 
 
 isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Match (Result { fix : List Fix, throughLambdaFunction : Bool } { fix : List Fix, throughLambdaFunction : Bool })
 isAlwaysResult lookupTable baseExpressionNode =
-    case returnsOkInAllBranches lookupTable baseExpressionNode of
+    case constructsOkInAllBranches lookupTable baseExpressionNode of
         Determined determined ->
             Determined (Ok determined)
 
         Undetermined ->
-            case returnsErrInAllBranches lookupTable baseExpressionNode of
+            case constructsErrInAllBranches lookupTable baseExpressionNode of
                 Determined determined ->
                     Determined (Err determined)
 
@@ -8932,13 +8932,13 @@ isAlwaysResult lookupTable baseExpressionNode =
                     Undetermined
 
 
-returns :
+constructs :
     (ModuleNameLookupTable -> Node Expression -> Match specific)
     -> ({ throughLambdaFunction : Bool } -> specific -> result)
     -> ModuleNameLookupTable
     -> Node Expression
     -> Match result
-returns getSpecific throughLambdaFunction lookupTable baseExpressionNode =
+constructs getSpecific throughLambdaFunction lookupTable baseExpressionNode =
     case Node.value (AstHelpers.removeParens baseExpressionNode) of
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
