@@ -8917,7 +8917,12 @@ needsParens expr =
 
 returnsNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (List Range)
 returnsNothingInAllBranches lookupTable expressionNode =
-    constructs (sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ))
+    returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) lookupTable expressionNode
+
+
+returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match (List Range)
+returnsSpecificValueOrFunctionInAllBranches specificQualified lookupTable expressionNode =
+    constructs (sameValueOrFunctionInAllBranches specificQualified)
         (\_ ranges -> ranges)
         lookupTable
         expressionNode
