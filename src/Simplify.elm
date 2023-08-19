@@ -6967,7 +6967,7 @@ maybeAndThenChecks checkInfo =
         [ \() ->
             case maybeMaybeArg of
                 Just maybeArg ->
-                    case getMaybeValues checkInfo.lookupTable maybeArg of
+                    case maybesInAllBranches checkInfo.lookupTable maybeArg of
                         Determined (Just justRangesRemoveFix) ->
                             [ Rule.errorWithFix
                                 { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
@@ -7789,7 +7789,7 @@ maybeWithDefaultChecks : CheckInfo -> List (Error {})
 maybeWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just maybeArg ->
-            case getMaybeValues checkInfo.lookupTable maybeArg of
+            case maybesInAllBranches checkInfo.lookupTable maybeArg of
                 Determined (Just justRangesRemoveFix) ->
                     [ Rule.errorWithFix
                         { message = "Using Maybe.withDefault on a value that is Just will result in that value"
@@ -8894,14 +8894,14 @@ isAlwaysMaybe lookupTable baseExpressionNode =
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getMaybeValues lookupTable value
+                    maybesInAllBranches lookupTable value
                         |> Match.map (Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = False }))
 
                 _ ->
                     Undetermined
 
         Expression.LambdaExpression lambda ->
-            getMaybeValues lookupTable lambda.expression
+            maybesInAllBranches lookupTable lambda.expression
                 |> Match.map (Maybe.map (\ranges -> { fixes = ranges, throughLambdaFunction = True }))
 
         _ ->
@@ -8993,8 +8993,8 @@ pureCallsInAllBranches pureFullyQualified lookupTable baseExpressionNode =
                     Nothing
 
 
-getMaybeValues : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
-getMaybeValues lookupTable baseExpressionNode =
+maybesInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
+maybesInAllBranches lookupTable baseExpressionNode =
     case AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
         Just justCall ->
             Determined (Just (replaceBySubExpressionFix justCall.nodeRange justCall.firstArg))
@@ -9007,7 +9007,7 @@ getMaybeValues lookupTable baseExpressionNode =
                 Nothing ->
                     case Node.value (AstHelpers.removeParens baseExpressionNode) of
                         Expression.LetExpression letIn ->
-                            getMaybeValues lookupTable letIn.expression
+                            maybesInAllBranches lookupTable letIn.expression
 
                         Expression.IfBlock _ thenBranch elseBranch ->
                             combineMaybeValues lookupTable [ thenBranch, elseBranch ]
@@ -9023,7 +9023,7 @@ combineMaybeValues : ModuleNameLookupTable -> List (Node Expression) -> Match (M
 combineMaybeValues lookupTable nodes =
     case nodes of
         node :: restOfNodes ->
-            case getMaybeValues lookupTable node of
+            case maybesInAllBranches lookupTable node of
                 Undetermined ->
                     Undetermined
 
@@ -9038,7 +9038,7 @@ combineMaybeValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Mayb
 combineMaybeValuesHelp lookupTable nodes soFar =
     case nodes of
         node :: restOfNodes ->
-            case getMaybeValues lookupTable node of
+            case maybesInAllBranches lookupTable node of
                 Undetermined ->
                     Undetermined
 
