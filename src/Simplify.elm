@@ -7092,8 +7092,8 @@ resultAndThenChecks checkInfo =
             Nothing ->
                 \() -> []
         , \() ->
-            case isAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Ok { fix, throughLambdaFunction }) ->
+            case constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
+                Determined { fix, throughLambdaFunction } ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Use Result.map instead"
@@ -7118,7 +7118,7 @@ resultAndThenChecks checkInfo =
                             )
                         ]
 
-                _ ->
+                Undetermined ->
                     []
         ]
         ()
@@ -8941,21 +8941,6 @@ constructsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionN
                 )
                 lookupTable
                 expressionNode
-
-
-isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Match (Result { fix : List Fix, throughLambdaFunction : Bool } { fix : List Fix, throughLambdaFunction : Bool })
-isAlwaysResult lookupTable baseExpressionNode =
-    case constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
-        Determined determined ->
-            Determined (Ok determined)
-
-        Undetermined ->
-            case constructsSpecificInAllBranches ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
-                Determined determined ->
-                    Determined (Err determined)
-
-                Undetermined ->
-                    Undetermined
 
 
 constructs :
