@@ -8883,22 +8883,10 @@ isAlwaysMaybe lookupTable baseExpressionNode =
                 )
 
         Nothing ->
-            case Node.value (AstHelpers.removeParens baseExpressionNode) of
-                Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                        Just [ "Basics" ] ->
-                            justCallsOrNothingInAllBranches lookupTable value
-                                |> Match.map (Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = False }))
-
-                        _ ->
-                            Undetermined
-
-                Expression.LambdaExpression lambda ->
-                    justCallsOrNothingInAllBranches lookupTable lambda.expression
-                        |> Match.map (Maybe.map (\ranges -> { fixes = ranges, throughLambdaFunction = True }))
-
-                _ ->
-                    Undetermined
+            returns justCallsOrNothingInAllBranches
+                (\{ throughLambdaFunction } -> Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = throughLambdaFunction }))
+                lookupTable
+                baseExpressionNode
 
 
 isAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) { fix : List Fix, throughLambdaFunction : Bool })
@@ -8918,22 +8906,50 @@ isAlwaysResult lookupTable baseExpressionNode =
                     Just (Err [ Fix.removeRange (Node.range baseExpressionNode) ])
 
                 Nothing ->
-                    case Node.value (AstHelpers.removeParens baseExpressionNode) of
-                        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
-                            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
-                                Just [ "Basics" ] ->
-                                    okCallsOrErrCallsInAllBranches lookupTable value
-                                        |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = False }))
+                    case
+                        returns
+                            (\lookupTable_ expr ->
+                                case okCallsOrErrCallsInAllBranches lookupTable_ expr of
+                                    Just determined ->
+                                        Match.Determined determined
 
-                                _ ->
-                                    Nothing
+                                    Nothing ->
+                                        Match.Undetermined
+                            )
+                            (\{ throughLambdaFunction } -> Result.map (\ranges -> { fix = ranges, throughLambdaFunction = throughLambdaFunction }))
+                            lookupTable
+                            baseExpressionNode
+                    of
+                        Match.Determined determined ->
+                            Just determined
 
-                        Expression.LambdaExpression lambda ->
-                            okCallsOrErrCallsInAllBranches lookupTable lambda.expression
-                                |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = True }))
-
-                        _ ->
+                        Match.Undetermined ->
                             Nothing
+
+
+returns :
+    (ModuleNameLookupTable -> Node Expression -> Match specific)
+    -> ({ throughLambdaFunction : Bool } -> specific -> result)
+    -> ModuleNameLookupTable
+    -> Node Expression
+    -> Match result
+returns getSpecific throughLambdaFunction lookupTable baseExpressionNode =
+    case Node.value (AstHelpers.removeParens baseExpressionNode) of
+        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
+                Just [ "Basics" ] ->
+                    getSpecific lookupTable value
+                        |> Match.map (\specific -> throughLambdaFunction { throughLambdaFunction = False } specific)
+
+                _ ->
+                    Undetermined
+
+        Expression.LambdaExpression lambda ->
+            getSpecific lookupTable lambda.expression
+                |> Match.map (\specific -> throughLambdaFunction { throughLambdaFunction = True } specific)
+
+        _ ->
+            Undetermined
 
 
 justCallsOrNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
