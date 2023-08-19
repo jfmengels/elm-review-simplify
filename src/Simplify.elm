@@ -2375,13 +2375,10 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
                     [ Rule.errorWithFix
                         errorMessage
                         (Range.combine [ checkInfo.fnRange, secondRange ])
-                        [ removeFunctionFromFunctionCall checkInfo
-                        , removeFunctionFromFunctionCall
-                            { fnRange = Node.range secondFn
-                            , firstArg = firstArgOfSecondCall
-                            , usingRightPizza = False
-                            }
-                        ]
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                            ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
+                                firstArgOfSecondCall
+                        )
                     ]
 
                 Nothing ->
@@ -2393,13 +2390,10 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
                     [ Rule.errorWithFix
                         errorMessage
                         (Range.combine [ checkInfo.fnRange, secondRange ])
-                        [ removeFunctionFromFunctionCall checkInfo
-                        , removeFunctionFromFunctionCall
-                            { fnRange = Node.range secondFn
-                            , firstArg = firstArgOfSecondCall
-                            , usingRightPizza = True
-                            }
-                        ]
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                            ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
+                                firstArgOfSecondCall
+                        )
                     ]
 
                 Nothing ->
@@ -2411,13 +2405,10 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
                     [ Rule.errorWithFix
                         errorMessage
                         (Range.combine [ checkInfo.fnRange, secondRange ])
-                        [ removeFunctionFromFunctionCall checkInfo
-                        , removeFunctionFromFunctionCall
-                            { fnRange = Node.range secondFn
-                            , firstArg = firstArgOfSecondCall
-                            , usingRightPizza = False
-                            }
-                        ]
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                            ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
+                                firstArgOfSecondCall
+                        )
                     ]
 
                 Nothing ->
@@ -3532,8 +3523,7 @@ basicsIdentityChecks checkInfo =
         , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
         }
         checkInfo.fnRange
-        [ removeFunctionFromFunctionCall checkInfo
-        ]
+        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
     ]
 
 
@@ -3573,14 +3563,9 @@ basicsAlwaysChecks checkInfo =
                 , details = [ "The second argument will be ignored because of the `always` call." ]
                 }
                 checkInfo.fnRange
-                (if checkInfo.usingRightPizza then
-                    [ Fix.removeRange { start = secondArgRange.start, end = (Node.range checkInfo.firstArg).start }
-                    ]
-
-                 else
-                    [ removeFunctionFromFunctionCall checkInfo
-                    , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = secondArgRange.end }
-                    ]
+                (replaceBySubExpressionFix
+                    (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg, secondArgRange ])
+                    checkInfo.firstArg
                 )
             ]
 
@@ -4302,16 +4287,17 @@ listConcatChecks checkInfo =
                     []
         , \() ->
             case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
-                Just match ->
+                Just listMapArg ->
                     [ Rule.errorWithFix
                         { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
                         , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                         }
                         checkInfo.fnRange
-                        [ removeFunctionFromFunctionCall checkInfo
-                        , Fix.replaceRangeBy match.fnRange
-                            (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
-                        ]
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listMapArg.nodeRange }
+                            ++ [ Fix.replaceRangeBy listMapArg.fnRange
+                                    (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
+                               ]
+                        )
                     ]
 
                 Nothing ->
@@ -8663,20 +8649,6 @@ rangeContainsLocation location =
             ((Range.compareLocations location range.start == LT)
                 || (Range.compareLocations location range.end == GT)
             )
-
-
-removeFunctionFromFunctionCall : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Fix
-removeFunctionFromFunctionCall checkInfo =
-    let
-        firstArgRange : Range
-        firstArgRange =
-            Node.range checkInfo.firstArg
-    in
-    if checkInfo.usingRightPizza then
-        Fix.removeRange { start = firstArgRange.end, end = checkInfo.fnRange.end }
-
-    else
-        Fix.removeRange { start = checkInfo.fnRange.start, end = firstArgRange.start }
 
 
 removeFunctionAndFirstArg : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Range -> Fix

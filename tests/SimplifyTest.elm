@@ -1620,7 +1620,7 @@ a = not (not x)
                             , under = "not (not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (x)
+a = x
 """
                         ]
         , test "should simplify 'x |> not |> not' to x" <|
@@ -1652,7 +1652,7 @@ a = (x |> not) |> not
                             , under = "not) |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (x)
+a = x
 """
                         ]
         , test "should simplify '(not <| x) |> not' to x" <|
@@ -1668,7 +1668,7 @@ a = (not <| x) |> not
                             , under = "not <| x) |> not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (x)
+a = x
 """
                         ]
         , test "should simplify 'not x |> not' to x" <|
