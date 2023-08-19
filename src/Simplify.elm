@@ -4177,7 +4177,7 @@ resultMapErrorChecks checkInfo =
                     []
 
                 Just resultArg ->
-                    case resultsInAllBranches checkInfo.lookupTable resultArg of
+                    case okCallsOrErrCallsInAllBranches checkInfo.lookupTable resultArg of
                         Just (Ok _) ->
                             [ Rule.errorWithFix
                                 resultMapErrorOnOkErrorInfo
@@ -7045,7 +7045,7 @@ resultAndThenChecks checkInfo =
         [ \() ->
             case maybeResultArg of
                 Just resultArg ->
-                    case resultsInAllBranches checkInfo.lookupTable resultArg of
+                    case okCallsOrErrCallsInAllBranches checkInfo.lookupTable resultArg of
                         Just (Ok oksRemoveFix) ->
                             [ Rule.errorWithFix
                                 { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
@@ -7108,7 +7108,7 @@ resultWithDefaultChecks : CheckInfo -> List (Error {})
 resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just resultArg ->
-            case resultsInAllBranches checkInfo.lookupTable resultArg of
+            case okCallsOrErrCallsInAllBranches checkInfo.lookupTable resultArg of
                 Just (Ok oksRemoveFix) ->
                     [ Rule.errorWithFix
                         { message = "Using Result.withDefault on a value that is Ok will result in that value"
@@ -7140,7 +7140,7 @@ resultWithDefaultChecks checkInfo =
 
 resultToMaybeChecks : CheckInfo -> List (Error {})
 resultToMaybeChecks checkInfo =
-    case resultsInAllBranches checkInfo.lookupTable checkInfo.firstArg of
+    case okCallsOrErrCallsInAllBranches checkInfo.lookupTable checkInfo.firstArg of
         Just (Ok oksRemoveFix) ->
             [ Rule.errorWithFix
                 { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
@@ -8922,14 +8922,14 @@ isAlwaysResult lookupTable baseExpressionNode =
                         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
                             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                                 Just [ "Basics" ] ->
-                                    resultsInAllBranches lookupTable value
+                                    okCallsOrErrCallsInAllBranches lookupTable value
                                         |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = False }))
 
                                 _ ->
                                     Nothing
 
                         Expression.LambdaExpression lambda ->
-                            resultsInAllBranches lookupTable lambda.expression
+                            okCallsOrErrCallsInAllBranches lookupTable lambda.expression
                                 |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = True }))
 
                         _ ->
@@ -8951,8 +8951,8 @@ justCallsOrNothingInAllBranches lookupTable baseExpressionNode =
                     Undetermined
 
 
-resultsInAllBranches : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
-resultsInAllBranches lookupTable baseExpressionNode =
+okCallsOrErrCallsInAllBranches : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
+okCallsOrErrCallsInAllBranches lookupTable baseExpressionNode =
     case sameCallInAllBranches ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
         Just okCalls ->
             Just (Ok (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls))
