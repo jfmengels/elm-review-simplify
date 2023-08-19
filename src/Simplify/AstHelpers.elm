@@ -1,37 +1,57 @@
 module Simplify.AstHelpers exposing
-    ( boolToString
-    , declarationListBindings
-    , emptyStringAsString
-    , getAlwaysResult
-    , getBool
-    , getBoolPattern
-    , getCollapsedCons
-    , getComposition
-    , getListLiteral
-    , getListSingleton
-    , getOrder
-    , getSpecificBool
-    , getSpecificFunctionCall
-    , getSpecificValueOrFunction
+    ( removeParens, removeParensFromPattern
+    , getComposition, getValueOrFunctionOrFunctionCall
+    , getSpecificFunctionCall, getSpecificValueOrFunction
+    , isIdentity, getAlwaysResult, isBinaryOperation
+    , isTupleFirstAccess, isTupleSecondAccess
+    , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
+    , getCollapsedCons, getListLiteral, getListSingleton, isEmptyList
     , getTuple
-    , getTypeExposeIncludingVariants
-    , getUncomputedNumberValue
-    , getValueOrFunctionOrFunctionCall
-    , isBinaryOperation
-    , isEmptyList
-    , isIdentity
-    , isTupleFirstAccess
-    , isTupleSecondAccess
-    , letDeclarationListBindings
-    , moduleNameFromString
-    , nameOfExpose
-    , orderToString
-    , patternBindings
-    , patternListBindings
-    , qualifiedToString
-    , removeParens
-    , removeParensFromPattern
+    , boolToString, orderToString, emptyStringAsString
+    , moduleNameFromString, qualifiedToString
+    , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
+    , getTypeExposeIncludingVariants, nameOfExpose
     )
+
+{-|
+
+
+### remove parens
+
+@docs removeParens, removeParensFromPattern
+
+
+### value/function/function call/composition
+
+@docs getComposition, getValueOrFunctionOrFunctionCall
+@docs getSpecificFunctionCall, getSpecificValueOrFunction
+
+
+### certain kind
+
+@docs isIdentity, getAlwaysResult, isBinaryOperation
+@docs isTupleFirstAccess, isTupleSecondAccess
+@docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
+@docs getCollapsedCons, getListLiteral, getListSingleton, isEmptyList
+@docs getTuple
+
+
+### literal as string
+
+@docs boolToString, orderToString, emptyStringAsString
+
+
+### qualification
+
+@docs moduleNameFromString, qualifiedToString
+
+
+### misc
+
+@docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
+@docs getTypeExposeIncludingVariants, nameOfExpose
+
+-}
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
