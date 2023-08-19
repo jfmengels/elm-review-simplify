@@ -8980,29 +8980,7 @@ sameCallInAllBranches :
                 }
             )
 sameCallInAllBranches pureFullyQualified lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificFunctionCall pureFullyQualified lookupTable baseExpressionNode of
-        Just pureCall ->
-            Just [ pureCall ]
-
-        Nothing ->
-            case Node.value (AstHelpers.removeParens baseExpressionNode) of
-                Expression.LetExpression letIn ->
-                    sameCallInAllBranches pureFullyQualified lookupTable letIn.expression
-
-                Expression.IfBlock _ thenBranch elseBranch ->
-                    traverse
-                        (\branchExpression -> sameCallInAllBranches pureFullyQualified lookupTable branchExpression)
-                        [ thenBranch, elseBranch ]
-                        |> Maybe.map List.concat
-
-                Expression.CaseExpression caseOf ->
-                    traverse
-                        (\( _, caseExpression ) -> sameCallInAllBranches pureFullyQualified lookupTable caseExpression)
-                        caseOf.cases
-                        |> Maybe.map List.concat
-
-                _ ->
-                    Nothing
+    sameInAllBranches (AstHelpers.getSpecificFunctionCall pureFullyQualified lookupTable) baseExpressionNode
 
 
 sameValueOrFunctionInAllBranches :
@@ -9011,24 +8989,32 @@ sameValueOrFunctionInAllBranches :
     -> Node Expression
     -> Maybe (List Range)
 sameValueOrFunctionInAllBranches pureFullyQualified lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificValueOrFunction pureFullyQualified lookupTable baseExpressionNode of
-        Just valueOrFn ->
-            Just [ valueOrFn ]
+    sameInAllBranches (AstHelpers.getSpecificValueOrFunction pureFullyQualified lookupTable) baseExpressionNode
+
+
+sameInAllBranches :
+    (Node Expression -> Maybe info)
+    -> Node Expression
+    -> Maybe (List info)
+sameInAllBranches getSpecific baseExpressionNode =
+    case getSpecific baseExpressionNode of
+        Just specific ->
+            Just [ specific ]
 
         Nothing ->
             case Node.value (AstHelpers.removeParens baseExpressionNode) of
                 Expression.LetExpression letIn ->
-                    sameValueOrFunctionInAllBranches pureFullyQualified lookupTable letIn.expression
+                    sameInAllBranches getSpecific letIn.expression
 
                 Expression.IfBlock _ thenBranch elseBranch ->
                     traverse
-                        (\branchExpression -> sameValueOrFunctionInAllBranches pureFullyQualified lookupTable branchExpression)
+                        (\branchExpression -> sameInAllBranches getSpecific branchExpression)
                         [ thenBranch, elseBranch ]
                         |> Maybe.map List.concat
 
                 Expression.CaseExpression caseOf ->
                     traverse
-                        (\( _, caseExpression ) -> sameValueOrFunctionInAllBranches pureFullyQualified lookupTable caseExpression)
+                        (\( _, caseExpression ) -> sameInAllBranches getSpecific caseExpression)
                         caseOf.cases
                         |> Maybe.map List.concat
 
