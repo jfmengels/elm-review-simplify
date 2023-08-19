@@ -26,6 +26,9 @@ map mapper match =
             Undetermined
 
 
+{-| If all mapped elements are Determined, returns a List of the Determined values.
+If any match is Undetermined, returns Undetermined
+-}
 traverse : (a -> Match b) -> List a -> Match (List b)
 traverse f list =
     traverseHelp f list []
