@@ -7099,8 +7099,8 @@ resultAndThenChecks checkInfo =
                     case okConstruction of
                         NonDirectConstruction fix ->
                             [ Rule.errorWithFix
-                                { message = "Use Result.map instead"
-                                , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                                { message = "Use " ++ qualifiedToString ( [ "Result" ], "map" ) ++ " instead"
+                                , details = [ "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function that always returns Ok is the same thing as using " ++ qualifiedToString ( [ "Result" ], "map" ) ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy checkInfo.fnRange
@@ -7112,7 +7112,7 @@ resultAndThenChecks checkInfo =
                         DirectConstruction ->
                             [ Rule.errorWithFix
                                 -- TODO use identityError and replace Just by Ok
-                                { message = "Using Result.andThen with a function that will always return Just is the same as not using Result.andThen"
+                                { message = "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( [ "Result" ], "andThen" )
                                 , details = [ "You can remove this call and replace it by the value itself." ]
                                 }
                                 checkInfo.fnRange
@@ -7176,7 +7176,7 @@ resultToMaybeChecks checkInfo =
             case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined okCalls ->
                     [ Rule.errorWithFix
-                        { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                        { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on a value that is Ok will result in Just that value itself"
                         , details = [ "You can replace this call by the value itself wrapped in Just." ]
                         }
                         checkInfo.fnRange
@@ -7193,7 +7193,7 @@ resultToMaybeChecks checkInfo =
             case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     [ Rule.errorWithFix
-                        { message = "Using Result.toMaybe on an error will result in Nothing"
+                        { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
                         , details = [ "You can replace this call by Nothing." ]
                         }
                         checkInfo.fnRange
