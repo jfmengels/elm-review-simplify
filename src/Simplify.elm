@@ -5467,8 +5467,8 @@ listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Just { fix, throughLambdaFunction }) ->
+            case returnsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+                Determined { fix, throughLambdaFunction } ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
@@ -5492,7 +5492,11 @@ listFilterMapChecks checkInfo =
                             )
                         ]
 
-                Determined Nothing ->
+                Undetermined ->
+                    []
+        , \() ->
+            case returnsNothingInAllBranches checkInfo.lookupTable checkInfo.firstArg of
+                Determined _ ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in an empty list"
                         , details = [ "You can remove this call and replace it by an empty list." ]
@@ -6994,8 +6998,8 @@ maybeAndThenChecks checkInfo =
                 Nothing ->
                     []
         , \() ->
-            case isAlwaysMaybe checkInfo.lookupTable checkInfo.firstArg of
-                Determined (Just { fix, throughLambdaFunction }) ->
+            case returnsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+                Determined { fix, throughLambdaFunction } ->
                     if throughLambdaFunction then
                         [ Rule.errorWithFix
                             { message = "Use " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ " instead"
@@ -7019,7 +7023,11 @@ maybeAndThenChecks checkInfo =
                             )
                         ]
 
-                Determined Nothing ->
+                Undetermined ->
+                    []
+        , \() ->
+            case returnsNothingInAllBranches checkInfo.lookupTable checkInfo.firstArg of
+                Determined _ ->
                     [ Rule.errorWithFix
                         { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Nothing will result in Nothing"
                         , details = [ "You can remove this call and replace it by Nothing." ]
@@ -8869,21 +8877,6 @@ needsParens expr =
 
         _ ->
             False
-
-
-isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { fix : List Fix, throughLambdaFunction : Bool })
-isAlwaysMaybe lookupTable expressionNode =
-    case returnsSpecificInAllBranches ( [ "Maybe" ], "Just" ) lookupTable expressionNode of
-        Determined just ->
-            Determined (Just just)
-
-        Undetermined ->
-            case returnsNothingInAllBranches lookupTable expressionNode of
-                Determined _ ->
-                    Determined Nothing
-
-                Undetermined ->
-                    Undetermined
 
 
 returnsNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (List Range)
