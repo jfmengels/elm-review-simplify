@@ -8907,10 +8907,10 @@ a = List.filterMap (\\a -> Nothing) x
 a = []
 """
                         ]
-        , test "should replace List.filterMap (\\a -> Just a) x by x" <|
+        , test "should replace List.filterMap (\\a -> Just b) x by x" <|
             \() ->
                 """module A exposing (..)
-a = List.filterMap (\\a -> Just a) x
+a = List.filterMap (\\a -> Just b) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -8920,13 +8920,13 @@ a = List.filterMap (\\a -> Just a) x
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\a -> a) x
+a = List.map (\\a -> b) x
 """
                         ]
-        , test "should replace List.filterMap (\\a -> Just a) by identity" <|
+        , test "should replace List.filterMap (\\a -> Just b) by identity" <|
             \() ->
                 """module A exposing (..)
-a = List.filterMap (\\a -> Just a)
+a = List.filterMap (\\a -> Just b)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -8936,7 +8936,7 @@ a = List.filterMap (\\a -> Just a)
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\a -> a)
+a = List.map (\\a -> b)
 """
                         ]
         , test "should replace List.map (\\a -> Just b) x by List.filterMap (\\a -> b) x" <|
@@ -13410,7 +13410,7 @@ a = Maybe.map f (Just x)
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (f (x))
+a = Just (f x)
 """
                         ]
         , test "should replace Maybe.map f <| Just x by Just (f x)" <|
@@ -13618,10 +13618,10 @@ a = Maybe.andThen (always Nothing) x
 a = Nothing
 """
                         ]
-        , test "should replace Maybe.andThen (\\b -> Just b) x by Maybe.map (\\b -> b) x" <|
+        , test "should replace Maybe.andThen (\\b -> Just c) x by Maybe.map (\\b -> c) x" <|
             \() ->
                 """module A exposing (..)
-a = Maybe.andThen (\\b -> Just b) x
+a = Maybe.andThen (\\b -> Just c) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13631,7 +13631,7 @@ a = Maybe.andThen (\\b -> Just b) x
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Maybe.map (\\b -> b) x
+a = Maybe.map (\\b -> c) x
 """
                         ]
         , test "should replace Maybe.andThen (\\b -> if cond then Just b else Just c) x by Maybe.map (\\b -> if cond then b else c) x" <|
@@ -14033,7 +14033,7 @@ a = Result.map f (Ok x)
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok (f (x))
+a = Ok (f x)
 """
                         ]
         , test "should replace Result.map f <| Ok x by Ok (f x)" <|
@@ -14551,10 +14551,10 @@ a = Result.andThen Ok x
 a = x
 """
                         ]
-        , test "should replace Result.andThen (\\b -> Ok b) x by Result.map (\\b -> b) x" <|
+        , test "should replace Result.andThen (\\b -> Ok c) x by Result.map (\\b -> c) x" <|
             \() ->
                 """module A exposing (..)
-a = Result.andThen (\\b -> Ok b) x
+a = Result.andThen (\\b -> Ok c) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -14564,7 +14564,7 @@ a = Result.andThen (\\b -> Ok b) x
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Result.map (\\b -> b) x
+a = Result.map (\\b -> c) x
 """
                         ]
         , test "should replace Result.andThen (\\b -> let y = 1 in Ok y) x by Result.map (\\b -> let y = 1 in y) x" <|
@@ -18619,7 +18619,7 @@ a = Random.map f (Random.constant x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Random.constant (f (x))
+a = Random.constant (f x)
 """
                         ]
         , test "should replace Random.map f <| Random.constant x by Random.constant (f x)" <|

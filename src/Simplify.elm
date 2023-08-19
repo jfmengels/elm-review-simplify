@@ -7088,6 +7088,7 @@ resultAndThenChecks checkInfo =
 
                     else
                         [ Rule.errorWithFix
+                            -- TODO use identityError and replace Just by Ok
                             { message = "Using Result.andThen with a function that will always return Just is the same as not using Result.andThen"
                             , details = [ "You can remove this call and replace it by the value itself." ]
                             }
@@ -8872,7 +8873,7 @@ needsParens expr =
 
 isAlwaysMaybe : ModuleNameLookupTable -> Node Expression -> Match (Maybe { fixes : List Fix, throughLambdaFunction : Bool })
 isAlwaysMaybe lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
+    case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
         Just _ ->
             Determined
                 (Just
@@ -8935,6 +8936,36 @@ isAlwaysResult lookupTable baseExpressionNode =
                             Nothing
 
 
+maybesInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
+maybesInAllBranches lookupTable baseExpressionNode =
+    case sameCallInAllBranches ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
+        Just justCalls ->
+            Determined (Just (List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls))
+
+        Nothing ->
+            case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) lookupTable baseExpressionNode of
+                Just _ ->
+                    Determined Nothing
+
+                Nothing ->
+                    Undetermined
+
+
+resultsInAllBranches : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
+resultsInAllBranches lookupTable baseExpressionNode =
+    case sameCallInAllBranches ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
+        Just okCalls ->
+            Just (Ok (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls))
+
+        Nothing ->
+            case sameCallInAllBranches ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
+                Just errCalls ->
+                    Just (Err (List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls))
+
+                Nothing ->
+                    Nothing
+
+
 sameCallInAllBranches :
     ( ModuleName, String )
     -> ModuleNameLookupTable
@@ -8949,17 +8980,12 @@ sameCallInAllBranches :
                 }
             )
 sameCallInAllBranches pureFullyQualified lookupTable baseExpressionNode =
-    let
-        expressionWithoutParensNode : Node Expression
-        expressionWithoutParensNode =
-            AstHelpers.removeParens baseExpressionNode
-    in
-    case AstHelpers.getSpecificFunctionCall pureFullyQualified lookupTable expressionWithoutParensNode of
+    case AstHelpers.getSpecificFunctionCall pureFullyQualified lookupTable baseExpressionNode of
         Just pureCall ->
             Just [ pureCall ]
 
         Nothing ->
-            case Node.value expressionWithoutParensNode of
+            case Node.value (AstHelpers.removeParens baseExpressionNode) of
                 Expression.LetExpression letIn ->
                     sameCallInAllBranches pureFullyQualified lookupTable letIn.expression
 
@@ -8979,138 +9005,40 @@ sameCallInAllBranches pureFullyQualified lookupTable baseExpressionNode =
                     Nothing
 
 
-maybesInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
-maybesInAllBranches lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
-        Just justCall ->
-            Determined (Just (replaceBySubExpressionFix justCall.nodeRange justCall.firstArg))
+sameValueOrFunctionInAllBranches :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe (List Range)
+sameValueOrFunctionInAllBranches pureFullyQualified lookupTable baseExpressionNode =
+    let
+        expressionWithoutParensNode : Node Expression
+        expressionWithoutParensNode =
+            AstHelpers.removeParens baseExpressionNode
+    in
+    case AstHelpers.getSpecificValueOrFunction pureFullyQualified lookupTable expressionWithoutParensNode of
+        Just valueOrFn ->
+            Just [ valueOrFn ]
 
         Nothing ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable baseExpressionNode of
-                Just _ ->
-                    Determined Nothing
+            case Node.value expressionWithoutParensNode of
+                Expression.LetExpression letIn ->
+                    sameValueOrFunctionInAllBranches pureFullyQualified lookupTable letIn.expression
 
-                Nothing ->
-                    case Node.value (AstHelpers.removeParens baseExpressionNode) of
-                        Expression.LetExpression letIn ->
-                            maybesInAllBranches lookupTable letIn.expression
+                Expression.IfBlock _ thenBranch elseBranch ->
+                    traverse
+                        (\branchExpression -> sameValueOrFunctionInAllBranches pureFullyQualified lookupTable branchExpression)
+                        [ thenBranch, elseBranch ]
+                        |> Maybe.map List.concat
 
-                        Expression.IfBlock _ thenBranch elseBranch ->
-                            combineMaybeValues lookupTable [ thenBranch, elseBranch ]
+                Expression.CaseExpression caseOf ->
+                    traverse
+                        (\( _, caseExpression ) -> sameValueOrFunctionInAllBranches pureFullyQualified lookupTable caseExpression)
+                        caseOf.cases
+                        |> Maybe.map List.concat
 
-                        Expression.CaseExpression caseOf ->
-                            combineMaybeValues lookupTable (List.map Tuple.second caseOf.cases)
-
-                        _ ->
-                            Undetermined
-
-
-combineMaybeValues : ModuleNameLookupTable -> List (Node Expression) -> Match (Maybe (List Fix))
-combineMaybeValues lookupTable nodes =
-    case nodes of
-        node :: restOfNodes ->
-            case maybesInAllBranches lookupTable node of
-                Undetermined ->
-                    Undetermined
-
-                Determined nodeValue ->
-                    combineMaybeValuesHelp lookupTable restOfNodes nodeValue
-
-        [] ->
-            Undetermined
-
-
-combineMaybeValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Maybe (List Fix) -> Match (Maybe (List Fix))
-combineMaybeValuesHelp lookupTable nodes soFar =
-    case nodes of
-        node :: restOfNodes ->
-            case maybesInAllBranches lookupTable node of
-                Undetermined ->
-                    Undetermined
-
-                Determined nodeValue ->
-                    case ( nodeValue, soFar ) of
-                        ( Just _, Nothing ) ->
-                            Undetermined
-
-                        ( Nothing, Just _ ) ->
-                            Undetermined
-
-                        ( Nothing, Nothing ) ->
-                            combineMaybeValuesHelp lookupTable restOfNodes Nothing
-
-                        ( Just a, Just b ) ->
-                            combineMaybeValuesHelp lookupTable restOfNodes (Just (a ++ b))
-
-        [] ->
-            Determined soFar
-
-
-resultsInAllBranches : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
-resultsInAllBranches lookupTable baseExpressionNode =
-    case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
-        Just okCall ->
-            Just (Ok (replaceBySubExpressionFix (Node.range baseExpressionNode) okCall.firstArg))
-
-        Nothing ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable baseExpressionNode of
-                Just errCall ->
-                    Just (Err (replaceBySubExpressionFix (Node.range baseExpressionNode) errCall.firstArg))
-
-                Nothing ->
-                    case Node.value (AstHelpers.removeParens baseExpressionNode) of
-                        Expression.LetExpression letIn ->
-                            resultsInAllBranches lookupTable letIn.expression
-
-                        Expression.IfBlock _ thenBranch elseBranch ->
-                            combineResultValues lookupTable [ thenBranch, elseBranch ]
-
-                        Expression.CaseExpression caseOf ->
-                            combineResultValues lookupTable (List.map Tuple.second caseOf.cases)
-
-                        _ ->
-                            Nothing
-
-
-combineResultValues : ModuleNameLookupTable -> List (Node Expression) -> Maybe (Result (List Fix) (List Fix))
-combineResultValues lookupTable nodes =
-    case nodes of
-        node :: restOfNodes ->
-            case resultsInAllBranches lookupTable node of
-                Nothing ->
+                _ ->
                     Nothing
-
-                Just nodeValue ->
-                    combineResultValuesHelp lookupTable restOfNodes nodeValue
-
-        [] ->
-            Nothing
-
-
-combineResultValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Result (List Fix) (List Fix) -> Maybe (Result (List Fix) (List Fix))
-combineResultValuesHelp lookupTable nodes soFar =
-    case nodes of
-        node :: restOfNodes ->
-            case resultsInAllBranches lookupTable node of
-                Nothing ->
-                    Nothing
-
-                Just nodeValue ->
-                    case ( nodeValue, soFar ) of
-                        ( Ok _, Err _ ) ->
-                            Nothing
-
-                        ( Err _, Ok _ ) ->
-                            Nothing
-
-                        ( Err _, Err soFarRange ) ->
-                            combineResultValuesHelp lookupTable restOfNodes (Err soFarRange)
-
-                        ( Ok a, Ok b ) ->
-                            combineResultValuesHelp lookupTable restOfNodes (Ok (a ++ b))
-
-        [] ->
-            Just soFar
 
 
 getComparableExpressionInTupleFirst : Node Expression -> Maybe (List Expression)
