@@ -20,7 +20,6 @@ module Simplify.AstHelpers exposing
     , isBinaryOperation
     , isEmptyList
     , isIdentity
-    , isListLiteral
     , isTupleFirstAccess
     , isTupleSecondAccess
     , letDeclarationListBindings
@@ -508,8 +507,8 @@ drop2BeginningsWhile shouldDrop listPair =
 
 getCollapsedLambda : Node Expression -> Maybe { patterns : List (Node Pattern), expression : Node Expression }
 getCollapsedLambda expressionNode =
-    case Node.value (removeParens expressionNode) of
-        Expression.LambdaExpression lambda ->
+    case removeParens expressionNode of
+        Node _ (Expression.LambdaExpression lambda) ->
             case getCollapsedLambda lambda.expression of
                 Nothing ->
                     Just
@@ -626,16 +625,6 @@ letDeclarationListBindings letDeclarationList =
         |> List.map
             (\(Node _ declaration) -> letDeclarationBindings declaration)
         |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
-
-
-isListLiteral : Node Expression -> Bool
-isListLiteral expressionNode =
-    case Node.value expressionNode of
-        Expression.ListExpr _ ->
-            True
-
-        _ ->
-            False
 
 
 getListLiteral : Node Expression -> Maybe (List (Node Expression))

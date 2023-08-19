@@ -4251,19 +4251,20 @@ listConcatChecks checkInfo =
                                         Nothing ->
                                             []
                                 , \() ->
-                                    if List.all AstHelpers.isListLiteral list then
-                                        [ Rule.errorWithFix
-                                            { message = "Expression could be simplified to be a single List"
-                                            , details = [ "Try moving all the elements into a single list." ]
-                                            }
-                                            checkInfo.parentRange
-                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                                ++ List.concatMap removeBoundariesFix (firstListElement :: restOfListElements)
-                                            )
-                                        ]
+                                    case traverse AstHelpers.getListLiteral list of
+                                        Just _ ->
+                                            [ Rule.errorWithFix
+                                                { message = "Expression could be simplified to be a single List"
+                                                , details = [ "Try moving all the elements into a single list." ]
+                                                }
+                                                checkInfo.parentRange
+                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                                    ++ List.concatMap removeBoundariesFix (firstListElement :: restOfListElements)
+                                                )
+                                            ]
 
-                                    else
-                                        []
+                                        Nothing ->
+                                            []
                                 , \() ->
                                     case findConsecutiveListLiterals firstListElement restOfListElements of
                                         firstFix :: fixesAFterFirst ->
