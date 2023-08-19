@@ -5470,7 +5470,7 @@ listFilterMapChecks checkInfo =
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justConstruction ->
                     case justConstruction of
-                        LambdaUsedDirectlyForConstruction fix ->
+                        NonDirectConstruction fix ->
                             [ Rule.errorWithFix
                                 { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
                                 , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
@@ -5482,7 +5482,7 @@ listFilterMapChecks checkInfo =
                                 )
                             ]
 
-                        AlwaysOrDirectConstruction ->
+                        DirectConstruction ->
                             [ Rule.errorWithFix
                                 { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                                 , details = [ "You can remove this call and replace it by the list itself." ]
@@ -7008,7 +7008,7 @@ maybeAndThenChecks checkInfo =
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justConstruction ->
                     case justConstruction of
-                        LambdaUsedDirectlyForConstruction fix ->
+                        NonDirectConstruction fix ->
                             [ Rule.errorWithFix
                                 { message = "Use " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ " instead"
                                 , details = [ "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ "." ]
@@ -7020,7 +7020,7 @@ maybeAndThenChecks checkInfo =
                                 )
                             ]
 
-                        AlwaysOrDirectConstruction ->
+                        DirectConstruction ->
                             [ Rule.errorWithFix
                                 { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" )
                                 , details = [ "You can remove this call and replace it by the value itself." ]
@@ -7097,7 +7097,7 @@ resultAndThenChecks checkInfo =
             case constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined okConstruction ->
                     case okConstruction of
-                        LambdaUsedDirectlyForConstruction fix ->
+                        NonDirectConstruction fix ->
                             [ Rule.errorWithFix
                                 { message = "Use Result.map instead"
                                 , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
@@ -7109,7 +7109,7 @@ resultAndThenChecks checkInfo =
                                 )
                             ]
 
-                        AlwaysOrDirectConstruction ->
+                        DirectConstruction ->
                             [ Rule.errorWithFix
                                 -- TODO use identityError and replace Just by Ok
                                 { message = "Using Result.andThen with a function that will always return Just is the same as not using Result.andThen"
@@ -8918,27 +8918,24 @@ needsParens expr =
             False
 
 
-returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match ConstructionKind
+returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match (List Range)
 returnsSpecificValueOrFunctionInAllBranches specificQualified lookupTable expressionNode =
-    constructs (sameValueOrFunctionInAllBranches specificQualified)
-        (List.map Fix.removeRange)
-        lookupTable
-        expressionNode
+    constructs (sameValueOrFunctionInAllBranches specificQualified) lookupTable expressionNode
 
 
 constructsSpecificInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match ConstructionKind
 constructsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode =
     case AstHelpers.getSpecificValueOrFunction specificFullyQualifiedFn lookupTable expressionNode of
         Just _ ->
-            Determined AlwaysOrDirectConstruction
+            Determined DirectConstruction
 
         Nothing ->
-            constructs (sameCallInAllBranches specificFullyQualifiedFn)
-                (\calls ->
-                    List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) calls
-                )
-                lookupTable
-                expressionNode
+            constructs (sameCallInAllBranches specificFullyQualifiedFn) lookupTable expressionNode
+                |> Match.map
+                    (\calls ->
+                        NonDirectConstruction
+                            (List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) calls)
+                    )
 
 
 type ConstructionKind
@@ -8946,29 +8943,26 @@ type ConstructionKind
       --   - `always specific`
       --   - `\a -> ... (specific a)`
       --   - `... specific`
-      AlwaysOrDirectConstruction
+      DirectConstruction
     | -- `a` argument not directly used,
       -- e.g. `\a -> ... (specific (f a))` or `\a -> if a then specific b`
-      LambdaUsedDirectlyForConstruction (List Fix)
+      NonDirectConstruction (List Fix)
 
 
 constructs :
     (ModuleNameLookupTable -> Node Expression -> Match specific)
-    -> (specific -> List Fix)
     -> ModuleNameLookupTable
     -> Node Expression
-    -> Match ConstructionKind
-constructs getSpecific fix lookupTable expressionNode =
+    -> Match specific
+constructs getSpecific lookupTable expressionNode =
     case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
         Just alwaysCall ->
             getSpecific lookupTable alwaysCall.firstArg
-                |> Match.map (\_ -> AlwaysOrDirectConstruction)
 
         Nothing ->
             case Node.value (AstHelpers.removeParens expressionNode) of
                 Expression.LambdaExpression lambda ->
                     getSpecific lookupTable lambda.expression
-                        |> Match.map (\specific -> LambdaUsedDirectlyForConstruction (fix specific))
 
                 _ ->
                     Undetermined
