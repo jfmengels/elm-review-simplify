@@ -5,7 +5,7 @@ module Simplify.AstHelpers exposing
     , isIdentity, getAlwaysResult, isBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
-    , getCollapsedCons, getListLiteral, getListSingleton, isEmptyList
+    , getCollapsedCons, getListLiteral, getListSingleton
     , getTuple
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedToString
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 @docs isIdentity, getAlwaysResult, isBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
-@docs getCollapsedCons, getListLiteral, getListSingleton, isEmptyList
+@docs getCollapsedCons, getListLiteral, getListSingleton
 @docs getTuple
 
 
@@ -748,16 +748,6 @@ getOrder lookupTable expression =
 
                         Nothing ->
                             Nothing
-
-
-isEmptyList : Node Expression -> Bool
-isEmptyList expressionNode =
-    case Node.value (removeParens expressionNode) of
-        Expression.ListExpr [] ->
-            True
-
-        _ ->
-            False
 
 
 isBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool

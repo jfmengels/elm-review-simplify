@@ -4319,24 +4319,25 @@ findEmptyLiteral elements =
                 headRange =
                     Node.range head
             in
-            if AstHelpers.isEmptyList head then
-                let
-                    end : Location
-                    end =
-                        case rest of
-                            [] ->
-                                headRange.end
+            case AstHelpers.getListLiteral head of
+                Just [] ->
+                    let
+                        end : Location
+                        end =
+                            case rest of
+                                [] ->
+                                    headRange.end
 
-                            (Node nextItem _) :: _ ->
-                                nextItem.start
-                in
-                Just
-                    { element = headRange
-                    , removalRange = { start = headRange.start, end = end }
-                    }
+                                (Node nextItem _) :: _ ->
+                                    nextItem.start
+                    in
+                    Just
+                        { element = headRange
+                        , removalRange = { start = headRange.start, end = end }
+                        }
 
-            else
-                findEmptyLiteralHelp rest headRange.end
+                _ ->
+                    findEmptyLiteralHelp rest headRange.end
 
 
 findEmptyLiteralHelp : List (Node Expression) -> Location -> Maybe { element : Range, removalRange : Range }
@@ -4351,14 +4352,15 @@ findEmptyLiteralHelp elements previousItemEnd =
                 headRange =
                     Node.range head
             in
-            if AstHelpers.isEmptyList head then
-                Just
-                    { element = headRange
-                    , removalRange = { start = previousItemEnd, end = headRange.end }
-                    }
+            case AstHelpers.getListLiteral head of
+                Just [] ->
+                    Just
+                        { element = headRange
+                        , removalRange = { start = previousItemEnd, end = headRange.end }
+                        }
 
-            else
-                findEmptyLiteralHelp rest headRange.end
+                _ ->
+                    findEmptyLiteralHelp rest headRange.end
 
 
 findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix
@@ -4400,17 +4402,18 @@ listConcatMapChecks checkInfo =
         , \() ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just alwaysResult ->
-                    if AstHelpers.isEmptyList alwaysResult then
-                        [ Rule.errorWithFix
-                            { message = qualifiedToString ( [ "List" ], "concatMap" ) ++ " will result in on an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                        ]
+                    case AstHelpers.getListLiteral alwaysResult of
+                        Just [] ->
+                            [ Rule.errorWithFix
+                                { message = qualifiedToString ( [ "List" ], "concatMap" ) ++ " will result in on an empty list"
+                                , details = [ "You can replace this call by an empty list." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                            ]
 
-                    else
-                        []
+                        _ ->
+                            []
 
                 Nothing ->
                     []
@@ -5246,17 +5249,18 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 , \() ->
                     case maybeListArg of
                         Just listArg ->
-                            if AstHelpers.isEmptyList listArg then
-                                [ Rule.errorWithFix
-                                    { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
-                                    , details = [ "You can replace this call by the initial accumulator." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
-                                ]
+                            case AstHelpers.getListLiteral listArg of
+                                Just [] ->
+                                    [ Rule.errorWithFix
+                                        { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
+                                        , details = [ "You can replace this call by the initial accumulator." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
+                                    ]
 
-                            else
-                                []
+                                _ ->
+                                    []
 
                         Nothing ->
                             []
@@ -6261,25 +6265,26 @@ randomUniformChecks : CheckInfo -> List (Error {})
 randomUniformChecks checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            if AstHelpers.isEmptyList otherOptionsArg then
-                let
-                    onlyValueRange : Range
-                    onlyValueRange =
-                        Node.range checkInfo.firstArg
-                in
-                [ Rule.errorWithFix
-                    { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                    , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
-                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
-                    , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
+            case AstHelpers.getListLiteral otherOptionsArg of
+                Just [] ->
+                    let
+                        onlyValueRange : Range
+                        onlyValueRange =
+                            Node.range checkInfo.firstArg
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Random.uniform with only one possible value can be replaced by Random.constant"
+                        , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
+                            (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
+                        , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
+                        ]
                     ]
-                ]
 
-            else
-                []
+                _ ->
+                    []
 
         Nothing ->
             []
@@ -6289,35 +6294,36 @@ randomWeightedChecks : CheckInfo -> List (Error {})
 randomWeightedChecks checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            if AstHelpers.isEmptyList otherOptionsArg then
-                [ Rule.errorWithFix
-                    { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                    , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
-                    }
-                    checkInfo.fnRange
-                    (case Node.value checkInfo.firstArg of
-                        Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
-                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
-                            , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
-                            ]
+            case AstHelpers.getListLiteral otherOptionsArg of
+                Just [] ->
+                    [ Rule.errorWithFix
+                        { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                        , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                        }
+                        checkInfo.fnRange
+                        (case Node.value checkInfo.firstArg of
+                            Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
+                                    (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
+                                , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
+                                ]
 
-                        _ ->
-                            let
-                                tupleRange : Range
-                                tupleRange =
-                                    Node.range checkInfo.firstArg
-                            in
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
-                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " (Tuple.first ")
-                            , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
-                                ")"
-                            ]
-                    )
-                ]
+                            _ ->
+                                let
+                                    tupleRange : Range
+                                    tupleRange =
+                                        Node.range checkInfo.firstArg
+                                in
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
+                                    (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " (Tuple.first ")
+                                , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
+                                    ")"
+                                ]
+                        )
+                    ]
 
-            else
-                []
+                _ ->
+                    []
 
         Nothing ->
             []
@@ -6571,7 +6577,7 @@ listCollection =
     , represents = "list"
     , emptyAsString = \_ -> "[]"
     , emptyDescription = "[]"
-    , isEmpty = \_ -> AstHelpers.isEmptyList
+    , isEmpty = \_ expr -> AstHelpers.getListLiteral expr == Just []
     , nameForSize = "length"
     , determineSize = determineListLength
     }
