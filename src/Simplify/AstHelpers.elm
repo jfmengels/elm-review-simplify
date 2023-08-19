@@ -390,54 +390,35 @@ isIdentity lookupTable baseExpressionNode =
                     False
 
 
-getAlwaysResult : Infer.Resources a -> Node Expression -> Maybe (Node Expression)
-getAlwaysResult inferResources expressionNode =
-    case Node.value (removeParens expressionNode) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: result :: []) ->
-            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Just result
+getAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+getAlwaysResult lookupTable expressionNode =
+    case getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+        Just alwaysCall ->
+            Just alwaysCall.firstArg
 
-                _ ->
-                    Nothing
+        Nothing ->
+            getIgnoreFirstLambdaResult expressionNode
 
-        Expression.OperatorApplication "<|" _ (Node alwaysRange (Expression.FunctionOrValue _ "always")) result ->
-            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Just result
 
-                _ ->
-                    Nothing
-
-        Expression.OperatorApplication "|>" _ result (Node alwaysRange (Expression.FunctionOrValue _ "always")) ->
-            case ModuleNameLookupTable.moduleNameAt inferResources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    Just result
-
-                _ ->
-                    Nothing
-
-        Expression.LambdaExpression lambda ->
+getIgnoreFirstLambdaResult : Node Expression -> Maybe (Node Expression)
+getIgnoreFirstLambdaResult expressionNode =
+    case removeParens expressionNode of
+        Node _ (Expression.LambdaExpression lambda) ->
             case lambda.args of
-                -- invalid syntax
-                [] ->
-                    Nothing
-
                 (Node _ Pattern.AllPattern) :: [] ->
                     Just lambda.expression
 
-                (Node _ Pattern.AllPattern) :: patternsAfter_ ->
+                (Node _ Pattern.AllPattern) :: pattern1 :: pattern2Up ->
                     Just
                         (Node (Node.range expressionNode)
                             (Expression.LambdaExpression
-                                { args = patternsAfter_
+                                { args = pattern1 :: pattern2Up
                                 , expression = lambda.expression
                                 }
                             )
                         )
 
-                -- not an ignore-first
-                _ :: _ ->
+                _ ->
                     Nothing
 
         _ ->

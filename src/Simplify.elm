@@ -4397,7 +4397,7 @@ listConcatMapChecks checkInfo =
             else
                 []
         , \() ->
-            case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just alwaysResult ->
                     if AstHelpers.isEmptyList alwaysResult then
                         [ Rule.errorWithFix
@@ -5260,7 +5260,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         Nothing ->
                             []
                 , \() ->
-                    case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
+                    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                         Just reduceAlwaysResult ->
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 [ Rule.errorWithFix
@@ -5754,7 +5754,7 @@ listSortByChecks checkInfo =
             Nothing ->
                 \() -> []
         , \() ->
-            case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     [ identityError
                         { toFix = qualifiedToString ( [ "List" ], "sortBy" ) ++ " (always a)"
@@ -5831,8 +5831,8 @@ listSortWithChecks checkInfo =
             let
                 alwaysAlwaysOrder : Maybe Order
                 alwaysAlwaysOrder =
-                    AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg
-                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo)
+                    AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
                         |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
             in
             case alwaysAlwaysOrder of
@@ -6474,7 +6474,7 @@ randomMapAlwaysErrorInfo =
 
 randomMapAlwaysChecks : CheckInfo -> List (Error {})
 randomMapAlwaysChecks checkInfo =
-    case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
         Just (Node alwaysMapResultRange alwaysMapResult) ->
             let
                 ( leftParenIfRequired, rightParenIfRequired ) =
