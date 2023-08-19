@@ -6967,7 +6967,7 @@ maybeAndThenChecks checkInfo =
         [ \() ->
             case maybeMaybeArg of
                 Just maybeArg ->
-                    case maybesInAllBranches checkInfo.lookupTable maybeArg of
+                    case justOrNothingInAllBranches checkInfo.lookupTable maybeArg of
                         Determined (Just justRangesRemoveFix) ->
                             [ Rule.errorWithFix
                                 { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
@@ -7790,7 +7790,7 @@ maybeWithDefaultChecks : CheckInfo -> List (Error {})
 maybeWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just maybeArg ->
-            case maybesInAllBranches checkInfo.lookupTable maybeArg of
+            case justOrNothingInAllBranches checkInfo.lookupTable maybeArg of
                 Determined (Just justRangesRemoveFix) ->
                     [ Rule.errorWithFix
                         { message = "Using Maybe.withDefault on a value that is Just will result in that value"
@@ -8887,14 +8887,14 @@ isAlwaysMaybe lookupTable baseExpressionNode =
                 Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
                     case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                         Just [ "Basics" ] ->
-                            maybesInAllBranches lookupTable value
+                            justOrNothingInAllBranches lookupTable value
                                 |> Match.map (Maybe.map (\fixes -> { fixes = fixes, throughLambdaFunction = False }))
 
                         _ ->
                             Undetermined
 
                 Expression.LambdaExpression lambda ->
-                    maybesInAllBranches lookupTable lambda.expression
+                    justOrNothingInAllBranches lookupTable lambda.expression
                         |> Match.map (Maybe.map (\ranges -> { fixes = ranges, throughLambdaFunction = True }))
 
                 _ ->
@@ -8936,8 +8936,8 @@ isAlwaysResult lookupTable baseExpressionNode =
                             Nothing
 
 
-maybesInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
-maybesInAllBranches lookupTable baseExpressionNode =
+justOrNothingInAllBranches : ModuleNameLookupTable -> Node Expression -> Match (Maybe (List Fix))
+justOrNothingInAllBranches lookupTable baseExpressionNode =
     case sameCallInAllBranches ( [ "Maybe" ], "Just" ) lookupTable baseExpressionNode of
         Just justCalls ->
             Determined (Just (List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls))
