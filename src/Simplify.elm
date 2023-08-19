@@ -4107,15 +4107,15 @@ resultMapCompositionChecks checkInfo =
 
 resultMapErrorOnErrErrorInfo : { message : String, details : List String }
 resultMapErrorOnErrErrorInfo =
-    { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+    { message = "Using " ++ qualifiedToString ( [ "Result" ], "mapError" ) ++ " on Err will result in Err with the function applied to the error"
     , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
     }
 
 
 resultMapErrorOnOkErrorInfo : { message : String, details : List String }
 resultMapErrorOnOkErrorInfo =
-    { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
-    , details = [ "You can remove the Result.mapError call." ]
+    { message = "Calling " ++ qualifiedToString ( [ "Result" ], "mapError" ) ++ " on a value that is Ok will always return the Ok result value"
+    , details = [ "You can remove the " ++ qualifiedToString ( [ "Result" ], "mapError" ) ++ " call." ]
     }
 
 
@@ -4130,7 +4130,7 @@ resultMapErrorChecks checkInfo =
         [ \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ identityError
-                    { toFix = "Result.mapError identity"
+                    { toFix = qualifiedToString ( [ "Result" ], "mapError" ) ++ " identity"
                     , lastArgName = "result"
                     , lastArg = maybeResultArg
                     , resources = checkInfo
@@ -4472,7 +4472,7 @@ listConcatCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "List" ], "map" ), _ :: [] ) ->
             [ Rule.errorWithFix
-                { message = qualifiedToString ( [ "List" ], "map" ) ++ " and List.concat can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ ""
+                { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ ""
                 , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                 }
                 -- TODO switch to later.fnRange
@@ -4511,7 +4511,7 @@ listIndexedMapChecks checkInfo =
                             in
                             [ Rule.errorWithFix
                                 { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                                , details = [ "Using " ++ qualifiedToString ( [ "List" ], "indexedMap" ) ++ " while ignoring the first argument is the same thing as calling List.map." ]
+                                , details = [ "Using " ++ qualifiedToString ( [ "List" ], "indexedMap" ) ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy checkInfo.fnRange
@@ -5452,10 +5452,10 @@ listAnyChecks checkInfo =
                 Just rangesToRemove ->
                     [ Rule.errorWithFix
                         { message = "Use " ++ qualifiedToString ( [ "List" ], "member" ) ++ " instead"
-                        , details = [ "This call to List.any checks for the presence of a value, which what " ++ qualifiedToString ( [ "List" ], "member" ) ++ " is for." ]
+                        , details = [ "This call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " checks for the presence of a value, which what " ++ qualifiedToString ( [ "List" ], "member" ) ++ " is for." ]
                         }
                         checkInfo.fnRange
-                        (Fix.replaceRangeBy checkInfo.fnRange "List.member"
+                        (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "List" ], "member" ) checkInfo))
                             :: List.map Fix.removeRange rangesToRemove
                         )
                     ]
@@ -5518,8 +5518,8 @@ listFilterMapChecks checkInfo =
                                     Just listMapCall ->
                                         [ Rule.errorWithFix
                                             -- TODO rework error info
-                                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ ""
-                                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
+                                            , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                             }
                                             { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
                                             [ removeFunctionAndFirstArg checkInfo listMapCall.nodeRange
@@ -5771,7 +5771,7 @@ listSortByChecks checkInfo =
             case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                 Just _ ->
                     [ identityError
-                        { toFix = "List.sortBy (always a)"
+                        { toFix = qualifiedToString ( [ "List" ], "sortBy" ) ++ " (always a)"
                         , lastArgName = "list"
                         , lastArg = secondArg checkInfo
                         , resources = checkInfo
@@ -5855,7 +5855,7 @@ listSortWithChecks checkInfo =
                         fixToIdentity : List (Error {})
                         fixToIdentity =
                             [ identityError
-                                { toFix = "List.sortWith (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
+                                { toFix = qualifiedToString ( [ "List" ], "sortWith" ) ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
                                 , lastArgName = "list"
                                 , lastArg = secondArg checkInfo
                                 , resources = checkInfo
@@ -6348,7 +6348,7 @@ randomListChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 1 ->
                     [ Rule.errorWithFix
-                        { message = qualifiedToString ( [ "Random" ], "list" ) ++ " 1 can be replaced by Random.map List.singleton"
+                        { message = qualifiedToString ( [ "Random" ], "list" ) ++ " 1 can be replaced by " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" )
                         , details = [ "This " ++ qualifiedToString ( [ "Random" ], "list" ) ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
@@ -6408,7 +6408,7 @@ randomListChecks checkInfo =
 
                                 replacementAsString : String
                                 replacementAsString =
-                                    qualifiedToString ( [ "Random" ], "constant" ) ++ " (List.repeat n el)"
+                                    qualifiedToString ( [ "Random" ], "constant" ) ++ " (" ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " n el)"
                             in
                             [ Rule.errorWithFix
                                 { message = currentAsString ++ " can be replaced by " ++ replacementAsString
@@ -6597,7 +6597,7 @@ setCollection =
     , emptyAsString =
         \resources ->
             qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
-    , emptyDescription = "Set.empty"
+    , emptyDescription = qualifiedToString ( [ "Set" ], "empty" )
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
@@ -6659,7 +6659,7 @@ dictCollection =
     , emptyAsString =
         \resources ->
             qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
-    , emptyDescription = "Dict.empty"
+    , emptyDescription = qualifiedToString ( [ "Dict" ], "empty" )
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
@@ -6779,7 +6779,9 @@ cmdCollection =
     , emptyAsString =
         \resources ->
             qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
-    , emptyDescription = "Cmd.none"
+    , emptyDescription =
+        -- TODO change to qualifiedToString ( [ "Platform", "Cmd" ], "none" )
+        "Cmd.none"
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
@@ -6793,7 +6795,9 @@ subCollection =
     , emptyAsString =
         \resources ->
             qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
-    , emptyDescription = "Sub.none"
+    , emptyDescription =
+        -- TODO change to qualifiedToString ( [ "Platform", "Sub" ], "none" )
+        "Sub.none"
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
@@ -7136,7 +7140,7 @@ resultWithDefaultChecks checkInfo =
                     case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
                         Determined okCalls ->
                             [ Rule.errorWithFix
-                                { message = "Using Result.withDefault on a value that is Ok will result in that value"
+                                { message = "Using " ++ qualifiedToString ( [ "Result" ], "withDefault" ) ++ " on a value that is Ok will result in that value"
                                 , details = [ "You can replace this call by the value wrapped in Ok." ]
                                 }
                                 checkInfo.fnRange
@@ -7151,7 +7155,7 @@ resultWithDefaultChecks checkInfo =
                     case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
                         Determined _ ->
                             [ Rule.errorWithFix
-                                { message = "Using Result.withDefault on an error will result in the default value"
+                                { message = "Using " ++ qualifiedToString ( [ "Result" ], "withDefault" ) ++ " on an error will result in the default value"
                                 , details = [ "You can replace this call by the default value." ]
                                 }
                                 checkInfo.fnRange
@@ -7218,7 +7222,7 @@ resultToMaybeCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Result" ], "Err" ), [] ) ->
             [ Rule.errorWithFix
-                { message = "Using Result.toMaybe on an error will result in Nothing"
+                { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
                 , details = [ "You can replace this call by always Nothing." ]
                 }
                 resultToMaybeFunctionRange
@@ -7232,7 +7236,7 @@ resultToMaybeCompositionChecks checkInfo =
 
         ( ( [ "Result" ], "Ok" ), [] ) ->
             [ Rule.errorWithFix
-                { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on a value that is Ok will result in Just that value itself"
                 , details = [ "You can replace this call by Just." ]
                 }
                 resultToMaybeFunctionRange
@@ -7834,7 +7838,7 @@ maybeWithDefaultChecks checkInfo =
                     case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
                         Determined justCalls ->
                             [ Rule.errorWithFix
-                                { message = "Using Maybe.withDefault on a value that is Just will result in that value"
+                                { message = "Using " ++ qualifiedToString ( [ "Maybe" ], "withDefault" ) ++ " on a value that is Just will result in that value"
                                 , details = [ "You can replace this call by the value wrapped in Just." ]
                                 }
                                 checkInfo.fnRange
@@ -7849,7 +7853,7 @@ maybeWithDefaultChecks checkInfo =
                     case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable maybeArg of
                         Determined _ ->
                             [ Rule.errorWithFix
-                                { message = "Using Maybe.withDefault on Nothing will result in the default value"
+                                { message = "Using " ++ qualifiedToString ( [ "Maybe" ], "withDefault" ) ++ " on Nothing will result in the default value"
                                 , details = [ "You can replace this call by the default value." ]
                                 }
                                 checkInfo.fnRange
