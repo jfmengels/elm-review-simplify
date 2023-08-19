@@ -1,12 +1,12 @@
 module Simplify.Match exposing
     ( Match(..)
-    , map
+    , map, traverse
     )
 
 {-|
 
 @docs Match
-@docs map
+@docs map, traverse
 
 -}
 
@@ -24,3 +24,23 @@ map mapper match =
 
         Undetermined ->
             Undetermined
+
+
+traverse : (a -> Match b) -> List a -> Match (List b)
+traverse f list =
+    traverseHelp f list []
+
+
+traverseHelp : (a -> Match b) -> List a -> List b -> Match (List b)
+traverseHelp f list acc =
+    case list of
+        head :: tail ->
+            case f head of
+                Determined a ->
+                    traverseHelp f tail (a :: acc)
+
+                Undetermined ->
+                    Undetermined
+
+        [] ->
+            Determined (List.reverse acc)
