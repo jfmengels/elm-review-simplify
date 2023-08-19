@@ -861,11 +861,12 @@ If desired, call in combination with `qualify`
 -}
 qualifiedToString : ( ModuleName, String ) -> String
 qualifiedToString ( moduleName, name ) =
-    if List.isEmpty moduleName then
-        name
+    case moduleName of
+        [] ->
+            name
 
-    else
-        moduleNameToString moduleName ++ "." ++ name
+        moduleNamePart0 :: moduleNamePart1Up ->
+            moduleNameToString (moduleNamePart0 :: moduleNamePart1Up) ++ "." ++ name
 
 
 moduleNameToString : ModuleName -> String
