@@ -311,6 +311,21 @@ isTupleFirstAccess lookupTable expressionNode =
             isTupleFirstPatternLambda expressionNode
 
 
+isTupleFirstPatternLambda : Node Expression -> Bool
+isTupleFirstPatternLambda expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                [ Node _ (Pattern.TuplePattern [ Node _ (Pattern.VarPattern firstVariableName), _ ]) ] ->
+                    Node.value lambda.expression == Expression.FunctionOrValue [] firstVariableName
+
+                _ ->
+                    False
+
+        _ ->
+            False
+
+
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
     case getSpecificValueOrFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
@@ -321,38 +336,13 @@ isTupleSecondAccess lookupTable expressionNode =
             isTupleSecondPatternLambda expressionNode
 
 
-isTupleFirstPatternLambda : Node Expression -> Bool
-isTupleFirstPatternLambda expressionNode =
-    case Node.value (removeParens expressionNode) of
-        Expression.LambdaExpression lambda ->
-            case lambda.args of
-                [ Node _ (Pattern.TuplePattern [ Node _ (Pattern.VarPattern firstVariableName), _ ]) ] ->
-                    case Node.value lambda.expression of
-                        Expression.FunctionOrValue [] resultName ->
-                            resultName == firstVariableName
-
-                        _ ->
-                            False
-
-                _ ->
-                    False
-
-        _ ->
-            False
-
-
 isTupleSecondPatternLambda : Node Expression -> Bool
 isTupleSecondPatternLambda expressionNode =
     case Node.value (removeParens expressionNode) of
         Expression.LambdaExpression lambda ->
             case lambda.args of
                 [ Node _ (Pattern.TuplePattern [ _, Node _ (Pattern.VarPattern firstVariableName) ]) ] ->
-                    case Node.value lambda.expression of
-                        Expression.FunctionOrValue [] resultName ->
-                            resultName == firstVariableName
-
-                        _ ->
-                            False
+                    Node.value lambda.expression == Expression.FunctionOrValue [] firstVariableName
 
                 _ ->
                     False
