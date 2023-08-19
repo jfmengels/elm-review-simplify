@@ -4177,7 +4177,7 @@ resultMapErrorChecks checkInfo =
                     []
 
                 Just resultArg ->
-                    case getResultValues checkInfo.lookupTable resultArg of
+                    case resultsInAllBranches checkInfo.lookupTable resultArg of
                         Just (Ok _) ->
                             [ Rule.errorWithFix
                                 resultMapErrorOnOkErrorInfo
@@ -7045,7 +7045,7 @@ resultAndThenChecks checkInfo =
         [ \() ->
             case maybeResultArg of
                 Just resultArg ->
-                    case getResultValues checkInfo.lookupTable resultArg of
+                    case resultsInAllBranches checkInfo.lookupTable resultArg of
                         Just (Ok oksRemoveFix) ->
                             [ Rule.errorWithFix
                                 { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
@@ -7107,7 +7107,7 @@ resultWithDefaultChecks : CheckInfo -> List (Error {})
 resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just resultArg ->
-            case getResultValues checkInfo.lookupTable resultArg of
+            case resultsInAllBranches checkInfo.lookupTable resultArg of
                 Just (Ok oksRemoveFix) ->
                     [ Rule.errorWithFix
                         { message = "Using Result.withDefault on a value that is Ok will result in that value"
@@ -7139,7 +7139,7 @@ resultWithDefaultChecks checkInfo =
 
 resultToMaybeChecks : CheckInfo -> List (Error {})
 resultToMaybeChecks checkInfo =
-    case getResultValues checkInfo.lookupTable checkInfo.firstArg of
+    case resultsInAllBranches checkInfo.lookupTable checkInfo.firstArg of
         Just (Ok oksRemoveFix) ->
             [ Rule.errorWithFix
                 { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
@@ -8940,14 +8940,14 @@ isAlwaysResult lookupTable baseExpressionNode =
         Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: value :: []) ->
             case ModuleNameLookupTable.moduleNameAt lookupTable alwaysRange of
                 Just [ "Basics" ] ->
-                    getResultValues lookupTable value
+                    resultsInAllBranches lookupTable value
                         |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = False }))
 
                 _ ->
                     Nothing
 
         Expression.LambdaExpression lambda ->
-            getResultValues lookupTable lambda.expression
+            resultsInAllBranches lookupTable lambda.expression
                 |> Maybe.map (Result.map (\ranges -> { fix = ranges, throughLambdaFunction = True }))
 
         _ ->
@@ -9065,8 +9065,8 @@ combineMaybeValuesHelp lookupTable nodes soFar =
             Determined soFar
 
 
-getResultValues : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
-getResultValues lookupTable baseExpressionNode =
+resultsInAllBranches : ModuleNameLookupTable -> Node Expression -> Maybe (Result (List Fix) (List Fix))
+resultsInAllBranches lookupTable baseExpressionNode =
     case AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable baseExpressionNode of
         Just okCall ->
             Just (Ok (replaceBySubExpressionFix (Node.range baseExpressionNode) okCall.firstArg))
@@ -9079,7 +9079,7 @@ getResultValues lookupTable baseExpressionNode =
                 Nothing ->
                     case Node.value (AstHelpers.removeParens baseExpressionNode) of
                         Expression.LetExpression letIn ->
-                            getResultValues lookupTable letIn.expression
+                            resultsInAllBranches lookupTable letIn.expression
 
                         Expression.IfBlock _ thenBranch elseBranch ->
                             combineResultValues lookupTable [ thenBranch, elseBranch ]
@@ -9095,7 +9095,7 @@ combineResultValues : ModuleNameLookupTable -> List (Node Expression) -> Maybe (
 combineResultValues lookupTable nodes =
     case nodes of
         node :: restOfNodes ->
-            case getResultValues lookupTable node of
+            case resultsInAllBranches lookupTable node of
                 Nothing ->
                     Nothing
 
@@ -9110,7 +9110,7 @@ combineResultValuesHelp : ModuleNameLookupTable -> List (Node Expression) -> Res
 combineResultValuesHelp lookupTable nodes soFar =
     case nodes of
         node :: restOfNodes ->
-            case getResultValues lookupTable node of
+            case resultsInAllBranches lookupTable node of
                 Nothing ->
                     Nothing
 
