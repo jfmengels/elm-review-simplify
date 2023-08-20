@@ -8106,19 +8106,11 @@ ifChecks checkInfo =
                                 , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
                                 }
                                 (targetIfKeyword checkInfo.nodeRange)
-                                [ Fix.replaceRangeBy
-                                    { start = checkInfo.nodeRange.start
-                                    , end = (Node.range checkInfo.condition).start
-                                    }
-                                    (qualifiedToString (qualify ( [ "Basics" ], "not" ) checkInfo)
-                                        ++ " ("
-                                    )
-                                , Fix.replaceRangeBy
-                                    { start = (Node.range checkInfo.condition).end
-                                    , end = checkInfo.nodeRange.end
-                                    }
-                                    ")"
-                                ]
+                                (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition
+                                    ++ [ Fix.insertAt checkInfo.nodeRange.start
+                                            (qualifiedToString (qualify ( [ "Basics" ], "not" ) checkInfo) ++ " ")
+                                       ]
+                                )
                             ]
                         , rangesToIgnore = RangeDict.empty
                         }

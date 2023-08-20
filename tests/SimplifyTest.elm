@@ -3954,7 +3954,7 @@ a = if condition then False else True
                             , under = "if"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = not (condition)
+a = not condition
 """
                         ]
         , test "should replace the expression by the branch if both branches have the same value" <|
