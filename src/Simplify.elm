@@ -1810,7 +1810,16 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             onlyErrors []
 
                 pipedIntoOther ->
-                    onlyErrors (pipelineChecks context { asCompositionDirection = LeftComposition, nodeRange = expressionRange, pipedInto = pipedIntoOther, arg = lastArg })
+                    onlyErrors
+                        (pipelineChecks
+                            { commentRanges = context.commentRanges
+                            , extractSourceCode = context.extractSourceCode
+                            , asCompositionDirection = LeftComposition
+                            , nodeRange = expressionRange
+                            , pipedInto = pipedIntoOther
+                            , arg = lastArg
+                            }
+                        )
 
         ----------
         -- (|>) --
@@ -1863,7 +1872,16 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             onlyErrors []
 
                 pipedIntoOther ->
-                    onlyErrors (pipelineChecks context { asCompositionDirection = RightComposition, nodeRange = expressionRange, pipedInto = pipedIntoOther, arg = lastArg })
+                    onlyErrors
+                        (pipelineChecks
+                            { commentRanges = context.commentRanges
+                            , extractSourceCode = context.extractSourceCode
+                            , asCompositionDirection = RightComposition
+                            , nodeRange = expressionRange
+                            , pipedInto = pipedIntoOther
+                            , arg = lastArg
+                            }
+                        )
 
         ----------
         -- (>>) --
@@ -7272,10 +7290,18 @@ resultToMaybeCompositionChecks checkInfo =
             []
 
 
-pipelineChecks : ModuleContext -> { nodeRange : Range, pipedInto : Node Expression, arg : Node Expression, asCompositionDirection : CompositionDirection } -> List (Error {})
-pipelineChecks context checkInfo =
+pipelineChecks :
+    { commentRanges : List Range
+    , extractSourceCode : Range -> String
+    , nodeRange : Range
+    , pipedInto : Node Expression
+    , arg : Node Expression
+    , asCompositionDirection : CompositionDirection
+    }
+    -> List (Error {})
+pipelineChecks checkInfo =
     firstThatReportsError
-        [ \() -> pipingIntoCompositionChecks context checkInfo.asCompositionDirection checkInfo.pipedInto
+        [ \() -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.asCompositionDirection checkInfo.pipedInto
         , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
         ]
         ()
@@ -7310,7 +7336,7 @@ type CompositionDirection
 
 
 pipingIntoCompositionChecks :
-    ModuleContext
+    { commentRanges : List Range, extractSourceCode : Range -> String }
     -> CompositionDirection
     -> Node Expression
     -> List (Error {})
