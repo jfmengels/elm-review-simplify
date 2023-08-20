@@ -8328,9 +8328,8 @@ appliedLambdaChecks { nodeRange, lambdaRange, lambda, firstArgument } =
                         replaceBySubExpressionFix nodeRange lambda.expression
 
                     secondPattern :: _ ->
-                        [ Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
-                        , Fix.removeRange (Node.range firstArgument)
-                        ]
+                        Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
+                            :: keepOnlyAndParenthesizeFix { parentRange = nodeRange, keep = lambdaRange }
                 )
             ]
 
@@ -8348,9 +8347,8 @@ appliedLambdaChecks { nodeRange, lambdaRange, lambda, firstArgument } =
                         replaceBySubExpressionFix nodeRange lambda.expression
 
                     secondPattern :: _ ->
-                        [ Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
-                        , Fix.removeRange (Node.range firstArgument)
-                        ]
+                        Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
+                            :: keepOnlyAndParenthesizeFix { parentRange = nodeRange, keep = lambdaRange }
                 )
             ]
 
@@ -8661,12 +8659,17 @@ keepOnlyFix config =
     ]
 
 
+keepOnlyAndParenthesizeFix : { parentRange : Range, keep : Range } -> List Fix
+keepOnlyAndParenthesizeFix config =
+    [ Fix.replaceRangeBy { start = config.parentRange.start, end = config.keep.start } "("
+    , Fix.replaceRangeBy { start = config.keep.end, end = config.parentRange.end } ")"
+    ]
+
+
 replaceBySubExpressionFix : Range -> Node Expression -> List Fix
 replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
     if needsParens exprValue then
-        [ Fix.replaceRangeBy { start = outerRange.start, end = exprRange.start } "("
-        , Fix.replaceRangeBy { start = exprRange.end, end = outerRange.end } ")"
-        ]
+        keepOnlyAndParenthesizeFix { parentRange = outerRange, keep = exprRange }
 
     else
         keepOnlyFix { parentRange = outerRange, keep = exprRange }

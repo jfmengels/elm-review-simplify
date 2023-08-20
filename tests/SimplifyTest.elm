@@ -5328,9 +5328,9 @@ a = (\\() y -> x) ()
                             , under = "()"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 7 }, end = { row = 2, column = 9 } }
-                            |> Review.Test.whenFixed ("""module A exposing (..)
-a = (\\y -> x)$
-""" |> String.replace "$" " ")
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y -> x)
+"""
                         ]
         , test "should replace (\\_ y -> x) a by (\\y -> x)" <|
             \() ->
@@ -5348,9 +5348,9 @@ a = (\\_ y -> x) a
                             , under = "_"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 7 }, end = { row = 2, column = 8 } }
-                            |> Review.Test.whenFixed ("""module A exposing (..)
-a = (\\y -> x)$
-""" |> String.replace "$" " ")
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y -> x)
+"""
                         ]
         , test "should report but not fix non-simplifiable lambdas that are directly called with an argument" <|
             \() ->
