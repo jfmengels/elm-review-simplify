@@ -1814,7 +1814,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                         (pipelineChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
-                            , asCompositionDirection = LeftComposition
+                            , direction = RightToLeft
                             , nodeRange = expressionRange
                             , pipedInto = pipedIntoOther
                             , arg = lastArg
@@ -1876,7 +1876,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                         (pipelineChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
-                            , asCompositionDirection = RightComposition
+                            , direction = LeftToRight
                             , nodeRange = expressionRange
                             , pipedInto = pipedIntoOther
                             , arg = lastArg
@@ -7296,12 +7296,12 @@ pipelineChecks :
     , nodeRange : Range
     , pipedInto : Node Expression
     , arg : Node Expression
-    , asCompositionDirection : CompositionDirection
+    , direction : LeftOrRightDirection
     }
     -> List (Error {})
 pipelineChecks checkInfo =
     firstThatReportsError
-        [ \() -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.asCompositionDirection checkInfo.pipedInto
+        [ \() -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
         , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
         ]
         ()
@@ -7330,24 +7330,24 @@ fullyAppliedLambdaInPipelineChecks { nodeRange, function, firstArgument } =
             []
 
 
-type CompositionDirection
-    = LeftComposition
-    | RightComposition
+type LeftOrRightDirection
+    = RightToLeft
+    | LeftToRight
 
 
 pipingIntoCompositionChecks :
     { commentRanges : List Range, extractSourceCode : Range -> String }
-    -> CompositionDirection
+    -> LeftOrRightDirection
     -> Node Expression
     -> List (Error {})
 pipingIntoCompositionChecks context compositionDirection expressionNode =
     let
         ( opToFind, replacement ) =
             case compositionDirection of
-                LeftComposition ->
+                RightToLeft ->
                     ( "<<", "<|" )
 
-                RightComposition ->
+                LeftToRight ->
                     ( ">>", "|>" )
 
         pipingIntoCompositionChecksHelp : Node Expression -> Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
@@ -7377,10 +7377,10 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                         continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
                         continuedSearch =
                             case compositionDirection of
-                                LeftComposition ->
+                                RightToLeft ->
                                     pipingIntoCompositionChecksHelp left
 
-                                RightComposition ->
+                                LeftToRight ->
                                     pipingIntoCompositionChecksHelp right
                     in
                     if symbol == replacement then
