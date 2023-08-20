@@ -1810,7 +1810,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             onlyErrors []
 
                 pipedIntoOther ->
-                    onlyErrors (leftPipelineChecks context { nodeRange = expressionRange, left = pipedIntoOther, right = lastArg })
+                    onlyErrors (pipelineChecks context { asCompositionDirection = LeftComposition, nodeRange = expressionRange, pipedInto = pipedIntoOther, arg = lastArg })
 
         ----------
         -- (|>) --
@@ -1863,7 +1863,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             onlyErrors []
 
                 pipedIntoOther ->
-                    onlyErrors (rightPipelineChecks context { nodeRange = expressionRange, left = lastArg, right = pipedIntoOther })
+                    onlyErrors (pipelineChecks context { asCompositionDirection = RightComposition, nodeRange = expressionRange, pipedInto = pipedIntoOther, arg = lastArg })
 
         ----------
         -- (>>) --
@@ -7272,20 +7272,11 @@ resultToMaybeCompositionChecks checkInfo =
             []
 
 
-leftPipelineChecks : ModuleContext -> { nodeRange : Range, left : Node Expression, right : Node Expression } -> List (Error {})
-leftPipelineChecks context { nodeRange, left, right } =
+pipelineChecks : ModuleContext -> { nodeRange : Range, pipedInto : Node Expression, arg : Node Expression, asCompositionDirection : CompositionDirection } -> List (Error {})
+pipelineChecks context checkInfo =
     firstThatReportsError
-        [ \() -> pipingIntoCompositionChecks context LeftComposition left
-        , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = nodeRange, function = left, firstArgument = right }
-        ]
-        ()
-
-
-rightPipelineChecks : ModuleContext -> { nodeRange : Range, left : Node Expression, right : Node Expression } -> List (Error {})
-rightPipelineChecks context { nodeRange, left, right } =
-    firstThatReportsError
-        [ \() -> pipingIntoCompositionChecks context RightComposition right
-        , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = nodeRange, function = right, firstArgument = left }
+        [ \() -> pipingIntoCompositionChecks context checkInfo.asCompositionDirection checkInfo.pipedInto
+        , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
         ]
         ()
 
