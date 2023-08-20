@@ -8027,25 +8027,23 @@ ifChecks :
     -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 ifChecks context nodeRange { condition, trueBranch, falseBranch } =
     case Evaluate.getBoolean context condition of
-        Determined True ->
-            errorsAndRangesToIgnore
-                [ Rule.errorWithFix
-                    { message = "The condition will always evaluate to True"
-                    , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
-                    }
-                    (targetIfKeyword nodeRange)
-                    (replaceBySubExpressionFix nodeRange trueBranch)
-                ]
-                (RangeDict.singleton (Node.range condition) ())
+        Determined determinedConditionResultIsTrue ->
+            let
+                branch : { expressionNode : Node Expression, name : String }
+                branch =
+                    if determinedConditionResultIsTrue then
+                        { expressionNode = trueBranch, name = "then" }
 
-        Determined False ->
+                    else
+                        { expressionNode = falseBranch, name = "else" }
+            in
             errorsAndRangesToIgnore
                 [ Rule.errorWithFix
-                    { message = "The condition will always evaluate to False"
-                    , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                    { message = "The condition will always evaluate to " ++ AstHelpers.boolToString determinedConditionResultIsTrue
+                    , details = [ "The expression can be replaced by what is inside the '" ++ branch.name ++ "' branch." ]
                     }
                     (targetIfKeyword nodeRange)
-                    (replaceBySubExpressionFix nodeRange falseBranch)
+                    (replaceBySubExpressionFix nodeRange branch.expressionNode)
                 ]
                 (RangeDict.singleton (Node.range condition) ())
 
