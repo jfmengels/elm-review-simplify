@@ -5293,13 +5293,13 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         Nothing ->
                             []
                 , \() ->
-                    if AstHelpers.isSpecificBinaryOperation "*" checkInfo checkInfo.firstArg then
+                    if AstHelpers.isSpecificUnappliedBinaryOperation "*" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
                     else
                         []
                 , \() ->
-                    if AstHelpers.isSpecificBinaryOperation "+" checkInfo checkInfo.firstArg then
+                    if AstHelpers.isSpecificUnappliedBinaryOperation "+" checkInfo checkInfo.firstArg then
                         numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                     else
@@ -5310,10 +5310,10 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             []
 
                         Determined initialBool ->
-                            if AstHelpers.isSpecificBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                            if AstHelpers.isSpecificUnappliedBinaryOperation "&&" checkInfo checkInfo.firstArg then
                                 boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool
 
-                            else if AstHelpers.isSpecificBinaryOperation "||" checkInfo checkInfo.firstArg then
+                            else if AstHelpers.isSpecificUnappliedBinaryOperation "||" checkInfo checkInfo.firstArg then
                                 boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool
 
                             else

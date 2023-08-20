@@ -2,7 +2,7 @@ module Simplify.AstHelpers exposing
     ( removeParens, removeParensFromPattern
     , getComposition, getValueOrFunctionOrFunctionCall
     , getSpecificFunctionCall, getSpecificValueOrFunction
-    , isIdentity, getAlwaysResult, isSpecificBinaryOperation
+    , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, getListSingleton
@@ -29,7 +29,7 @@ module Simplify.AstHelpers exposing
 
 ### certain kind
 
-@docs isIdentity, getAlwaysResult, isSpecificBinaryOperation
+@docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, getListSingleton
@@ -750,8 +750,8 @@ getOrder lookupTable expression =
                             Nothing
 
 
-isSpecificBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool
-isSpecificBinaryOperation symbol checkInfo expression =
+isSpecificUnappliedBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool
+isSpecificUnappliedBinaryOperation symbol checkInfo expression =
     case expression |> Normalize.normalize checkInfo |> Node.value of
         Expression.PrefixOperator operatorSymbol ->
             operatorSymbol == symbol
