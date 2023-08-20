@@ -5440,14 +5440,14 @@ listAnyChecks checkInfo =
                 Nothing ->
                     []
 
-                Just rangesToRemove ->
+                Just equatedTo ->
                     [ Rule.errorWithFix
                         { message = "Use " ++ qualifiedToString ( [ "List" ], "member" ) ++ " instead"
                         , details = [ "This call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " checks for the presence of a value, which what " ++ qualifiedToString ( [ "List" ], "member" ) ++ " is for." ]
                         }
                         checkInfo.fnRange
                         (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "List" ], "member" ) checkInfo))
-                            :: List.map Fix.removeRange rangesToRemove
+                            :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.something
                         )
                     ]
         ]

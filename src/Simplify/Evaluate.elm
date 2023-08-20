@@ -3,7 +3,6 @@ module Simplify.Evaluate exposing (getBoolean, getInt, isAlwaysBoolean, isEqualT
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern
-import Elm.Syntax.Range exposing (Range)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
@@ -83,15 +82,11 @@ isAlwaysBoolean resources node =
             Undetermined
 
 
-isEqualToSomethingFunction : Node Expression -> Maybe (List Range)
+isEqualToSomethingFunction : Node Expression -> Maybe { something : Node Expression }
 isEqualToSomethingFunction rawNode =
-    let
-        (Node range value) =
-            AstHelpers.removeParens rawNode
-    in
-    case value of
-        Expression.Application ((Node equalRange (Expression.PrefixOperator "==")) :: expr :: []) ->
-            Just [ { start = equalRange.start, end = (Node.range expr).start } ]
+    case Node.value (AstHelpers.removeParens rawNode) of
+        Expression.Application ((Node _ (Expression.PrefixOperator "==")) :: expr :: []) ->
+            Just { something = expr }
 
         Expression.LambdaExpression lambda ->
             case lambda.args of
@@ -104,14 +99,10 @@ isEqualToSomethingFunction rawNode =
                                     Expression.FunctionOrValue [] var
                             in
                             if Node.value left == nodeToFind then
-                                Just
-                                    [ { start = range.start, end = (Node.range right).start } ]
+                                Just { something = right }
 
                             else if Node.value right == nodeToFind then
-                                Just
-                                    [ { start = range.start, end = (Node.range left).start }
-                                    , { start = (Node.range left).end, end = (Node.range right).end }
-                                    ]
+                                Just { something = left }
 
                             else
                                 Nothing

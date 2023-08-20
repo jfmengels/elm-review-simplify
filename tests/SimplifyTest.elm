@@ -11549,7 +11549,7 @@ a = List.any (always False)
 a = (always False)
 """
                         ]
-        , test "should replace List.any ((==) x) by List.member (x)" <|
+        , test "should replace List.any ((==) x) by List.member x" <|
             \() ->
                 """module A exposing (..)
 a = List.any ((==) x)
@@ -11562,10 +11562,10 @@ a = List.any ((==) x)
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.member (x)
+a = List.member x
 """
                         ]
-        , test "should replace List.any (\\y -> y == x) by List.member (x)" <|
+        , test "should replace List.any (\\y -> y == x) by List.member x" <|
             \() ->
                 """module A exposing (..)
 a = List.any (\\y -> y == x)
@@ -11578,10 +11578,10 @@ a = List.any (\\y -> y == x)
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.member (x)
+a = List.member x
 """
                         ]
-        , test "should replace List.any (\\y -> x == y) by List.member (x)" <|
+        , test "should replace List.any (\\y -> x == y) by List.member x" <|
             \() ->
                 """module A exposing (..)
 a = List.any (\\y -> x == y)
@@ -11594,7 +11594,7 @@ a = List.any (\\y -> x == y)
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.member (x)
+a = List.member x
 """
                         ]
         , test "should not replace List.any (\\z -> x == y)" <|
