@@ -1739,7 +1739,6 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             { nodeRange = expressionRange
                             , lambdaRange = lambdaRange
                             , lambda = lambda
-                            , firstArgument = firstArg
                             }
 
                     Node operatorRange (Expression.PrefixOperator operator) ->
@@ -7323,7 +7322,6 @@ fullyAppliedLambdaInPipelineChecks { nodeRange, function, firstArgument } =
                         { nodeRange = nodeRange
                         , lambdaRange = lambdaRange
                         , lambda = lambda
-                        , firstArgument = firstArgument
                         }
 
         _ ->
@@ -8311,8 +8309,8 @@ fullyAppliedPrefixOperatorChecks checkInfo =
 -- APPLIED LAMBDA
 
 
-appliedLambdaChecks : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> List (Error {})
-appliedLambdaChecks { nodeRange, lambdaRange, lambda, firstArgument } =
+appliedLambdaChecks : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> List (Error {})
+appliedLambdaChecks { nodeRange, lambdaRange, lambda } =
     case lambda.args of
         (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
             [ Rule.errorWithFix
