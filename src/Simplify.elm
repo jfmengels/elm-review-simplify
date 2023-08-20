@@ -8734,6 +8734,17 @@ replaceByBoolWithIrrelevantLastArgFix config =
             ]
 
 
+replacementWithIrrelevantLastArg : { resources : QualifyResources a, lastArg : Maybe arg, forNoLastArg : String } -> String
+replacementWithIrrelevantLastArg config =
+    case config.lastArg of
+        Just _ ->
+            config.forNoLastArg
+
+        Nothing ->
+            qualifiedToString (qualify ( [ "Basics" ], "always" ) config.resources)
+                ++ (" (" ++ config.forNoLastArg ++ ")")
+
+
 identityError :
     { toFix : String
     , lastArgName : String
@@ -8785,17 +8796,6 @@ multiAlways alwaysCount alwaysResultExpressionAsString qualifyResources =
 
         alwaysCountPositive ->
             "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
-
-
-replacementWithIrrelevantLastArg : { resources : QualifyResources a, lastArg : Maybe arg, forNoLastArg : String } -> String
-replacementWithIrrelevantLastArg config =
-    case config.lastArg of
-        Nothing ->
-            qualifiedToString (qualify ( [ "Basics" ], "always" ) config.resources)
-                ++ (" (" ++ config.forNoLastArg ++ ")")
-
-        Just _ ->
-            config.forNoLastArg
 
 
 {-| Use in combination with
