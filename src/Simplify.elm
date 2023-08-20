@@ -8345,9 +8345,7 @@ appliedLambdaChecks { nodeRange, lambdaRange, lambda, firstArgument } =
                 allRange
                 (case otherPatterns of
                     [] ->
-                        [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
-                        , Fix.removeRange (Node.range firstArgument)
-                        ]
+                        replaceBySubExpressionFix nodeRange lambda.expression
 
                     secondPattern :: _ ->
                         [ Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }

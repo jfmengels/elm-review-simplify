@@ -5308,9 +5308,9 @@ a = (\\_ -> x) a
                                 ]
                             , under = "_"
                             }
-                            |> Review.Test.whenFixed ("""module A exposing (..)
-a = (x)$
-""" |> String.replace "$" " ")
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
                         ]
         , test "should replace (\\() y -> x) () by (\\y -> x)" <|
             \() ->
