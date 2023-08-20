@@ -5289,9 +5289,9 @@ a = (\\() -> x) ()
                             , under = "()"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 7 }, end = { row = 2, column = 9 } }
-                            |> Review.Test.whenFixed ("""module A exposing (..)
-a = (x)$
-""" |> String.replace "$" " ")
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
                         ]
         , test "should replace (\\_ -> x) a by x" <|
             \() ->
