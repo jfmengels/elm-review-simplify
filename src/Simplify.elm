@@ -8045,11 +8045,7 @@ ifChecks context nodeRange { condition, trueBranch, falseBranch } =
                     , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
                     }
                     (targetIfKeyword nodeRange)
-                    [ Fix.removeRange
-                        { start = nodeRange.start
-                        , end = (Node.range falseBranch).start
-                        }
-                    ]
+                    (replaceBySubExpressionFix nodeRange falseBranch)
                 ]
                 (RangeDict.singleton (Node.range condition) ())
 
