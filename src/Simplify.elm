@@ -1893,10 +1893,10 @@ expressionVisitorHelp (Node expressionRange expression) context =
         ----------
         -- (<<) --
         ----------
-        Expression.OperatorApplication "<<" _ composedLeft earlier ->
+        Expression.OperatorApplication "<<" _ composedLater earlier ->
             let
                 ( later, parentRange ) =
-                    case composedLeft of
+                    case composedLater of
                         Node _ (Expression.OperatorApplication "<<" _ _ later_) ->
                             ( later_, { start = (Node.range later_).start, end = (Node.range earlier).end } )
 
