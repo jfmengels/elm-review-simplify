@@ -2003,13 +2003,36 @@ expressionVisitorHelp (Node expressionRange expression) context =
         -- IF --
         --------
         Expression.IfBlock condition trueBranch falseBranch ->
-            ifChecks
-                context
-                expressionRange
-                { condition = condition
-                , trueBranch = trueBranch
-                , falseBranch = falseBranch
-                }
+            let
+                ifCheckInfo : IfCheckInfo
+                ifCheckInfo =
+                    { nodeRange = expressionRange
+                    , condition = condition
+                    , trueBranch = trueBranch
+                    , falseBranch = falseBranch
+                    , lookupTable = context.lookupTable
+                    , inferredConstants = context.inferredConstants
+                    , importLookup = context.importLookup
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
+                    }
+            in
+            case ifChecks ifCheckInfo of
+                Just ifErrors ->
+                    errorsAndRangesToIgnore ifErrors.errors ifErrors.rangesToIgnore
+
+                Nothing ->
+                    { errors = []
+                    , rangesToIgnore = RangeDict.empty
+                    , rightSidesOfPlusPlus = RangeDict.empty
+                    , inferredConstants =
+                        Infer.inferForIfCondition
+                            (Node.value (Normalize.normalize context condition))
+                            { trueBranchRange = Node.range trueBranch
+                            , falseBranchRange = Node.range falseBranch
+                            }
+                            (Tuple.first context.inferredConstants)
+                    }
 
         -------------
         -- CASE OF --
@@ -8016,95 +8039,110 @@ isUnnecessaryRecordUpdateSetter (Node _ variable) (Node _ field) (Node _ value) 
 -- IF
 
 
+type alias IfCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , importLookup : ImportLookup
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
+    , nodeRange : Range
+    , condition : Node Expression
+    , trueBranch : Node Expression
+    , falseBranch : Node Expression
+    }
+
+
 ifChecks :
-    ModuleContext
-    -> Range
-    ->
-        { condition : Node Expression
-        , trueBranch : Node Expression
-        , falseBranch : Node Expression
-        }
-    -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
-ifChecks context nodeRange { condition, trueBranch, falseBranch } =
-    case Evaluate.getBoolean context condition of
-        Determined determinedConditionResultIsTrue ->
-            let
-                branch : { expressionNode : Node Expression, name : String }
-                branch =
-                    if determinedConditionResultIsTrue then
-                        { expressionNode = trueBranch, name = "then" }
+    IfCheckInfo
+    -> Maybe { errors : List (Error {}), rangesToIgnore : RangeDict () }
+ifChecks checkInfo =
+    findMap (\f -> f ())
+        [ \() ->
+            case Evaluate.getBoolean checkInfo checkInfo.condition of
+                Determined determinedConditionResultIsTrue ->
+                    let
+                        branch : { expressionNode : Node Expression, name : String }
+                        branch =
+                            if determinedConditionResultIsTrue then
+                                { expressionNode = checkInfo.trueBranch, name = "then" }
 
-                    else
-                        { expressionNode = falseBranch, name = "else" }
-            in
-            errorsAndRangesToIgnore
-                [ Rule.errorWithFix
-                    { message = "The condition will always evaluate to " ++ AstHelpers.boolToString determinedConditionResultIsTrue
-                    , details = [ "The expression can be replaced by what is inside the '" ++ branch.name ++ "' branch." ]
-                    }
-                    (targetIfKeyword nodeRange)
-                    (replaceBySubExpressionFix nodeRange branch.expressionNode)
-                ]
-                (RangeDict.singleton (Node.range condition) ())
+                            else
+                                { expressionNode = checkInfo.falseBranch, name = "else" }
+                    in
+                    Just
+                        { errors =
+                            [ Rule.errorWithFix
+                                { message = "The condition will always evaluate to " ++ AstHelpers.boolToString determinedConditionResultIsTrue
+                                , details = [ "The expression can be replaced by what is inside the '" ++ branch.name ++ "' branch." ]
+                                }
+                                (targetIfKeyword checkInfo.nodeRange)
+                                (replaceBySubExpressionFix checkInfo.nodeRange branch.expressionNode)
+                            ]
+                        , rangesToIgnore = RangeDict.singleton (Node.range checkInfo.condition) ()
+                        }
 
-        Undetermined ->
-            case ( Evaluate.getBoolean context trueBranch, Evaluate.getBoolean context falseBranch ) of
+                Undetermined ->
+                    Nothing
+        , \() ->
+            case ( Evaluate.getBoolean checkInfo checkInfo.trueBranch, Evaluate.getBoolean checkInfo checkInfo.falseBranch ) of
                 ( Determined True, Determined False ) ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "The if expression's value is the same as the condition"
-                            , details = [ "The expression can be replaced by the condition." ]
-                            }
-                            (targetIfKeyword nodeRange)
-                            (replaceBySubExpressionFix nodeRange condition)
-                        ]
+                    Just
+                        { errors =
+                            [ Rule.errorWithFix
+                                { message = "The if expression's value is the same as the condition"
+                                , details = [ "The expression can be replaced by the condition." ]
+                                }
+                                (targetIfKeyword checkInfo.nodeRange)
+                                (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition)
+                            ]
+                        , rangesToIgnore = RangeDict.empty
+                        }
 
                 ( Determined False, Determined True ) ->
-                    onlyErrors
-                        [ Rule.errorWithFix
-                            { message = "The if expression's value is the inverse of the condition"
-                            , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
-                            }
-                            (targetIfKeyword nodeRange)
-                            [ Fix.replaceRangeBy
-                                { start = nodeRange.start
-                                , end = (Node.range condition).start
+                    Just
+                        { errors =
+                            [ Rule.errorWithFix
+                                { message = "The if expression's value is the inverse of the condition"
+                                , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
                                 }
-                                (qualifiedToString (qualify ( [ "Basics" ], "not" ) context)
-                                    ++ " ("
-                                )
-                            , Fix.replaceRangeBy
-                                { start = (Node.range condition).end
-                                , end = nodeRange.end
-                                }
-                                ")"
+                                (targetIfKeyword checkInfo.nodeRange)
+                                [ Fix.replaceRangeBy
+                                    { start = checkInfo.nodeRange.start
+                                    , end = (Node.range checkInfo.condition).start
+                                    }
+                                    (qualifiedToString (qualify ( [ "Basics" ], "not" ) checkInfo)
+                                        ++ " ("
+                                    )
+                                , Fix.replaceRangeBy
+                                    { start = (Node.range checkInfo.condition).end
+                                    , end = checkInfo.nodeRange.end
+                                    }
+                                    ")"
+                                ]
                             ]
-                        ]
+                        , rangesToIgnore = RangeDict.empty
+                        }
 
                 _ ->
-                    case Normalize.compare context trueBranch falseBranch of
-                        Normalize.ConfirmedEquality ->
-                            onlyErrors
-                                [ Rule.errorWithFix
-                                    { message = "The values in both branches is the same."
-                                    , details = [ "The expression can be replaced by the contents of either branch." ]
-                                    }
-                                    (targetIfKeyword nodeRange)
-                                    (replaceBySubExpressionFix nodeRange trueBranch)
-                                ]
+                    Nothing
+        , \() ->
+            case Normalize.compare checkInfo checkInfo.trueBranch checkInfo.falseBranch of
+                Normalize.ConfirmedEquality ->
+                    Just
+                        { errors =
+                            [ Rule.errorWithFix
+                                { message = "The values in both branches is the same."
+                                , details = [ "The expression can be replaced by the contents of either branch." ]
+                                }
+                                (targetIfKeyword checkInfo.nodeRange)
+                                (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.trueBranch)
+                            ]
+                        , rangesToIgnore = RangeDict.empty
+                        }
 
-                        _ ->
-                            { errors = []
-                            , rangesToIgnore = RangeDict.empty
-                            , rightSidesOfPlusPlus = RangeDict.empty
-                            , inferredConstants =
-                                Infer.inferForIfCondition
-                                    (Node.value (Normalize.normalize context condition))
-                                    { trueBranchRange = Node.range trueBranch
-                                    , falseBranchRange = Node.range falseBranch
-                                    }
-                                    (Tuple.first context.inferredConstants)
-                            }
+                _ ->
+                    Nothing
+        ]
 
 
 
