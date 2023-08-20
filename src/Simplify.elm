@@ -1736,7 +1736,8 @@ expressionVisitorHelp (Node expressionRange expression) context =
 
                     Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))) ->
                         appliedLambdaChecks
-                            { lambdaRange = lambdaRange
+                            { nodeRange = expressionRange
+                            , lambdaRange = lambdaRange
                             , lambda = lambda
                             , firstArgument = firstArg
                             }
@@ -1809,7 +1810,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             onlyErrors []
 
                 pipedIntoOther ->
-                    onlyErrors (leftPipelineChecks context pipedIntoOther lastArg)
+                    onlyErrors (leftPipelineChecks context { nodeRange = expressionRange, left = pipedIntoOther, right = lastArg })
 
         ----------
         -- (|>) --
@@ -1862,7 +1863,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                             onlyErrors []
 
                 pipedIntoOther ->
-                    onlyErrors (rightPipelineChecks context lastArg pipedIntoOther)
+                    onlyErrors (rightPipelineChecks context { nodeRange = expressionRange, left = lastArg, right = pipedIntoOther })
 
         ----------
         -- (>>) --
@@ -7271,26 +7272,26 @@ resultToMaybeCompositionChecks checkInfo =
             []
 
 
-leftPipelineChecks : ModuleContext -> Node Expression -> Node Expression -> List (Error {})
-leftPipelineChecks context left right =
+leftPipelineChecks : ModuleContext -> { nodeRange : Range, left : Node Expression, right : Node Expression } -> List (Error {})
+leftPipelineChecks context { nodeRange, left, right } =
     firstThatReportsError
         [ \() -> pipingIntoCompositionChecks context LeftComposition left
-        , \() -> fullyAppliedLambdaInPipelineChecks { function = left, firstArgument = right }
+        , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = nodeRange, function = left, firstArgument = right }
         ]
         ()
 
 
-rightPipelineChecks : ModuleContext -> Node Expression -> Node Expression -> List (Error {})
-rightPipelineChecks context left right =
+rightPipelineChecks : ModuleContext -> { nodeRange : Range, left : Node Expression, right : Node Expression } -> List (Error {})
+rightPipelineChecks context { nodeRange, left, right } =
     firstThatReportsError
         [ \() -> pipingIntoCompositionChecks context RightComposition right
-        , \() -> fullyAppliedLambdaInPipelineChecks { function = right, firstArgument = left }
+        , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = nodeRange, function = right, firstArgument = left }
         ]
         ()
 
 
-fullyAppliedLambdaInPipelineChecks : { firstArgument : Node Expression, function : Node Expression } -> List (Error {})
-fullyAppliedLambdaInPipelineChecks { function, firstArgument } =
+fullyAppliedLambdaInPipelineChecks : { nodeRange : Range, firstArgument : Node Expression, function : Node Expression } -> List (Error {})
+fullyAppliedLambdaInPipelineChecks { nodeRange, function, firstArgument } =
     case Node.value function of
         Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)) ->
             case Node.value (AstHelpers.removeParens firstArgument) of
@@ -7302,7 +7303,8 @@ fullyAppliedLambdaInPipelineChecks { function, firstArgument } =
 
                 _ ->
                     appliedLambdaChecks
-                        { lambdaRange = lambdaRange
+                        { nodeRange = nodeRange
+                        , lambdaRange = lambdaRange
                         , lambda = lambda
                         , firstArgument = firstArgument
                         }
@@ -8292,8 +8294,8 @@ fullyAppliedPrefixOperatorChecks checkInfo =
 -- APPLIED LAMBDA
 
 
-appliedLambdaChecks : { lambdaRange : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> List (Error {})
-appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
+appliedLambdaChecks : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> List (Error {})
+appliedLambdaChecks { nodeRange, lambdaRange, lambda, firstArgument } =
     case lambda.args of
         (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
             [ Rule.errorWithFix
@@ -8306,9 +8308,7 @@ appliedLambdaChecks { lambdaRange, lambda, firstArgument } =
                 unitRange
                 (case otherPatterns of
                     [] ->
-                        [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start }
-                        , Fix.removeRange (Node.range firstArgument)
-                        ]
+                        replaceBySubExpressionFix nodeRange lambda.expression
 
                     secondPattern :: _ ->
                         [ Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
