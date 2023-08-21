@@ -8267,10 +8267,10 @@ introducesVariableOrUsesTypeConstructor resources nodesToLookAt =
                 Pattern.ListPattern nodes ->
                     introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
 
-                Pattern.NamedPattern { name } nodes ->
+                Pattern.NamedPattern variantQualified nodes ->
                     case ModuleNameLookupTable.fullModuleNameFor resources.lookupTable node of
                         Just moduleName ->
-                            if Set.member ( moduleName, name ) resources.customTypesToReportInCases then
+                            if Set.member ( moduleName, variantQualified.name ) resources.customTypesToReportInCases then
                                 introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
 
                             else
