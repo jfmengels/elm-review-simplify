@@ -8164,17 +8164,34 @@ ifChecks checkInfo =
 -- CASE OF
 
 
-caseOfChecks : ModuleContext -> Range -> Expression.CaseBlock -> List (Error {})
-caseOfChecks context parentRange caseBlock =
+caseOfChecks :
+    { a
+        | lookupTable : ModuleNameLookupTable
+        , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+        , extractSourceCode : Range -> String
+        , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    }
+    -> Range
+    -> Expression.CaseBlock
+    -> List (Error {})
+caseOfChecks resources parentRange caseBlock =
     firstThatReportsError
-        [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
-        , \() -> booleanCaseOfChecks { lookupTable = context.lookupTable, parentRange = parentRange, caseOf = caseBlock }
-        , \() -> destructuringCaseOfChecks { extractSourceCode = context.extractSourceCode, parentRange = parentRange, caseOf = caseBlock }
+        [ \() -> sameBodyForCaseOfChecks resources parentRange caseBlock.cases
+        , \() -> booleanCaseOfChecks { lookupTable = resources.lookupTable, parentRange = parentRange, caseOf = caseBlock }
+        , \() -> destructuringCaseOfChecks { extractSourceCode = resources.extractSourceCode, parentRange = parentRange, caseOf = caseBlock }
         ]
         ()
 
 
-sameBodyForCaseOfChecks : ModuleContext -> Range -> List ( Node Pattern, Node Expression ) -> List (Error {})
+sameBodyForCaseOfChecks :
+    { a
+        | lookupTable : ModuleNameLookupTable
+        , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+        , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    }
+    -> Range
+    -> List ( Node Pattern, Node Expression )
+    -> List (Error {})
 sameBodyForCaseOfChecks context parentRange cases =
     case cases of
         [] ->
@@ -8216,8 +8233,11 @@ caseKeyWordRange range =
     }
 
 
-introducesVariableOrUsesTypeConstructor : ModuleContext -> List (Node Pattern) -> Bool
-introducesVariableOrUsesTypeConstructor context nodesToLookAt =
+introducesVariableOrUsesTypeConstructor :
+    { a | lookupTable : ModuleNameLookupTable, customTypesToReportInCases : Set ( ModuleName, ConstructorName ) }
+    -> List (Node Pattern)
+    -> Bool
+introducesVariableOrUsesTypeConstructor resources nodesToLookAt =
     case nodesToLookAt of
         [] ->
             False
@@ -8234,22 +8254,22 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
                     True
 
                 Pattern.ParenthesizedPattern pattern ->
-                    introducesVariableOrUsesTypeConstructor context (pattern :: remaining)
+                    introducesVariableOrUsesTypeConstructor resources (pattern :: remaining)
 
                 Pattern.TuplePattern nodes ->
-                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
 
                 Pattern.UnConsPattern first rest ->
-                    introducesVariableOrUsesTypeConstructor context (first :: rest :: remaining)
+                    introducesVariableOrUsesTypeConstructor resources (first :: rest :: remaining)
 
                 Pattern.ListPattern nodes ->
-                    introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+                    introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
 
                 Pattern.NamedPattern { name } nodes ->
-                    case ModuleNameLookupTable.fullModuleNameFor context.lookupTable node of
+                    case ModuleNameLookupTable.fullModuleNameFor resources.lookupTable node of
                         Just moduleName ->
-                            if Set.member ( moduleName, name ) context.customTypesToReportInCases then
-                                introducesVariableOrUsesTypeConstructor context (nodes ++ remaining)
+                            if Set.member ( moduleName, name ) resources.customTypesToReportInCases then
+                                introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
 
                             else
                                 True
@@ -8258,7 +8278,7 @@ introducesVariableOrUsesTypeConstructor context nodesToLookAt =
                             True
 
                 _ ->
-                    introducesVariableOrUsesTypeConstructor context remaining
+                    introducesVariableOrUsesTypeConstructor resources remaining
 
 
 
@@ -8376,7 +8396,7 @@ appliedLambdaChecks checkInfo =
 -- CASE OF
 
 
-booleanCaseOfChecks : { lookupTable : ModuleNameLookupTable, parentRange : Range, caseOf : Expression.CaseBlock } -> List (Error {})
+booleanCaseOfChecks : { a | lookupTable : ModuleNameLookupTable, parentRange : Range, caseOf : Expression.CaseBlock } -> List (Error {})
 booleanCaseOfChecks checkInfo =
     case checkInfo.caseOf.cases of
         ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
@@ -8417,7 +8437,7 @@ booleanCaseOfChecks checkInfo =
 
 
 destructuringCaseOfChecks :
-    { extractSourceCode : Range -> String, parentRange : Range, caseOf : Expression.CaseBlock }
+    { a | extractSourceCode : Range -> String, parentRange : Range, caseOf : Expression.CaseBlock }
     -> List (Error {})
 destructuringCaseOfChecks checkInfo =
     case checkInfo.caseOf.cases of
