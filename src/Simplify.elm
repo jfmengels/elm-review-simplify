@@ -4651,31 +4651,11 @@ listAppendChecks checkInfo =
                 , details = [ "Try moving all the elements into a single list." ]
                 }
                 checkInfo.fnRange
-                (if checkInfo.usingRightPizza then
-                    Fix.insertAt
-                        (rangeWithoutBoundaries secondListRange).start
-                        (checkInfo.extractSourceCode (rangeWithoutBoundaries firstListRange) ++ ",")
-                        :: keepOnlyFix
-                            { parentRange = checkInfo.parentRange
-                            , keep = secondListRange
-                            }
-
-                 else
-                    let
-                        betweenListArguments : Range
-                        betweenListArguments =
-                            rangeBetweenExclusive ( firstListRange, secondListRange )
-                    in
-                    Fix.replaceRangeBy
-                        { start = { row = betweenListArguments.start.row, column = betweenListArguments.start.column - 1 }
-                        , end = { row = betweenListArguments.end.row, column = betweenListArguments.end.column + 1 }
-                        }
-                        ","
-                        :: keepOnlyFix
-                            { parentRange = checkInfo.parentRange
-                            , keep = Range.combine [ firstListRange, secondListRange ]
-                            }
-                )
+                [ Fix.removeRange { start = secondListRange.end, end = checkInfo.parentRange.end }
+                , Fix.replaceRangeBy
+                    { start = checkInfo.parentRange.start, end = startWithoutBoundary secondListRange }
+                    ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries firstListRange) ++ ",")
+                ]
             ]
 
         _ ->
@@ -7700,14 +7680,11 @@ collectionInsertChecks collection checkInfo =
                         , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo))
-                        , if checkInfo.usingRightPizza then
-                            Fix.removeRange { start = checkInfo.parentRange.start, end = checkInfo.fnRange.start }
-
-                          else
-                            Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                        ]
+                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
+                            ++ [ Fix.insertAt checkInfo.parentRange.start
+                                    (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo) ++ " ")
+                               ]
+                        )
                     ]
 
                 _ ->
@@ -8744,10 +8721,20 @@ rangeContainsLocation location =
 
 
 rangeWithoutBoundaries : Range -> Range
-rangeWithoutBoundaries listRange =
-    { start = { row = listRange.start.row, column = listRange.start.column + 1 }
-    , end = { row = listRange.end.row, column = listRange.end.column - 1 }
+rangeWithoutBoundaries range =
+    { start = startWithoutBoundary range
+    , end = endWithoutBoundary range
     }
+
+
+startWithoutBoundary : Range -> Location
+startWithoutBoundary range =
+    { row = range.start.row, column = range.start.column + 1 }
+
+
+endWithoutBoundary : Range -> Location
+endWithoutBoundary range =
+    { row = range.end.row, column = range.end.column - 1 }
 
 
 removeBoundariesFix : Node a -> List Fix
