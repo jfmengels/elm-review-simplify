@@ -8168,7 +8168,7 @@ caseOfChecks : ModuleContext -> Range -> Expression.CaseBlock -> List (Error {})
 caseOfChecks context parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
-        , \() -> booleanCaseOfChecks context.lookupTable parentRange caseBlock
+        , \() -> booleanCaseOfChecks { lookupTable = context.lookupTable, parentRange = parentRange, caseOf = caseBlock }
         , \() -> destructuringCaseOfChecks context.extractSourceCode parentRange caseBlock
         ]
         ()
@@ -8376,16 +8376,16 @@ appliedLambdaChecks checkInfo =
 -- CASE OF
 
 
-booleanCaseOfChecks : ModuleNameLookupTable -> Range -> Expression.CaseBlock -> List (Error {})
-booleanCaseOfChecks lookupTable parentRange { expression, cases } =
-    case cases of
+booleanCaseOfChecks : { lookupTable : ModuleNameLookupTable, parentRange : Range, caseOf : Expression.CaseBlock } -> List (Error {})
+booleanCaseOfChecks checkInfo =
+    case checkInfo.caseOf.cases of
         ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
-            case AstHelpers.getBoolPattern lookupTable firstPattern of
+            case AstHelpers.getBoolPattern checkInfo.lookupTable firstPattern of
                 Just isTrueFirst ->
                     let
                         expressionRange : Range
                         expressionRange =
-                            Node.range expression
+                            Node.range checkInfo.caseOf.expression
                     in
                     [ Rule.errorWithFix
                         { message = "Replace `case..of` by an `if` condition"
@@ -8396,13 +8396,13 @@ booleanCaseOfChecks lookupTable parentRange { expression, cases } =
                         }
                         (Node.range firstPattern)
                         (if isTrueFirst then
-                            [ Fix.replaceRangeBy { start = parentRange.start, end = expressionRange.start } "if "
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = expressionRange.start } "if "
                             , Fix.replaceRangeBy { start = expressionRange.end, end = firstRange.start } " then "
                             , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
                             ]
 
                          else
-                            [ Fix.replaceRangeBy { start = parentRange.start, end = expressionRange.start } "if not ("
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = expressionRange.start } "if not ("
                             , Fix.replaceRangeBy { start = expressionRange.end, end = firstRange.start } ") then "
                             , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
                             ]
