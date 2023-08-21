@@ -5585,13 +5585,8 @@ listFilterMapChecks checkInfo =
                                                     , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
                                                     }
                                                     { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                                    ((if checkInfo.usingRightPizza then
-                                                        Fix.removeRange { start = listRange.end, end = (Node.range checkInfo.firstArg).end }
-
-                                                      else
-                                                        Fix.removeRange { start = checkInfo.fnRange.start, end = listRange.start }
-                                                     )
-                                                        :: List.map Fix.removeRange justRanges
+                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
+                                                        ++ List.map Fix.removeRange justRanges
                                                     )
                                                 ]
 
