@@ -8283,6 +8283,106 @@ introducesVariableOrUsesTypeConstructor resources nodesToLookAt =
                     introducesVariableOrUsesTypeConstructor resources remaining
 
 
+booleanCaseOfChecks : CaseOfCheckInfo -> List (Error {})
+booleanCaseOfChecks checkInfo =
+    case checkInfo.caseOf.cases of
+        ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
+            case AstHelpers.getBoolPattern checkInfo.lookupTable firstPattern of
+                Just isTrueFirst ->
+                    let
+                        expressionRange : Range
+                        expressionRange =
+                            Node.range checkInfo.caseOf.expression
+                    in
+                    [ Rule.errorWithFix
+                        { message = "Replace `case..of` by an `if` condition"
+                        , details =
+                            [ "The idiomatic way to check for a condition is to use an `if` expression."
+                            , "Read more about it at: https://guide.elm-lang.org/core_language.html#if-expressions"
+                            ]
+                        }
+                        (Node.range firstPattern)
+                        (if isTrueFirst then
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = expressionRange.start } "if "
+                            , Fix.replaceRangeBy { start = expressionRange.end, end = firstRange.start } " then "
+                            , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                            ]
+
+                         else
+                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = expressionRange.start } "if not ("
+                            , Fix.replaceRangeBy { start = expressionRange.end, end = firstRange.start } ") then "
+                            , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
+                            ]
+                        )
+                    ]
+
+                Nothing ->
+                    []
+
+        _ ->
+            []
+
+
+destructuringCaseOfChecks :
+    CaseOfCheckInfo
+    -> List (Error {})
+destructuringCaseOfChecks checkInfo =
+    case checkInfo.caseOf.cases of
+        ( rawSinglePattern, Node bodyRange _ ) :: [] ->
+            let
+                singlePattern : Node Pattern
+                singlePattern =
+                    AstHelpers.removeParensFromPattern rawSinglePattern
+            in
+            if isSimpleDestructurePattern singlePattern then
+                let
+                    exprRange : Range
+                    exprRange =
+                        Node.range checkInfo.caseOf.expression
+
+                    caseIndentation : String
+                    caseIndentation =
+                        String.repeat (checkInfo.parentRange.start.column - 1) " "
+
+                    bodyIndentation : String
+                    bodyIndentation =
+                        String.repeat (bodyRange.start.column - 1) " "
+                in
+                [ Rule.errorWithFix
+                    { message = "Use a let expression to destructure data"
+                    , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
+                    }
+                    (Node.range singlePattern)
+                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = exprRange.start }
+                        ("let " ++ checkInfo.extractSourceCode (Node.range singlePattern) ++ " = ")
+                    , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start }
+                        ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
+                    ]
+                ]
+
+            else
+                []
+
+        _ ->
+            []
+
+
+isSimpleDestructurePattern : Node Pattern -> Bool
+isSimpleDestructurePattern (Node _ pattern) =
+    case pattern of
+        Pattern.TuplePattern _ ->
+            True
+
+        Pattern.RecordPattern _ ->
+            True
+
+        Pattern.VarPattern _ ->
+            True
+
+        _ ->
+            False
+
+
 
 -- NEGATION
 
@@ -8392,110 +8492,6 @@ appliedLambdaChecks checkInfo =
                 }
                 checkInfo.lambdaRange
             ]
-
-
-
--- CASE OF
-
-
-booleanCaseOfChecks : CaseOfCheckInfo -> List (Error {})
-booleanCaseOfChecks checkInfo =
-    case checkInfo.caseOf.cases of
-        ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
-            case AstHelpers.getBoolPattern checkInfo.lookupTable firstPattern of
-                Just isTrueFirst ->
-                    let
-                        expressionRange : Range
-                        expressionRange =
-                            Node.range checkInfo.caseOf.expression
-                    in
-                    [ Rule.errorWithFix
-                        { message = "Replace `case..of` by an `if` condition"
-                        , details =
-                            [ "The idiomatic way to check for a condition is to use an `if` expression."
-                            , "Read more about it at: https://guide.elm-lang.org/core_language.html#if-expressions"
-                            ]
-                        }
-                        (Node.range firstPattern)
-                        (if isTrueFirst then
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = expressionRange.start } "if "
-                            , Fix.replaceRangeBy { start = expressionRange.end, end = firstRange.start } " then "
-                            , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
-                            ]
-
-                         else
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = expressionRange.start } "if not ("
-                            , Fix.replaceRangeBy { start = expressionRange.end, end = firstRange.start } ") then "
-                            , Fix.replaceRangeBy { start = secondPatternRange.start, end = secondExprRange.start } "else "
-                            ]
-                        )
-                    ]
-
-                Nothing ->
-                    []
-
-        _ ->
-            []
-
-
-destructuringCaseOfChecks :
-    CaseOfCheckInfo
-    -> List (Error {})
-destructuringCaseOfChecks checkInfo =
-    case checkInfo.caseOf.cases of
-        ( rawSinglePattern, Node bodyRange _ ) :: [] ->
-            let
-                singlePattern : Node Pattern
-                singlePattern =
-                    AstHelpers.removeParensFromPattern rawSinglePattern
-            in
-            if isSimpleDestructurePattern singlePattern then
-                let
-                    exprRange : Range
-                    exprRange =
-                        Node.range checkInfo.caseOf.expression
-
-                    caseIndentation : String
-                    caseIndentation =
-                        String.repeat (checkInfo.parentRange.start.column - 1) " "
-
-                    bodyIndentation : String
-                    bodyIndentation =
-                        String.repeat (bodyRange.start.column - 1) " "
-                in
-                [ Rule.errorWithFix
-                    { message = "Use a let expression to destructure data"
-                    , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
-                    }
-                    (Node.range singlePattern)
-                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = exprRange.start }
-                        ("let " ++ checkInfo.extractSourceCode (Node.range singlePattern) ++ " = ")
-                    , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start }
-                        ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
-                    ]
-                ]
-
-            else
-                []
-
-        _ ->
-            []
-
-
-isSimpleDestructurePattern : Node Pattern -> Bool
-isSimpleDestructurePattern (Node _ pattern) =
-    case pattern of
-        Pattern.TuplePattern _ ->
-            True
-
-        Pattern.RecordPattern _ ->
-            True
-
-        Pattern.VarPattern _ ->
-            True
-
-        _ ->
-            False
 
 
 
