@@ -1429,17 +1429,18 @@ expressionVisitor node context =
                                 RangeDict.remove expressionRange withNewBranchLocalBindings
                         }
 
-            { errors, rangesToIgnore, rightSidesOfPlusPlus, inferredConstants } =
+            expressionChecked : { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+            expressionChecked =
                 expressionVisitorHelp node contextWithInferredConstantsAndLocalBindings
         in
-        ( errors
+        ( expressionChecked.errors
         , { contextWithInferredConstantsAndLocalBindings
-            | rangesToIgnore = RangeDict.union rangesToIgnore context.rangesToIgnore
-            , rightSidesOfPlusPlus = RangeDict.union rightSidesOfPlusPlus context.rightSidesOfPlusPlus
+            | rangesToIgnore = RangeDict.union expressionChecked.rangesToIgnore context.rangesToIgnore
+            , rightSidesOfPlusPlus = RangeDict.union expressionChecked.rightSidesOfPlusPlus context.rightSidesOfPlusPlus
             , inferredConstantsDict =
                 List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc)
                     contextWithInferredConstants.inferredConstantsDict
-                    inferredConstants
+                    expressionChecked.inferredConstants
           }
         )
 
@@ -3553,9 +3554,14 @@ comparisonError bool checkInfo =
 
 
 targetIfKeyword : Range -> Range
-targetIfKeyword { start } =
-    { start = start
-    , end = { start | column = start.column + 2 }
+targetIfKeyword ifExpressionRange =
+    let
+        ifStart : Location
+        ifStart =
+            ifExpressionRange.start
+    in
+    { start = ifStart
+    , end = { ifStart | column = ifStart.column + 2 }
     }
 
 
@@ -7307,10 +7313,10 @@ pipelineChecks checkInfo =
 
 
 fullyAppliedLambdaInPipelineChecks : { nodeRange : Range, firstArgument : Node Expression, function : Node Expression } -> List (Error {})
-fullyAppliedLambdaInPipelineChecks { nodeRange, function, firstArgument } =
-    case Node.value function of
+fullyAppliedLambdaInPipelineChecks checkInfo =
+    case Node.value checkInfo.function of
         Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)) ->
-            case Node.value (AstHelpers.removeParens firstArgument) of
+            case Node.value (AstHelpers.removeParens checkInfo.firstArgument) of
                 Expression.OperatorApplication "|>" _ _ _ ->
                     []
 
@@ -7319,7 +7325,7 @@ fullyAppliedLambdaInPipelineChecks { nodeRange, function, firstArgument } =
 
                 _ ->
                     appliedLambdaChecks
-                        { nodeRange = nodeRange
+                        { nodeRange = checkInfo.nodeRange
                         , lambdaRange = lambdaRange
                         , lambda = lambda
                         }
@@ -8310,8 +8316,8 @@ fullyAppliedPrefixOperatorChecks checkInfo =
 
 
 appliedLambdaChecks : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> List (Error {})
-appliedLambdaChecks { nodeRange, lambdaRange, lambda } =
-    case lambda.args of
+appliedLambdaChecks checkInfo =
+    case checkInfo.lambda.args of
         (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
             [ Rule.errorWithFix
                 { message = "Unnecessary unit argument"
@@ -8323,11 +8329,11 @@ appliedLambdaChecks { nodeRange, lambdaRange, lambda } =
                 unitRange
                 (case otherPatterns of
                     [] ->
-                        replaceBySubExpressionFix nodeRange lambda.expression
+                        replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
 
                     secondPattern :: _ ->
                         Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
-                            :: keepOnlyAndParenthesizeFix { parentRange = nodeRange, keep = lambdaRange }
+                            :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
                 )
             ]
 
@@ -8342,11 +8348,11 @@ appliedLambdaChecks { nodeRange, lambdaRange, lambda } =
                 allRange
                 (case otherPatterns of
                     [] ->
-                        replaceBySubExpressionFix nodeRange lambda.expression
+                        replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
 
                     secondPattern :: _ ->
                         Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
-                            :: keepOnlyAndParenthesizeFix { parentRange = nodeRange, keep = lambdaRange }
+                            :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
                 )
             ]
 
@@ -8362,7 +8368,7 @@ appliedLambdaChecks { nodeRange, lambdaRange, lambda } =
 - Extract the lambda to a named function (at the top-level or defined in a let expression)"""
                     ]
                 }
-                lambdaRange
+                checkInfo.lambdaRange
             ]
 
 
@@ -8881,18 +8887,18 @@ collapsedConsRemoveElementFix :
     , tailRange : Range
     }
     -> List Fix
-collapsedConsRemoveElementFix { toRemove, tailRange } =
-    case ( toRemove.before, toRemove.after ) of
+collapsedConsRemoveElementFix config =
+    case ( config.toRemove.before, config.toRemove.after ) of
         -- found the only consed element
         ( Nothing, Nothing ) ->
             [ Fix.removeRange
-                { start = toRemove.found.range.start, end = tailRange.start }
+                { start = config.toRemove.found.range.start, end = config.tailRange.start }
             ]
 
         -- found first consed element
         ( Nothing, Just (Node afterRange _) ) ->
             [ Fix.removeRange
-                { start = toRemove.found.range.start
+                { start = config.toRemove.found.range.start
                 , end = afterRange.start
                 }
             ]
@@ -8901,7 +8907,7 @@ collapsedConsRemoveElementFix { toRemove, tailRange } =
         ( Just (Node beforeRange _), _ ) ->
             [ Fix.removeRange
                 { start = beforeRange.end
-                , end = toRemove.found.range.end
+                , end = config.toRemove.found.range.end
                 }
             ]
 
