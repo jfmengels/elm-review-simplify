@@ -848,10 +848,10 @@ rule : Configuration -> Rule
 rule (Configuration config) =
     Rule.newProjectRuleSchema "Simplify" initialContext
         |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
-        |> Rule.withModuleVisitor moduleVisitor
+        |> Rule.withModuleVisitor (moduleVisitor config)
         |> Rule.withContextFromImportedModules
         |> Rule.withModuleContextUsingContextCreator
-            { fromProjectToModule = fromProjectToModule config
+            { fromProjectToModule = fromProjectToModule
             , fromModuleToProject = fromModuleToProject
             , foldProjectContexts = foldProjectContexts
             }
@@ -859,13 +859,13 @@ rule (Configuration config) =
         |> Rule.fromProjectRuleSchema
 
 
-moduleVisitor : Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
-moduleVisitor schema =
+moduleVisitor : { config | expectNaN : Bool } -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+moduleVisitor config schema =
     schema
         |> Rule.withCommentsVisitor (\comments context -> ( [], commentsVisitor comments context ))
         |> Rule.withDeclarationListVisitor (\decls context -> ( [], declarationListVisitor decls context ))
         |> Rule.withDeclarationEnterVisitor (\node context -> ( [], declarationVisitor node context ))
-        |> Rule.withExpressionEnterVisitor expressionVisitor
+        |> Rule.withExpressionEnterVisitor (\expressionNode context -> expressionVisitor expressionNode config context)
         |> Rule.withExpressionExitVisitor (\node context -> ( [], expressionExitVisitor node context ))
 
 
@@ -1000,7 +1000,6 @@ type alias ProjectContext =
 
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
-    , expectNaN : Bool
     , moduleName : ModuleName
     , exposedVariantTypes : Exposed
     , commentRanges : List Range
@@ -1081,8 +1080,8 @@ fromModuleToProject =
         )
 
 
-fromProjectToModule : { config_ | expectNaN : Bool } -> Rule.ContextCreator ProjectContext ModuleContext
-fromProjectToModule config =
+fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
+fromProjectToModule =
     Rule.initContextCreator
         (\lookupTable metadata extractSourceCode fullAst projectContext ->
             let
@@ -1105,7 +1104,6 @@ fromProjectToModule config =
                         fullAst.imports
             in
             { lookupTable = lookupTable
-            , expectNaN = config.expectNaN
             , moduleName = Rule.moduleNameFromMetadata metadata
             , exposedVariantTypes = moduleExposedVariantTypes
             , importLookup =
@@ -1371,8 +1369,8 @@ declarationVisitor declarationNode context =
 -- EXPRESSION VISITOR
 
 
-expressionVisitor : Node Expression -> ModuleContext -> ( List (Error {}), ModuleContext )
-expressionVisitor node context =
+expressionVisitor : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> ( List (Error {}), ModuleContext )
+expressionVisitor node config context =
     let
         expressionRange : Range
         expressionRange =
@@ -1431,7 +1429,7 @@ expressionVisitor node context =
 
             expressionChecked : { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
             expressionChecked =
-                expressionVisitorHelp node contextWithInferredConstantsAndLocalBindings
+                expressionVisitorHelp node config contextWithInferredConstantsAndLocalBindings
         in
         ( expressionChecked.errors
         , { contextWithInferredConstantsAndLocalBindings
@@ -1680,8 +1678,8 @@ firstThatReportsError remainingChecks data =
         |> Maybe.withDefault []
 
 
-expressionVisitorHelp : Node Expression -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
-expressionVisitorHelp (Node expressionRange expression) context =
+expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { errors : List (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp (Node expressionRange expression) config context =
     let
         toCheckInfo :
             { fnRange : Range
@@ -1692,7 +1690,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
             -> CheckInfo
         toCheckInfo checkInfo =
             { lookupTable = context.lookupTable
-            , expectNaN = context.expectNaN
+            , expectNaN = config.expectNaN
             , extractSourceCode = context.extractSourceCode
             , importLookup = context.importLookup
             , commentRanges = context.commentRanges
@@ -1953,7 +1951,7 @@ expressionVisitorHelp (Node expressionRange expression) context =
                         in
                         checkFn
                             { lookupTable = context.lookupTable
-                            , expectNaN = context.expectNaN
+                            , expectNaN = config.expectNaN
                             , importLookup = context.importLookup
                             , moduleBindings = context.moduleBindings
                             , localBindings = context.localBindings
