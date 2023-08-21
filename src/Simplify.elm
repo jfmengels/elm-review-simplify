@@ -1705,6 +1705,24 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , thirdArg = List.head (List.drop 1 checkInfo.argsAfterFirst)
             , usingRightPizza = checkInfo.usingRightPizza
             }
+
+        toCompositionCheckInfo :
+            { fromLeftToRight : Bool
+            , earlier : Node Expression
+            , later : Node Expression
+            , parentRange : Range
+            }
+            -> CompositionCheckInfo
+        toCompositionCheckInfo compositionSpecific =
+            { lookupTable = context.lookupTable
+            , importLookup = context.importLookup
+            , moduleBindings = context.moduleBindings
+            , localBindings = context.localBindings
+            , fromLeftToRight = compositionSpecific.fromLeftToRight
+            , parentRange = compositionSpecific.parentRange
+            , earlier = compositionSpecific.earlier
+            , later = compositionSpecific.later
+            }
     in
     case expression of
         -----------------
@@ -1896,15 +1914,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             in
             onlyErrors
                 (compositionChecks
-                    { lookupTable = context.lookupTable
-                    , importLookup = context.importLookup
-                    , moduleBindings = context.moduleBindings
-                    , localBindings = context.localBindings
-                    , fromLeftToRight = True
-                    , parentRange = parentRange
-                    , earlier = earlier
-                    , later = later
-                    }
+                    (toCompositionCheckInfo
+                        { fromLeftToRight = True
+                        , parentRange = parentRange
+                        , earlier = earlier
+                        , later = later
+                        }
+                    )
                 )
 
         ----------
@@ -1922,15 +1938,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             in
             onlyErrors
                 (compositionChecks
-                    { lookupTable = context.lookupTable
-                    , importLookup = context.importLookup
-                    , moduleBindings = context.moduleBindings
-                    , localBindings = context.localBindings
-                    , fromLeftToRight = False
-                    , parentRange = parentRange
-                    , earlier = earlier
-                    , later = later
-                    }
+                    (toCompositionCheckInfo
+                        { fromLeftToRight = False
+                        , parentRange = parentRange
+                        , earlier = earlier
+                        , later = later
+                        }
+                    )
                 )
 
         ---------------------
