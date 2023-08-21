@@ -5575,10 +5575,11 @@ listFilterMapChecks checkInfo =
                                             , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                             }
                                             { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                            [ removeFunctionAndFirstArg checkInfo listMapCall.nodeRange
-                                            , Fix.replaceRangeBy listMapCall.fnRange
-                                                (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
-                                            ]
+                                            (replaceBySubExpressionFix checkInfo.parentRange listArg
+                                                ++ [ Fix.replaceRangeBy listMapCall.fnRange
+                                                        (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
+                                                   ]
+                                            )
                                         ]
 
                                     Nothing ->
@@ -8728,15 +8729,6 @@ rangeContainsLocation location =
             ((Range.compareLocations location range.start == LT)
                 || (Range.compareLocations location range.end == GT)
             )
-
-
-removeFunctionAndFirstArg : { a | fnRange : Range, firstArg : Node b, usingRightPizza : Bool } -> Range -> Fix
-removeFunctionAndFirstArg checkInfo secondArgRange =
-    if checkInfo.usingRightPizza then
-        Fix.removeRange { start = secondArgRange.end, end = (Node.range checkInfo.firstArg).end }
-
-    else
-        Fix.removeRange { start = checkInfo.fnRange.start, end = secondArgRange.start }
 
 
 rangeWithoutBoundaries : Range -> Range

@@ -8971,7 +8971,7 @@ a = List.filterMap identity (List.map f x)
 a = (List.filterMap f x)
 """
                         ]
-        , test "should replace List.filterMap identity <| List.map f <| x by List.filterMap f <| x" <|
+        , test "should replace List.filterMap identity <| List.map f <| x by (List.filterMap f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = List.filterMap identity <| List.map f <| x
@@ -8984,10 +8984,10 @@ a = List.filterMap identity <| List.map f <| x
                             , under = "List.filterMap identity"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.filterMap f <| x
+a = (List.filterMap f <| x)
 """
                         ]
-        , test "should replace x |> List.map f |> List.filterMap identity by x |> List.filterMap f" <|
+        , test "should replace x |> List.map f |> List.filterMap identity by (x |> List.filterMap f)" <|
             \() ->
                 """module A exposing (..)
 a = x |> List.map f |> List.filterMap identity
@@ -9000,7 +9000,7 @@ a = x |> List.map f |> List.filterMap identity
                             , under = "List.filterMap identity"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> List.filterMap f
+a = (x |> List.filterMap f)
 """
                         ]
         , test "should replace List.map f >> List.filterMap identity by List.filterMap f" <|
