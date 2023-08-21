@@ -8169,7 +8169,7 @@ caseOfChecks context parentRange caseBlock =
     firstThatReportsError
         [ \() -> sameBodyForCaseOfChecks context parentRange caseBlock.cases
         , \() -> booleanCaseOfChecks { lookupTable = context.lookupTable, parentRange = parentRange, caseOf = caseBlock }
-        , \() -> destructuringCaseOfChecks context.extractSourceCode parentRange caseBlock
+        , \() -> destructuringCaseOfChecks { extractSourceCode = context.extractSourceCode, parentRange = parentRange, caseOf = caseBlock }
         ]
         ()
 
@@ -8416,9 +8416,11 @@ booleanCaseOfChecks checkInfo =
             []
 
 
-destructuringCaseOfChecks : (Range -> String) -> Range -> Expression.CaseBlock -> List (Error {})
-destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
-    case cases of
+destructuringCaseOfChecks :
+    { extractSourceCode : Range -> String, parentRange : Range, caseOf : Expression.CaseBlock }
+    -> List (Error {})
+destructuringCaseOfChecks checkInfo =
+    case checkInfo.caseOf.cases of
         ( rawSinglePattern, Node bodyRange _ ) :: [] ->
             let
                 singlePattern : Node Pattern
@@ -8429,11 +8431,11 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
                 let
                     exprRange : Range
                     exprRange =
-                        Node.range expression
+                        Node.range checkInfo.caseOf.expression
 
                     caseIndentation : String
                     caseIndentation =
-                        String.repeat (parentRange.start.column - 1) " "
+                        String.repeat (checkInfo.parentRange.start.column - 1) " "
 
                     bodyIndentation : String
                     bodyIndentation =
@@ -8444,8 +8446,8 @@ destructuringCaseOfChecks extractSourceCode parentRange { expression, cases } =
                     , details = [ "It is more idiomatic in Elm to use a let expression to define a new variable rather than to use pattern matching. This will also make the code less indented, therefore easier to read." ]
                     }
                     (Node.range singlePattern)
-                    [ Fix.replaceRangeBy { start = parentRange.start, end = exprRange.start }
-                        ("let " ++ extractSourceCode (Node.range singlePattern) ++ " = ")
+                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = exprRange.start }
+                        ("let " ++ checkInfo.extractSourceCode (Node.range singlePattern) ++ " = ")
                     , Fix.replaceRangeBy { start = exprRange.end, end = bodyRange.start }
                         ("\n" ++ caseIndentation ++ "in\n" ++ bodyIndentation)
                     ]
