@@ -2057,7 +2057,16 @@ expressionVisitorHelp (Node expressionRange expression) context =
         -- CASE OF --
         -------------
         Expression.CaseExpression caseBlock ->
-            onlyErrors (caseOfChecks context expressionRange caseBlock)
+            onlyErrors
+                (firstThatReportsError caseOfChecks
+                    { lookupTable = context.lookupTable
+                    , extractSourceCode = context.extractSourceCode
+                    , customTypesToReportInCases = context.customTypesToReportInCases
+                    , inferredConstants = context.inferredConstants
+                    , parentRange = expressionRange
+                    , caseOf = caseBlock
+                    }
+                )
 
         ------------
         -- LET IN --
@@ -8164,29 +8173,12 @@ ifChecks checkInfo =
 -- CASE OF
 
 
-caseOfChecks :
-    { a
-        | lookupTable : ModuleNameLookupTable
-        , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
-        , extractSourceCode : Range -> String
-        , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
-    }
-    -> Range
-    -> Expression.CaseBlock
-    -> List (Error {})
-caseOfChecks resources parentRange caseBlock =
-    firstThatReportsError
-        [ sameBodyForCaseOfChecks
-        , booleanCaseOfChecks
-        , destructuringCaseOfChecks
-        ]
-        { lookupTable = resources.lookupTable
-        , extractSourceCode = resources.extractSourceCode
-        , customTypesToReportInCases = resources.customTypesToReportInCases
-        , inferredConstants = resources.inferredConstants
-        , parentRange = parentRange
-        , caseOf = caseBlock
-        }
+caseOfChecks : List (CaseOfCheckInfo -> List (Error {}))
+caseOfChecks =
+    [ sameBodyForCaseOfChecks
+    , booleanCaseOfChecks
+    , destructuringCaseOfChecks
+    ]
 
 
 type alias CaseOfCheckInfo =
