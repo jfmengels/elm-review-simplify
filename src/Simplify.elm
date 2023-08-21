@@ -4186,6 +4186,7 @@ resultMapErrorChecks checkInfo =
             secondArg checkInfo
     in
     firstThatReportsError
+        -- TODO use collectionMapChecks
         [ \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ identityError
@@ -6838,8 +6839,8 @@ mapIdentityChecks :
     -> List (Error {})
 mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+        -- TODO use identityError
         [ Rule.errorWithFix
-            -- TODO rework error info
             { message = "Using " ++ qualifiedToString ( mappable.moduleName, "map" ) ++ " with an identity function is the same as not using " ++ qualifiedToString ( mappable.moduleName, "map" )
             , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself." ]
             }
