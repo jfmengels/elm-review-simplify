@@ -8176,24 +8176,34 @@ caseOfChecks :
     -> List (Error {})
 caseOfChecks resources parentRange caseBlock =
     firstThatReportsError
-        [ \() -> sameBodyForCaseOfChecks resources parentRange caseBlock.cases
-        , \() -> booleanCaseOfChecks { lookupTable = resources.lookupTable, parentRange = parentRange, caseOf = caseBlock }
-        , \() -> destructuringCaseOfChecks { extractSourceCode = resources.extractSourceCode, parentRange = parentRange, caseOf = caseBlock }
+        [ sameBodyForCaseOfChecks
+        , booleanCaseOfChecks
+        , destructuringCaseOfChecks
         ]
-        ()
+        { lookupTable = resources.lookupTable
+        , extractSourceCode = resources.extractSourceCode
+        , customTypesToReportInCases = resources.customTypesToReportInCases
+        , inferredConstants = resources.inferredConstants
+        , parentRange = parentRange
+        , caseOf = caseBlock
+        }
+
+
+type alias CaseOfCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+    , extractSourceCode : Range -> String
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , parentRange : Range
+    , caseOf : Expression.CaseBlock
+    }
 
 
 sameBodyForCaseOfChecks :
-    { a
-        | lookupTable : ModuleNameLookupTable
-        , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
-        , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
-    }
-    -> Range
-    -> List ( Node Pattern, Node Expression )
+    CaseOfCheckInfo
     -> List (Error {})
-sameBodyForCaseOfChecks context parentRange cases =
-    case cases of
+sameBodyForCaseOfChecks context =
+    case context.caseOf.cases of
         [] ->
             []
 
@@ -8219,9 +8229,9 @@ sameBodyForCaseOfChecks context parentRange cases =
                     { message = "Unnecessary case expression"
                     , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
                     }
-                    (caseKeyWordRange parentRange)
-                    [ Fix.removeRange { start = parentRange.start, end = firstBodyRange.start }
-                    , Fix.removeRange { start = firstBodyRange.end, end = parentRange.end }
+                    (caseKeyWordRange context.parentRange)
+                    [ Fix.removeRange { start = context.parentRange.start, end = firstBodyRange.start }
+                    , Fix.removeRange { start = firstBodyRange.end, end = context.parentRange.end }
                     ]
                 ]
 
@@ -8396,7 +8406,7 @@ appliedLambdaChecks checkInfo =
 -- CASE OF
 
 
-booleanCaseOfChecks : { a | lookupTable : ModuleNameLookupTable, parentRange : Range, caseOf : Expression.CaseBlock } -> List (Error {})
+booleanCaseOfChecks : CaseOfCheckInfo -> List (Error {})
 booleanCaseOfChecks checkInfo =
     case checkInfo.caseOf.cases of
         ( firstPattern, Node firstRange _ ) :: ( Node secondPatternRange _, Node secondExprRange _ ) :: [] ->
@@ -8437,7 +8447,7 @@ booleanCaseOfChecks checkInfo =
 
 
 destructuringCaseOfChecks :
-    { a | extractSourceCode : Range -> String, parentRange : Range, caseOf : Expression.CaseBlock }
+    CaseOfCheckInfo
     -> List (Error {})
 destructuringCaseOfChecks checkInfo =
     case checkInfo.caseOf.cases of
