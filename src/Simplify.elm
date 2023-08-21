@@ -4199,37 +4199,7 @@ resultMapErrorChecks checkInfo =
             else
                 []
         , \() ->
-            case maybeResultArg of
-                Just resultArg ->
-                    case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
-                        Determined errCalls ->
-                            [ Rule.errorWithFix
-                                resultMapErrorOnErrErrorInfo
-                                checkInfo.fnRange
-                                (if checkInfo.usingRightPizza then
-                                    -- |>
-                                    [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    , Fix.insertAt (Node.range checkInfo.firstArg).end
-                                        (" |> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
-                                    ]
-                                        ++ List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls
-
-                                 else
-                                    -- application or <|
-                                    [ Fix.replaceRangeBy
-                                        { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                        (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " (")
-                                    , Fix.insertAt checkInfo.parentRange.end ")"
-                                    ]
-                                        ++ List.concatMap (\errCall -> replaceBySubExpressionFix errCall.nodeRange errCall.firstArg) errCalls
-                                )
-                            ]
-
-                        Undetermined ->
-                            []
-
-                Nothing ->
-                    []
+            mapPureChecks { moduleName = [ "Result" ], pure = "Err", map = "mapError" } checkInfo
         , \() ->
             case maybeResultArg of
                 Just resultArg ->
@@ -6909,7 +6879,7 @@ mapPureChecks mappable checkInfo =
                                 pureCalls
                     in
                     [ Rule.errorWithFix
-                        -- TODO reword error info
+                        -- TODO reword error info to something more like resultMapErrorOnErrErrorInfo
                         { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
                         , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
                         }

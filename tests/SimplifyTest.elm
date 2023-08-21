@@ -14347,8 +14347,8 @@ a = Result.mapError f (Err x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
-                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            { message = "Calling Result.mapError on a value that is Err"
+                            , details = [ "The function can be called without Result.mapError." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14363,8 +14363,8 @@ a = Result.mapError f <| Err x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
-                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            { message = "Calling Result.mapError on a value that is Err"
+                            , details = [ "The function can be called without Result.mapError." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14379,8 +14379,8 @@ a = Err x |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
-                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            { message = "Calling Result.mapError on a value that is Err"
+                            , details = [ "The function can be called without Result.mapError." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14395,8 +14395,8 @@ a = x |> Err |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
-                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            { message = "Calling Result.mapError on a value that is Err"
+                            , details = [ "The function can be called without Result.mapError." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14411,8 +14411,8 @@ a = Result.mapError f <| Err <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
-                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+                            { message = "Calling Result.mapError on a value that is Err"
+                            , details = [ "The function can be called without Result.mapError." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
