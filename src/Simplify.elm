@@ -1707,7 +1707,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             }
 
         toCompositionCheckInfo :
-            { fromLeftToRight : Bool
+            { direction : LeftOrRightDirection
             , earlier : Node Expression
             , later : Node Expression
             , parentRange : Range
@@ -1718,7 +1718,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , importLookup = context.importLookup
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
-            , fromLeftToRight = compositionSpecific.fromLeftToRight
+            , direction = compositionSpecific.direction
             , parentRange = compositionSpecific.parentRange
             , earlier = compositionSpecific.earlier
             , later = compositionSpecific.later
@@ -1915,7 +1915,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyErrors
                 (compositionChecks
                     (toCompositionCheckInfo
-                        { fromLeftToRight = True
+                        { direction = LeftToRight
                         , parentRange = parentRange
                         , earlier = earlier
                         , later = later
@@ -1939,7 +1939,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyErrors
                 (compositionChecks
                     (toCompositionCheckInfo
-                        { fromLeftToRight = False
+                        { direction = RightToLeft
                         , parentRange = parentRange
                         , earlier = earlier
                         , later = later
@@ -2326,7 +2326,7 @@ type alias CompositionCheckInfo =
     , importLookup : ImportLookup
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
-    , fromLeftToRight : Bool
+    , direction : LeftOrRightDirection
     , parentRange : Range
     , earlier : Node Expression
     , later : Node Expression
@@ -2359,7 +2359,7 @@ compositionChecks checkInfo =
                                         , importLookup = checkInfo.importLookup
                                         , moduleBindings = checkInfo.moduleBindings
                                         , localBindings = checkInfo.localBindings
-                                        , fromLeftToRight = checkInfo.fromLeftToRight
+                                        , direction = checkInfo.direction
                                         , parentRange = checkInfo.parentRange
                                         , later =
                                             { range = laterFnOrCall.nodeRange
@@ -2397,7 +2397,7 @@ type alias CompositionIntoCheckInfo =
     , importLookup : ImportLookup
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
-    , fromLeftToRight : Bool
+    , direction : LeftOrRightDirection
     , parentRange : Range
     , later :
         { range : Range
@@ -4260,15 +4260,14 @@ resultMapErrorCompositionChecks checkInfo =
                         resultMapErrorOnErrErrorInfo
                         checkInfo.later.fnRange
                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
-                            ++ [ if checkInfo.fromLeftToRight then
-                                    -- >>
-                                    Fix.insertAt checkInfo.parentRange.end
-                                        (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
+                            ++ [ case checkInfo.direction of
+                                    LeftToRight ->
+                                        Fix.insertAt checkInfo.parentRange.end
+                                            (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
 
-                                 else
-                                    -- <<
-                                    Fix.insertAt checkInfo.parentRange.start
-                                        (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
+                                    RightToLeft ->
+                                        Fix.insertAt checkInfo.parentRange.start
+                                            (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
                                ]
                         )
                     ]
@@ -7002,19 +7001,20 @@ pureToMapCompositionChecks mappable checkInfo =
             let
                 fixes : List Fix
                 fixes =
-                    if checkInfo.fromLeftToRight then
-                        [ Fix.removeRange
-                            { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                        , Fix.insertAt mapperFunctionRange.end
-                            (" >> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
-                        ]
+                    case checkInfo.direction of
+                        LeftToRight ->
+                            [ Fix.removeRange
+                                { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
+                            , Fix.insertAt mapperFunctionRange.end
+                                (" >> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
+                            ]
 
-                    else
-                        [ Fix.replaceRangeBy
-                            { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                            (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo) ++ " << ")
-                        , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
-                        ]
+                        RightToLeft ->
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
+                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo) ++ " << ")
+                            , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
+                            ]
             in
             [ Rule.errorWithFix
                 -- TODO reword error info
