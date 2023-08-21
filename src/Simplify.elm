@@ -6457,39 +6457,15 @@ randomListChecks checkInfo =
                                 , details = [ currentAsString ++ " generates the same value for each of the n elements. This means you can replace the call with " ++ replacementAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
-                                (if checkInfo.usingRightPizza then
-                                    [ Fix.replaceRangeBy
-                                        { start = (Node.range elementGeneratorArg).start
-                                        , end = (Node.range constantCall.firstArg).start
-                                        }
-                                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
-                                            ++ " ("
-                                        )
-                                    , Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "List" ], "repeat" ) checkInfo))
-                                    , Fix.removeRange
-                                        { start = (Node.range constantCall.firstArg).end
-                                        , end = (Node.range elementGeneratorArg).end
-                                        }
-                                    , Fix.insertAt (Node.range checkInfo.firstArg).end ")"
-                                    ]
-
-                                 else
-                                    [ Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
-                                            ++ " ("
-                                            ++ qualifiedToString (qualify ( [ "List" ], "repeat" ) checkInfo)
-                                        )
-                                    , Fix.removeRange
-                                        { start = (Node.range elementGeneratorArg).start
-                                        , end = (Node.range constantCall.firstArg).start
-                                        }
-                                    , Fix.replaceRangeBy
-                                        { start = (Node.range constantCall.firstArg).end
-                                        , end = (Node.range elementGeneratorArg).end
-                                        }
-                                        ")"
-                                    ]
+                                (replaceBySubExpressionFix constantCall.nodeRange constantCall.firstArg
+                                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                            (qualifiedToString (qualify ( [ "List" ], "repeat" ) checkInfo))
+                                       , Fix.insertAt checkInfo.parentRange.start
+                                            (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                                ++ " ("
+                                            )
+                                       , Fix.insertAt checkInfo.parentRange.end ")"
+                                       ]
                                 )
                             ]
 
