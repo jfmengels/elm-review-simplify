@@ -16433,8 +16433,23 @@ dictSizeTests =
                 """module A exposing (..)
 a = Dict.size
 a = Dict.size b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not replace Dict.size Dict.fromList with unknown keys because they could contain duplicate keys which would make the final dict size smaller" <|
+            \() ->
+                """module A exposing (..)
 a = Dict.size (Dict.fromList [b, c, d])
+a = Dict.size (Dict.fromList [(b, 'b'), (c,'c'), (d,'d')])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not replace Dict.size on Dict.fromList with multiple uncomparable keys" <|
+            \() ->
+                """module A exposing (..)
 a = Dict.size (Dict.fromList [((),1), ((),2), ((),3)])
+b = Dict.size (Dict.fromList [Nothing, Just 2])
+b = Dict.size (Dict.fromList [{ a = 1, b = 2 }, { a = 3, b = 4 }])
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
