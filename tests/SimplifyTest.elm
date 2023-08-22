@@ -16431,6 +16431,7 @@ dictSizeTests =
         [ test "should not report Dict.size used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size
 a = Dict.size b
 """
@@ -16439,6 +16440,7 @@ a = Dict.size b
         , test "should not replace Dict.size Dict.fromList with unknown keys because they could contain duplicate keys which would make the final dict size smaller" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [b, c, d])
 a = Dict.size (Dict.fromList [(b, 'b'), (c,'c'), (d,'d')])
 """
@@ -16447,6 +16449,7 @@ a = Dict.size (Dict.fromList [(b, 'b'), (c,'c'), (d,'d')])
         , test "should not replace Dict.size on Dict.fromList with multiple uncomparable keys" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [((),1), ((),2), ((),3)])
 b = Dict.size (Dict.fromList [Nothing, Just 2])
 b = Dict.size (Dict.fromList [{ a = 1, b = 2 }, { a = 3, b = 4 }])
@@ -16456,6 +16459,7 @@ b = Dict.size (Dict.fromList [{ a = 1, b = 2 }, { a = 3, b = 4 }])
         , test "should replace Dict.size Dict.empty by 0" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size Dict.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16466,12 +16470,14 @@ a = Dict.size Dict.empty
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 0
 """
                         ]
         , test "should replace Dict.empty |> Dict.size by 0" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.empty |> Dict.size
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16482,12 +16488,14 @@ a = Dict.empty |> Dict.size
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 0
 """
                         ]
         , test "should replace Dict.singleton x y |> Dict.size by 1" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.singleton x y |> Dict.size
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16498,12 +16506,14 @@ a = Dict.singleton x y |> Dict.size
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 1
 """
                         ]
         , test "should replace Dict.size (Dict.fromList []) by 0" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16514,6 +16524,7 @@ a = Dict.size (Dict.fromList [])
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.size (Dict.empty)
 """
                         , Review.Test.error
@@ -16522,12 +16533,14 @@ a = Dict.size (Dict.empty)
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 0
 """
                         ]
         , test "should replace Dict.size (Dict.fromList [a]) by 1" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [a])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16538,12 +16551,14 @@ a = Dict.size (Dict.fromList [a])
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 1
 """
                         ]
         , test "should replace Dict.size (Dict.fromList [(1,1), (2,1), (3,1)]) by 3" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1)])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16554,12 +16569,14 @@ a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1)])
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 3
 """
                         ]
         , test "should replace Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)]) by 3" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16570,12 +16587,14 @@ a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)])
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 3
 """
                         ]
         , test "should replace Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())]) by 3" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16586,6 +16605,7 @@ a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())])
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = 3
 """
                         ]
