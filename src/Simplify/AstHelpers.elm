@@ -66,6 +66,8 @@ import Simplify.Infer as Infer
 import Simplify.Normalize as Normalize
 
 
+{-| Keep removing parens from the outside until we have something different from a `ParenthesizedExpression`
+-}
 removeParens : Node Expression -> Node Expression
 removeParens expressionNode =
     case Node.value expressionNode of
@@ -76,6 +78,8 @@ removeParens expressionNode =
             expressionNode
 
 
+{-| Keep removing parens from the outside until we have something different from a `ParenthesizedPattern`
+-}
 removeParensFromPattern : Node Pattern -> Node Pattern
 removeParensFromPattern patternNode =
     case Node.value patternNode of
