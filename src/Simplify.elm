@@ -5358,27 +5358,20 @@ listFoldrCompositionChecks checkInfo =
 
 foldAndSetToListCompositionChecks : String -> CompositionIntoCheckInfo -> List (Error {})
 foldAndSetToListCompositionChecks foldOperationName checkInfo =
-    case checkInfo.later.args of
-        -- initial and reduce arguments are present
-        _ :: _ :: [] ->
-            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                ( ( [ "Set" ], "toList" ), [] ) ->
-                    [ Rule.errorWithFix
-                        { message = "To fold a set, you don't need to convert to a List"
-                        , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
-                        }
-                        checkInfo.later.fnRange
-                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
-                            ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
-                                    (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
-                               ]
-                        )
-                    ]
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "Set" ], "toList" ), [] ) ->
+            [ Rule.errorWithFix
+                { message = "To fold a set, you don't need to convert to a List"
+                , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                }
+                checkInfo.later.fnRange
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
+                    ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
+                            (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
+                       ]
+                )
+            ]
 
-                _ ->
-                    []
-
-        -- composition onto fully constructed value (compile-time error)
         _ ->
             []
 
