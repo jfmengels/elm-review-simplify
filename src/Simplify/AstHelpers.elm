@@ -209,6 +209,8 @@ getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
             Nothing
 
 
+{-| Parses either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
+-}
 getValueOrFunction : Node Expression -> Maybe { name : String, range : Range }
 getValueOrFunction expressionNode =
     case removeParens expressionNode of
