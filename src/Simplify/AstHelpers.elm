@@ -711,12 +711,22 @@ getBoolPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool
 getBoolPattern lookupTable basePatternNode =
     case removeParensFromPattern basePatternNode of
         Node variantPatternRange (Pattern.NamedPattern variantPattern _) ->
-            case ( ModuleNameLookupTable.moduleNameAt lookupTable variantPatternRange, variantPattern.name ) of
-                ( Just [ "Basics" ], "True" ) ->
-                    Just True
+            case variantPattern.name of
+                "True" ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable variantPatternRange of
+                        Just [ "Basics" ] ->
+                            Just True
 
-                ( Just [ "Basics" ], "False" ) ->
-                    Just False
+                        _ ->
+                            Nothing
+
+                "False" ->
+                    case ModuleNameLookupTable.moduleNameAt lookupTable variantPatternRange of
+                        Just [ "Basics" ] ->
+                            Just False
+
+                        _ ->
+                            Nothing
 
                 _ ->
                     Nothing
