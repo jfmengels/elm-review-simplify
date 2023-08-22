@@ -86,6 +86,9 @@ removeParensFromPattern patternNode =
             patternNode
 
 
+{-| Parse an expression of type list that contains only a single element.
+Could be a call to `List.singleton` or a list literal with one element: `[ a ]`
+-}
 getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
 getListSingleton lookupTable expressionNode =
     case expressionNode of
