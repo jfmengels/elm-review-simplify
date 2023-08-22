@@ -190,7 +190,9 @@ getValueOrFunctionOrFunctionCall expressionNode =
                     Nothing
 
 
-{-| Parses functions without arguments and lambdas that are reducible to a function without arguments
+{-| Parses either a value reference with the given name,
+a function reference with the given name without arguments
+or a lambda that is reducible to a function with the given name without arguments
 -}
 getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
