@@ -344,6 +344,9 @@ getComposition expressionNode =
             Nothing
 
 
+{-| Whether it's a function that accesses a tuple's first part.
+Either a function reducible to `Tuple.first` or `\( first, ... ) -> first`.
+-}
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleFirstAccess lookupTable expressionNode =
     case getSpecificValueOrFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
@@ -369,6 +372,9 @@ isTupleFirstPatternLambda expressionNode =
             False
 
 
+{-| Whether it's a function that accesses a tuple's second part.
+Either a function reducible to `Tuple.second` or `\( ..., second ) -> second`.
+-}
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
     case getSpecificValueOrFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
