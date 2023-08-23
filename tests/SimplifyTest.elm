@@ -15339,6 +15339,7 @@ setSizeTests =
         [ test "should not report Set.size used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size
 a = Set.size b
 """
@@ -15347,6 +15348,7 @@ a = Set.size b
         , test "should replace Set.size Set.empty by 0" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15357,12 +15359,14 @@ a = Set.size Set.empty
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 0
 """
                         ]
         , test "should not replace Set.size (Set.fromList [b, c, d])" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [b, c, d])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15370,6 +15374,7 @@ a = Set.size (Set.fromList [b, c, d])
         , test "should replace Set.size (Set.fromList []) by 0" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15380,6 +15385,7 @@ a = Set.size (Set.fromList [])
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.size (Set.empty)
 """
                         , Review.Test.error
@@ -15388,12 +15394,14 @@ a = Set.size (Set.empty)
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 0
 """
                         ]
         , test "should replace Set.size (Set.fromList [a]) by 1" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [a])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15404,6 +15412,7 @@ a = Set.size (Set.fromList [a])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 1
 """
                         , Review.Test.error
@@ -15412,12 +15421,14 @@ a = 1
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.size (Set.singleton a)
 """
                         ]
         , test "should replace Set.size (Set.fromList [1, 2, 3]) by 3" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [1, 2, 3])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15428,12 +15439,14 @@ a = Set.size (Set.fromList [1, 2, 3])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 3
 """
                         ]
         , test "should replace Set.size (Set.fromList [1, 2, 3, 3, 0x3]) by 3" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [1, 2, 3, 3, 0x3])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15444,12 +15457,14 @@ a = Set.size (Set.fromList [1, 2, 3, 3, 0x3])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 3
 """
                         ]
         , test "should replace Set.size (Set.fromList [2, -2, -(-2)]) by 2" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [2, -2, -2])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15460,12 +15475,14 @@ a = Set.size (Set.fromList [2, -2, -2])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 2
 """
                         ]
         , test "should replace Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1]) by 3" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15476,12 +15493,14 @@ a = Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 3
 """
                         ]
         , test "should replace Set.size (Set.fromList [\"foo\", \"bar\", \"foo\"]) by 2" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList ["foo", "bar", "foo"])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15492,12 +15511,14 @@ a = Set.size (Set.fromList ["foo", "bar", "foo"])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 2
 """
                         ]
         , test "should replace Set.size (Set.fromList ['a', 'b', ('a')]) by 2" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList ['a', 'b', ('a')])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15508,12 +15529,14 @@ a = Set.size (Set.fromList ['a', 'b', ('a')])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 2
 """
                         ]
         , test "should replace Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])]) by 2" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15524,12 +15547,14 @@ a = Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])])
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 2
 """
                         ]
         , test "should replace Set.empty |> Set.size by 0" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.size
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15540,12 +15565,14 @@ a = Set.empty |> Set.size
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 0
 """
                         ]
         , test "should replace Set.singleton x |> Set.size by 1" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.singleton x |> Set.size
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15556,6 +15583,7 @@ a = Set.singleton x |> Set.size
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = 1
 """
                         ]
