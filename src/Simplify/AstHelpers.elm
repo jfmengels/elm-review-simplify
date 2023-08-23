@@ -919,8 +919,8 @@ qualifiedToString ( moduleName, name ) =
         [] ->
             name
 
-        moduleNamePart0 :: moduleNamePart1Up ->
-            moduleNameToString (moduleNamePart0 :: moduleNamePart1Up) ++ "." ++ name
+        _ :: _ ->
+            moduleNameToString moduleName ++ "." ++ name
 
 
 moduleNameToString : ModuleName -> String
