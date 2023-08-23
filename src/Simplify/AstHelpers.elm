@@ -807,10 +807,6 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
 
         Expression.LambdaExpression lambda ->
             case lambda.args of
-                -- invalid syntax
-                [] ->
-                    False
-
                 [ Node _ (Pattern.VarPattern element) ] ->
                     case Node.value lambda.expression of
                         Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] argument) ] ->
@@ -838,7 +834,6 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
                         _ ->
                             False
 
-                -- too many/unsimplified patterns
                 _ ->
                     False
 
