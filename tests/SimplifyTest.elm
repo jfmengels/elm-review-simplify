@@ -11548,7 +11548,7 @@ a = List.any ((==) x)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use List.member instead"
-                            , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                            , details = [ "This call to List.any checks for the presence of a value. List.member is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11564,7 +11564,7 @@ a = List.any (\\y -> y == x)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use List.member instead"
-                            , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                            , details = [ "This call to List.any checks for the presence of a value. List.member is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11580,7 +11580,7 @@ a = List.any (\\y -> x == y)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Use List.member instead"
-                            , details = [ "This call to List.any checks for the presence of a value, which what List.member is for." ]
+                            , details = [ "This call to List.any checks for the presence of a value. List.member is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
