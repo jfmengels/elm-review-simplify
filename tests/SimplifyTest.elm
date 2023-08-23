@@ -15055,6 +15055,7 @@ setFilterTests =
         [ test "should not report Set.filter used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15062,6 +15063,7 @@ a = Set.filter f x
         , test "should replace Set.filter f Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter f Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15072,12 +15074,14 @@ a = Set.filter f Set.empty
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.filter f <| Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter f <| Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15088,12 +15092,14 @@ a = Set.filter f <| Set.empty
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.empty |> Set.filter f by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.filter f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15104,12 +15110,14 @@ a = Set.empty |> Set.filter f
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.filter (always True) x by x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (always True) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15120,12 +15128,14 @@ a = Set.filter (always True) x
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = x
 """
                         ]
         , test "should replace Set.filter (\\x -> True) x by x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (\\x -> True) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15136,12 +15146,14 @@ a = Set.filter (\\x -> True) x
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = x
 """
                         ]
         , test "should replace Set.filter (always True) by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (always True)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15152,12 +15164,14 @@ a = Set.filter (always True)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
         , test "should replace Set.filter <| (always True) by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter <| (always True)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15168,12 +15182,14 @@ a = Set.filter <| (always True)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
         , test "should replace always True |> Set.filter by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = always True |> Set.filter
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15184,12 +15200,14 @@ a = always True |> Set.filter
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
         , test "should replace Set.filter (always False) x by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (always False) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15200,12 +15218,14 @@ a = Set.filter (always False) x
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.filter (\\x -> False) x by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (\\x -> False) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15216,12 +15236,14 @@ a = Set.filter (\\x -> False) x
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.filter (always False) <| x by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (always False) <| x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15232,12 +15254,14 @@ a = Set.filter (always False) <| x
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace x |> Set.filter (always False) by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = x |> Set.filter (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15248,12 +15272,14 @@ a = x |> Set.filter (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.filter (always False) by always Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15264,12 +15290,14 @@ a = Set.filter (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = always Set.empty
 """
                         ]
         , test "should replace Set.filter <| (always False) by always Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.filter <| (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15280,12 +15308,14 @@ a = Set.filter <| (always False)
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = always Set.empty
 """
                         ]
         , test "should replace always False |> Set.filter by always Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = always False |> Set.filter
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15296,6 +15326,7 @@ a = always False |> Set.filter
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = always Set.empty
 """
                         ]
