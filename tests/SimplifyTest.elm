@@ -16351,6 +16351,7 @@ setInsertTests =
         [ test "should not report Set.insert used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.insert x y
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16358,6 +16359,7 @@ a = Set.insert x y
         , test "should replace Set.insert x Set.empty by Set.singleton x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.insert x Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16368,12 +16370,14 @@ a = Set.insert x Set.empty
                             , under = "Set.insert"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton x
 """
                         ]
         , test "should replace Set.empty |> Set.insert x by Set.singleton x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.insert x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16384,6 +16388,7 @@ a = Set.empty |> Set.insert x
                             , under = "Set.insert"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton x
 """
                         ]
