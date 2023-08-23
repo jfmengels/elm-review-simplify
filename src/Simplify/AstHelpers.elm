@@ -796,6 +796,9 @@ getOrder lookupTable expression =
                             Nothing
 
 
+{-| Whether a given expression can be called with 2 operands and produces the same result as an operation with a given operator.
+Is either a function reducible to the operator in prefix notation `(op)` or a lambda `\a b -> a op b`.
+-}
 isSpecificUnappliedBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool
 isSpecificUnappliedBinaryOperation symbol checkInfo expression =
     case expression |> Normalize.normalize checkInfo |> Node.value of
