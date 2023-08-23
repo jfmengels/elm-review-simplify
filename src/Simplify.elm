@@ -7097,15 +7097,12 @@ resultAndThenChecks checkInfo =
                             ]
 
                         DirectConstruction ->
-                            [ Rule.errorWithFix
-                                -- TODO use identityError and replace Just by Ok
-                                { message = "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( [ "Result" ], "andThen" )
-                                , details = [ "You can remove this call and replace it by the value itself." ]
+                            [ identityError
+                                { toFix = qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function equivalent to Ok"
+                                , lastArgName = "result"
+                                , lastArg = maybeResultArg
+                                , resources = checkInfo
                                 }
-                                checkInfo.fnRange
-                                (toIdentityFix
-                                    { lastArg = maybeResultArg, resources = checkInfo }
-                                )
                             ]
 
                 Undetermined ->

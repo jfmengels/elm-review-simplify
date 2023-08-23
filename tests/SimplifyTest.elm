@@ -14533,8 +14533,8 @@ a = Result.andThen Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function that will always return Just is the same as not using Result.andThen"
-                            , details = [ "You can remove this call and replace it by the value itself." ]
+                            { message = "Using Result.andThen with a function equivalent to Ok will always return the same given result"
+                            , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
