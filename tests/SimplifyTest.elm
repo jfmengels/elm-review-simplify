@@ -15914,6 +15914,7 @@ setPartitionTests =
         [ test "should not report Set.partition used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15921,6 +15922,7 @@ a = Set.partition f x
         , test "should replace Set.partition f Set.empty by ( Set.empty, Set.empty )" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition f Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15931,12 +15933,14 @@ a = Set.partition f Set.empty
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = ( Set.empty, Set.empty )
 """
                         ]
         , test "should replace Set.partition f <| Set.empty by ( Set.empty, Set.empty )" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition f <| Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15947,12 +15951,14 @@ a = Set.partition f <| Set.empty
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = ( Set.empty, Set.empty )
 """
                         ]
         , test "should replace Set.empty |> Set.partition f by ( Set.empty, Set.empty )" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.partition f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15963,12 +15969,14 @@ a = Set.empty |> Set.partition f
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = ( Set.empty, Set.empty )
 """
                         ]
         , test "should replace Set.partition (always True) x by ( x, Set.empty )" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition (always True) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15979,6 +15987,7 @@ a = Set.partition (always True) x
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = ( x, Set.empty )
 """
                         ]
@@ -15988,6 +15997,7 @@ a = ( x, Set.empty )
             -- so that we can generate a unique variable.
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition (always True)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15995,6 +16005,7 @@ a = Set.partition (always True)
         , test "should replace Set.partition (always False) x by ( Set.empty, x )" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition (always False) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16005,12 +16016,14 @@ a = Set.partition (always False) x
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = ( Set.empty, x )
 """
                         ]
         , test "should replace Set.partition (always False) by (Tuple.pair Set.empty)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16021,12 +16034,14 @@ a = Set.partition (always False)
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (Tuple.pair Set.empty)
 """
                         ]
         , test "should replace Set.partition <| (always False) by (Tuple.pair Set.empty)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.partition <| (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16037,12 +16052,14 @@ a = Set.partition <| (always False)
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (Tuple.pair Set.empty)
 """
                         ]
         , test "should replace always False |> Set.partition by Tuple.pair Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = always False |> Set.partition
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16053,6 +16070,7 @@ a = always False |> Set.partition
                             , under = "Set.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (Tuple.pair Set.empty)
 """
                         ]
