@@ -295,6 +295,19 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
             Nothing
 
 
+{-| Parse a << or >> operation.
+
+  - `earlier` is the operation applied first
+  - `later` is the operation applied next, directly after `earlier`, not all that are applied next
+  - `parentRange` covers the range between and including `earlier` and `later`
+
+Example: f << g << h
+
+  - `parentRange` only covers `g << h`
+  - `h` is `earlier`
+  - `f << g` is `later`
+
+-}
 getComposition : Node Expression -> Maybe { parentRange : Range, earlier : Node Expression, later : Node Expression }
 getComposition expressionNode =
     let
