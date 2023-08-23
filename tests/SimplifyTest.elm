@@ -16256,6 +16256,7 @@ dictIsEmptyTests =
         [ test "should not report Dict.isEmpty with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.isEmpty
 b = Dict.isEmpty list
 """
@@ -16264,6 +16265,7 @@ b = Dict.isEmpty list
         , test "should replace Dict.isEmpty Dict.empty by True" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.isEmpty Dict.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16274,12 +16276,14 @@ a = Dict.isEmpty Dict.empty
                             , under = "Dict.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = True
 """
                         ]
         , test "should replace Dict.isEmpty (Dict.fromList [x]) by False" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.isEmpty (Dict.fromList [x])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16290,12 +16294,14 @@ a = Dict.isEmpty (Dict.fromList [x])
                             , under = "Dict.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = False
 """
                         ]
         , test "should replace Dict.isEmpty (Dict.fromList []) by False" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.isEmpty (Dict.fromList [])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16306,6 +16312,7 @@ a = Dict.isEmpty (Dict.fromList [])
                             , under = "Dict.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = True
 """
                         , Review.Test.error
@@ -16314,12 +16321,14 @@ a = True
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.isEmpty (Dict.empty)
 """
                         ]
         , test "should replace Dict.isEmpty (Dict.singleton x) by False" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.isEmpty (Dict.singleton x y)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16330,12 +16339,14 @@ a = Dict.isEmpty (Dict.singleton x y)
                             , under = "Dict.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = False
 """
                         ]
         , test "should replace x :: xs |> Dict.isEmpty by False" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.singleton x y |> Dict.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16346,6 +16357,7 @@ a = Dict.singleton x y |> Dict.isEmpty
                             , under = "Dict.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = False
 """
                         ]
