@@ -16265,6 +16265,7 @@ setUnionTests =
         [ test "should not report Set.union used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.union x y
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16272,6 +16273,7 @@ a = Set.union x y
         , test "should replace Set.union Set.empty set by set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.union Set.empty set
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16282,12 +16284,14 @@ a = Set.union Set.empty set
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = set
 """
                         ]
         , test "should replace Set.union set Set.empty by set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.union set Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16298,12 +16302,14 @@ a = Set.union set Set.empty
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = set
 """
                         ]
         , test "should replace Set.empty |> Set.union set by set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.union set
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16314,12 +16320,14 @@ a = Set.empty |> Set.union set
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = set
 """
                         ]
         , test "should replace set |> Set.union Set.empty by set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.union set
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16330,6 +16338,7 @@ a = Set.empty |> Set.union set
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = set
 """
                         ]
