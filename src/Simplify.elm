@@ -4496,8 +4496,7 @@ listConcatCompositionChecks checkInfo =
                 { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ ""
                 , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                 }
-                -- TODO switch to later.fnRange
-                checkInfo.later.range
+                checkInfo.later.fnRange
                 (Fix.replaceRangeBy checkInfo.earlier.fnRange
                     (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
                     :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
