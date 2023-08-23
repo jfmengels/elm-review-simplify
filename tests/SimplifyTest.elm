@@ -16115,6 +16115,7 @@ setMemberTests =
         [ test "should not report Set.member used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.member x y
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16122,6 +16123,7 @@ a = Set.member x y
         , test "should replace Set.member x Set.empty by False" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.member x Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16132,6 +16134,7 @@ a = Set.member x Set.empty
                             , under = "Set.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = False
 """
                         ]
