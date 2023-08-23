@@ -16414,6 +16414,7 @@ a = Dict.toList Dict.empty
                             , under = "Dict.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = []
 """
                         ]
