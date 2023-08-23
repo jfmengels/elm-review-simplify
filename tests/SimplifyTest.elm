@@ -16147,6 +16147,7 @@ setIntersectTests =
         [ test "should not report Set.intersect used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.intersect x x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16154,6 +16155,7 @@ a = Set.intersect x x
         , test "should replace Set.intersect Set.empty set by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.intersect Set.empty set
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16164,12 +16166,14 @@ a = Set.intersect Set.empty set
                             , under = "Set.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.intersect set Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.intersect set Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16180,6 +16184,7 @@ a = Set.intersect set Set.empty
                             , under = "Set.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
