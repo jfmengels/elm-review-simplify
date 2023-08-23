@@ -16616,6 +16616,7 @@ dictMemberTests =
         [ test "should not report Dict.member used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.member x y
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16623,6 +16624,7 @@ a = Dict.member x y
         , test "should replace Dict.member x Dict.empty by False" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.member x Dict.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16633,6 +16635,7 @@ a = Dict.member x Dict.empty
                             , under = "Dict.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = False
 """
                         ]
