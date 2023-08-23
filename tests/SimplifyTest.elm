@@ -15880,6 +15880,7 @@ setToListTests =
         [ test "should not report Set.toList with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList
 b = Set.toList list
 c = Set.toList set
@@ -15889,6 +15890,7 @@ c = Set.toList set
         , test "should replace Set.toList Set.empty by []" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15899,6 +15901,7 @@ a = Set.toList Set.empty
                             , under = "Set.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = []
 """
                         ]
