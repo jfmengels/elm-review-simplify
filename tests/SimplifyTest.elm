@@ -16390,6 +16390,7 @@ dictToListTests =
         [ test "should not report Dict.toList with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.toList
 b = Dict.toList list
 c = Dict.toList set
@@ -16399,6 +16400,7 @@ c = Dict.toList set
         , test "should replace Dict.toList Dict.empty by []" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.toList Dict.empty
 """
                     |> Review.Test.run ruleWithDefaults
