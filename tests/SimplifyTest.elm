@@ -15596,6 +15596,7 @@ setIsEmptyTests =
         [ test "should not report Set.isEmpty with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.isEmpty
 b = Set.isEmpty list
 """
@@ -15604,6 +15605,7 @@ b = Set.isEmpty list
         , test "should replace Set.isEmpty Set.empty by True" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.isEmpty Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15614,12 +15616,14 @@ a = Set.isEmpty Set.empty
                             , under = "Set.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = True
 """
                         ]
         , test "should replace Set.isEmpty (Set.fromList [x]) by False" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.isEmpty (Set.fromList [x])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15630,6 +15634,7 @@ a = Set.isEmpty (Set.fromList [x])
                             , under = "Set.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = False
 """
                         , Review.Test.error
@@ -15638,12 +15643,14 @@ a = False
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.isEmpty (Set.singleton x)
 """
                         ]
         , test "should replace Set.isEmpty (Set.fromList []) by False" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.isEmpty (Set.fromList [])
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15654,6 +15661,7 @@ a = Set.isEmpty (Set.fromList [])
                             , under = "Set.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = True
 """
                         , Review.Test.error
@@ -15662,12 +15670,14 @@ a = True
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.isEmpty (Set.empty)
 """
                         ]
         , test "should replace Set.isEmpty (Set.singleton x) by False" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.isEmpty (Set.singleton x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15678,12 +15688,14 @@ a = Set.isEmpty (Set.singleton x)
                             , under = "Set.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = False
 """
                         ]
         , test "should replace x :: xs |> Set.isEmpty by False" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.singleton x |> Set.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15694,6 +15706,7 @@ a = Set.singleton x |> Set.isEmpty
                             , under = "Set.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = False
 """
                         ]
