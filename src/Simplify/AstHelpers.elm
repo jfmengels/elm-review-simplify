@@ -116,7 +116,7 @@ getListSingleton lookupTable expressionNode =
                     Nothing
 
 
-{-| Parses calls and lambdas that are reducible to a call
+{-| Parses calls and lambdas that are reducible to a call of a function with the given name
 -}
 getSpecificFunctionCall :
     ( ModuleName, String )
