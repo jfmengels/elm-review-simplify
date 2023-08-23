@@ -18305,6 +18305,7 @@ randomMapTests =
         [ test "should not report Random.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map
 b = Random.map f
 c = Random.map f x
@@ -18314,6 +18315,7 @@ c = Random.map f x
         , test "should replace Random.map identity x by x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map identity x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18324,12 +18326,14 @@ a = Random.map identity x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = x
 """
                         ]
         , test "should replace Random.map identity <| x by x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map identity <| x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18340,12 +18344,14 @@ a = Random.map identity <| x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = x
 """
                         ]
         , test "should replace x |> Random.map identity by x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = x |> Random.map identity
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18356,12 +18362,14 @@ a = x |> Random.map identity
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = x
 """
                         ]
         , test "should replace Random.map identity by identity" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map identity
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18372,12 +18380,14 @@ a = Random.map identity
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = identity
 """
                         ]
         , test "should replace Random.map <| identity by identity" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map <| identity
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18388,12 +18398,14 @@ a = Random.map <| identity
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = identity
 """
                         ]
         , test "should replace identity |> Random.map by identity" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = identity |> Random.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18404,12 +18416,14 @@ a = identity |> Random.map
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = identity
 """
                         ]
         , test "should replace Random.map (\\_ -> x) generator by Random.constant x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (\\_ -> x) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18420,12 +18434,14 @@ a = Random.map (\\_ -> x) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant x
 """
                         ]
         , test "should replace Random.map (always x) generator by Random.constant x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always x) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18436,12 +18452,14 @@ a = Random.map (always x) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant x
 """
                         ]
         , test "should replace Random.map (always <| x) generator by Random.constant x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always <| x) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18452,12 +18470,14 @@ a = Random.map (always <| x) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant x
 """
                         ]
         , test "should replace Random.map (x |> always) generator by Random.constant x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (x |> always) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18468,12 +18488,14 @@ a = Random.map (x |> always) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant x
 """
                         ]
         , test "should replace Random.map (always x) <| generator by Random.constant x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always x) <| generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18484,12 +18506,14 @@ a = Random.map (always x) <| generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant x
 """
                         ]
         , test "should replace generator |> Random.map (always x) by Random.constant x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = generator |> Random.map (always x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18500,12 +18524,14 @@ a = generator |> Random.map (always x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant x
 """
                         ]
         , test "should replace Random.map (\\_ -> f x) generator by Random.constant (f x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (\\_ -> f x) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18516,12 +18542,14 @@ a = Random.map (\\_ -> f x) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant (f x)
 """
                         ]
         , test "should replace Random.map (always <| f x) generator by Random.constant (f x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always <| f x) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18532,12 +18560,14 @@ a = Random.map (always <| f x) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant (f x)
 """
                         ]
         , test "should replace Random.map (f x |> always) generator by Random.constant (f x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (f x |> always) generator
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18548,12 +18578,14 @@ a = Random.map (f x |> always) generator
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant (f x)
 """
                         ]
         , test "should replace Random.map (\\_ -> x) by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (\\_ -> x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18564,12 +18596,14 @@ a = Random.map (\\_ -> x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant x)
 """
                         ]
         , test "should replace Random.map <| \\_ -> x by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map <| \\_ -> x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18580,12 +18614,14 @@ a = Random.map <| \\_ -> x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant x)
 """
                         ]
         , test "should replace (\\_ -> x) |> Random.map by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = (\\_ -> x) |> Random.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18596,12 +18632,14 @@ a = (\\_ -> x) |> Random.map
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant x)
 """
                         ]
         , test "should replace Random.map (always x) by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18612,12 +18650,14 @@ a = Random.map (always x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant x)
 """
                         ]
         , test "should replace Random.map (always <| x) by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always <| x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18628,12 +18668,14 @@ a = Random.map (always <| x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant x)
 """
                         ]
         , test "should replace Random.map (x |> always) by always (Random.constant x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (x |> always)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18644,12 +18686,14 @@ a = Random.map (x |> always)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant x)
 """
                         ]
         , test "should replace Random.map (\\_ -> f x) generator by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (\\_ -> f x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18660,12 +18704,14 @@ a = Random.map (\\_ -> f x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace Random.map <| \\_ -> f x by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map <| \\_ -> f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18676,12 +18722,14 @@ a = Random.map <| \\_ -> f x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace (\\_ -> f x) |> Random.map by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = (\\_ -> f x) |> Random.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18692,12 +18740,14 @@ a = (\\_ -> f x) |> Random.map
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace Random.map (always <| f x) by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (always <| f x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18708,12 +18758,14 @@ a = Random.map (always <| f x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace Random.map <| always <| f x by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map <| always <| f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18724,12 +18776,14 @@ a = Random.map <| always <| f x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace (always <| f x) |> Random.map by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = (always <| f x) |> Random.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18740,12 +18794,14 @@ a = (always <| f x) |> Random.map
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace Random.map (f x |> always) by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map (f x |> always)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18756,12 +18812,14 @@ a = Random.map (f x |> always)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace Random.map <| (f x |> always) by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map <| (f x |> always)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18772,12 +18830,14 @@ a = Random.map <| (f x |> always)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace f x |> always |> Random.map by always (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = f x |> always |> Random.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18788,12 +18848,14 @@ a = f x |> always |> Random.map
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = always (Random.constant (f x))
 """
                         ]
         , test "should replace always >> Random.map by Random.constant" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = always >> Random.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18804,12 +18866,14 @@ a = always >> Random.map
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant
 """
                         ]
         , test "should replace Random.map << always by Random.constant" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map << always
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18820,12 +18884,14 @@ a = Random.map << always
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant
 """
                         ]
         , test "should replace Random.map f (Random.constant x) by Random.constant (f x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map f (Random.constant x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18836,12 +18902,14 @@ a = Random.map f (Random.constant x)
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant (f x)
 """
                         ]
         , test "should replace Random.map f <| Random.constant x by Random.constant (f x)" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map f <| Random.constant x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18852,12 +18920,14 @@ a = Random.map f <| Random.constant x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant (f <| x)
 """
                         ]
         , test "should replace Random.constant x |> Random.map f by x |> f |> Random.constant" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.constant x |> Random.map f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18868,12 +18938,14 @@ a = Random.constant x |> Random.map f
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = x |> f |> Random.constant
 """
                         ]
         , test "should replace x |> Random.constant |> Random.map f by x |> f |> Random.constant" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = x |> Random.constant |> Random.map f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18884,12 +18956,14 @@ a = x |> Random.constant |> Random.map f
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = x |> f |> Random.constant
 """
                         ]
         , test "should replace Random.map f <| Random.constant <| x by Random.constant <| f <| x" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map f <| Random.constant <| x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18900,12 +18974,14 @@ a = Random.map f <| Random.constant <| x
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant (f <| x)
 """
                         ]
         , test "should replace Random.map f << Random.constant by Random.constant << f" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map f << Random.constant
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18916,12 +18992,14 @@ a = Random.map f << Random.constant
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant << f
 """
                         ]
         , test "should replace Random.constant >> Random.map f by f >> Random.constant" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.constant >> Random.map f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18932,12 +19010,14 @@ a = Random.constant >> Random.map f
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = f >> Random.constant
 """
                         ]
         , test "should replace Random.map f << Random.constant << a by Random.constant << f << a" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.map f << Random.constant << a
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18948,12 +19028,14 @@ a = Random.map f << Random.constant << a
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = Random.constant << f << a
 """
                         ]
         , test "should replace g << Random.map f << Random.constant by g << Random.constant << f" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = g << Random.map f << Random.constant
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18964,12 +19046,14 @@ a = g << Random.map f << Random.constant
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = g << Random.constant << f
 """
                         ]
         , test "should replace Random.constant >> Random.map f >> g by f >> Random.constant >> g" <|
             \() ->
                 """module A exposing (..)
+import Random
 a = Random.constant >> Random.map f >> g
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18980,6 +19064,7 @@ a = Random.constant >> Random.map f >> g
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Random
 a = f >> Random.constant >> g
 """
                         ]
