@@ -2926,18 +2926,6 @@ consChecks checkInfo =
 toggleCompositionChecks : ( ModuleName, String ) -> CompositionCheckInfo -> List (Error {})
 toggleCompositionChecks toggle checkInfo =
     let
-        errorInfo : { message : String, details : List String }
-        errorInfo =
-            let
-                toggleFullyQualifiedAsString : String
-                toggleFullyQualifiedAsString =
-                    qualifiedToString toggle
-            in
-            -- TODO rework error info
-            { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
-            , details = [ "Composing " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " cancels each other out." ]
-            }
-
         getToggleFn : Node Expression -> Maybe Range
         getToggleFn =
             AstHelpers.getSpecificValueOrFunction toggle checkInfo.lookupTable
@@ -2980,7 +2968,7 @@ toggleCompositionChecks toggle checkInfo =
             case ( maybeEarlierToggleFn, maybeLaterToggleFn ) of
                 ( Just _, Just _ ) ->
                     [ Rule.errorWithFix
-                        errorInfo
+                        (doubleToggleErrorInfo toggle)
                         checkInfo.parentRange
                         [ Fix.replaceRangeBy checkInfo.parentRange
                             (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
@@ -2998,7 +2986,7 @@ toggleCompositionChecks toggle checkInfo =
                     case getToggleComposition { earlierToLater = True } checkInfo.later of
                         Just laterToggle ->
                             [ Rule.errorWithFix
-                                errorInfo
+                                (doubleToggleErrorInfo toggle)
                                 (Range.combine [ earlierToggleFn, laterToggle.range ])
                                 (laterToggle.removeFix
                                     ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later }
@@ -3016,7 +3004,7 @@ toggleCompositionChecks toggle checkInfo =
                     case getToggleComposition { earlierToLater = False } checkInfo.earlier of
                         Just earlierToggle ->
                             [ Rule.errorWithFix
-                                errorInfo
+                                (doubleToggleErrorInfo toggle)
                                 (Range.combine [ earlierToggle.range, laterToggleFn ])
                                 (earlierToggle.removeFix
                                     ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
@@ -3032,16 +3020,15 @@ toggleCompositionChecks toggle checkInfo =
         ()
 
 
-toggleChainErrorInfo : ( ModuleName, String ) -> { message : String, details : List String }
-toggleChainErrorInfo toggle =
+doubleToggleErrorInfo : ( ModuleName, String ) -> { message : String, details : List String }
+doubleToggleErrorInfo toggle =
     let
         toggleFullyQualifiedAsString : String
         toggleFullyQualifiedAsString =
             qualifiedToString toggle
     in
-    -- TODO rework error info
     { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
-    , details = [ "Composing " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " cancels each other out." ]
+    , details = [ "Chaining " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " makes both functions cancel each other out." ]
     }
 
 
@@ -3057,7 +3044,7 @@ basicsNegateCompositionChecks checkInfo =
 basicsNegateChecks : CheckInfo -> List (Error {})
 basicsNegateChecks checkInfo =
     removeAlongWithOtherFunctionCheck
-        (toggleChainErrorInfo ( [ "Basics" ], "negate" ))
+        (doubleToggleErrorInfo ( [ "Basics" ], "negate" ))
         (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "negate" ))
         checkInfo
 
@@ -3071,7 +3058,7 @@ basicsNotChecks checkInfo =
     firstThatReportsError
         [ notOnKnownBoolCheck
         , removeAlongWithOtherFunctionCheck
-            (toggleChainErrorInfo ( [ "Basics" ], "not" ))
+            (doubleToggleErrorInfo ( [ "Basics" ], "not" ))
             (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ))
         , isNotOnBooleanOperatorCheck
         ]
