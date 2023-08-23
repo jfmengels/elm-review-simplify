@@ -14879,6 +14879,7 @@ setMapTests =
         [ test "should not report Set.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14886,6 +14887,7 @@ a = Set.map f x
         , test "should replace Set.map f Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map f Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14896,12 +14898,14 @@ a = Set.map f Set.empty
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.map f <| Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map f <| Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14912,12 +14916,14 @@ a = Set.map f <| Set.empty
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.empty |> Set.map f by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.map f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14928,12 +14934,14 @@ a = Set.empty |> Set.map f
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.map identity x by x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map identity x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14944,12 +14952,14 @@ a = Set.map identity x
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = x
 """
                         ]
         , test "should replace Set.map identity <| x by x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map identity <| x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14960,12 +14970,14 @@ a = Set.map identity <| x
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = x
 """
                         ]
         , test "should replace x |> Set.map identity by x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = x |> Set.map identity
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14976,12 +14988,14 @@ a = x |> Set.map identity
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = x
 """
                         ]
         , test "should replace Set.map identity by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map identity
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14992,12 +15006,14 @@ a = Set.map identity
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
         , test "should replace Set.map <| identity by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.map <| identity
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15008,12 +15024,14 @@ a = Set.map <| identity
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
         , test "should replace identity |> Set.map by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = identity |> Set.map
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15024,6 +15042,7 @@ a = identity |> Set.map
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
