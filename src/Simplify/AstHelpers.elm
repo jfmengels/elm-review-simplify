@@ -442,6 +442,9 @@ isIdentity lookupTable baseExpressionNode =
                     False
 
 
+{-| Parse a function that returns the same for any given input and return the result expression node.
+Either a function reducible to `Basics.always x`, `\_ -> x` or even for example `\_ a -> a x` where the result expression node would be `\a -> a x`.
+-}
 getAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
 getAlwaysResult lookupTable expressionNode =
     case getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
