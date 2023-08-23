@@ -16648,6 +16648,7 @@ dictPartitionTests =
         [ test "should not report Dict.partition used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition f
 a = Dict.partition f x
 """
@@ -16656,6 +16657,7 @@ a = Dict.partition f x
         , test "should replace Dict.partition f Dict.empty by ( Dict.empty, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition f Dict.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16666,12 +16668,14 @@ a = Dict.partition f Dict.empty
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = ( Dict.empty, Dict.empty )
 """
                         ]
         , test "should replace Dict.partition f <| Dict.empty by ( Dict.empty, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition f <| Dict.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16682,12 +16686,14 @@ a = Dict.partition f <| Dict.empty
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = ( Dict.empty, Dict.empty )
 """
                         ]
         , test "should replace Dict.empty |> Dict.partition f by ( Dict.empty, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.empty |> Dict.partition f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16698,12 +16704,14 @@ a = Dict.empty |> Dict.partition f
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = ( Dict.empty, Dict.empty )
 """
                         ]
         , test "should replace Dict.partition (always True) x by ( x, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition (always True) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16714,12 +16722,14 @@ a = Dict.partition (always True) x
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = ( x, Dict.empty )
 """
                         ]
         , test "should replace Dict.partition (\\_ -> True) x by ( x, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition (\\_ -> True) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16730,6 +16740,7 @@ a = Dict.partition (\\_ -> True) x
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = ( x, Dict.empty )
 """
                         ]
@@ -16739,6 +16750,7 @@ a = ( x, Dict.empty )
             -- so that we can generate a unique variable.
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition (always True)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16746,6 +16758,7 @@ a = Dict.partition (always True)
         , test "should replace Dict.partition (always False) x by ( Dict.empty, x )" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition (always False) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16756,12 +16769,14 @@ a = Dict.partition (always False) x
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = ( Dict.empty, x )
 """
                         ]
         , test "should replace Dict.partition (always False) by (Tuple.pair Dict.empty)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16772,12 +16787,14 @@ a = Dict.partition (always False)
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (Tuple.pair Dict.empty)
 """
                         ]
         , test "should replace Dict.partition <| (always False) by (Tuple.pair Dict.empty)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.partition <| (always False)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16788,12 +16805,14 @@ a = Dict.partition <| (always False)
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (Tuple.pair Dict.empty)
 """
                         ]
         , test "should replace always False |> Dict.partition by Tuple.pair Dict.empty" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = always False |> Dict.partition
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16804,6 +16823,7 @@ a = always False |> Dict.partition
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (Tuple.pair Dict.empty)
 """
                         ]
