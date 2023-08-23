@@ -16083,6 +16083,7 @@ setRemoveTests =
         [ test "should not report Set.remove used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.remove x x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16090,6 +16091,7 @@ a = Set.remove x x
         , test "should replace Set.remove x Set.empty by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.remove x Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16100,6 +16102,7 @@ a = Set.remove x Set.empty
                             , under = "Set.remove"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
