@@ -16197,6 +16197,7 @@ setDiffTests =
         [ test "should not report Set.diff used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.diff x y
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16204,6 +16205,7 @@ a = Set.diff x y
         , test "should replace Set.diff Set.empty set by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.diff Set.empty set
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16214,12 +16216,14 @@ a = Set.diff Set.empty set
                             , under = "Set.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.diff set Set.empty by set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.diff set Set.empty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16230,12 +16234,14 @@ a = Set.diff set Set.empty
                             , under = "Set.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = set
 """
                         ]
         , test "should replace Set.empty |> Set.diff set by set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.empty |> Set.diff set
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16246,6 +16252,7 @@ a = Set.empty |> Set.diff set
                             , under = "Set.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = set
 """
                         ]
