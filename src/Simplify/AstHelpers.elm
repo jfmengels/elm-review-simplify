@@ -419,6 +419,9 @@ getUncomputedNumberValue expressionNode =
             Nothing
 
 
+{-| Whether it's a function that returns any given input unchanged.
+Either a function reducible to `Basics.identity` or `\a -> a`.
+-}
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
 isIdentity lookupTable baseExpressionNode =
     case getSpecificValueOrFunction ( [ "Basics" ], "identity" ) lookupTable baseExpressionNode of
