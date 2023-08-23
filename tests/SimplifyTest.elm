@@ -16358,6 +16358,7 @@ dictFromListTests =
         [ test "should not report Dict.fromList with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList
 b = Dict.fromList list
 b = Dict.fromList [x]
@@ -16368,6 +16369,7 @@ b = Dict.fromList [x, y]
         , test "should replace Dict.fromList [] by Dict.empty" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList []
 """
                     |> Review.Test.run ruleWithDefaults
@@ -16378,6 +16380,7 @@ a = Dict.fromList []
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.empty
 """
                         ]
