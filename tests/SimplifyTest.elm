@@ -15719,6 +15719,7 @@ setFromListTests =
         [ test "should not report Set.fromList with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList
 b = Set.fromList list
 c = Set.fromList (x :: ys)
@@ -15729,6 +15730,7 @@ d = Set.fromList [x, y]
         , test "should replace Set.fromList [] by Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList []
 """
                     |> Review.Test.run ruleWithDefaults
@@ -15739,12 +15741,14 @@ a = Set.fromList []
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.empty
 """
                         ]
         , test "should replace Set.fromList [ a ] by Set.singleton a" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList [ b ]
 """
                     |> Review.Test.run (rule defaults)
@@ -15755,12 +15759,14 @@ a = Set.fromList [ b ]
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton b
 """
                         ]
         , test "should replace Set.fromList [ f a ] by Set.singleton (f a)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList [ f b ]
 """
                     |> Review.Test.run (rule defaults)
@@ -15771,12 +15777,14 @@ a = Set.fromList [ f b ]
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton (f b)
 """
                         ]
         , test "should replace Set.fromList (List.singleton a) by Set.singleton a" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList (List.singleton b)
 """
                     |> Review.Test.run (rule defaults)
@@ -15787,12 +15795,14 @@ a = Set.fromList (List.singleton b)
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton b
 """
                         ]
         , test "should replace Set.fromList <| List.singleton a by Set.singleton <| a" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList <| List.singleton b
 """
                     |> Review.Test.run (rule defaults)
@@ -15803,12 +15813,14 @@ a = Set.fromList <| List.singleton b
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton <| b
 """
                         ]
         , test "should replace List.singleton a |> Set.fromList by a |> Set.singleton" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.singleton b |> Set.fromList
 """
                     |> Review.Test.run (rule defaults)
@@ -15819,12 +15831,14 @@ a = List.singleton b |> Set.fromList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = b |> Set.singleton
 """
                         ]
         , test "should replace List.singleton >> Set.fromList by Set.singleton" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.singleton >> Set.fromList
 """
                     |> Review.Test.run (rule defaults)
@@ -15835,12 +15849,14 @@ a = List.singleton >> Set.fromList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton
 """
                         ]
         , test "should replace Set.fromList << List.singleton by Set.singleton" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList << List.singleton
 """
                     |> Review.Test.run (rule defaults)
@@ -15851,6 +15867,7 @@ a = Set.fromList << List.singleton
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.singleton
 """
                         ]
