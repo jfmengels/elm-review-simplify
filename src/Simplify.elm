@@ -2207,11 +2207,11 @@ functionCallChecks =
         , ( ( [ "List" ], "member" ), listMemberChecks )
         , ( ( [ "List" ], "map" ), listMapChecks )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
+        , ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
-        , reportEmptyListSecondArgument ( ( [ "List" ], "intersperse" ), \_ -> [] )
+        , ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
+        , ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
+        , ( ( [ "List" ], "intersperse" ), \checkInfo -> reportEmptyListSecondArgument ( [ "List" ], "intersperse" ) checkInfo )
         , ( ( [ "List" ], "sum" ), listSumChecks )
         , ( ( [ "List" ], "product" ), listProductChecks )
         , ( ( [ "List" ], "minimum" ), listMinimumChecks )
@@ -3655,23 +3655,20 @@ basicsAlwaysCompositionChecks checkInfo =
             []
 
 
-reportEmptyListSecondArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
-reportEmptyListSecondArgument ( ( moduleName, name ), function ) =
-    ( ( moduleName, name )
-    , \checkInfo ->
-        case secondArg checkInfo of
-            Just (Node _ (Expression.ListExpr [])) ->
-                [ Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
-                    , details = [ "You can replace this call by an empty list." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                ]
+reportEmptyListSecondArgument : ( ModuleName, String ) -> CheckInfo -> List (Error {})
+reportEmptyListSecondArgument ( moduleName, name ) checkInfo =
+    case secondArg checkInfo of
+        Just (Node _ (Expression.ListExpr [])) ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
+                , details = [ "You can replace this call by an empty list." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
 
-            _ ->
-                function checkInfo
-    )
+        _ ->
+            []
 
 
 reportEmptyListFirstArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
@@ -4415,7 +4412,8 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 listConcatMapChecks : CheckInfo -> List (Error {})
 listConcatMapChecks checkInfo =
     firstThatReportsError
-        [ \() ->
+        [ \() -> reportEmptyListSecondArgument ( [ "List" ], "concatMap" ) checkInfo
+        , \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString ( [ "List" ], "concat" ) ++ ""
@@ -4510,7 +4508,8 @@ listConcatCompositionChecks checkInfo =
 listIndexedMapChecks : CheckInfo -> List (Error {})
 listIndexedMapChecks checkInfo =
     firstThatReportsError
-        [ \() ->
+        [ \() -> reportEmptyListSecondArgument ( [ "List" ], "indexedMap" ) checkInfo
+        , \() ->
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
                     case Maybe.map AstHelpers.removeParensFromPattern (List.head lambda.args) of
@@ -5460,7 +5459,8 @@ listAnyChecks checkInfo =
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks checkInfo =
     firstThatReportsError
-        [ \() ->
+        [ \() -> reportEmptyListSecondArgument ( [ "List" ], "filterMap" ) checkInfo
+        , \() ->
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justConstruction ->
                     case justConstruction of
