@@ -3655,8 +3655,8 @@ basicsAlwaysCompositionChecks checkInfo =
             []
 
 
-reportEmptyListSecondArgument : ( ModuleName, String ) -> CheckInfo -> List (Error {})
-reportEmptyListSecondArgument ( moduleName, name ) checkInfo =
+callingWithSecondArgumentEmptyListReturnsEmptyListCheck : ( ModuleName, String ) -> CheckInfo -> List (Error {})
+callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( moduleName, name ) checkInfo =
     case secondArg checkInfo of
         Just (Node _ (Expression.ListExpr [])) ->
             [ Rule.errorWithFix
@@ -4410,7 +4410,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 listConcatMapChecks : CheckInfo -> List (Error {})
 listConcatMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> reportEmptyListSecondArgument ( [ "List" ], "concatMap" ) checkInfo
+        [ \() -> callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "concatMap" ) checkInfo
         , \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
@@ -4506,7 +4506,7 @@ listConcatCompositionChecks checkInfo =
 listIndexedMapChecks : CheckInfo -> List (Error {})
 listIndexedMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> reportEmptyListSecondArgument ( [ "List" ], "indexedMap" ) checkInfo
+        [ \() -> callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "indexedMap" ) checkInfo
         , \() ->
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
@@ -4564,7 +4564,7 @@ listIndexedMapChecks checkInfo =
 
 listIntersperseChecks : CheckInfo -> List (Error {})
 listIntersperseChecks checkInfo =
-    reportEmptyListSecondArgument ( [ "List" ], "intersperse" ) checkInfo
+    callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "intersperse" ) checkInfo
 
 
 listAppendEmptyErrorInfo : { message : String, details : List String }
@@ -5462,7 +5462,7 @@ listAnyChecks checkInfo =
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> reportEmptyListSecondArgument ( [ "List" ], "filterMap" ) checkInfo
+        [ \() -> callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "filterMap" ) checkInfo
         , \() ->
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justConstruction ->
