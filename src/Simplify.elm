@@ -3655,16 +3655,16 @@ basicsAlwaysCompositionChecks checkInfo =
             []
 
 
-callWithEmptyListArgReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ), checkInfo : CheckInfo } -> List (Error {})
-callWithEmptyListArgReturnsEmptyListCheck config =
+callWithEmptyListArgReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ) } -> CheckInfo -> List (Error {})
+callWithEmptyListArgReturnsEmptyListCheck config checkInfo =
     case AstHelpers.getListLiteral config.checkedArg of
         Just [] ->
             [ Rule.errorWithFix
                 { message = "Using " ++ qualifiedToString config.fn ++ " on an empty list will result in an empty list"
                 , details = [ "You can replace this call by an empty list." ]
                 }
-                config.checkInfo.fnRange
-                [ Fix.replaceRangeBy config.checkInfo.parentRange "[]" ]
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
             ]
 
         _ ->
@@ -4231,10 +4231,8 @@ listConcatChecks checkInfo =
     firstThatReportsError
         [ \() ->
             callWithEmptyListArgReturnsEmptyListCheck
-                { checkedArg = checkInfo.firstArg
-                , fn = ( [ "List" ], "concat" )
-                , checkInfo = checkInfo
-                }
+                { fn = ( [ "List" ], "concat" ), checkedArg = checkInfo.firstArg }
+                checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
@@ -4474,7 +4472,8 @@ listConcatMapChecks checkInfo =
                                     []
                         , \() ->
                             callWithEmptyListArgReturnsEmptyListCheck
-                                { checkedArg = listArg, fn = ( [ "List" ], "concatMap" ), checkInfo = checkInfo }
+                                { fn = ( [ "List" ], "concatMap" ), checkedArg = listArg }
+                                checkInfo
                         ]
                         ()
 
@@ -4510,7 +4509,8 @@ listIndexedMapChecks checkInfo =
             case secondArg checkInfo of
                 Just listArg ->
                     callWithEmptyListArgReturnsEmptyListCheck
-                        { checkedArg = listArg, fn = ( [ "List" ], "indexedMap" ), checkInfo = checkInfo }
+                        { fn = ( [ "List" ], "indexedMap" ), checkedArg = listArg }
+                        checkInfo
 
                 Nothing ->
                     []
@@ -4574,7 +4574,8 @@ listIntersperseChecks checkInfo =
     case secondArg checkInfo of
         Just listArg ->
             callWithEmptyListArgReturnsEmptyListCheck
-                { checkedArg = listArg, fn = ( [ "List" ], "intersperse" ), checkInfo = checkInfo }
+                { fn = ( [ "List" ], "intersperse" ), checkedArg = listArg }
+                checkInfo
 
         Nothing ->
             []
@@ -5523,7 +5524,8 @@ listFilterMapChecks checkInfo =
                     firstThatReportsError
                         [ \() ->
                             callWithEmptyListArgReturnsEmptyListCheck
-                                { checkedArg = listArg, fn = ( [ "List" ], "filterMap" ), checkInfo = checkInfo }
+                                { fn = ( [ "List" ], "filterMap" ), checkedArg = listArg }
+                                checkInfo
                         , \() ->
                             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                                 firstThatReportsError
