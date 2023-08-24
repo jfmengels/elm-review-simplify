@@ -3671,8 +3671,8 @@ callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( moduleName, name ) che
             []
 
 
-reportEmptyListFirstArgument : ( ModuleName, String ) -> CheckInfo -> List (Error {})
-reportEmptyListFirstArgument ( moduleName, name ) checkInfo =
+callingWithFirstArgumentEmptyListReturnsEmptyListCheck : ( ModuleName, String ) -> CheckInfo -> List (Error {})
+callingWithFirstArgumentEmptyListReturnsEmptyListCheck ( moduleName, name ) checkInfo =
     case checkInfo.firstArg of
         Node _ (Expression.ListExpr []) ->
             [ Rule.errorWithFix
@@ -4245,7 +4245,7 @@ resultMapErrorCompositionChecks checkInfo =
 listConcatChecks : CheckInfo -> List (Error {})
 listConcatChecks checkInfo =
     firstThatReportsError
-        [ \() -> reportEmptyListFirstArgument ( [ "List" ], "concat" ) checkInfo
+        [ \() -> callingWithFirstArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "concat" ) checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
