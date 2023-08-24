@@ -4032,18 +4032,22 @@ stringLengthChecks checkInfo =
 
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
 stringRepeatChecks checkInfo =
-    case secondArg checkInfo of
-        Just (Node _ (Expression.Literal "")) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.repeat with an empty string will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                )
+    firstThatReportsError
+        [ \() ->
+            case secondArg checkInfo of
+                Just (Node _ (Expression.Literal "")) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.repeat with an empty string will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+                        )
 
-        _ ->
+                _ ->
+                    Nothing
+        , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just intValue ->
                     if intValue == 1 then
@@ -4071,6 +4075,8 @@ stringRepeatChecks checkInfo =
 
                 _ ->
                     Nothing
+        ]
+        ()
 
 
 stringReplaceChecks : CheckInfo -> Maybe (Error {})
