@@ -1913,7 +1913,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             ( endLater, expressionRange )
             in
             onlyErrors
-                (compositionChecks
+                (firstThatReportsError compositionChecks
                     (toCompositionCheckInfo
                         { direction = LeftToRight
                         , parentRange = parentRange
@@ -1937,7 +1937,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             ( endLater, expressionRange )
             in
             onlyErrors
-                (compositionChecks
+                (firstThatReportsError compositionChecks
                     (toCompositionCheckInfo
                         { direction = RightToLeft
                         , parentRange = parentRange
@@ -2333,63 +2333,61 @@ type alias CompositionCheckInfo =
     }
 
 
-compositionChecks : CompositionCheckInfo -> List (Error {})
-compositionChecks checkInfo =
-    firstThatReportsError
-        [ \() -> basicsIdentityCompositionChecks checkInfo
-        , \() -> basicsNotCompositionChecks checkInfo
-        , \() -> basicsNegateCompositionChecks checkInfo
-        , \() ->
-            case
-                ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
-                , AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.later
-                )
-            of
-                ( Just earlierFnOrCall, Just laterFnOrCall ) ->
-                    case
-                        ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange
-                        , ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange
-                        )
-                    of
-                        ( Just earlierFnModuleName, Just laterFnModuleName ) ->
-                            case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
-                                Just compositionIntoChecksForSpecificLater ->
-                                    compositionIntoChecksForSpecificLater
-                                        { lookupTable = checkInfo.lookupTable
-                                        , importLookup = checkInfo.importLookup
-                                        , moduleBindings = checkInfo.moduleBindings
-                                        , localBindings = checkInfo.localBindings
-                                        , direction = checkInfo.direction
-                                        , parentRange = checkInfo.parentRange
-                                        , later =
-                                            { range = laterFnOrCall.nodeRange
-                                            , fnRange = laterFnOrCall.fnRange
-                                            , args = laterFnOrCall.args
-                                            }
-                                        , earlier =
-                                            { range = earlierFnOrCall.nodeRange
-                                            , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
-                                            , fnRange = earlierFnOrCall.fnRange
-                                            , args = earlierFnOrCall.args
-                                            }
+compositionChecks : List (CompositionCheckInfo -> List (Error {}))
+compositionChecks =
+    [ basicsIdentityCompositionChecks
+    , basicsNotCompositionChecks
+    , basicsNegateCompositionChecks
+    , \checkInfo ->
+        case
+            ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
+            , AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.later
+            )
+        of
+            ( Just earlierFnOrCall, Just laterFnOrCall ) ->
+                case
+                    ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange
+                    , ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange
+                    )
+                of
+                    ( Just earlierFnModuleName, Just laterFnModuleName ) ->
+                        case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
+                            Just compositionIntoChecksForSpecificLater ->
+                                compositionIntoChecksForSpecificLater
+                                    { lookupTable = checkInfo.lookupTable
+                                    , importLookup = checkInfo.importLookup
+                                    , moduleBindings = checkInfo.moduleBindings
+                                    , localBindings = checkInfo.localBindings
+                                    , direction = checkInfo.direction
+                                    , parentRange = checkInfo.parentRange
+                                    , later =
+                                        { range = laterFnOrCall.nodeRange
+                                        , fnRange = laterFnOrCall.fnRange
+                                        , args = laterFnOrCall.args
                                         }
+                                    , earlier =
+                                        { range = earlierFnOrCall.nodeRange
+                                        , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
+                                        , fnRange = earlierFnOrCall.fnRange
+                                        , args = earlierFnOrCall.args
+                                        }
+                                    }
 
-                                Nothing ->
-                                    []
+                            Nothing ->
+                                []
 
-                        ( Nothing, _ ) ->
-                            []
+                    ( Nothing, _ ) ->
+                        []
 
-                        ( _, Nothing ) ->
-                            []
+                    ( _, Nothing ) ->
+                        []
 
-                ( Nothing, _ ) ->
-                    []
+            ( Nothing, _ ) ->
+                []
 
-                ( _, Nothing ) ->
-                    []
-        ]
-        ()
+            ( _, Nothing ) ->
+                []
+    ]
 
 
 type alias CompositionIntoCheckInfo =
