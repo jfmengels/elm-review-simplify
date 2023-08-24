@@ -4472,18 +4472,23 @@ listConcatMapChecks checkInfo =
                     []
         , \() ->
             case secondArg checkInfo of
-                Just (Node listRange (Expression.ListExpr (listElement :: []))) ->
-                    [ Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
-                        , details = [ "You can replace this call by a call to the function directly." ]
-                        }
-                        checkInfo.fnRange
-                        (Fix.removeRange checkInfo.fnRange
-                            :: replaceBySubExpressionFix listRange listElement
-                        )
-                    ]
+                Just listArg ->
+                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                        Just listSingleton ->
+                            [ Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
+                                , details = [ "You can replace this call by a call to the function directly." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.removeRange checkInfo.fnRange
+                                    :: replaceBySubExpressionFix (Node.range listArg) listSingleton.element
+                                )
+                            ]
 
-                _ ->
+                        Nothing ->
+                            []
+
+                Nothing ->
                     []
         ]
         ()
