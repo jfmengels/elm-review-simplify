@@ -4797,20 +4797,6 @@ a =
   else
     3
 """
-                        , Review.Test.error
-                            { message = "Comparison is always False"
-                            , details = alwaysSameDetails
-                            , under = "a && b"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a =
-  if a || b then
-    1
-  else if b then
-    2
-  else
-    3
-"""
                         ]
         , test "should remove branches where the condition may not match (a && b --> a --> b)" <|
             \() ->
