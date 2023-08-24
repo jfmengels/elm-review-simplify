@@ -3655,8 +3655,8 @@ basicsAlwaysCompositionChecks checkInfo =
             []
 
 
-callingWithEmptyListArgumentReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ), checkInfo : CheckInfo } -> List (Error {})
-callingWithEmptyListArgumentReturnsEmptyListCheck config =
+callWithEmptyListArgReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ), checkInfo : CheckInfo } -> List (Error {})
+callWithEmptyListArgReturnsEmptyListCheck config =
     case AstHelpers.getListLiteral config.checkedArg of
         Just [] ->
             [ Rule.errorWithFix
@@ -4230,7 +4230,7 @@ listConcatChecks : CheckInfo -> List (Error {})
 listConcatChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            callingWithEmptyListArgumentReturnsEmptyListCheck
+            callWithEmptyListArgReturnsEmptyListCheck
                 { checkedArg = checkInfo.firstArg
                 , fn = ( [ "List" ], "concat" )
                 , checkInfo = checkInfo
@@ -4473,7 +4473,7 @@ listConcatMapChecks checkInfo =
                                 Nothing ->
                                     []
                         , \() ->
-                            callingWithEmptyListArgumentReturnsEmptyListCheck
+                            callWithEmptyListArgReturnsEmptyListCheck
                                 { checkedArg = listArg, fn = ( [ "List" ], "concatMap" ), checkInfo = checkInfo }
                         ]
                         ()
@@ -4509,7 +4509,7 @@ listIndexedMapChecks checkInfo =
         [ \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    callingWithEmptyListArgumentReturnsEmptyListCheck
+                    callWithEmptyListArgReturnsEmptyListCheck
                         { checkedArg = listArg, fn = ( [ "List" ], "indexedMap" ), checkInfo = checkInfo }
 
                 Nothing ->
@@ -4573,7 +4573,7 @@ listIntersperseChecks : CheckInfo -> List (Error {})
 listIntersperseChecks checkInfo =
     case secondArg checkInfo of
         Just listArg ->
-            callingWithEmptyListArgumentReturnsEmptyListCheck
+            callWithEmptyListArgReturnsEmptyListCheck
                 { checkedArg = listArg, fn = ( [ "List" ], "intersperse" ), checkInfo = checkInfo }
 
         Nothing ->
@@ -5522,7 +5522,7 @@ listFilterMapChecks checkInfo =
                 Just listArg ->
                     firstThatReportsError
                         [ \() ->
-                            callingWithEmptyListArgumentReturnsEmptyListCheck
+                            callWithEmptyListArgReturnsEmptyListCheck
                                 { checkedArg = listArg, fn = ( [ "List" ], "filterMap" ), checkInfo = checkInfo }
                         , \() ->
                             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
