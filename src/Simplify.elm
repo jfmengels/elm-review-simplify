@@ -2211,7 +2211,7 @@ functionCallChecks =
         , ( ( [ "List" ], "concat" ), listConcatChecks )
         , ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
         , ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
-        , ( ( [ "List" ], "intersperse" ), \checkInfo -> reportEmptyListSecondArgument ( [ "List" ], "intersperse" ) checkInfo )
+        , ( ( [ "List" ], "intersperse" ), listIntersperseChecks )
         , ( ( [ "List" ], "sum" ), listSumChecks )
         , ( ( [ "List" ], "product" ), listProductChecks )
         , ( ( [ "List" ], "minimum" ), listMinimumChecks )
@@ -4560,6 +4560,11 @@ listIndexedMapChecks checkInfo =
                     []
         ]
         ()
+
+
+listIntersperseChecks : CheckInfo -> List (Error {})
+listIntersperseChecks checkInfo =
+    reportEmptyListSecondArgument ( [ "List" ], "intersperse" ) checkInfo
 
 
 listAppendEmptyErrorInfo : { message : String, details : List String }
