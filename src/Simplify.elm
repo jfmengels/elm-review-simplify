@@ -3655,22 +3655,6 @@ basicsAlwaysCompositionChecks checkInfo =
             []
 
 
-callingWithSecondArgumentEmptyListReturnsEmptyListCheck : ( ModuleName, String ) -> CheckInfo -> List (Error {})
-callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( moduleName, name ) checkInfo =
-    case secondArg checkInfo of
-        Just (Node _ (Expression.ListExpr [])) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
-                , details = [ "You can replace this call by an empty list." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            ]
-
-        _ ->
-            []
-
-
 callingWithEmptyListArgumentReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ), checkInfo : CheckInfo } -> List (Error {})
 callingWithEmptyListArgumentReturnsEmptyListCheck config =
     case AstHelpers.getListLiteral config.checkedArg of
@@ -4415,8 +4399,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 listConcatMapChecks : CheckInfo -> List (Error {})
 listConcatMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "concatMap" ) checkInfo
-        , \() ->
+        [ \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 [ Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString ( [ "List" ], "concat" ) ++ ""
@@ -4473,20 +4456,27 @@ listConcatMapChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                        Just listSingleton ->
-                            [ Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
-                                , details = [ "You can replace this call by a call to the function directly." ]
-                                }
-                                checkInfo.fnRange
-                                (Fix.removeRange checkInfo.fnRange
-                                    :: replaceBySubExpressionFix (Node.range listArg) listSingleton.element
-                                )
-                            ]
+                    firstThatReportsError
+                        [ \() ->
+                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                                Just listSingleton ->
+                                    [ Rule.errorWithFix
+                                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
+                                        , details = [ "You can replace this call by a call to the function directly." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (Fix.removeRange checkInfo.fnRange
+                                            :: replaceBySubExpressionFix (Node.range listArg) listSingleton.element
+                                        )
+                                    ]
 
-                        Nothing ->
-                            []
+                                Nothing ->
+                                    []
+                        , \() ->
+                            callingWithEmptyListArgumentReturnsEmptyListCheck
+                                { checkedArg = listArg, fn = ( [ "List" ], "concatMap" ), checkInfo = checkInfo }
+                        ]
+                        ()
 
                 Nothing ->
                     []
@@ -4516,7 +4506,14 @@ listConcatCompositionChecks checkInfo =
 listIndexedMapChecks : CheckInfo -> List (Error {})
 listIndexedMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "indexedMap" ) checkInfo
+        [ \() ->
+            case secondArg checkInfo of
+                Just listArg ->
+                    callingWithEmptyListArgumentReturnsEmptyListCheck
+                        { checkedArg = listArg, fn = ( [ "List" ], "indexedMap" ), checkInfo = checkInfo }
+
+                Nothing ->
+                    []
         , \() ->
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
@@ -4574,7 +4571,13 @@ listIndexedMapChecks checkInfo =
 
 listIntersperseChecks : CheckInfo -> List (Error {})
 listIntersperseChecks checkInfo =
-    callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "intersperse" ) checkInfo
+    case secondArg checkInfo of
+        Just listArg ->
+            callingWithEmptyListArgumentReturnsEmptyListCheck
+                { checkedArg = listArg, fn = ( [ "List" ], "intersperse" ), checkInfo = checkInfo }
+
+        Nothing ->
+            []
 
 
 listAppendEmptyErrorInfo : { message : String, details : List String }
@@ -5472,8 +5475,7 @@ listAnyChecks checkInfo =
 listFilterMapChecks : CheckInfo -> List (Error {})
 listFilterMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "filterMap" ) checkInfo
-        , \() ->
+        [ \() ->
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justConstruction ->
                     case justConstruction of
@@ -5518,51 +5520,58 @@ listFilterMapChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                        firstThatReportsError
-                            [ \() ->
-                                case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable listArg of
-                                    Just listMapCall ->
-                                        [ Rule.errorWithFix
-                                            -- TODO rework error info
-                                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
-                                            , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
-                                            }
-                                            { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                            (replaceBySubExpressionFix checkInfo.parentRange listArg
-                                                ++ [ Fix.replaceRangeBy listMapCall.fnRange
-                                                        (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
-                                                   ]
-                                            )
-                                        ]
-
-                                    Nothing ->
-                                        []
-                            , \() ->
-                                case listArg of
-                                    Node listRange (Expression.ListExpr list) ->
-                                        case collectJusts checkInfo.lookupTable list [] of
-                                            Just justRanges ->
+                    firstThatReportsError
+                        [ \() ->
+                            callingWithEmptyListArgumentReturnsEmptyListCheck
+                                { checkedArg = listArg, fn = ( [ "List" ], "filterMap" ), checkInfo = checkInfo }
+                        , \() ->
+                            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                                firstThatReportsError
+                                    [ \() ->
+                                        case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable listArg of
+                                            Just listMapCall ->
                                                 [ Rule.errorWithFix
-                                                    { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
-                                                    , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                                    -- TODO rework error info
+                                                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
+                                                    , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                                     }
                                                     { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
-                                                        ++ List.map Fix.removeRange justRanges
+                                                    (replaceBySubExpressionFix checkInfo.parentRange listArg
+                                                        ++ [ Fix.replaceRangeBy listMapCall.fnRange
+                                                                (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
+                                                           ]
                                                     )
                                                 ]
 
                                             Nothing ->
                                                 []
+                                    , \() ->
+                                        case listArg of
+                                            Node listRange (Expression.ListExpr list) ->
+                                                case collectJusts checkInfo.lookupTable list [] of
+                                                    Just justRanges ->
+                                                        [ Rule.errorWithFix
+                                                            { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
+                                                            , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                                            }
+                                                            { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
+                                                                ++ List.map Fix.removeRange justRanges
+                                                            )
+                                                        ]
 
-                                    _ ->
-                                        []
-                            ]
-                            ()
+                                                    Nothing ->
+                                                        []
 
-                    else
-                        []
+                                            _ ->
+                                                []
+                                    ]
+                                    ()
+
+                            else
+                                []
+                        ]
+                        ()
 
                 Nothing ->
                     []
