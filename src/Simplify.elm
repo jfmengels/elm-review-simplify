@@ -3671,22 +3671,6 @@ callingWithSecondArgumentEmptyListReturnsEmptyListCheck ( moduleName, name ) che
             []
 
 
-callingWithFirstArgumentEmptyListReturnsEmptyListCheck : ( ModuleName, String ) -> CheckInfo -> List (Error {})
-callingWithFirstArgumentEmptyListReturnsEmptyListCheck ( moduleName, name ) checkInfo =
-    case checkInfo.firstArg of
-        Node _ (Expression.ListExpr []) ->
-            [ Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
-                , details = [ "You can replace this call by an empty list." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            ]
-
-        _ ->
-            []
-
-
 callingWithEmptyListArgumentReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ), checkInfo : CheckInfo } -> List (Error {})
 callingWithEmptyListArgumentReturnsEmptyListCheck config =
     case AstHelpers.getListLiteral config.checkedArg of
@@ -4262,7 +4246,11 @@ listConcatChecks : CheckInfo -> List (Error {})
 listConcatChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            callingWithFirstArgumentEmptyListReturnsEmptyListCheck ( [ "List" ], "concat" ) checkInfo
+            callingWithEmptyListArgumentReturnsEmptyListCheck
+                { checkedArg = checkInfo.firstArg
+                , fn = ( [ "List" ], "concat" )
+                , checkInfo = checkInfo
+                }
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
