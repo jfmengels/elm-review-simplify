@@ -2208,7 +2208,7 @@ functionCallChecks =
         , ( ( [ "List" ], "map" ), listMapChecks )
         , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
         , ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
-        , reportEmptyListFirstArgument ( ( [ "List" ], "concat" ), listConcatChecks )
+        , ( ( [ "List" ], "concat" ), listConcatChecks )
         , ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
         , ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
         , ( ( [ "List" ], "intersperse" ), \checkInfo -> reportEmptyListSecondArgument ( [ "List" ], "intersperse" ) checkInfo )
@@ -3671,23 +3671,20 @@ reportEmptyListSecondArgument ( moduleName, name ) checkInfo =
             []
 
 
-reportEmptyListFirstArgument : ( ( ModuleName, String ), CheckInfo -> List (Error {}) ) -> ( ( ModuleName, String ), CheckInfo -> List (Error {}) )
-reportEmptyListFirstArgument ( ( moduleName, name ), function ) =
-    ( ( moduleName, name )
-    , \checkInfo ->
-        case checkInfo.firstArg of
-            Node _ (Expression.ListExpr []) ->
-                [ Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
-                    , details = [ "You can replace this call by an empty list." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                ]
+reportEmptyListFirstArgument : ( ModuleName, String ) -> CheckInfo -> List (Error {})
+reportEmptyListFirstArgument ( moduleName, name ) checkInfo =
+    case checkInfo.firstArg of
+        Node _ (Expression.ListExpr []) ->
+            [ Rule.errorWithFix
+                { message = "Using " ++ qualifiedToString ( moduleName, name ) ++ " on an empty list will result in an empty list"
+                , details = [ "You can replace this call by an empty list." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            ]
 
-            _ ->
-                function checkInfo
-    )
+        _ ->
+            []
 
 
 
@@ -4248,7 +4245,8 @@ resultMapErrorCompositionChecks checkInfo =
 listConcatChecks : CheckInfo -> List (Error {})
 listConcatChecks checkInfo =
     firstThatReportsError
-        [ \() ->
+        [ \() -> reportEmptyListFirstArgument ( [ "List" ], "concat" ) checkInfo
+        , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
                     case list of
