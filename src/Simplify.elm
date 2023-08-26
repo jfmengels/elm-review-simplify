@@ -3849,42 +3849,57 @@ stringSliceChecks checkInfo =
                     Nothing
         , \() ->
             case secondArg checkInfo of
-                Just (Node _ (Expression.Integer 0)) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using String.slice with end index 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                        )
+                Just endArg ->
+                    firstThatReportsError
+                        [ \() ->
+                            case Evaluate.getInt checkInfo endArg of
+                                Just endInt ->
+                                    firstThatReportsError
+                                        [ \() ->
+                                            case endInt of
+                                                0 ->
+                                                    Just
+                                                        (Rule.errorWithFix
+                                                            { message = "Using String.slice with end index 0 will result in an empty string"
+                                                            , details = [ "You can replace this call by an empty string." ]
+                                                            }
+                                                            checkInfo.fnRange
+                                                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                                                        )
 
-                Just end ->
-                    Maybe.map2
-                        (\startInt endInt ->
-                            if
-                                (startInt >= endInt)
-                                    && -- have the same sign
-                                       ((startInt <= -1 && endInt <= -1)
-                                            || (startInt >= 0 && endInt >= 0)
-                                       )
-                            then
-                                Rule.errorWithFix
-                                    { message = "The call to String.slice will result in " ++ emptyStringAsString
-                                    , details = [ "You can replace this slice operation by " ++ emptyStringAsString ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                                    |> Just
+                                                _ ->
+                                                    Nothing
+                                        , \() ->
+                                            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                                                Just startInt ->
+                                                    if
+                                                        (startInt >= endInt)
+                                                            && -- have the same sign
+                                                               ((startInt <= -1 && endInt <= -1)
+                                                                    || (startInt >= 0 && endInt >= 0)
+                                                               )
+                                                    then
+                                                        Rule.errorWithFix
+                                                            { message = "The call to String.slice will result in " ++ emptyStringAsString
+                                                            , details = [ "You can replace this slice operation by " ++ emptyStringAsString ++ "." ]
+                                                            }
+                                                            checkInfo.fnRange
+                                                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                                                            |> Just
 
-                            else
-                                -- either is negative or startInt < endInt
-                                Nothing
-                        )
-                        (Evaluate.getInt checkInfo checkInfo.firstArg)
-                        (Evaluate.getInt checkInfo end)
-                        |> Maybe.withDefault
-                            (if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ end ] then
+                                                    else
+                                                        -- either is negative or startInt < endIntNon0
+                                                        Nothing
+
+                                                Nothing ->
+                                                    Nothing
+                                        ]
+                                        ()
+
+                                Nothing ->
+                                    Nothing
+                        , \() ->
+                            if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Rule.errorWithFix
                                     { message = "Using String.slice with equal start and end index will result in an empty string"
                                     , details = [ "You can replace this call by an empty string." ]
@@ -3893,9 +3908,10 @@ stringSliceChecks checkInfo =
                                     (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
                                     |> Just
 
-                             else
+                            else
                                 Nothing
-                            )
+                        ]
+                        ()
 
                 Nothing ->
                     Nothing
