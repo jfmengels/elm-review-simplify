@@ -7636,15 +7636,10 @@ callOnEmptyReturnsEmptyCheck :
 callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
     case collection.determineSize checkInfo.lookupTable collectionArg of
         Just (Exactly 0) ->
-            let
-                collectionEmptyAsString : String
-                collectionEmptyAsString =
-                    emptyAsString checkInfo collection
-            in
             Just
                 (Rule.errorWithFix
                     (operationDoesNotChangeSpecificLastArgErrorInfo
-                        { fn = ( collection.moduleName, fnName ), replacementDescription = collectionEmptyAsString }
+                        { fn = ( collection.moduleName, fnName ), replacementDescription = emptyAsString checkInfo collection }
                     )
                     checkInfo.fnRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
