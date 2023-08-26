@@ -5885,8 +5885,8 @@ a = String.repeat 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.repeat will result in an empty string"
-                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5901,8 +5901,8 @@ a = String.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.repeat will result in an empty string"
-                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5917,8 +5917,8 @@ a = String.repeat -5 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.repeat will result in an empty string"
-                            , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

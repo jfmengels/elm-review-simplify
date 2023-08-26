@@ -4130,18 +4130,16 @@ stringRepeatChecks checkInfo =
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end } ]
                             )
 
-                    else if intValue < 1 then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "String.repeat will result in an empty string"
-                                , details = [ "Using String.repeat with a number less than 1 will result in an empty string. You can replace this call by an empty string." ]
-                                }
-                                checkInfo.fnRange
-                                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                            )
-
                     else
-                        Nothing
+                        callWithNonPositiveIntCanBeReplacedByCheck
+                            { fn = ( [ "String" ], "repeat" )
+                            , int = intValue
+                            , intDescription = "length"
+                            , replacementDescription = "an empty string"
+                            , replacement = emptyStringAsString
+                            , lastArg = secondArg checkInfo
+                            }
+                            checkInfo
 
                 _ ->
                     Nothing
