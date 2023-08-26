@@ -3902,7 +3902,8 @@ stringLeftChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
-                        { int = length
+                        { fn = ( [ "String" ], "left" )
+                        , int = length
                         , intDescription = "length"
                         , replacementDescription = "an empty string"
                         , replacement = emptyStringAsString
@@ -3931,7 +3932,8 @@ stringLeftChecks checkInfo =
 
 
 callWithNonPositiveIntCanBeReplacedByCheck :
-    { int : number
+    { fn : ( ModuleName, String )
+    , int : number
     , intDescription : String
     , replacement : String
     , replacementDescription : String
@@ -3952,7 +3954,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using String.left with " ++ lengthDescription ++ " will result in " ++ config.replacementDescription
+                { message = "Using " ++ qualifiedToString config.fn ++ " with " ++ lengthDescription ++ " will result in " ++ config.replacementDescription
                 , details = [ "You can replace this call by " ++ config.replacementDescription ++ "." ]
                 }
                 checkInfo.fnRange
