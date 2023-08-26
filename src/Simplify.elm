@@ -3969,28 +3969,19 @@ stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case checkInfo.firstArg of
-                Node _ (Expression.Integer 0) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using String.right with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                        )
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just length ->
+                    callWithNonPositiveIntCanBeReplacedByCheck
+                        { fn = ( [ "String" ], "right" )
+                        , int = length
+                        , intDescription = "length"
+                        , replacementDescription = "an empty string"
+                        , replacement = emptyStringAsString
+                        , lastArg = secondArg checkInfo
+                        }
+                        checkInfo
 
-                Node _ (Expression.Negation (Node _ (Expression.Integer _))) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using String.right with negative length will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                        )
-
-                _ ->
+                Nothing ->
                     Nothing
         , \() ->
             case secondArg checkInfo of
