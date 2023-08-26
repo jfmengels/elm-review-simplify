@@ -8723,35 +8723,31 @@ recordAccessChecks :
     }
     -> Maybe (Error {})
 recordAccessChecks checkInfo =
-    firstThatReportsError
-        [ \() ->
-            let
-                maybeMatchingSetterValue : Maybe (Node Expression)
-                maybeMatchingSetterValue =
-                    findMap
-                        (\(Node _ ( Node _ setterField, setterValue )) ->
-                            if setterField == checkInfo.fieldName then
-                                Just setterValue
+    let
+        maybeMatchingSetterValue : Maybe (Node Expression)
+        maybeMatchingSetterValue =
+            findMap
+                (\(Node _ ( Node _ setterField, setterValue )) ->
+                    if setterField == checkInfo.fieldName then
+                        Just setterValue
 
-                            else
-                                Nothing
-                        )
-                        checkInfo.setters
-            in
-            case maybeMatchingSetterValue of
-                Just setter ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
-                            }
-                            checkInfo.nodeRange
-                            (replaceBySubExpressionFix checkInfo.nodeRange setter)
-                        )
+                    else
+                        Nothing
+                )
+                checkInfo.setters
+    in
+    case maybeMatchingSetterValue of
+        Just setter ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Field access can be simplified"
+                    , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                    }
+                    checkInfo.nodeRange
+                    (replaceBySubExpressionFix checkInfo.nodeRange setter)
+                )
 
-                Nothing ->
-                    Nothing
-        , \() ->
+        Nothing ->
             case checkInfo.maybeRecordNameRange of
                 Just recordNameRange ->
                     Just
@@ -8767,8 +8763,6 @@ recordAccessChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        ]
-        ()
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> Maybe (Error {})
