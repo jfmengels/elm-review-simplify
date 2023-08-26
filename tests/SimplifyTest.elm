@@ -12430,15 +12430,15 @@ a = List.take 0 x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Taking 0 items from a list will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.take with length 0 will result in an empty list"
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
 """
                         ]
-        , test "should replace List.take 0 by (always [])" <|
+        , test "should replace List.take 0 by always []" <|
             \() ->
                 """module A exposing (..)
 a = List.take 0
@@ -12446,8 +12446,8 @@ a = List.take 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Taking 0 items from a list will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.take with length 0 will result in an empty list"
+                            , details = [ "You can replace this call by an empty list." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

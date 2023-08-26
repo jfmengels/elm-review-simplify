@@ -6114,17 +6114,18 @@ listTakeChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just 0 ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Taking 0 items from a list will result in []"
-                            , details = [ "You can replace this call by []." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix "[]" checkInfo.parentRange maybeListArg checkInfo)
-                        )
+                Just length ->
+                    callWithNonPositiveIntCanBeReplacedByCheck
+                        { fn = ( [ "List" ], "take" )
+                        , int = length
+                        , intDescription = "length"
+                        , replacement = "[]"
+                        , replacementDescription = "an empty list"
+                        , lastArg = maybeListArg
+                        }
+                        checkInfo
 
-                _ ->
+                Nothing ->
                     Nothing
         , \() ->
             case maybeListArg of
