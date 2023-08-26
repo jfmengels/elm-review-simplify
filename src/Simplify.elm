@@ -2792,97 +2792,117 @@ divisionChecks checkInfo =
 
 plusplusChecks : OperatorCheckInfo -> Maybe (Error {})
 plusplusChecks checkInfo =
-    case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
-        ( Expression.Literal "", Expression.Literal _ ) ->
-            Just
-                (errorForAddingEmptyStrings
-                    { removed =
-                        { start = checkInfo.leftRange.start
-                        , end = checkInfo.rightRange.start
-                        }
-                    , error =
-                        { start = checkInfo.leftRange.start
-                        , end = checkInfo.operatorRange.end
-                        }
-                    }
-                )
-
-        ( Expression.Literal _, Expression.Literal "" ) ->
-            Just
-                (errorForAddingEmptyStrings
-                    { removed =
-                        { start = checkInfo.leftRange.end
-                        , end = checkInfo.rightRange.end
-                        }
-                    , error =
-                        { start = checkInfo.operatorRange.start
-                        , end = checkInfo.rightRange.end
-                        }
-                    }
-                )
-
-        ( Expression.ListExpr [], _ ) ->
-            Just
-                (errorForAddingEmptyLists
-                    { removed =
-                        { start = checkInfo.leftRange.start
-                        , end = checkInfo.rightRange.start
-                        }
-                    , error =
-                        { start = checkInfo.leftRange.start
-                        , end = checkInfo.operatorRange.end
-                        }
-                    }
-                )
-
-        ( _, Expression.ListExpr [] ) ->
-            Just
-                (errorForAddingEmptyLists
-                    { removed =
-                        { start = checkInfo.leftRange.end
-                        , end = checkInfo.rightRange.end
-                        }
-                    , error =
-                        { start = checkInfo.operatorRange.start
-                        , end = checkInfo.rightRange.end
-                        }
-                    }
-                )
-
-        ( Expression.ListExpr _, Expression.ListExpr _ ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Expression could be simplified to be a single List"
-                    , details = [ "Try moving all the elements into a single list." ]
-                    }
-                    checkInfo.parentRange
-                    [ Fix.replaceRangeBy
-                        { start = { row = checkInfo.leftRange.end.row, column = checkInfo.leftRange.end.column - 1 }
-                        , end = { row = checkInfo.rightRange.start.row, column = checkInfo.rightRange.start.column + 1 }
-                        }
-                        ","
-                    ]
-                )
-
-        ( Expression.ListExpr (listElement :: []), _ ) ->
-            if checkInfo.isOnTheRightSideOfPlusPlus then
-                Nothing
-
-            else
-                Just
-                    (Rule.errorWithFix
-                        { message = "Should use (::) instead of (++)"
-                        , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
-                        }
-                        checkInfo.parentRange
-                        (Fix.replaceRangeBy checkInfo.operatorRange
-                            "::"
-                            :: replaceBySubExpressionFix checkInfo.leftRange listElement
+    firstThatReportsError
+        [ \() ->
+            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
+                ( Expression.Literal "", Expression.Literal _ ) ->
+                    Just
+                        (errorForAddingEmptyStrings
+                            { removed =
+                                { start = checkInfo.leftRange.start
+                                , end = checkInfo.rightRange.start
+                                }
+                            , error =
+                                { start = checkInfo.leftRange.start
+                                , end = checkInfo.operatorRange.end
+                                }
+                            }
                         )
-                    )
 
-        _ ->
-            Nothing
+                ( Expression.Literal _, Expression.Literal "" ) ->
+                    Just
+                        (errorForAddingEmptyStrings
+                            { removed =
+                                { start = checkInfo.leftRange.end
+                                , end = checkInfo.rightRange.end
+                                }
+                            , error =
+                                { start = checkInfo.operatorRange.start
+                                , end = checkInfo.rightRange.end
+                                }
+                            }
+                        )
+
+                _ ->
+                    Nothing
+        , \() ->
+            case Node.value checkInfo.left of
+                Expression.ListExpr [] ->
+                    Just
+                        (errorForAddingEmptyLists
+                            { removed =
+                                { start = checkInfo.leftRange.start
+                                , end = checkInfo.rightRange.start
+                                }
+                            , error =
+                                { start = checkInfo.leftRange.start
+                                , end = checkInfo.operatorRange.end
+                                }
+                            }
+                        )
+
+                _ ->
+                    Nothing
+        , \() ->
+            case Node.value checkInfo.right of
+                Expression.ListExpr [] ->
+                    Just
+                        (errorForAddingEmptyLists
+                            { removed =
+                                { start = checkInfo.leftRange.end
+                                , end = checkInfo.rightRange.end
+                                }
+                            , error =
+                                { start = checkInfo.operatorRange.start
+                                , end = checkInfo.rightRange.end
+                                }
+                            }
+                        )
+
+                _ ->
+                    Nothing
+        , \() ->
+            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
+                ( Expression.ListExpr _, Expression.ListExpr _ ) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            }
+                            checkInfo.parentRange
+                            [ Fix.replaceRangeBy
+                                { start = { row = checkInfo.leftRange.end.row, column = checkInfo.leftRange.end.column - 1 }
+                                , end = { row = checkInfo.rightRange.start.row, column = checkInfo.rightRange.start.column + 1 }
+                                }
+                                ","
+                            ]
+                        )
+
+                _ ->
+                    Nothing
+        , \() ->
+            case Node.value checkInfo.left of
+                Expression.ListExpr (listElement :: []) ->
+                    if checkInfo.isOnTheRightSideOfPlusPlus then
+                        Nothing
+
+                    else
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Should use (::) instead of (++)"
+                                , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                                }
+                                checkInfo.parentRange
+                                (Fix.replaceRangeBy checkInfo.operatorRange
+                                    "::"
+                                    :: replaceBySubExpressionFix checkInfo.leftRange listElement
+                                )
+                            )
+
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 errorForAddingEmptyStrings : { error : Range, removed : Range } -> Error {}
