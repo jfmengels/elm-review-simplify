@@ -7633,9 +7633,9 @@ callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString ( collection.moduleName, fnName ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                    , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                    }
+                    (operationDoesNotChangeSpecificLastArgErrorInfo
+                        { fn = ( collection.moduleName, fnName ), replacementDescription = collectionEmptyAsString }
+                    )
                     checkInfo.fnRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
                 )
