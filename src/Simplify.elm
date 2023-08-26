@@ -2881,8 +2881,8 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case Node.value checkInfo.left of
-                Expression.ListExpr (listElement :: []) ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
+                Just leftListSingleton ->
                     if checkInfo.isOnTheRightSideOfPlusPlus then
                         Nothing
 
@@ -2895,11 +2895,11 @@ plusplusChecks checkInfo =
                                 checkInfo.parentRange
                                 (Fix.replaceRangeBy checkInfo.operatorRange
                                     "::"
-                                    :: replaceBySubExpressionFix checkInfo.leftRange listElement
+                                    :: replaceBySubExpressionFix checkInfo.leftRange leftListSingleton.element
                                 )
                             )
 
-                _ ->
+                Nothing ->
                     Nothing
         ]
         ()
