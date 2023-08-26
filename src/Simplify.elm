@@ -2826,8 +2826,8 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case Node.value checkInfo.left of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.left of
+                Just [] ->
                     Just
                         (errorForAddingEmptyLists
                             { removed =
@@ -2844,8 +2844,8 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case Node.value checkInfo.right of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.right of
+                Just [] ->
                     Just
                         (errorForAddingEmptyLists
                             { removed =
