@@ -2862,8 +2862,8 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
-                ( Expression.ListExpr _, Expression.ListExpr _ ) ->
+            case ( AstHelpers.getListLiteral checkInfo.left, AstHelpers.getListLiteral checkInfo.right ) of
+                ( Just _, Just _ ) ->
                     Just
                         (Rule.errorWithFix
                             { message = "Expression could be simplified to be a single List"
@@ -2878,7 +2878,10 @@ plusplusChecks checkInfo =
                             ]
                         )
 
-                _ ->
+                ( Nothing, _ ) ->
+                    Nothing
+
+                ( _, Nothing ) ->
                     Nothing
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
