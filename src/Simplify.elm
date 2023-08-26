@@ -2005,38 +2005,36 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- RECORD ACCESS --
         -------------------
         Expression.RecordAccess record field ->
-            case Node.value (AstHelpers.removeParens record) of
-                Expression.RecordExpr setters ->
-                    onlyMaybeError
-                        (recordAccessChecks
+            onlyMaybeError
+                (case Node.value (AstHelpers.removeParens record) of
+                    Expression.RecordExpr setters ->
+                        recordAccessChecks
                             { nodeRange = expressionRange
                             , maybeRecordNameRange = Nothing
                             , fieldName = Node.value field
                             , setters = setters
                             }
-                        )
 
-                Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                    onlyMaybeError
-                        (recordAccessChecks
+                    Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
+                        recordAccessChecks
                             { nodeRange = expressionRange
                             , maybeRecordNameRange = Just recordNameRange
                             , fieldName = Node.value field
                             , setters = setters
                             }
-                        )
 
-                Expression.LetExpression letIn ->
-                    onlyMaybeError (Just (injectRecordAccessIntoLetExpression (Node.range record) letIn.expression field))
+                    Expression.LetExpression letIn ->
+                        Just (injectRecordAccessIntoLetExpression (Node.range record) letIn.expression field)
 
-                Expression.IfBlock _ thenBranch elseBranch ->
-                    onlyMaybeError (distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field)
+                    Expression.IfBlock _ thenBranch elseBranch ->
+                        distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field
 
-                Expression.CaseExpression caseOf ->
-                    onlyMaybeError (distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second caseOf.cases) field)
+                    Expression.CaseExpression caseOf ->
+                        distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second caseOf.cases) field
 
-                _ ->
-                    onlyMaybeError Nothing
+                    _ ->
+                        Nothing
+                )
 
         --------
         -- IF --
