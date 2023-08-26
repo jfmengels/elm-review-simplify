@@ -1645,8 +1645,8 @@ expressionExitVisitor (Node expressionRange _) context =
         contextWithUpdatedLocalBindings
 
 
-errorsAndRangesToIgnore : Maybe (Error {}) -> RangeDict () -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
-errorsAndRangesToIgnore maybeError rangesToIgnore =
+maybeErrorAndRangesToIgnore : Maybe (Error {}) -> RangeDict () -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+maybeErrorAndRangesToIgnore maybeError rangesToIgnore =
     { error = maybeError
     , rangesToIgnore = rangesToIgnore
     , rightSidesOfPlusPlus = RangeDict.empty
@@ -1801,7 +1801,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         Just moduleName ->
                             case Dict.get ( moduleName, fnName ) functionCallChecks of
                                 Just checkFn ->
-                                    errorsAndRangesToIgnore
+                                    maybeErrorAndRangesToIgnore
                                         (checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
@@ -1863,7 +1863,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         Just moduleName ->
                             case Dict.get ( moduleName, fnName ) functionCallChecks of
                                 Just checks ->
-                                    errorsAndRangesToIgnore
+                                    maybeErrorAndRangesToIgnore
                                         (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
@@ -2058,7 +2058,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             in
             case ifChecks ifCheckInfo of
                 Just ifErrors ->
-                    errorsAndRangesToIgnore (Just ifErrors.errors) ifErrors.rangesToIgnore
+                    maybeErrorAndRangesToIgnore (Just ifErrors.errors) ifErrors.rangesToIgnore
 
                 Nothing ->
                     { error = Nothing
