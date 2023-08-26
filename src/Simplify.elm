@@ -3877,7 +3877,7 @@ stringSliceChecks checkInfo =
                             , details = [ "You can replace this call by an empty string." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
                         )
 
                 _ ->
