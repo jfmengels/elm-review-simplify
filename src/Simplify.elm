@@ -2797,24 +2797,26 @@ plusplusChecks checkInfo =
             case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
                 ( Expression.Literal "", Expression.Literal _ ) ->
                     Just
-                        (errorForAddingEmptyStrings
-                            { removed =
-                                { start = checkInfo.leftRange.start
-                                , end = checkInfo.rightRange.start
+                        (Rule.errorWithFix
+                            (concatenateEmptyErrorInfo { represents = "string" })
+                            checkInfo.operatorRange
+                            (keepOnlyFix
+                                { keep = checkInfo.rightRange
+                                , parentRange = checkInfo.parentRange
                                 }
-                            , error = checkInfo.operatorRange
-                            }
+                            )
                         )
 
                 ( Expression.Literal _, Expression.Literal "" ) ->
                     Just
-                        (errorForAddingEmptyStrings
-                            { removed =
-                                { start = checkInfo.leftRange.end
-                                , end = checkInfo.rightRange.end
+                        (Rule.errorWithFix
+                            (concatenateEmptyErrorInfo { represents = "string" })
+                            checkInfo.operatorRange
+                            (keepOnlyFix
+                                { keep = checkInfo.leftRange
+                                , parentRange = checkInfo.parentRange
                                 }
-                            , error = checkInfo.operatorRange
-                            }
+                            )
                         )
 
                 _ ->
@@ -2823,13 +2825,14 @@ plusplusChecks checkInfo =
             case AstHelpers.getListLiteral checkInfo.left of
                 Just [] ->
                     Just
-                        (errorForAddingEmptyLists
-                            { removed =
-                                { start = checkInfo.leftRange.start
-                                , end = checkInfo.rightRange.start
+                        (Rule.errorWithFix
+                            (concatenateEmptyErrorInfo { represents = "list" })
+                            checkInfo.operatorRange
+                            (keepOnlyFix
+                                { keep = checkInfo.rightRange
+                                , parentRange = checkInfo.parentRange
                                 }
-                            , error = checkInfo.operatorRange
-                            }
+                            )
                         )
 
                 _ ->
@@ -2838,13 +2841,14 @@ plusplusChecks checkInfo =
             case AstHelpers.getListLiteral checkInfo.right of
                 Just [] ->
                     Just
-                        (errorForAddingEmptyLists
-                            { removed =
-                                { start = checkInfo.leftRange.end
-                                , end = checkInfo.rightRange.end
+                        (Rule.errorWithFix
+                            (concatenateEmptyErrorInfo { represents = "list" })
+                            checkInfo.operatorRange
+                            (keepOnlyFix
+                                { keep = checkInfo.leftRange
+                                , parentRange = checkInfo.parentRange
                                 }
-                            , error = checkInfo.operatorRange
-                            }
+                            )
                         )
 
                 _ ->
@@ -2896,24 +2900,11 @@ plusplusChecks checkInfo =
         ()
 
 
-errorForAddingEmptyStrings : { error : Range, removed : Range } -> Error {}
-errorForAddingEmptyStrings ranges =
-    Rule.errorWithFix
-        { message = "Unnecessary concatenation with an empty string"
-        , details = [ "You should remove the concatenation with the empty string." ]
-        }
-        ranges.error
-        [ Fix.removeRange ranges.removed ]
-
-
-errorForAddingEmptyLists : { error : Range, removed : Range } -> Error {}
-errorForAddingEmptyLists ranges =
-    Rule.errorWithFix
-        { message = "Unnecessary concatenation with an empty list"
-        , details = [ "You should remove the concatenation with the empty list." ]
-        }
-        ranges.error
-        [ Fix.removeRange ranges.removed ]
+concatenateEmptyErrorInfo : { represents : String } -> { message : String, details : List String }
+concatenateEmptyErrorInfo config =
+    { message = "Unnecessary concatenation with an empty " ++ config.represents
+    , details = [ "You should remove the concatenation with the empty " ++ config.represents ++ "." ]
+    }
 
 
 consChecks : OperatorCheckInfo -> Maybe (Error {})
