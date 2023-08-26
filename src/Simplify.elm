@@ -7628,25 +7628,24 @@ callOnEmptyReturnsEmptyCheck :
     ->
         { a
             | moduleName : ModuleName
-            , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-            , emptyAsString : QualifyResources {} -> String
+            , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+            , emptyDescription : String
         }
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
-    case collection.determineSize checkInfo.lookupTable collectionArg of
-        Just (Exactly 0) ->
-            Just
-                (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo
-                        { fn = ( collection.moduleName, fnName ), replacementDescription = emptyAsString checkInfo collection }
-                    )
-                    checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+    if collection.isEmpty checkInfo.lookupTable collectionArg then
+        Just
+            (Rule.errorWithFix
+                (operationDoesNotChangeSpecificLastArgErrorInfo
+                    { fn = ( collection.moduleName, fnName ), replacementDescription = collection.emptyDescription }
                 )
+                checkInfo.fnRange
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+            )
 
-        _ ->
-            Nothing
+    else
+        Nothing
 
 
 collectionFilterChecks : Collection -> CheckInfo -> Maybe (Error {})
