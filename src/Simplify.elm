@@ -3897,39 +3897,47 @@ stringSliceChecks checkInfo =
 
 stringLeftChecks : CheckInfo -> Maybe (Error {})
 stringLeftChecks checkInfo =
-    case ( checkInfo.firstArg, secondArg checkInfo ) of
-        ( _, Just (Node _ (Expression.Literal "")) ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.left on an empty string will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                )
+    firstThatReportsError
+        [ \() ->
+            case checkInfo.firstArg of
+                Node _ (Expression.Integer 0) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.left with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                        )
 
-        ( Node _ (Expression.Integer 0), _ ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.left with length 0 will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                )
+                Node _ (Expression.Negation (Node _ (Expression.Integer _))) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.left with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                        )
 
-        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.left with negative length will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                )
+                _ ->
+                    Nothing
+        , \() ->
+            case secondArg checkInfo of
+                Just (Node _ (Expression.Literal "")) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.left on an empty string will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+                        )
 
-        _ ->
-            Nothing
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 stringRightChecks : CheckInfo -> Maybe (Error {})
