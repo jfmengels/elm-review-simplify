@@ -2871,8 +2871,8 @@ plusplusChecks checkInfo =
                             }
                             checkInfo.parentRange
                             [ Fix.replaceRangeBy
-                                { start = { row = checkInfo.leftRange.end.row, column = checkInfo.leftRange.end.column - 1 }
-                                , end = { row = checkInfo.rightRange.start.row, column = checkInfo.rightRange.start.column + 1 }
+                                { start = endWithoutBoundary checkInfo.leftRange
+                                , end = startWithoutBoundary checkInfo.rightRange
                                 }
                                 ","
                             ]
