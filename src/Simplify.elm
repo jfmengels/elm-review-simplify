@@ -7622,7 +7622,17 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                 )
 
 
-callOnEmptyReturnsEmptyCheck : String -> Node Expression -> Collection -> CheckInfo -> Maybe (Error {})
+callOnEmptyReturnsEmptyCheck :
+    String
+    -> Node Expression
+    ->
+        { a
+            | moduleName : ModuleName
+            , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+            , emptyAsString : QualifyResources {} -> String
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
     case collection.determineSize checkInfo.lookupTable collectionArg of
         Just (Exactly 0) ->
