@@ -1654,8 +1654,8 @@ errorsAndRangesToIgnore maybeError rangesToIgnore =
     }
 
 
-onlyErrors : Maybe (Error {}) -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
-onlyErrors maybeError =
+onlyMaybeError : Maybe (Error {}) -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+onlyMaybeError maybeError =
     { error = maybeError
     , rangesToIgnore = RangeDict.empty
     , rightSidesOfPlusPlus = RangeDict.empty
@@ -1719,7 +1719,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- APPLICATION --
         -----------------
         Expression.Application (applied :: firstArg :: argsAfterFirst) ->
-            onlyErrors
+            onlyMaybeError
                 (case applied of
                     Node fnRange (Expression.FunctionOrValue _ fnName) ->
                         case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
@@ -1775,7 +1775,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication "<|" _ pipedInto lastArg ->
             case pipedInto of
                 Node fnRange (Expression.FunctionOrValue _ fnName) ->
-                    onlyErrors
+                    onlyMaybeError
                         (case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
                                 case Dict.get ( moduleName, fnName ) functionCallChecks of
@@ -1814,13 +1814,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (RangeDict.singleton applicationRange ())
 
                                 Nothing ->
-                                    onlyErrors Nothing
+                                    onlyMaybeError Nothing
 
                         Nothing ->
-                            onlyErrors Nothing
+                            onlyMaybeError Nothing
 
                 pipedIntoOther ->
-                    onlyErrors
+                    onlyMaybeError
                         (pipelineChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
@@ -1837,7 +1837,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication "|>" _ lastArg pipedInto ->
             case pipedInto of
                 Node fnRange (Expression.FunctionOrValue _ fnName) ->
-                    onlyErrors
+                    onlyMaybeError
                         (case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
                                 case Dict.get ( moduleName, fnName ) functionCallChecks of
@@ -1876,13 +1876,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (RangeDict.singleton applicationRange ())
 
                                 Nothing ->
-                                    onlyErrors Nothing
+                                    onlyMaybeError Nothing
 
                         Nothing ->
-                            onlyErrors Nothing
+                            onlyMaybeError Nothing
 
                 pipedIntoOther ->
-                    onlyErrors
+                    onlyMaybeError
                         (pipelineChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
@@ -1906,7 +1906,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         endLater ->
                             ( endLater, expressionRange )
             in
-            onlyErrors
+            onlyMaybeError
                 (firstThatReportsError compositionChecks
                     (toCompositionCheckInfo
                         { direction = LeftToRight
@@ -1930,7 +1930,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         endLater ->
                             ( endLater, expressionRange )
             in
-            onlyErrors
+            onlyMaybeError
                 (firstThatReportsError compositionChecks
                     (toCompositionCheckInfo
                         { direction = RightToLeft
@@ -1992,13 +1992,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     }
 
                 Nothing ->
-                    onlyErrors Nothing
+                    onlyMaybeError Nothing
 
         --------------
         -- NEGATION --
         --------------
         Expression.Negation negatedExpression ->
-            onlyErrors
+            onlyMaybeError
                 (negationChecks { parentRange = expressionRange, negatedExpression = negatedExpression })
 
         -------------------
@@ -2007,7 +2007,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
-                    onlyErrors
+                    onlyMaybeError
                         (recordAccessChecks
                             { nodeRange = expressionRange
                             , maybeRecordNameRange = Nothing
@@ -2017,7 +2017,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         )
 
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                    onlyErrors
+                    onlyMaybeError
                         (recordAccessChecks
                             { nodeRange = expressionRange
                             , maybeRecordNameRange = Just recordNameRange
@@ -2027,16 +2027,16 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         )
 
                 Expression.LetExpression letIn ->
-                    onlyErrors (Just (injectRecordAccessIntoLetExpression (Node.range record) letIn.expression field))
+                    onlyMaybeError (Just (injectRecordAccessIntoLetExpression (Node.range record) letIn.expression field))
 
                 Expression.IfBlock _ thenBranch elseBranch ->
-                    onlyErrors (distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field)
+                    onlyMaybeError (distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field)
 
                 Expression.CaseExpression caseOf ->
-                    onlyErrors (distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second caseOf.cases) field)
+                    onlyMaybeError (distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second caseOf.cases) field)
 
                 _ ->
-                    onlyErrors Nothing
+                    onlyMaybeError Nothing
 
         --------
         -- IF --
@@ -2077,7 +2077,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- CASE OF --
         -------------
         Expression.CaseExpression caseBlock ->
-            onlyErrors
+            onlyMaybeError
                 (firstThatReportsError caseOfChecks
                     { lookupTable = context.lookupTable
                     , extractSourceCode = context.extractSourceCode
@@ -2092,73 +2092,73 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- LET IN --
         ------------
         Expression.LetExpression caseBlock ->
-            onlyErrors (letInChecks caseBlock)
+            onlyMaybeError (letInChecks caseBlock)
 
         -------------------
         -- RECORD UPDATE --
         -------------------
         Expression.RecordUpdateExpression variable fields ->
-            onlyErrors (removeRecordFields expressionRange variable fields)
+            onlyMaybeError (removeRecordFields expressionRange variable fields)
 
         --------------------
         -- NOT SIMPLIFIED --
         --------------------
         Expression.UnitExpr ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.CharLiteral _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.Integer _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.Hex _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.Floatable _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.Literal _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.GLSLExpression _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.PrefixOperator _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.RecordAccessFunction _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.FunctionOrValue _ _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.ParenthesizedExpression _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.TupledExpression _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.ListExpr _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.RecordExpr _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.LambdaExpression _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         ----------------------
         -- IMPOSSIBLE CASES --
         ----------------------
         Expression.Operator _ ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.Application [] ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
         Expression.Application (_ :: []) ->
-            onlyErrors Nothing
+            onlyMaybeError Nothing
 
 
 type alias CheckInfo =
