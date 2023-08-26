@@ -4120,26 +4120,27 @@ stringRepeatChecks checkInfo =
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just intValue ->
-                    if intValue == 1 then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "String.repeat 1 won't do anything"
-                                , details = [ "Using String.repeat with 1 will result in the second argument." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end } ]
-                            )
+                    case intValue of
+                        1 ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "String.repeat 1 won't do anything"
+                                    , details = [ "Using String.repeat with 1 will result in the second argument." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end } ]
+                                )
 
-                    else
-                        callWithNonPositiveIntCanBeReplacedByCheck
-                            { fn = ( [ "String" ], "repeat" )
-                            , int = intValue
-                            , intDescription = "length"
-                            , replacementDescription = "an empty string"
-                            , replacement = emptyStringAsString
-                            , lastArg = secondArg checkInfo
-                            }
-                            checkInfo
+                        _ ->
+                            callWithNonPositiveIntCanBeReplacedByCheck
+                                { fn = ( [ "String" ], "repeat" )
+                                , int = intValue
+                                , intDescription = "length"
+                                , replacementDescription = "an empty string"
+                                , replacement = emptyStringAsString
+                                , lastArg = secondArg checkInfo
+                                }
+                                checkInfo
 
                 _ ->
                     Nothing
