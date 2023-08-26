@@ -3901,27 +3901,14 @@ stringLeftChecks checkInfo =
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
-                    if length <= 0 then
-                        let
-                            lengthDescription : String
-                            lengthDescription =
-                                if length <= -1 then
-                                    "negative length"
-
-                                else
-                                    "length 0"
-                        in
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Using String.left with " ++ lengthDescription ++ " will result in an empty string"
-                                , details = [ "You can replace this call by an empty string." ]
-                                }
-                                checkInfo.fnRange
-                                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                            )
-
-                    else
-                        Nothing
+                    callWithNonPositiveIntCanBeReplacedByCheck
+                        { int = length
+                        , intDescription = "length"
+                        , replacementDescription = "an empty string"
+                        , replacement = emptyStringAsString
+                        , lastArg = secondArg checkInfo
+                        }
+                        checkInfo
 
                 Nothing ->
                     Nothing
@@ -3941,6 +3928,39 @@ stringLeftChecks checkInfo =
                     Nothing
         ]
         ()
+
+
+callWithNonPositiveIntCanBeReplacedByCheck :
+    { int : number
+    , intDescription : String
+    , replacement : String
+    , replacementDescription : String
+    , lastArg : Maybe a
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
+    if config.int <= 0 then
+        let
+            lengthDescription : String
+            lengthDescription =
+                if config.int < 0 then
+                    "negative " ++ config.intDescription
+
+                else
+                    config.intDescription ++ " 0"
+        in
+        Just
+            (Rule.errorWithFix
+                { message = "Using String.left with " ++ lengthDescription ++ " will result in " ++ config.replacementDescription
+                , details = [ "You can replace this call by " ++ config.replacementDescription ++ "." ]
+                }
+                checkInfo.fnRange
+                (replaceByEmptyFix config.replacement checkInfo.parentRange config.lastArg checkInfo)
+            )
+
+    else
+        Nothing
 
 
 stringRightChecks : CheckInfo -> Maybe (Error {})
