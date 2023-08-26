@@ -8722,19 +8722,19 @@ recordAccessChecks :
     , setters : List (Node Expression.RecordSetter)
     }
     -> Maybe (Error {})
-recordAccessChecks { nodeRange, maybeRecordNameRange, fieldName, setters } =
+recordAccessChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case
                 findMap
                     (\(Node _ ( Node _ setterField, setterValue )) ->
-                        if setterField == fieldName then
+                        if setterField == checkInfo.fieldName then
                             Just setterValue
 
                         else
                             Nothing
                     )
-                    setters
+                    checkInfo.setters
             of
                 Just setter ->
                     Just
@@ -8742,23 +8742,23 @@ recordAccessChecks { nodeRange, maybeRecordNameRange, fieldName, setters } =
                             { message = "Field access can be simplified"
                             , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                             }
-                            nodeRange
-                            (replaceBySubExpressionFix nodeRange setter)
+                            checkInfo.nodeRange
+                            (replaceBySubExpressionFix checkInfo.nodeRange setter)
                         )
 
                 Nothing ->
                     Nothing
         , \() ->
-            case maybeRecordNameRange of
+            case checkInfo.maybeRecordNameRange of
                 Just recordNameRange ->
                     Just
                         (Rule.errorWithFix
                             { message = "Field access can be simplified"
                             , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
                             }
-                            nodeRange
-                            [ Fix.replaceRangeBy { start = nodeRange.start, end = recordNameRange.start } ""
-                            , Fix.replaceRangeBy { start = recordNameRange.end, end = nodeRange.end } ("." ++ fieldName)
+                            checkInfo.nodeRange
+                            [ Fix.replaceRangeBy { start = checkInfo.nodeRange.start, end = recordNameRange.start } ""
+                            , Fix.replaceRangeBy { start = recordNameRange.end, end = checkInfo.nodeRange.end } ("." ++ checkInfo.fieldName)
                             ]
                         )
 
