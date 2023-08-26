@@ -1743,7 +1743,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
 
                     Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))) ->
                         Just
-                            (appliedLambdaChecks
+                            (appliedLambdaError
                                 { nodeRange = expressionRange
                                 , lambdaRange = lambdaRange
                                 , lambda = lambda
@@ -7491,7 +7491,7 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
 
                 _ ->
                     Just
-                        (appliedLambdaChecks
+                        (appliedLambdaError
                             { nodeRange = checkInfo.nodeRange
                             , lambdaRange = lambdaRange
                             , lambda = lambda
@@ -8616,8 +8616,8 @@ fullyAppliedPrefixOperatorError checkInfo =
 -- APPLIED LAMBDA
 
 
-appliedLambdaChecks : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> Error {}
-appliedLambdaChecks checkInfo =
+appliedLambdaError : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> Error {}
+appliedLambdaError checkInfo =
     case checkInfo.lambda.args of
         (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
             Rule.errorWithFix
