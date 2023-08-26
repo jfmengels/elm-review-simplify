@@ -5453,7 +5453,7 @@ a = "a" ++ ""
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty string"
                             , details = [ "You should remove the concatenation with the empty string." ]
-                            , under = "++ \"\""
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = "a"
@@ -5476,7 +5476,7 @@ a = "" ++ "a"
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty string"
                             , details = [ "You should remove the concatenation with the empty string." ]
-                            , under = "\"\" ++"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = "a"
@@ -5492,7 +5492,7 @@ a = [ 1 ] ++ [ 2, 3 ]
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
-                            , under = "[ 1 ] ++ [ 2, 3 ]"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ 1 , 2, 3 ]
@@ -5508,7 +5508,7 @@ a = [ a, 1 ] ++ [ b, 2 ]
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
-                            , under = "[ a, 1 ] ++ [ b, 2 ]"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ a, 1 , b, 2 ]
@@ -5524,7 +5524,7 @@ a = [] ++ something
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty list"
                             , details = [ "You should remove the concatenation with the empty list." ]
-                            , under = "[] ++"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = something
@@ -5540,7 +5540,7 @@ a = something ++ []
                         [ Review.Test.error
                             { message = "Unnecessary concatenation with an empty list"
                             , details = [ "You should remove the concatenation with the empty list." ]
-                            , under = "++ []"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = something
@@ -5556,7 +5556,7 @@ a = [ b ] ++ c
                         [ Review.Test.error
                             { message = "Should use (::) instead of (++)"
                             , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
-                            , under = "[ b ] ++ c"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = b :: c
@@ -5572,7 +5572,7 @@ a = [ f n ] ++ c
                         [ Review.Test.error
                             { message = "Should use (::) instead of (++)"
                             , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
-                            , under = "[ f n ] ++ c"
+                            , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f n) :: c

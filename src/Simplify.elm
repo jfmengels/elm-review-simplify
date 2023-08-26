@@ -2802,10 +2802,7 @@ plusplusChecks checkInfo =
                                 { start = checkInfo.leftRange.start
                                 , end = checkInfo.rightRange.start
                                 }
-                            , error =
-                                { start = checkInfo.leftRange.start
-                                , end = checkInfo.operatorRange.end
-                                }
+                            , error = checkInfo.operatorRange
                             }
                         )
 
@@ -2816,10 +2813,7 @@ plusplusChecks checkInfo =
                                 { start = checkInfo.leftRange.end
                                 , end = checkInfo.rightRange.end
                                 }
-                            , error =
-                                { start = checkInfo.operatorRange.start
-                                , end = checkInfo.rightRange.end
-                                }
+                            , error = checkInfo.operatorRange
                             }
                         )
 
@@ -2834,10 +2828,7 @@ plusplusChecks checkInfo =
                                 { start = checkInfo.leftRange.start
                                 , end = checkInfo.rightRange.start
                                 }
-                            , error =
-                                { start = checkInfo.leftRange.start
-                                , end = checkInfo.operatorRange.end
-                                }
+                            , error = checkInfo.operatorRange
                             }
                         )
 
@@ -2852,10 +2843,7 @@ plusplusChecks checkInfo =
                                 { start = checkInfo.leftRange.end
                                 , end = checkInfo.rightRange.end
                                 }
-                            , error =
-                                { start = checkInfo.operatorRange.start
-                                , end = checkInfo.rightRange.end
-                                }
+                            , error = checkInfo.operatorRange
                             }
                         )
 
@@ -2869,7 +2857,7 @@ plusplusChecks checkInfo =
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
                             }
-                            checkInfo.parentRange
+                            checkInfo.operatorRange
                             [ Fix.replaceRangeBy
                                 { start = endWithoutBoundary checkInfo.leftRange
                                 , end = startWithoutBoundary checkInfo.rightRange
@@ -2895,7 +2883,7 @@ plusplusChecks checkInfo =
                                 { message = "Should use (::) instead of (++)"
                                 , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
                                 }
-                                checkInfo.parentRange
+                                checkInfo.operatorRange
                                 (Fix.replaceRangeBy checkInfo.operatorRange
                                     "::"
                                     :: replaceBySubExpressionFix checkInfo.leftRange leftListSingleton.element
