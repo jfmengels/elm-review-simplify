@@ -7024,16 +7024,7 @@ collectionMapChecks collection checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    if collection.isEmpty checkInfo.lookupTable collectionArg then
-                        Just
-                            (Rule.errorWithFix
-                                (operationDoesNotChangeSpecificLastArgErrorInfo { fn = ( collection.moduleName, "map" ), replacementDescription = collection.emptyDescription })
-                                checkInfo.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
-                            )
-
-                    else
-                        Nothing
+                    callOnEmptyReturnsEmptyCheck "map" collectionArg collection checkInfo
 
                 Nothing ->
                     Nothing
