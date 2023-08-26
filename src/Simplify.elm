@@ -1427,11 +1427,11 @@ expressionVisitor node config context =
                                 RangeDict.remove expressionRange withNewBranchLocalBindings
                         }
 
-            expressionChecked : { errors : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+            expressionChecked : { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
             expressionChecked =
                 expressionVisitorHelp node config contextWithInferredConstantsAndLocalBindings
         in
-        ( expressionChecked.errors |> maybeToList
+        ( expressionChecked.error |> maybeToList
         , { contextWithInferredConstantsAndLocalBindings
             | rangesToIgnore = RangeDict.union expressionChecked.rangesToIgnore context.rangesToIgnore
             , rightSidesOfPlusPlus = RangeDict.union expressionChecked.rightSidesOfPlusPlus context.rightSidesOfPlusPlus
@@ -1645,18 +1645,18 @@ expressionExitVisitor (Node expressionRange _) context =
         contextWithUpdatedLocalBindings
 
 
-errorsAndRangesToIgnore : Maybe (Error {}) -> RangeDict () -> { errors : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+errorsAndRangesToIgnore : Maybe (Error {}) -> RangeDict () -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 errorsAndRangesToIgnore maybeError rangesToIgnore =
-    { errors = maybeError
+    { error = maybeError
     , rangesToIgnore = rangesToIgnore
     , rightSidesOfPlusPlus = RangeDict.empty
     , inferredConstants = []
     }
 
 
-onlyErrors : Maybe (Error {}) -> { errors : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+onlyErrors : Maybe (Error {}) -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 onlyErrors maybeError =
-    { errors = maybeError
+    { error = maybeError
     , rangesToIgnore = RangeDict.empty
     , rightSidesOfPlusPlus = RangeDict.empty
     , inferredConstants = []
@@ -1668,7 +1668,7 @@ firstThatReportsError remainingChecks data =
     findMap (\checkFn -> checkFn data) remainingChecks
 
 
-expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { errors : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp (Node expressionRange expression) config context =
     let
         toCheckInfo :
@@ -1947,7 +1947,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication operator _ left right ->
             case Dict.get operator operatorChecks of
                 Just checkFn ->
-                    { errors =
+                    { error =
                         let
                             leftRange : Range
                             leftRange =
@@ -2061,7 +2061,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     errorsAndRangesToIgnore (Just ifErrors.errors) ifErrors.rangesToIgnore
 
                 Nothing ->
-                    { errors = Nothing
+                    { error = Nothing
                     , rangesToIgnore = RangeDict.empty
                     , rightSidesOfPlusPlus = RangeDict.empty
                     , inferredConstants =
