@@ -2007,10 +2007,24 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.RecordAccess record field ->
             case Node.value (AstHelpers.removeParens record) of
                 Expression.RecordExpr setters ->
-                    onlyErrors (recordAccessChecks expressionRange Nothing (Node.value field) setters)
+                    onlyErrors
+                        (recordAccessChecks
+                            { nodeRange = expressionRange
+                            , maybeRecordNameRange = Nothing
+                            , fieldName = Node.value field
+                            , setters = setters
+                            }
+                        )
 
                 Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                    onlyErrors (recordAccessChecks expressionRange (Just recordNameRange) (Node.value field) setters)
+                    onlyErrors
+                        (recordAccessChecks
+                            { nodeRange = expressionRange
+                            , maybeRecordNameRange = Just recordNameRange
+                            , fieldName = Node.value field
+                            , setters = setters
+                            }
+                        )
 
                 Expression.LetExpression letIn ->
                     onlyErrors (Just (injectRecordAccessIntoLetExpression (Node.range record) letIn.expression field))
@@ -8701,8 +8715,14 @@ letKeyWordRange range =
 -- RECORD ACCESS
 
 
-recordAccessChecks : Range -> Maybe Range -> String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
-recordAccessChecks nodeRange maybeRecordNameRange fieldName setters =
+recordAccessChecks :
+    { nodeRange : Range
+    , maybeRecordNameRange : Maybe Range
+    , fieldName : String
+    , setters : List (Node Expression.RecordSetter)
+    }
+    -> Maybe (Error {})
+recordAccessChecks { nodeRange, maybeRecordNameRange, fieldName, setters } =
     firstThatReportsError
         [ \() ->
             case
