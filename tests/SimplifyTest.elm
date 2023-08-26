@@ -12454,6 +12454,22 @@ a = List.take 0
 a = always []
 """
                         ]
+        , test "should replace List.take -literal by always []" <|
+            \() ->
+                """module A exposing (..)
+a = List.take -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.take with negative length will result in an empty list"
+                            , details = [ "You can replace this call by an empty list." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always []
+"""
+                        ]
         ]
 
 
