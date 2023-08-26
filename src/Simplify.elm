@@ -3965,39 +3965,47 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
 
 stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks checkInfo =
-    case ( checkInfo.firstArg, secondArg checkInfo ) of
-        ( _, Just (Node _ (Expression.Literal "")) ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.right on an empty string will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                )
+    firstThatReportsError
+        [ \() ->
+            case checkInfo.firstArg of
+                Node _ (Expression.Integer 0) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.right with length 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                        )
 
-        ( Node _ (Expression.Integer 0), _ ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.right with length 0 will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                )
+                Node _ (Expression.Negation (Node _ (Expression.Integer _))) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.right with negative length will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                        )
 
-        ( Node _ (Expression.Negation (Node _ (Expression.Integer _))), _ ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.right with negative length will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                )
+                _ ->
+                    Nothing
+        , \() ->
+            case secondArg checkInfo of
+                Just (Node _ (Expression.Literal "")) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.right on an empty string will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+                        )
 
-        _ ->
-            Nothing
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 reverseReverseCompositionErrorMessage : { message : String, details : List String }
