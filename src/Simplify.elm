@@ -1754,7 +1754,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         case argsAfterFirst of
                             right :: [] ->
                                 Just
-                                    (fullyAppliedPrefixOperatorChecks
+                                    (fullyAppliedPrefixOperatorError
                                         { operator = operator
                                         , operatorRange = operatorRange
                                         , left = firstArg
@@ -8594,14 +8594,14 @@ negationChecks checkInfo =
 -- FULLY APPLIED PREFIX OPERATORS
 
 
-fullyAppliedPrefixOperatorChecks :
+fullyAppliedPrefixOperatorError :
     { operator : String
     , operatorRange : Range
     , left : Node Expression
     , right : Node Expression
     }
     -> Error {}
-fullyAppliedPrefixOperatorChecks checkInfo =
+fullyAppliedPrefixOperatorError checkInfo =
     Rule.errorWithFix
         { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
         , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
