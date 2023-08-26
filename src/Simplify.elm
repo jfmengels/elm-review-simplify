@@ -4120,18 +4120,22 @@ stringRepeatChecks checkInfo =
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just intValue ->
-                    case intValue of
-                        1 ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "String.repeat 1 won't do anything"
-                                    , details = [ "Using String.repeat with 1 will result in the second argument." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end } ]
-                                )
+                    firstThatReportsError
+                        [ \() ->
+                            case intValue of
+                                1 ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "String.repeat 1 won't do anything"
+                                            , details = [ "Using String.repeat with 1 will result in the second argument." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end } ]
+                                        )
 
-                        _ ->
+                                _ ->
+                                    Nothing
+                        , \() ->
                             callWithNonPositiveIntCanBeReplacedByCheck
                                 { fn = ( [ "String" ], "repeat" )
                                 , int = intValue
@@ -4141,6 +4145,8 @@ stringRepeatChecks checkInfo =
                                 , lastArg = secondArg checkInfo
                                 }
                                 checkInfo
+                        ]
+                        ()
 
                 _ ->
                     Nothing
