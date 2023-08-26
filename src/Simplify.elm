@@ -7615,13 +7615,31 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                 )
 
 
-collectionFilterChecks : Collection -> CheckInfo -> Maybe (Error {})
-collectionFilterChecks collection checkInfo =
+callOnEmptyReturnsEmptyCheck : String -> Node Expression -> Collection -> CheckInfo -> Maybe (Error {})
+callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
     let
         collectionEmptyAsString : String
         collectionEmptyAsString =
             emptyAsString checkInfo collection
+    in
+    case collection.determineSize checkInfo.lookupTable collectionArg of
+        Just (Exactly 0) ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Using " ++ qualifiedToString ( collection.moduleName, fnName ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                    , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+                )
 
+        _ ->
+            Nothing
+
+
+collectionFilterChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionFilterChecks collection checkInfo =
+    let
         maybeCollectionArg : Maybe (Node Expression)
         maybeCollectionArg =
             secondArg checkInfo
@@ -7630,19 +7648,7 @@ collectionFilterChecks collection checkInfo =
         [ \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    case collection.determineSize checkInfo.lookupTable collectionArg of
-                        Just (Exactly 0) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                                    , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
-                                )
-
-                        _ ->
-                            Nothing
+                    callOnEmptyReturnsEmptyCheck "filter" collectionArg collection checkInfo
 
                 Nothing ->
                     Nothing
@@ -7661,6 +7667,11 @@ collectionFilterChecks collection checkInfo =
                         )
 
                 Determined False ->
+                    let
+                        collectionEmptyAsString : String
+                        collectionEmptyAsString =
+                            emptyAsString checkInfo collection
+                    in
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ collectionEmptyAsString
@@ -7680,24 +7691,7 @@ collectionRemoveChecks : Collection -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            case collection.determineSize checkInfo.lookupTable collectionArg of
-                Just (Exactly 0) ->
-                    let
-                        collectionEmptyAsString : String
-                        collectionEmptyAsString =
-                            emptyAsString checkInfo collection
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( collection.moduleName, "remove" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                            , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsEmptyCheck "remove" collectionArg collection checkInfo
 
         Nothing ->
             Nothing
@@ -7716,35 +7710,11 @@ collectionIntersectChecks collection checkInfo =
     in
     firstThatReportsError
         [ \() ->
-            case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
-                Just (Exactly 0) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( collection.moduleName, "intersect" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                            , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsEmptyCheck "intersect" checkInfo.firstArg collection checkInfo
         , \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    case collection.determineSize checkInfo.lookupTable collectionArg of
-                        Just (Exactly 0) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( collection.moduleName, "intersect" ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                                    , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
-                                )
-
-                        _ ->
-                            Nothing
+                    callOnEmptyReturnsEmptyCheck "intersect" collectionArg collection checkInfo
 
                 Nothing ->
                     Nothing
