@@ -3695,9 +3695,9 @@ callWithEmptyListArgReturnsEmptyListCheck config checkInfo =
         Just [] ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString config.fn ++ " on an empty list will result in an empty list"
-                    , details = [ "You can replace this call by an empty list." ]
-                    }
+                    (operationDoesNotChangeSpecificLastArgErrorInfo
+                        { fn = config.fn, replacementDescription = "an empty list" }
+                    )
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
                 )
@@ -3830,9 +3830,9 @@ stringReverseChecks checkInfo =
         Expression.Literal "" ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using String.reverse on an empty string will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
+                    (operationDoesNotChangeSpecificLastArgErrorInfo
+                        { fn = ( [ "String" ], "reverse" ), replacementDescription = "an empty string" }
+                    )
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
                 )
@@ -3852,9 +3852,9 @@ stringSliceChecks checkInfo =
                 Just (Node _ (Expression.Literal "")) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using String.slice on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
+                            (operationDoesNotChangeSpecificLastArgErrorInfo
+                                { fn = ( [ "String" ], "slice" ), replacementDescription = "an empty string" }
+                            )
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
                         )
@@ -3956,9 +3956,9 @@ stringLeftChecks checkInfo =
                 Just (Node _ (Expression.Literal "")) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using String.left on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
+                            (operationDoesNotChangeSpecificLastArgErrorInfo
+                                { fn = ( [ "String" ], "left" ), replacementDescription = "an empty string" }
+                            )
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
                         )
@@ -4026,9 +4026,9 @@ stringRightChecks checkInfo =
                 Just (Node _ (Expression.Literal "")) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using String.right on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
+                            (operationDoesNotChangeSpecificLastArgErrorInfo
+                                { fn = ( [ "String" ], "right" ), replacementDescription = "an empty string" }
+                            )
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
                         )
@@ -7020,10 +7020,7 @@ collectionMapChecks collection checkInfo =
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                -- TODO rework error info
-                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "map" ) ++ " on " ++ collection.emptyDescription ++ " will result in " ++ collection.emptyDescription
-                                , details = [ "You can replace this call by " ++ collection.emptyDescription ++ "." ]
-                                }
+                                (operationDoesNotChangeSpecificLastArgErrorInfo { fn = ( collection.moduleName, "map" ), replacementDescription = collection.emptyDescription })
                                 checkInfo.fnRange
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
                             )
@@ -7035,6 +7032,13 @@ collectionMapChecks collection checkInfo =
                     Nothing
         ]
         ()
+
+
+operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), replacementDescription : String } -> { message : String, details : List String }
+operationDoesNotChangeSpecificLastArgErrorInfo config =
+    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ config.replacementDescription ++ " will result in " ++ config.replacementDescription
+    , details = [ "You can replace this call by " ++ config.replacementDescription ++ "." ]
+    }
 
 
 {-| TODO merge with identityError
@@ -7199,9 +7203,9 @@ maybeAndThenChecks checkInfo =
                             Determined _ ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on " ++ maybeEmptyAsString ++ " will result in " ++ maybeEmptyAsString
-                                        , details = [ "You can replace this call by " ++ maybeEmptyAsString ++ "." ]
-                                        }
+                                        (operationDoesNotChangeSpecificLastArgErrorInfo
+                                            { fn = ( maybeCollection.moduleName, "andThen" ), replacementDescription = maybeEmptyAsString }
+                                        )
                                         checkInfo.fnRange
                                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
                                     )
