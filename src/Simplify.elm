@@ -8703,28 +8703,32 @@ letKeyWordRange range =
 
 recordAccessChecks : Range -> Maybe Range -> String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
 recordAccessChecks nodeRange maybeRecordNameRange fieldName setters =
-    case
-        findMap
-            (\(Node _ ( Node _ setterField, setterValue )) ->
-                if setterField == fieldName then
-                    Just setterValue
+    firstThatReportsError
+        [ \() ->
+            case
+                findMap
+                    (\(Node _ ( Node _ setterField, setterValue )) ->
+                        if setterField == fieldName then
+                            Just setterValue
 
-                else
+                        else
+                            Nothing
+                    )
+                    setters
+            of
+                Just setter ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Field access can be simplified"
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            }
+                            nodeRange
+                            (replaceBySubExpressionFix nodeRange setter)
+                        )
+
+                Nothing ->
                     Nothing
-            )
-            setters
-    of
-        Just setter ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Field access can be simplified"
-                    , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
-                    }
-                    nodeRange
-                    (replaceBySubExpressionFix nodeRange setter)
-                )
-
-        Nothing ->
+        , \() ->
             case maybeRecordNameRange of
                 Just recordNameRange ->
                     Just
@@ -8740,6 +8744,8 @@ recordAccessChecks nodeRange maybeRecordNameRange fieldName setters =
 
                 Nothing ->
                     Nothing
+        ]
+        ()
 
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> Maybe (Error {})
