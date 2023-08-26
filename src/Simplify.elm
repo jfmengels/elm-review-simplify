@@ -3899,8 +3899,8 @@ stringLeftChecks : CheckInfo -> Maybe (Error {})
 stringLeftChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case checkInfo.firstArg of
-                Node _ (Expression.Integer 0) ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just 0 ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using String.left with length 0 will result in an empty string"
@@ -3910,17 +3910,21 @@ stringLeftChecks checkInfo =
                             (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
                         )
 
-                Node _ (Expression.Negation (Node _ (Expression.Integer _))) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using String.left with negative length will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                        )
+                Just lengthNon0 ->
+                    if lengthNon0 <= -1 then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Using String.left with negative length will result in an empty string"
+                                , details = [ "You can replace this call by an empty string." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                            )
 
-                _ ->
+                    else
+                        Nothing
+
+                Nothing ->
                     Nothing
         , \() ->
             case secondArg checkInfo of
