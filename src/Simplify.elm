@@ -8702,7 +8702,7 @@ letKeyWordRange range =
 
 
 recordAccessChecks : Range -> Maybe Range -> String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
-recordAccessChecks nodeRange recordNameRange fieldName setters =
+recordAccessChecks nodeRange maybeRecordNameRange fieldName setters =
     case
         findMap
             (\(Node _ ( Node _ setterField, setterValue )) ->
@@ -8725,16 +8725,16 @@ recordAccessChecks nodeRange recordNameRange fieldName setters =
                 )
 
         Nothing ->
-            case recordNameRange of
-                Just rnr ->
+            case maybeRecordNameRange of
+                Just recordNameRange ->
                     Just
                         (Rule.errorWithFix
                             { message = "Field access can be simplified"
                             , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
                             }
                             nodeRange
-                            [ Fix.replaceRangeBy { start = nodeRange.start, end = rnr.start } ""
-                            , Fix.replaceRangeBy { start = rnr.end, end = nodeRange.end } ("." ++ fieldName)
+                            [ Fix.replaceRangeBy { start = nodeRange.start, end = recordNameRange.start } ""
+                            , Fix.replaceRangeBy { start = recordNameRange.end, end = nodeRange.end } ("." ++ fieldName)
                             ]
                         )
 
