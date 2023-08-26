@@ -3900,21 +3900,20 @@ stringLeftChecks checkInfo =
     firstThatReportsError
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just 0 ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using String.left with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
-                        )
+                Just length ->
+                    if length <= 0 then
+                        let
+                            lengthDescription : String
+                            lengthDescription =
+                                if length <= -1 then
+                                    "negative length"
 
-                Just lengthNon0 ->
-                    if lengthNon0 <= -1 then
+                                else
+                                    "length 0"
+                        in
                         Just
                             (Rule.errorWithFix
-                                { message = "Using String.left with negative length will result in an empty string"
+                                { message = "Using String.left with " ++ lengthDescription ++ " will result in an empty string"
                                 , details = [ "You can replace this call by an empty string." ]
                                 }
                                 checkInfo.fnRange
