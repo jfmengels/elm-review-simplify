@@ -8725,17 +8725,20 @@ recordAccessChecks :
 recordAccessChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case
-                findMap
-                    (\(Node _ ( Node _ setterField, setterValue )) ->
-                        if setterField == checkInfo.fieldName then
-                            Just setterValue
+            let
+                maybeMatchingSetterValue : Maybe (Node Expression)
+                maybeMatchingSetterValue =
+                    findMap
+                        (\(Node _ ( Node _ setterField, setterValue )) ->
+                            if setterField == checkInfo.fieldName then
+                                Just setterValue
 
-                        else
-                            Nothing
-                    )
-                    checkInfo.setters
-            of
+                            else
+                                Nothing
+                        )
+                        checkInfo.setters
+            in
+            case maybeMatchingSetterValue of
                 Just setter ->
                     Just
                         (Rule.errorWithFix
