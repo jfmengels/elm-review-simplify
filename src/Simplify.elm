@@ -6113,7 +6113,7 @@ listTakeChecks checkInfo =
     in
     firstThatReportsError
         [ \() ->
-            if AstHelpers.getUncomputedNumberValue checkInfo.firstArg == Just 0 then
+            if Evaluate.getInt checkInfo checkInfo.firstArg == Just 0 then
                 Just
                     (Rule.errorWithFix
                         { message = "Taking 0 items from a list will result in []"
