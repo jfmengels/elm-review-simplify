@@ -3735,8 +3735,8 @@ stringFromListChecks : CheckInfo -> Maybe (Error {})
 stringFromListChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value checkInfo.firstArg of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " [] will result in " ++ emptyStringAsString
@@ -3796,8 +3796,8 @@ stringIsEmptyChecks checkInfo =
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})
 stringConcatChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
+    case AstHelpers.getListLiteral checkInfo.firstArg of
+        Just [] ->
             Just
                 (Rule.errorWithFix
                     { message = "Using String.concat on an empty list will result in an empty string"
@@ -5148,8 +5148,8 @@ listSumChecks : CheckInfo -> Maybe (Error {})
 listSumChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value checkInfo.firstArg of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "sum" ) ++ " on [] will result in 0"
@@ -5183,8 +5183,8 @@ listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value checkInfo.firstArg of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "product" ) ++ " on [] will result in 1"
@@ -5218,8 +5218,8 @@ listMinimumChecks : CheckInfo -> Maybe (Error {})
 listMinimumChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value checkInfo.firstArg of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "minimum" ) ++ " on [] will result in Nothing"
@@ -5258,8 +5258,8 @@ listMaximumChecks : CheckInfo -> Maybe (Error {})
 listMaximumChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value checkInfo.firstArg of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "maximum" ) ++ " on [] will result in Nothing"
@@ -5875,8 +5875,8 @@ listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ " on [] will result in []"
@@ -5901,8 +5901,8 @@ listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
     firstThatReportsError
         [ \() ->
-            case checkInfo.firstArg of
-                Node _ (Expression.ListExpr []) ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "sort" ) ++ " on [] will result in []"
@@ -5943,8 +5943,8 @@ listSortByChecks checkInfo =
             Just listArg ->
                 firstThatReportsError
                     [ \() ->
-                        case listArg of
-                            Node _ (Expression.ListExpr []) ->
+                        case AstHelpers.getListLiteral listArg of
+                            Just [] ->
                                 Just
                                     (Rule.errorWithFix
                                         { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " on [] will result in []"
@@ -6021,8 +6021,8 @@ listSortWithChecks checkInfo =
             Just listArg ->
                 firstThatReportsError
                     [ \() ->
-                        case listArg of
-                            Node _ (Expression.ListExpr []) ->
+                        case AstHelpers.getListLiteral listArg of
+                            Just [] ->
                                 Just
                                     (Rule.errorWithFix
                                         { message = "Using " ++ qualifiedToString ( [ "List" ], "sortWith" ) ++ " on [] will result in []"
@@ -6206,7 +6206,7 @@ listDropChecks checkInfo =
 
 listMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
 listMapNChecks { n } checkInfo =
-    if List.any (\(Node _ list) -> list == Expression.ListExpr []) checkInfo.argsAfterFirst then
+    if List.any (\list -> AstHelpers.getListLiteral list == Just []) checkInfo.argsAfterFirst then
         let
             callReplacement : String
             callReplacement =
@@ -6227,8 +6227,8 @@ listMapNChecks { n } checkInfo =
 
 listUnzipChecks : CheckInfo -> Maybe (Error {})
 listUnzipChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
+    case AstHelpers.getListLiteral checkInfo.firstArg of
+        Just [] ->
             Just
                 (Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString ( [ "List" ], "unzip" ) ++ " on [] will result in ( [], [] )"
@@ -6296,8 +6296,8 @@ subAndCmdBatchChecks : String -> CheckInfo -> Maybe (Error {})
 subAndCmdBatchChecks moduleName checkInfo =
     firstThatReportsError
         [ \() ->
-            case Node.value checkInfo.firstArg of
-                Expression.ListExpr [] ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Replace by " ++ moduleName ++ ".batch"
@@ -6309,7 +6309,7 @@ subAndCmdBatchChecks moduleName checkInfo =
                             ]
                         )
 
-                Expression.ListExpr (arg0 :: arg1 :: arg2Up) ->
+                Just (arg0 :: arg1 :: arg2Up) ->
                     neighboringMap
                         (\arg ->
                             case AstHelpers.removeParens arg.current of
@@ -7971,8 +7971,8 @@ collectionSizeChecks collection checkInfo =
 
 collectionFromListChecks : Collection -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.ListExpr [] ->
+    case AstHelpers.getListLiteral checkInfo.firstArg of
+        Just [] ->
             let
                 collectionEmptyAsString : String
                 collectionEmptyAsString =
