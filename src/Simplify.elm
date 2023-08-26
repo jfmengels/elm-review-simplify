@@ -7617,13 +7617,13 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 
 callOnEmptyReturnsEmptyCheck : String -> Node Expression -> Collection -> CheckInfo -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
-    let
-        collectionEmptyAsString : String
-        collectionEmptyAsString =
-            emptyAsString checkInfo collection
-    in
     case collection.determineSize checkInfo.lookupTable collectionArg of
         Just (Exactly 0) ->
+            let
+                collectionEmptyAsString : String
+                collectionEmptyAsString =
+                    emptyAsString checkInfo collection
+            in
             Just
                 (Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString ( collection.moduleName, fnName ) ++ " on " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
@@ -7703,10 +7703,6 @@ collectionIntersectChecks collection checkInfo =
         maybeCollectionArg : Maybe (Node Expression)
         maybeCollectionArg =
             secondArg checkInfo
-
-        collectionEmptyAsString : String
-        collectionEmptyAsString =
-            emptyAsString checkInfo collection
     in
     firstThatReportsError
         [ \() ->
