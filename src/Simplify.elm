@@ -3832,67 +3832,75 @@ stringReverseChecks checkInfo =
 
 stringSliceChecks : CheckInfo -> Maybe (Error {})
 stringSliceChecks checkInfo =
-    case ( secondArg checkInfo, thirdArg checkInfo ) of
-        ( _, Just (Node _ (Expression.Literal "")) ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.slice on an empty string will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                )
-
-        ( Just (Node _ (Expression.Integer 0)), _ ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.slice with end index 0 will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                )
-
-        ( Just end, _ ) ->
-            Maybe.map2
-                (\startInt endInt ->
-                    if
-                        (startInt >= endInt)
-                            && -- have the same sign
-                               ((startInt <= -1 && endInt <= -1)
-                                    || (startInt >= 0 && endInt >= 0)
-                               )
-                    then
-                        Rule.errorWithFix
-                            { message = "The call to String.slice will result in " ++ emptyStringAsString
-                            , details = [ "You can replace this slice operation by " ++ emptyStringAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                            |> Just
-
-                    else
-                        -- either is negative or startInt < endInt
-                        Nothing
-                )
-                (Evaluate.getInt checkInfo checkInfo.firstArg)
-                (Evaluate.getInt checkInfo end)
-                |> Maybe.withDefault
-                    (if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ end ] then
-                        Rule.errorWithFix
-                            { message = "Using String.slice with equal start and end index will result in an empty string"
+    firstThatReportsError
+        [ \() ->
+            case thirdArg checkInfo of
+                Just (Node _ (Expression.Literal "")) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.slice on an empty string will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             }
                             checkInfo.fnRange
                             (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                            |> Just
+                        )
 
-                     else
-                        Nothing
-                    )
+                _ ->
+                    Nothing
+        , \() ->
+            case secondArg checkInfo of
+                Just (Node _ (Expression.Integer 0)) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using String.slice with end index 0 will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                        )
 
-        ( Nothing, _ ) ->
-            Nothing
+                Just end ->
+                    Maybe.map2
+                        (\startInt endInt ->
+                            if
+                                (startInt >= endInt)
+                                    && -- have the same sign
+                                       ((startInt <= -1 && endInt <= -1)
+                                            || (startInt >= 0 && endInt >= 0)
+                                       )
+                            then
+                                Rule.errorWithFix
+                                    { message = "The call to String.slice will result in " ++ emptyStringAsString
+                                    , details = [ "You can replace this slice operation by " ++ emptyStringAsString ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                                    |> Just
+
+                            else
+                                -- either is negative or startInt < endInt
+                                Nothing
+                        )
+                        (Evaluate.getInt checkInfo checkInfo.firstArg)
+                        (Evaluate.getInt checkInfo end)
+                        |> Maybe.withDefault
+                            (if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ end ] then
+                                Rule.errorWithFix
+                                    { message = "Using String.slice with equal start and end index will result in an empty string"
+                                    , details = [ "You can replace this call by an empty string." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                                    |> Just
+
+                             else
+                                Nothing
+                            )
+
+                Nothing ->
+                    Nothing
+        ]
+        ()
 
 
 stringLeftChecks : CheckInfo -> Maybe (Error {})
