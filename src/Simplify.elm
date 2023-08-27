@@ -2242,7 +2242,7 @@ functionCallChecks =
         , ( ( [ "List" ], "map4" ), listMapNChecks { n = 4 } )
         , ( ( [ "List" ], "map5" ), listMapNChecks { n = 5 } )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
-        , ( ( [ "Set" ], "map" ), collectionMapChecks setCollection )
+        , ( ( [ "Set" ], "map" ), containerMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
@@ -2275,9 +2275,9 @@ functionCallChecks =
         , ( ( [ "String" ], "left" ), stringLeftChecks )
         , ( ( [ "String" ], "right" ), stringRightChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
-        , ( ( [ "Platform", "Cmd" ], "map" ), collectionMapChecks cmdCollection )
+        , ( ( [ "Platform", "Cmd" ], "map" ), containerMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
-        , ( ( [ "Platform", "Sub" ], "map" ), collectionMapChecks subCollection )
+        , ( ( [ "Platform", "Sub" ], "map" ), containerMapChecks subCollection )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
@@ -4223,7 +4223,7 @@ stringReplaceChecks checkInfo =
 maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> collectionMapChecks maybeCollection checkInfo
+        [ \() -> containerMapChecks maybeCollection checkInfo
         , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
         ]
         ()
@@ -4241,7 +4241,7 @@ maybeMapCompositionChecks checkInfo =
 resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> collectionMapChecks resultCollection checkInfo
+        [ \() -> containerMapChecks resultCollection checkInfo
         , \() -> mapPureChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
         ]
         ()
@@ -4274,7 +4274,7 @@ resultMapErrorChecks checkInfo =
             secondArg checkInfo
     in
     firstThatReportsError
-        -- TODO use collectionMapChecks
+        -- TODO use containerMapChecks
         [ \() ->
             mapIdentityChecks "mapError"
                 { moduleName = [ "Result" ], represents = "result" }
@@ -4911,7 +4911,7 @@ listTailChecks checkInfo =
 listMapChecks : CheckInfo -> Maybe (Error {})
 listMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> collectionMapChecks listCollection checkInfo
+        [ \() -> containerMapChecks listCollection checkInfo
         , \() -> dictToListMapChecks checkInfo
         ]
         ()
@@ -6999,7 +6999,7 @@ subCollection =
     }
 
 
-collectionMapChecks :
+containerMapChecks :
     { a
         | moduleName : ModuleName
         , represents : String
@@ -7009,7 +7009,7 @@ collectionMapChecks :
     }
     -> CheckInfo
     -> Maybe (Error {})
-collectionMapChecks collection checkInfo =
+containerMapChecks collection checkInfo =
     firstThatReportsError
         [ \() -> containerMapIdentityChecks collection checkInfo
         , \() ->
