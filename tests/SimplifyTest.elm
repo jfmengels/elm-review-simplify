@@ -14259,7 +14259,7 @@ a = Result.mapError identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same given result"
+                            { message = "Using Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -14275,7 +14275,7 @@ a = Result.mapError identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same given result"
+                            { message = "Using Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -14291,7 +14291,7 @@ a = x |> Result.mapError identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same given result"
+                            { message = "Using Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -14307,7 +14307,7 @@ a = Result.mapError identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same given result"
+                            { message = "Using Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -14323,7 +14323,7 @@ a = Result.mapError <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same given result"
+                            { message = "Using Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -14339,7 +14339,7 @@ a = identity |> Result.mapError
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError identity will always return the same given result"
+                            { message = "Using Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }

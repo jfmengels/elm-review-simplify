@@ -4276,18 +4276,9 @@ resultMapErrorChecks checkInfo =
     firstThatReportsError
         -- TODO use collectionMapChecks
         [ \() ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                Just
-                    (identityError
-                        { toFix = qualifiedToString ( [ "Result" ], "mapError" ) ++ " identity"
-                        , lastArgName = "result"
-                        , lastArg = maybeResultArg
-                        , resources = checkInfo
-                        }
-                    )
-
-            else
-                Nothing
+            mapIdentityChecks "mapError"
+                { moduleName = [ "Result" ], represents = "result" }
+                checkInfo
         , \() ->
             mapPureChecks { moduleName = [ "Result" ], pure = "Err", map = "mapError" } checkInfo
         , \() ->
