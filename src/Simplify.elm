@@ -6665,7 +6665,7 @@ randomListChecks checkInfo =
 randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
+        [ \() -> collectionMapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
         , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
@@ -7020,7 +7020,7 @@ collectionMapChecks :
     -> Maybe (Error {})
 collectionMapChecks collection checkInfo =
     firstThatReportsError
-        [ \() -> mapIdentityChecks collection checkInfo
+        [ \() -> collectionMapIdentityChecks collection checkInfo
         , \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
@@ -7039,14 +7039,14 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     }
 
 
-mapIdentityChecks :
+collectionMapIdentityChecks :
     { a
         | moduleName : ModuleName
         , represents : String
     }
     -> CheckInfo
     -> Maybe (Error {})
-mapIdentityChecks mappable checkInfo =
+collectionMapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (identityError
