@@ -2212,7 +2212,7 @@ functionCallChecks =
         , ( ( [ "List" ], "tail" ), listTailChecks )
         , ( ( [ "List" ], "member" ), listMemberChecks )
         , ( ( [ "List" ], "map" ), listMapChecks )
-        , ( ( [ "List" ], "filter" ), collectionFilterChecks listCollection )
+        , ( ( [ "List" ], "filter" ), containerFilterChecks listCollection )
         , ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , ( ( [ "List" ], "concat" ), listConcatChecks )
         , ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
@@ -2243,7 +2243,7 @@ functionCallChecks =
         , ( ( [ "List" ], "map5" ), listMapNChecks { n = 5 } )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
         , ( ( [ "Set" ], "map" ), containerMapChecks setCollection )
-        , ( ( [ "Set" ], "filter" ), collectionFilterChecks setCollection )
+        , ( ( [ "Set" ], "filter" ), containerFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
@@ -7641,18 +7641,18 @@ callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
         Nothing
 
 
-collectionFilterChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
-collectionFilterChecks collection checkInfo =
+containerFilterChecks : Container otherProperties -> CheckInfo -> Maybe (Error {})
+containerFilterChecks container checkInfo =
     let
-        maybeCollectionArg : Maybe (Node Expression)
-        maybeCollectionArg =
+        maybeContainerArg : Maybe (Node Expression)
+        maybeContainerArg =
             secondArg checkInfo
     in
     firstThatReportsError
         [ \() ->
-            case maybeCollectionArg of
-                Just collectionArg ->
-                    callOnEmptyReturnsEmptyCheck "filter" collectionArg collection checkInfo
+            case maybeContainerArg of
+                Just containerArg ->
+                    callOnEmptyReturnsEmptyCheck "filter" containerArg container checkInfo
 
                 Nothing ->
                     Nothing
@@ -7661,28 +7661,28 @@ collectionFilterChecks collection checkInfo =
                 Determined True ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " with a function that will always return True is the same as not using " ++ qualifiedToString ( collection.moduleName, "filter" )
-                            , details = [ "You can remove this call and replace it by the " ++ collection.represents ++ " itself." ]
+                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return True is the same as not using " ++ qualifiedToString ( container.moduleName, "filter" )
+                            , details = [ "You can remove this call and replace it by the " ++ container.represents ++ " itself." ]
                             }
                             checkInfo.fnRange
                             (toIdentityFix
-                                { lastArg = maybeCollectionArg, resources = checkInfo }
+                                { lastArg = maybeContainerArg, resources = checkInfo }
                             )
                         )
 
                 Determined False ->
                     let
-                        collectionEmptyAsString : String
-                        collectionEmptyAsString =
-                            emptyAsString checkInfo collection
+                        containerEmptyAsString : String
+                        containerEmptyAsString =
+                            emptyAsString checkInfo container
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( collection.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ collectionEmptyAsString
-                            , details = [ "You can remove this call and replace it by " ++ collectionEmptyAsString ++ "." ]
+                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ containerEmptyAsString
+                            , details = [ "You can remove this call and replace it by " ++ containerEmptyAsString ++ "." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
+                            (replaceByEmptyFix containerEmptyAsString checkInfo.parentRange maybeContainerArg checkInfo)
                         )
 
                 Undetermined ->
