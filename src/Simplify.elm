@@ -4302,7 +4302,7 @@ resultMapErrorChecks checkInfo =
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
                                 )
 
-                        _ ->
+                        Undetermined ->
                             Nothing
 
                 Nothing ->
