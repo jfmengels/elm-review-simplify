@@ -1663,8 +1663,8 @@ onlyMaybeError maybeError =
     }
 
 
-firstThatReportsError : List (a -> Maybe (Error {})) -> a -> Maybe (Error {})
-firstThatReportsError remainingChecks data =
+firstThatConstructsJust : List (a -> Maybe (Error {})) -> a -> Maybe (Error {})
+firstThatConstructsJust remainingChecks data =
     findMap (\checkFn -> checkFn data) remainingChecks
 
 
@@ -1907,7 +1907,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             ( endLater, expressionRange )
             in
             onlyMaybeError
-                (firstThatReportsError compositionChecks
+                (firstThatConstructsJust compositionChecks
                     (toCompositionCheckInfo
                         { direction = LeftToRight
                         , parentRange = parentRange
@@ -1931,7 +1931,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             ( endLater, expressionRange )
             in
             onlyMaybeError
-                (firstThatReportsError compositionChecks
+                (firstThatConstructsJust compositionChecks
                     (toCompositionCheckInfo
                         { direction = RightToLeft
                         , parentRange = parentRange
@@ -2076,7 +2076,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -------------
         Expression.CaseExpression caseBlock ->
             onlyMaybeError
-                (firstThatReportsError caseOfChecks
+                (firstThatConstructsJust caseOfChecks
                     { lookupTable = context.lookupTable
                     , extractSourceCode = context.extractSourceCode
                     , customTypesToReportInCases = context.customTypesToReportInCases
@@ -2578,7 +2578,7 @@ offsetInStringToLocation config =
 
 plusChecks : OperatorCheckInfo -> Maybe (Error {})
 plusChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ addingZeroCheck
         , addingOppositesCheck
         ]
@@ -2799,7 +2799,7 @@ divisionChecks checkInfo =
 
 plusplusChecks : OperatorCheckInfo -> Maybe (Error {})
 plusplusChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
                 ( Expression.Literal "", Expression.Literal _ ) ->
@@ -2990,7 +2990,7 @@ toggleCompositionChecks toggle checkInfo =
                 Nothing ->
                     Nothing
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case ( maybeEarlierToggleFn, maybeLaterToggleFn ) of
                 ( Just _, Just _ ) ->
@@ -3085,7 +3085,7 @@ basicsNegateChecks checkInfo =
 
 basicsNotChecks : CheckInfo -> Maybe (Error {})
 basicsNotChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ notOnKnownBoolCheck
         , removeAlongWithOtherFunctionCheck
             (doubleToggleErrorInfo ( [ "Basics" ], "not" ))
@@ -3186,7 +3186,7 @@ basicsNotCompositionChecks checkInfo =
 
 orChecks : OperatorCheckInfo -> Maybe (Error {})
 orChecks operatorCheckInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> or_isLeftSimplifiableError operatorCheckInfo
         , \() -> or_isRightSimplifiableError operatorCheckInfo
         , \() -> findSimilarConditionsError operatorCheckInfo
@@ -3376,7 +3376,7 @@ or_isRightSimplifiableError checkInfo =
 
 andChecks : OperatorCheckInfo -> Maybe (Error {})
 andChecks operatorCheckInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> and_isLeftSimplifiableError operatorCheckInfo
         , \() -> and_isRightSimplifiableError operatorCheckInfo
         , \() -> findSimilarConditionsError operatorCheckInfo
@@ -3698,7 +3698,7 @@ callWithEmptyListArgReturnsEmptyListCheck config checkInfo =
 
 stringFromListChecks : CheckInfo -> Maybe (Error {})
 stringFromListChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -3842,7 +3842,7 @@ stringSliceChecks checkInfo =
                 checkInfo.fnRange
                 (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case thirdArg checkInfo of
                 Just (Node _ (Expression.Literal "")) ->
@@ -3860,7 +3860,7 @@ stringSliceChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just endArg ->
-                    firstThatReportsError
+                    firstThatConstructsJust
                         [ \() ->
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just (resultsInEmptyErrorInSituation "String.slice with equal start and end index")
@@ -3870,7 +3870,7 @@ stringSliceChecks checkInfo =
                         , \() ->
                             case Evaluate.getInt checkInfo endArg of
                                 Just endInt ->
-                                    firstThatReportsError
+                                    firstThatConstructsJust
                                         [ \() ->
                                             case endInt of
                                                 0 ->
@@ -3919,7 +3919,7 @@ stringSliceChecks checkInfo =
 
 stringLeftChecks : CheckInfo -> Maybe (Error {})
 stringLeftChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -3989,7 +3989,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
 
 stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -4032,7 +4032,7 @@ reverseReverseCompositionErrorMessage =
 
 stringJoinChecks : CheckInfo -> Maybe (Error {})
 stringJoinChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case secondArg checkInfo of
                 Just (Node _ (Expression.ListExpr [])) ->
@@ -4086,7 +4086,7 @@ stringLengthChecks checkInfo =
 
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
 stringRepeatChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case secondArg checkInfo of
                 Just (Node _ (Expression.Literal "")) ->
@@ -4104,7 +4104,7 @@ stringRepeatChecks checkInfo =
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just intValue ->
-                    firstThatReportsError
+                    firstThatConstructsJust
                         [ \() ->
                             case intValue of
                                 1 ->
@@ -4142,7 +4142,7 @@ stringReplaceChecks : CheckInfo -> Maybe (Error {})
 stringReplaceChecks checkInfo =
     case secondArg checkInfo of
         Just replacementArg ->
-            firstThatReportsError
+            firstThatConstructsJust
                 [ \() ->
                     case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
                         Normalize.ConfirmedEquality ->
@@ -4206,7 +4206,7 @@ stringReplaceChecks checkInfo =
 
 maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> containerMapChecks maybeCollection checkInfo
         , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
         ]
@@ -4224,7 +4224,7 @@ maybeMapCompositionChecks checkInfo =
 
 resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> containerMapChecks resultCollection checkInfo
         , \() -> mapPureChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
         ]
@@ -4257,7 +4257,7 @@ resultMapErrorChecks checkInfo =
         maybeResultArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         -- TODO use containerMapChecks
         [ \() ->
             mapIdentityChecks "mapError"
@@ -4327,7 +4327,7 @@ resultMapErrorCompositionChecks checkInfo =
 
 listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             callWithEmptyListArgReturnsEmptyListCheck
                 { fn = ( [ "List" ], "concat" ), checkedArg = checkInfo.firstArg }
@@ -4349,7 +4349,7 @@ listConcatChecks checkInfo =
                                 )
 
                         firstListElement :: restOfListElements ->
-                            firstThatReportsError
+                            firstThatConstructsJust
                                 [ \() ->
                                     case findEmptyLiteral list of
                                         Just emptyLiteral ->
@@ -4500,7 +4500,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 listConcatMapChecks : CheckInfo -> Maybe (Error {})
 listConcatMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 Just
@@ -4561,7 +4561,7 @@ listConcatMapChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    firstThatReportsError
+                    firstThatConstructsJust
                         [ \() ->
                             case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                                 Just listSingleton ->
@@ -4612,7 +4612,7 @@ listConcatCompositionChecks checkInfo =
 
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case secondArg checkInfo of
                 Just listArg ->
@@ -4774,7 +4774,7 @@ listHeadChecks checkInfo =
         listArg =
             AstHelpers.removeParens checkInfo.firstArg
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Node.value listArg of
                 Expression.ListExpr [] ->
@@ -4829,7 +4829,7 @@ listTailChecks checkInfo =
         listArg =
             AstHelpers.removeParens checkInfo.firstArg
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Node.value listArg of
                 Expression.ListExpr [] ->
@@ -4890,7 +4890,7 @@ listTailChecks checkInfo =
 
 listMapChecks : CheckInfo -> Maybe (Error {})
 listMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> containerMapChecks listCollection checkInfo
         , \() -> dictToListMapChecks checkInfo
         ]
@@ -5039,7 +5039,7 @@ listMemberChecks checkInfo =
                             ]
                         )
             in
-            firstThatReportsError
+            firstThatConstructsJust
                 [ \() ->
                     case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                         Just single ->
@@ -5100,7 +5100,7 @@ getBeforeLastCons (Node _ expression) =
 
 listSumChecks : CheckInfo -> Maybe (Error {})
 listSumChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -5135,7 +5135,7 @@ listSumChecks checkInfo =
 
 listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -5170,7 +5170,7 @@ listProductChecks checkInfo =
 
 listMinimumChecks : CheckInfo -> Maybe (Error {})
 listMinimumChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -5210,7 +5210,7 @@ listMinimumChecks checkInfo =
 
 listMaximumChecks : CheckInfo -> Maybe (Error {})
 listMaximumChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -5378,7 +5378,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 )
                             ]
             in
-            firstThatReportsError
+            firstThatConstructsJust
                 [ \() ->
                     case maybeListArg of
                         Just listArg ->
@@ -5517,7 +5517,7 @@ listAllChecks checkInfo =
         maybeListArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case maybeListArg of
                 Just (Node _ (Expression.ListExpr [])) ->
@@ -5559,7 +5559,7 @@ listAnyChecks checkInfo =
         maybeListArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case maybeListArg of
                 Just (Node _ (Expression.ListExpr [])) ->
@@ -5612,7 +5612,7 @@ listAnyChecks checkInfo =
 
 listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justConstruction ->
@@ -5661,14 +5661,14 @@ listFilterMapChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    firstThatReportsError
+                    firstThatConstructsJust
                         [ \() ->
                             callWithEmptyListArgReturnsEmptyListCheck
                                 { fn = ( [ "List" ], "filterMap" ), checkedArg = listArg }
                                 checkInfo
                         , \() ->
                             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                                firstThatReportsError
+                                firstThatConstructsJust
                                     [ \() ->
                                         case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable listArg of
                                             Just listMapCall ->
@@ -5824,7 +5824,7 @@ listRepeatChecks checkInfo =
 
 listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -5850,7 +5850,7 @@ listReverseChecks checkInfo =
 
 listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -5889,10 +5889,10 @@ listSortChecks checkInfo =
 
 listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ case secondArg checkInfo of
             Just listArg ->
-                firstThatReportsError
+                firstThatConstructsJust
                     [ \() ->
                         case AstHelpers.getListLiteral listArg of
                             Just [] ->
@@ -5967,10 +5967,10 @@ listSortByChecks checkInfo =
 
 listSortWithChecks : CheckInfo -> Maybe (Error {})
 listSortWithChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ case secondArg checkInfo of
             Just listArg ->
-                firstThatReportsError
+                firstThatConstructsJust
                     [ \() ->
                         case AstHelpers.getListLiteral listArg of
                             Just [] ->
@@ -6062,7 +6062,7 @@ listTakeChecks checkInfo =
         maybeListArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -6108,7 +6108,7 @@ listDropChecks checkInfo =
         maybeListArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 0 ->
@@ -6195,7 +6195,7 @@ listUnzipChecks checkInfo =
 
 setFromListChecks : CheckInfo -> Maybe (Error {})
 setFromListChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> collectionFromListChecks setCollection checkInfo
         , \() -> setFromListSingletonChecks checkInfo
         ]
@@ -6244,7 +6244,7 @@ setFromListCompositionChecks checkInfo =
 
 subAndCmdBatchChecks : String -> CheckInfo -> Maybe (Error {})
 subAndCmdBatchChecks moduleName checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
@@ -6353,7 +6353,7 @@ htmlAttributesClassListChecks checkInfo =
                 Nothing ->
                     Nothing
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                 Just single ->
@@ -6532,7 +6532,7 @@ randomListChecks checkInfo =
         maybeElementGeneratorArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 1 ->
@@ -6630,7 +6630,7 @@ randomListChecks checkInfo =
 
 randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> containerMapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
         , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
@@ -6986,7 +6986,7 @@ containerMapChecks :
     -> CheckInfo
     -> Maybe (Error {})
 containerMapChecks collection checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> containerMapIdentityChecks collection checkInfo
         , \() ->
             case secondArg checkInfo of
@@ -7150,10 +7150,10 @@ maybeAndThenChecks checkInfo =
         maybeMaybeArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ case maybeMaybeArg of
             Just maybeArg ->
-                firstThatReportsError
+                firstThatConstructsJust
                     [ \() ->
                         case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
                             Determined justCalls ->
@@ -7244,10 +7244,10 @@ resultAndThenChecks checkInfo =
         maybeResultArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ case maybeResultArg of
             Just resultArg ->
-                firstThatReportsError
+                firstThatConstructsJust
                     [ \() ->
                         case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
                             Determined okCalls ->
@@ -7319,7 +7319,7 @@ resultWithDefaultChecks : CheckInfo -> Maybe (Error {})
 resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just resultArg ->
-            firstThatReportsError
+            firstThatConstructsJust
                 [ \() ->
                     case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
                         Determined okCalls ->
@@ -7361,7 +7361,7 @@ resultWithDefaultChecks checkInfo =
 
 resultToMaybeChecks : CheckInfo -> Maybe (Error {})
 resultToMaybeChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined okCalls ->
@@ -7449,7 +7449,7 @@ pipelineChecks :
     }
     -> Maybe (Error {})
 pipelineChecks checkInfo =
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
         , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
         ]
@@ -7620,7 +7620,7 @@ containerFilterChecks container checkInfo =
         maybeContainerArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case maybeContainerArg of
                 Just containerArg ->
@@ -7680,7 +7680,7 @@ collectionIntersectChecks collection checkInfo =
         maybeCollectionArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsEmptyCheck "intersect" checkInfo.firstArg collection checkInfo
         , \() ->
@@ -7705,7 +7705,7 @@ collectionDiffChecks collection checkInfo =
         collectionEmptyAsString =
             emptyAsString checkInfo collection
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
                 Just
@@ -7750,7 +7750,7 @@ collectionUnionChecks collection checkInfo =
         maybeCollectionArg =
             secondArg checkInfo
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
                 Just
@@ -7931,7 +7931,7 @@ collectionPartitionChecks collection checkInfo =
         collectionEmptyAsString =
             emptyAsString checkInfo collection
     in
-    firstThatReportsError
+    firstThatConstructsJust
         [ \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
@@ -8004,7 +8004,7 @@ maybeWithDefaultChecks : CheckInfo -> Maybe (Error {})
 maybeWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just maybeArg ->
-            firstThatReportsError
+            firstThatConstructsJust
                 [ \() ->
                     case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
                         Determined justCalls ->
