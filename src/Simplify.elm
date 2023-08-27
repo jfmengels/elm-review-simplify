@@ -6914,7 +6914,7 @@ dictDetermineSize lookupTable expressionNode =
         ]
 
 
-type alias Mappable =
+type alias Container =
     { moduleName : ModuleName
     , represents : String
     , emptyAsString : QualifyResources {} -> String
@@ -6967,7 +6967,7 @@ resultCollection =
     }
 
 
-cmdCollection : Mappable
+cmdCollection : Container
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
@@ -6983,7 +6983,7 @@ cmdCollection =
     }
 
 
-subCollection : Mappable
+subCollection : Container
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
