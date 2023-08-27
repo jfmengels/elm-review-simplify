@@ -6656,7 +6656,7 @@ randomListChecks checkInfo =
 randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatReportsError
-        [ \() -> collectionMapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
+        [ \() -> containerMapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
         , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
@@ -7011,7 +7011,7 @@ collectionMapChecks :
     -> Maybe (Error {})
 collectionMapChecks collection checkInfo =
     firstThatReportsError
-        [ \() -> collectionMapIdentityChecks collection checkInfo
+        [ \() -> containerMapIdentityChecks collection checkInfo
         , \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
@@ -7054,14 +7054,14 @@ mapIdentityChecks mapFnName mappable checkInfo =
         Nothing
 
 
-collectionMapIdentityChecks :
+containerMapIdentityChecks :
     { a
         | moduleName : ModuleName
         , represents : String
     }
     -> CheckInfo
     -> Maybe (Error {})
-collectionMapIdentityChecks mappable checkInfo =
+containerMapIdentityChecks mappable checkInfo =
     mapIdentityChecks "map" mappable checkInfo
 
 
