@@ -6918,14 +6918,10 @@ type alias Container otherProperties =
 {-| Properties of a `Container` type with an explicit constructor for the "there is some data there" case.
 -}
 type alias Defaultable otherProperties =
-    { otherProperties
-        | moduleName : ModuleName
-        , represents : String
-        , emptyAsString : QualifyResources {} -> String
-        , emptyDescription : String
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-        , isSomethingConstructor : QualifyResources {} -> String
-    }
+    Container
+        { otherProperties
+            | isSomethingConstructor : QualifyResources {} -> String
+        }
 
 
 {-| Properties of a `Container` type that can be
@@ -6933,15 +6929,11 @@ transformed (e.g. added to, removed from)
 and observed (e.g. checked for emptiness, size, member).
 -}
 type alias Collection otherProperties =
-    { otherProperties
-        | moduleName : ModuleName
-        , represents : String
-        , emptyAsString : QualifyResources {} -> String
-        , emptyDescription : String
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-        , nameForSize : String
-        , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-    }
+    Container
+        { otherProperties
+            | nameForSize : String
+            , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+        }
 
 
 maybeCollection : Defaultable {}
