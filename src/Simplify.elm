@@ -6914,7 +6914,7 @@ type alias Container =
     }
 
 
-{-| Properties of a `Container` type with an explicit constrictor for the "there is some data there" case.
+{-| Properties of a `Container` type with an explicit constructor for the "there is some data there" case.
 -}
 type alias Defaultable =
     { moduleName : ModuleName
