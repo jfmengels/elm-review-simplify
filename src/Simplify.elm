@@ -6638,10 +6638,11 @@ randomMapChecks checkInfo =
 
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
-    findMap (\check -> check ())
+    firstThatConstructsJust
         [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
+        ()
 
 
 randomMapAlwaysErrorInfo : { message : String, details : List String }
@@ -6766,7 +6767,7 @@ setDetermineSize :
     -> Node Expression
     -> Maybe CollectionSize
 setDetermineSize lookupTable expressionNode =
-    findMap (\f -> f ())
+    firstThatConstructsJust
         [ \() ->
             case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expressionNode of
                 Just _ ->
@@ -6805,6 +6806,7 @@ setDetermineSize lookupTable expressionNode =
                 _ ->
                     Nothing
         ]
+        ()
 
 
 dictCollection : Collection {}
@@ -8213,7 +8215,7 @@ ifChecks :
     IfCheckInfo
     -> Maybe { errors : Error {}, rangesToIgnore : RangeDict () }
 ifChecks checkInfo =
-    findMap (\f -> f ())
+    firstThatConstructsJust
         [ \() ->
             case Evaluate.getBoolean checkInfo checkInfo.condition of
                 Determined determinedConditionResultIsTrue ->
@@ -8288,6 +8290,7 @@ ifChecks checkInfo =
                 _ ->
                     Nothing
         ]
+        ()
 
 
 
