@@ -7735,37 +7735,35 @@ collectionDiffChecks collection checkInfo =
     in
     firstThatReportsError
         [ \() ->
-            case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
-                Just (Exactly 0) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Diffing " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                            , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
-                        )
+            if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = "Diffing " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
+                        , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
         , \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    case collection.determineSize checkInfo.lookupTable collectionArg of
-                        Just (Exactly 0) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Diffing a " ++ collection.represents ++ " with " ++ collectionEmptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
-                                    , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                                    ]
-                                )
+                    if collection.isEmpty checkInfo.lookupTable collectionArg then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Diffing a " ++ collection.represents ++ " with " ++ collectionEmptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
+                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                                ]
+                            )
 
-                        _ ->
-                            Nothing
+                    else
+                        Nothing
 
                 Nothing ->
                     Nothing
@@ -7782,39 +7780,37 @@ collectionUnionChecks collection checkInfo =
     in
     firstThatReportsError
         [ \() ->
-            case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
-                Just (Exactly 0) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
-                            , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
-                            }
-                            checkInfo.fnRange
-                            (toIdentityFix
-                                { lastArg = maybeCollectionArg, resources = checkInfo }
-                            )
+            if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
+                        , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                        }
+                        checkInfo.fnRange
+                        (toIdentityFix
+                            { lastArg = maybeCollectionArg, resources = checkInfo }
                         )
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
         , \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    case collection.determineSize checkInfo.lookupTable collectionArg of
-                        Just (Exactly 0) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
-                                    , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                                    ]
-                                )
+                    if collection.isEmpty checkInfo.lookupTable collectionArg then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
+                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
+                                , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
+                                ]
+                            )
 
-                        _ ->
-                            Nothing
+                    else
+                        Nothing
 
                 Nothing ->
                     Nothing
@@ -7826,23 +7822,22 @@ collectionInsertChecks : Collection otherProperties -> CheckInfo -> Maybe (Error
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            case collection.determineSize checkInfo.lookupTable collectionArg of
-                Just (Exactly 0) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ emptyAsString checkInfo collection
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
-                                ++ [ Fix.insertAt checkInfo.parentRange.start
-                                        (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo) ++ " ")
-                                   ]
-                            )
+            if collection.isEmpty checkInfo.lookupTable collectionArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ emptyAsString checkInfo collection
+                        , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
+                            ++ [ Fix.insertAt checkInfo.parentRange.start
+                                    (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo) ++ " ")
+                               ]
                         )
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
 
         Nothing ->
             Nothing
@@ -7852,21 +7847,20 @@ collectionMemberChecks : Collection otherProperties -> CheckInfo -> Maybe (Error
 collectionMemberChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            case collection.determineSize checkInfo.lookupTable collectionArg of
-                Just (Exactly 0) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ collection.emptyDescription ++ " will result in False"
-                            , details = [ "You can replace this call by False." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
-                            ]
-                        )
+            if collection.isEmpty checkInfo.lookupTable collectionArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ collection.emptyDescription ++ " will result in False"
+                        , details = [ "You can replace this call by False." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
+                        ]
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
 
         Nothing ->
             Nothing
@@ -7944,19 +7938,18 @@ collectionFromListChecks collection checkInfo =
 
 collectionToListChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionToListChecks collection checkInfo =
-    case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
-        Just (Exactly 0) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "The call to " ++ qualifiedToString ( collection.moduleName, "toList" ) ++ " will result in []"
-                    , details = [ "You can replace this call by []." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                )
+    if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
+        Just
+            (Rule.errorWithFix
+                { message = "The call to " ++ qualifiedToString ( collection.moduleName, "toList" ) ++ " will result in []"
+                , details = [ "You can replace this call by []." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+            )
 
-        _ ->
-            Nothing
+    else
+        Nothing
 
 
 collectionPartitionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
@@ -7970,19 +7963,18 @@ collectionPartitionChecks collection checkInfo =
         [ \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    case collection.determineSize checkInfo.lookupTable collectionArg of
-                        Just (Exactly 0) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
-                                    , details = [ "You can replace this call by ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )") ]
-                                )
+                    if collection.isEmpty checkInfo.lookupTable collectionArg then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
+                                , details = [ "You can replace this call by ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )") ]
+                            )
 
-                        _ ->
-                            Nothing
+                    else
+                        Nothing
 
                 Nothing ->
                     Nothing
