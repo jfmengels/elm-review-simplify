@@ -8935,7 +8935,7 @@ a = List.filterMap identity (List.map f x)
                         [ Review.Test.error
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (List.filterMap f x)
@@ -8951,7 +8951,7 @@ a = List.filterMap identity <| List.map f <| x
                         [ Review.Test.error
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (List.filterMap f <| x)
@@ -8967,7 +8967,7 @@ a = x |> List.map f |> List.filterMap identity
                         [ Review.Test.error
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (x |> List.filterMap f)
@@ -8983,7 +8983,7 @@ a = List.map f >> List.filterMap identity
                         [ Review.Test.error
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.filterMap f
@@ -8999,7 +8999,7 @@ a = List.filterMap identity << List.map f
                         [ Review.Test.error
                             { message = "List.map and List.filterMap identity can be combined using List.filterMap"
                             , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.filterMap f
@@ -9017,9 +9017,9 @@ c = List.filterMap identity [ Just x, y ]
                         [ Review.Test.error
                             { message = "Unnecessary use of List.filterMap identity"
                             , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 28 } }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ x, y ]
 b = List.filterMap f [ Just x, Just y ]
@@ -9036,7 +9036,7 @@ a = [ Just x, Just y ] |> List.filterMap identity
                         [ Review.Test.error
                             { message = "Unnecessary use of List.filterMap identity"
                             , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
-                            , under = "List.filterMap identity"
+                            , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ x, y ]

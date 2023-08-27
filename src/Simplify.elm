@@ -5677,7 +5677,7 @@ listFilterMapChecks checkInfo =
                                                         { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                                                         , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                                         }
-                                                        { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                                                        checkInfo.fnRange
                                                         (replaceBySubExpressionFix checkInfo.parentRange listArg
                                                             ++ [ Fix.replaceRangeBy listMapCall.fnRange
                                                                     (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
@@ -5697,7 +5697,7 @@ listFilterMapChecks checkInfo =
                                                                 { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
                                                                 , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
                                                                 }
-                                                                { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                                                                checkInfo.fnRange
                                                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
                                                                     ++ List.map Fix.removeRange justRanges
                                                                 )
@@ -5755,8 +5755,7 @@ listFilterMapCompositionChecks checkInfo =
                                 { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                                 , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                 }
-                                -- TODO use laterFnRange
-                                checkInfo.later.range
+                                checkInfo.later.fnRange
                                 (Fix.replaceRangeBy checkInfo.earlier.fnRange
                                     (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
                                     :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
