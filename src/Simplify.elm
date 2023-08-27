@@ -3846,6 +3846,16 @@ stringReverseChecks checkInfo =
 
 stringSliceChecks : CheckInfo -> Maybe (Error {})
 stringSliceChecks checkInfo =
+    let
+        resultsInEmptyErrorInSituation : String -> Error {}
+        resultsInEmptyErrorInSituation situation =
+            Rule.errorWithFix
+                { message = situation ++ " will result in an empty string"
+                , details = [ "You can replace this call by an empty string." ]
+                }
+                checkInfo.fnRange
+                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+    in
     firstThatReportsError
         [ \() ->
             case thirdArg checkInfo of
@@ -3866,6 +3876,12 @@ stringSliceChecks checkInfo =
                 Just endArg ->
                     firstThatReportsError
                         [ \() ->
+                            if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
+                                Just (resultsInEmptyErrorInSituation "String.slice with equal start and end index")
+
+                            else
+                                Nothing
+                        , \() ->
                             case Evaluate.getInt checkInfo endArg of
                                 Just endInt ->
                                     firstThatReportsError
@@ -3886,23 +3902,17 @@ stringSliceChecks checkInfo =
                                         , \() ->
                                             case Evaluate.getInt checkInfo checkInfo.firstArg of
                                                 Just startInt ->
-                                                    if
-                                                        (startInt >= endInt)
-                                                            && -- have the same sign
-                                                               ((startInt <= -1 && endInt <= -1)
-                                                                    || (startInt >= 0 && endInt >= 0)
-                                                               )
-                                                    then
-                                                        Rule.errorWithFix
-                                                            { message = "The call to String.slice will result in " ++ emptyStringAsString
-                                                            , details = [ "You can replace this slice operation by " ++ emptyStringAsString ++ "." ]
-                                                            }
-                                                            checkInfo.fnRange
-                                                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                                                            |> Just
+                                                    if startInt > endInt then
+                                                        if startInt >= 0 && endInt >= 0 then
+                                                            Just (resultsInEmptyErrorInSituation "String.slice with a start index greater than the end index")
+
+                                                        else if startInt <= -1 && endInt <= -1 then
+                                                            Just (resultsInEmptyErrorInSituation "String.slice with a negative start index closer to the right than the negative end index")
+
+                                                        else
+                                                            Nothing
 
                                                     else
-                                                        -- either is negative or startInt < endIntNon0
                                                         Nothing
 
                                                 Nothing ->
@@ -3912,18 +3922,6 @@ stringSliceChecks checkInfo =
 
                                 Nothing ->
                                     Nothing
-                        , \() ->
-                            if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
-                                Rule.errorWithFix
-                                    { message = "Using String.slice with equal start and end index will result in an empty string"
-                                    , details = [ "You can replace this call by an empty string." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
-                                    |> Just
-
-                            else
-                                Nothing
                         ]
                         ()
 

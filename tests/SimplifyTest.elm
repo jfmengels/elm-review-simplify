@@ -6304,7 +6304,7 @@ a = String.slice n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with equal start and end index will result in an empty string"
+                            { message = "String.slice with equal start and end index will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             , under = "String.slice"
                             }
@@ -6320,7 +6320,7 @@ a = String.slice n n str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with equal start and end index will result in an empty string"
+                            { message = "String.slice with equal start and end index will result in an empty string"
                             , details = [ "You can replace this call by an empty string." ]
                             , under = "String.slice"
                             }
@@ -6344,38 +6344,6 @@ a = String.slice a z ""
 a = ""
 """
                         ]
-        , test "should replace String.slice 0 0 by always \"\"" <|
-            \() ->
-                """module A exposing (..)
-a = String.slice 0 0
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            , under = "String.slice"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = always ""
-"""
-                        ]
-        , test "should replace String.slice 0 0 str by \"\"" <|
-            \() ->
-                """module A exposing (..)
-a = String.slice 0 0 str
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
-                            , under = "String.slice"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = ""
-"""
-                        ]
         , test "should replace String.slice with natural start >= natural end by always \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -6384,8 +6352,8 @@ a = String.slice 2 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to String.slice will result in \"\""
-                            , details = [ "You can replace this slice operation by \"\"." ]
+                            { message = "String.slice with a start index greater than the end index will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6400,8 +6368,8 @@ a = String.slice -1 -2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to String.slice will result in \"\""
-                            , details = [ "You can replace this slice operation by \"\"." ]
+                            { message = "String.slice with a negative start index closer to the right than the negative end index will result in an empty string"
+                            , details = [ "You can replace this call by an empty string." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
