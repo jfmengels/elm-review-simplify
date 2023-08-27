@@ -7039,18 +7039,20 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     }
 
 
-collectionMapIdentityChecks :
-    { a
-        | moduleName : ModuleName
-        , represents : String
-    }
+mapIdentityChecks :
+    String
+    ->
+        { a
+            | moduleName : ModuleName
+            , represents : String
+        }
     -> CheckInfo
     -> Maybe (Error {})
-collectionMapIdentityChecks mappable checkInfo =
+mapIdentityChecks mapFnName mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (identityError
-                { toFix = qualifiedToString ( mappable.moduleName, "map" ) ++ " with an identity function"
+                { toFix = qualifiedToString ( mappable.moduleName, mapFnName ) ++ " with an identity function"
                 , lastArg = secondArg checkInfo
                 , lastArgName = mappable.represents
                 , resources = checkInfo
@@ -7059,6 +7061,17 @@ collectionMapIdentityChecks mappable checkInfo =
 
     else
         Nothing
+
+
+collectionMapIdentityChecks :
+    { a
+        | moduleName : ModuleName
+        , represents : String
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+collectionMapIdentityChecks mappable checkInfo =
+    mapIdentityChecks "map" mappable checkInfo
 
 
 mapPureChecks :
