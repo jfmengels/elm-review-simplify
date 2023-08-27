@@ -3667,20 +3667,15 @@ basicsAlwaysChecks checkInfo =
             Nothing
 
 
-basicsAlwaysCompositionErrorMessage : { message : String, details : List String }
-basicsAlwaysCompositionErrorMessage =
-    { message = "Function composed with always will be ignored"
-    , details = [ "`always` will swallow the function composed into it." ]
-    }
-
-
 basicsAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
 basicsAlwaysCompositionChecks checkInfo =
     case checkInfo.later.args of
         _ :: [] ->
             Just
                 (Rule.errorWithFix
-                    basicsAlwaysCompositionErrorMessage
+                    { message = "Function composed with always will be ignored"
+                    , details = [ "`always` will swallow the function composed into it." ]
+                    }
                     checkInfo.later.fnRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range })
                 )
