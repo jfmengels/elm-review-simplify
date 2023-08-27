@@ -8097,8 +8097,8 @@ a = List.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.map with an identity function will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8113,8 +8113,8 @@ a = List.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.map with an identity function will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8129,8 +8129,8 @@ a = x |> List.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.map with an identity function will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8145,8 +8145,8 @@ a = List.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.map with an identity function will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8161,8 +8161,8 @@ a = List.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.map with an identity function will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8177,8 +8177,8 @@ a = identity |> List.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function is the same as not using List.map"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.map with an identity function will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13317,8 +13317,8 @@ a = Maybe.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
-                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13333,8 +13333,8 @@ a = Maybe.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
-                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13349,8 +13349,8 @@ a = x |> Maybe.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
-                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13365,8 +13365,8 @@ a = Maybe.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
-                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13381,8 +13381,8 @@ a = Maybe.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
-                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13397,8 +13397,8 @@ a = identity |> Maybe.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function is the same as not using Maybe.map"
-                            , details = [ "You can remove this call and replace it by the maybe itself." ]
+                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13940,8 +13940,8 @@ a = Result.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function is the same as not using Result.map"
-                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            { message = "Using Result.map with an identity function will always return the same given result"
+                            , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13956,8 +13956,8 @@ a = Result.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function is the same as not using Result.map"
-                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            { message = "Using Result.map with an identity function will always return the same given result"
+                            , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13972,8 +13972,8 @@ a = x |> Result.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function is the same as not using Result.map"
-                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            { message = "Using Result.map with an identity function will always return the same given result"
+                            , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13988,8 +13988,8 @@ a = Result.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function is the same as not using Result.map"
-                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            { message = "Using Result.map with an identity function will always return the same given result"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14004,8 +14004,8 @@ a = Result.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function is the same as not using Result.map"
-                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            { message = "Using Result.map with an identity function will always return the same given result"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14020,8 +14020,8 @@ a = identity |> Result.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function is the same as not using Result.map"
-                            , details = [ "You can remove this call and replace it by the result itself." ]
+                            { message = "Using Result.map with an identity function will always return the same given result"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14965,8 +14965,8 @@ a = Set.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function is the same as not using Set.map"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.map with an identity function will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14983,8 +14983,8 @@ a = Set.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function is the same as not using Set.map"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.map with an identity function will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15001,8 +15001,8 @@ a = x |> Set.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function is the same as not using Set.map"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.map with an identity function will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15019,8 +15019,8 @@ a = Set.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function is the same as not using Set.map"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.map with an identity function will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15037,8 +15037,8 @@ a = Set.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function is the same as not using Set.map"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.map with an identity function will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15055,8 +15055,8 @@ a = identity |> Set.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function is the same as not using Set.map"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.map with an identity function will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Set.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17129,8 +17129,8 @@ a = Cmd.map identity cmd
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Platform.Cmd.map with an identity function is the same as not using Platform.Cmd.map"
-                            , details = [ "You can remove this call and replace it by the command itself." ]
+                            { message = "Using Platform.Cmd.map with an identity function will always return the same given command"
+                            , details = [ "You can replace this call by the command itself." ]
                             , under = "Cmd.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17292,8 +17292,8 @@ a = Sub.map identity sub
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Platform.Sub.map with an identity function is the same as not using Platform.Sub.map"
-                            , details = [ "You can remove this call and replace it by the subscription itself." ]
+                            { message = "Using Platform.Sub.map with an identity function will always return the same given subscription"
+                            , details = [ "You can replace this call by the subscription itself." ]
                             , under = "Sub.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18339,8 +18339,8 @@ a = Random.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function is the same as not using Random.map"
-                            , details = [ "You can remove this call and replace it by the random generator itself." ]
+                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            , details = [ "You can replace this call by the random generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18357,8 +18357,8 @@ a = Random.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function is the same as not using Random.map"
-                            , details = [ "You can remove this call and replace it by the random generator itself." ]
+                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            , details = [ "You can replace this call by the random generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18375,8 +18375,8 @@ a = x |> Random.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function is the same as not using Random.map"
-                            , details = [ "You can remove this call and replace it by the random generator itself." ]
+                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            , details = [ "You can replace this call by the random generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18393,8 +18393,8 @@ a = Random.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function is the same as not using Random.map"
-                            , details = [ "You can remove this call and replace it by the random generator itself." ]
+                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18411,8 +18411,8 @@ a = Random.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function is the same as not using Random.map"
-                            , details = [ "You can remove this call and replace it by the random generator itself." ]
+                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18429,8 +18429,8 @@ a = identity |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function is the same as not using Random.map"
-                            , details = [ "You can remove this call and replace it by the random generator itself." ]
+                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

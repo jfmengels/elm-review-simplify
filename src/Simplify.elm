@@ -7039,8 +7039,6 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     }
 
 
-{-| TODO merge with identityError
--}
 mapIdentityChecks :
     { a
         | moduleName : ModuleName
@@ -7050,16 +7048,13 @@ mapIdentityChecks :
     -> Maybe (Error {})
 mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-        -- TODO use identityError
         Just
-            (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( mappable.moduleName, "map" ) ++ " with an identity function is the same as not using " ++ qualifiedToString ( mappable.moduleName, "map" )
-                , details = [ "You can remove this call and replace it by the " ++ mappable.represents ++ " itself." ]
+            (identityError
+                { toFix = qualifiedToString ( mappable.moduleName, "map" ) ++ " with an identity function"
+                , lastArg = secondArg checkInfo
+                , lastArgName = mappable.represents
+                , resources = checkInfo
                 }
-                checkInfo.fnRange
-                (toIdentityFix
-                    { lastArg = secondArg checkInfo, resources = checkInfo }
-                )
             )
 
     else
