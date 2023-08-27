@@ -4125,12 +4125,12 @@ stringRepeatChecks checkInfo =
                             case intValue of
                                 1 ->
                                     Just
-                                        (Rule.errorWithFix
-                                            { message = "String.repeat 1 won't do anything"
-                                            , details = [ "Using String.repeat with 1 will result in the second argument." ]
+                                        (identityError
+                                            { toFix = "String.repeat 1"
+                                            , lastArg = secondArg checkInfo
+                                            , lastArgName = "string to repeat"
+                                            , resources = checkInfo
                                             }
-                                            checkInfo.fnRange
-                                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end } ]
                                         )
 
                                 _ ->

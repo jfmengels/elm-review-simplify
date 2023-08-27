@@ -5933,12 +5933,28 @@ a = String.repeat 1 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.repeat 1 won't do anything"
-                            , details = [ "Using String.repeat with 1 will result in the second argument." ]
+                            { message = "Using String.repeat 1 will always return the same given string to repeat"
+                            , details = [ "You can replace this call by the string to repeat itself." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  str
+a = str
+"""
+                        ]
+        , test "should replace String.repeat 1 by identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.repeat 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using String.repeat 1 will always return the same given string to repeat"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "String.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
