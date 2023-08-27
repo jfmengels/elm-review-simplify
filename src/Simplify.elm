@@ -6749,6 +6749,10 @@ randomMapAlwaysCompositionChecks checkInfo =
 --
 
 
+{-| Properties of a `Container` type that can be
+transformed (e.g. added to, removed from)
+and observed (e.g. checked for emptiness, size, member).
+-}
 type alias Collection =
     { moduleName : ModuleName
     , represents : String
@@ -6914,6 +6918,8 @@ dictDetermineSize lookupTable expressionNode =
         ]
 
 
+{-| Properties of a type that can hold some data or none.
+-}
 type alias Container =
     { moduleName : ModuleName
     , represents : String
@@ -6923,6 +6929,8 @@ type alias Container =
     }
 
 
+{-| Properties of a `Container` type with an explicit constrictor for the "there is some data there" case.
+-}
 type alias Defaultable =
     { moduleName : ModuleName
     , represents : String
