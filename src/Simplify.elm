@@ -3681,7 +3681,7 @@ basicsAlwaysCompositionChecks checkInfo =
             Just
                 (Rule.errorWithFix
                     basicsAlwaysCompositionErrorMessage
-                    checkInfo.later.range
+                    checkInfo.later.fnRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range })
                 )
 

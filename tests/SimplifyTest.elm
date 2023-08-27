@@ -1010,7 +1010,7 @@ a = f >> always g
                         [ Review.Test.error
                             { message = "Function composed with always will be ignored"
                             , details = [ "`always` will swallow the function composed into it." ]
-                            , under = "always g"
+                            , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always g
@@ -1026,7 +1026,7 @@ a = always g << f
                         [ Review.Test.error
                             { message = "Function composed with always will be ignored"
                             , details = [ "`always` will swallow the function composed into it." ]
-                            , under = "always g"
+                            , under = "always"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always g
