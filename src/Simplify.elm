@@ -2192,6 +2192,12 @@ thirdArg checkInfo =
     checkInfo.thirdArg
 
 
+type alias ErrorInfoAndFix =
+    { info : { message : String, details : List String }
+    , fix : List Fix
+    }
+
+
 functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> Maybe (Error {}))
 functionCallChecks =
     Dict.fromList
@@ -2378,6 +2384,7 @@ compositionChecks =
                                         , args = earlierFnOrCall.args
                                         }
                                     }
+                                    |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
 
                             Nothing ->
                                 Nothing
@@ -2417,7 +2424,7 @@ type alias CompositionIntoCheckInfo =
     }
 
 
-compositionIntoChecks : Dict ( ModuleName, String ) (CompositionIntoCheckInfo -> Maybe (Error {}))
+compositionIntoChecks : Dict ( ModuleName, String ) (CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix)
 compositionIntoChecks =
     Dict.fromList
         [ ( ( [ "Basics" ], "always" ), basicsAlwaysCompositionChecks )
@@ -3651,18 +3658,18 @@ basicsAlwaysChecks checkInfo =
             Nothing
 
 
-basicsAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+basicsAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 basicsAlwaysCompositionChecks checkInfo =
     case checkInfo.later.args of
         _ :: [] ->
             Just
-                (Rule.errorWithFix
+                { info =
                     { message = "Function composed with always will be ignored"
                     , details = [ "`always` will swallow the function composed into it." ]
                     }
-                    checkInfo.later.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range })
-                )
+                , fix =
+                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
+                }
 
         _ ->
             Nothing
@@ -4206,7 +4213,7 @@ maybeMapChecks checkInfo =
         ()
 
 
-maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks checkInfo =
     pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
 
@@ -4224,7 +4231,7 @@ resultMapChecks checkInfo =
         ()
 
 
-resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapCompositionChecks checkInfo =
     pureToMapCompositionChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
 
@@ -4279,17 +4286,16 @@ resultMapErrorChecks checkInfo =
         ()
 
 
-resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapErrorCompositionChecks checkInfo =
     case checkInfo.later.args of
         (Node errorMappingArgRange _) :: _ ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Result" ], "Err" ), [] ) ->
                     Just
-                        (Rule.errorWithFix
-                            resultMapErrorOnErrErrorInfo
-                            checkInfo.later.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
+                        { info = resultMapErrorOnErrErrorInfo
+                        , fix =
+                            keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
                                 ++ [ case checkInfo.direction of
                                         LeftToRight ->
                                             Fix.insertAt checkInfo.parentRange.end
@@ -4299,16 +4305,14 @@ resultMapErrorCompositionChecks checkInfo =
                                             Fix.insertAt checkInfo.parentRange.start
                                                 (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
                                    ]
-                            )
-                        )
+                        }
 
                 ( ( [ "Result" ], "Ok" ), [] ) ->
                     Just
-                        (Rule.errorWithFix
-                            resultMapErrorOnOkErrorInfo
-                            checkInfo.later.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange })
-                        )
+                        { info = resultMapErrorOnOkErrorInfo
+                        , fix =
+                            keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange }
+                        }
 
                 _ ->
                     Nothing
@@ -4587,21 +4591,20 @@ listConcatMapChecks checkInfo =
         ()
 
 
-listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "List" ], "map" ), _ :: [] ) ->
             Just
-                (Rule.errorWithFix
+                { info =
                     { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ ""
                     , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                     }
-                    checkInfo.later.fnRange
-                    (Fix.replaceRangeBy checkInfo.earlier.fnRange
+                , fix =
+                    Fix.replaceRangeBy checkInfo.earlier.fnRange
                         (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
                         :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
-                    )
-                )
+                }
 
         _ ->
             Nothing
@@ -4941,7 +4944,7 @@ dictToListMapChecks listMapCheckInfo =
             Nothing
 
 
-listMapCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+listMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listMapCompositionChecks checkInfo =
     case
         ( ( checkInfo.earlier.fn, checkInfo.earlier.args )
@@ -4950,12 +4953,11 @@ listMapCompositionChecks checkInfo =
     of
         ( ( ( [ "Dict" ], "toList" ), [] ), elementMappingArg :: [] ) ->
             let
-                error : { toEntryAspectList : String, tuplePart : String } -> Error {}
+                error : { toEntryAspectList : String, tuplePart : String } -> ErrorInfoAndFix
                 error info =
-                    Rule.errorWithFix
-                        (dictToListMapErrorInfo info)
-                        checkInfo.later.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) checkInfo)) ]
+                    { info = dictToListMapErrorInfo info
+                    , fix = [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) checkInfo)) ]
+                    }
             in
             if AstHelpers.isTupleFirstAccess checkInfo.lookupTable elementMappingArg then
                 Just (error { tuplePart = "first", toEntryAspectList = "keys" })
@@ -5478,32 +5480,31 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                 ()
 
 
-listFoldlCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+listFoldlCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFoldlCompositionChecks checkInfo =
     foldAndSetToListCompositionChecks "foldl" checkInfo
 
 
-listFoldrCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+listFoldrCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFoldrCompositionChecks checkInfo =
     foldAndSetToListCompositionChecks "foldr" checkInfo
 
 
-foldAndSetToListCompositionChecks : String -> CompositionIntoCheckInfo -> Maybe (Error {})
+foldAndSetToListCompositionChecks : String -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 foldAndSetToListCompositionChecks foldOperationName checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Set" ], "toList" ), [] ) ->
             Just
-                (Rule.errorWithFix
+                { info =
                     { message = "To fold a set, you don't need to convert to a List"
                     , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
                     }
-                    checkInfo.later.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
+                , fix =
+                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
                         ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
                                 (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
                            ]
-                    )
-                )
+                }
 
         _ ->
             Nothing
@@ -5742,7 +5743,7 @@ collectJusts lookupTable list acc =
                     Nothing
 
 
-listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFilterMapCompositionChecks checkInfo =
     case checkInfo.later.args of
         elementToMaybeMappingArg :: [] ->
@@ -5750,17 +5751,16 @@ listFilterMapCompositionChecks checkInfo =
                 case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                     ( ( [ "List" ], "map" ), _ :: [] ) ->
                         Just
-                            (Rule.errorWithFix
+                            { info =
                                 -- TODO rework error info
                                 { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                                 , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                 }
-                                checkInfo.later.fnRange
-                                (Fix.replaceRangeBy checkInfo.earlier.fnRange
+                            , fix =
+                                Fix.replaceRangeBy checkInfo.earlier.fnRange
                                     (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
                                     :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
-                                )
-                            )
+                            }
 
                     _ ->
                         Nothing
@@ -6226,18 +6226,17 @@ setFromListSingletonError =
     }
 
 
-setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 setFromListCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "List" ], "singleton" ), [] ) ->
             Just
-                (Rule.errorWithFix
-                    setFromListSingletonError
-                    checkInfo.later.fnRange
+                { info = setFromListSingletonError
+                , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo))
                     ]
-                )
+                }
 
         _ ->
             Nothing
@@ -6639,13 +6638,12 @@ randomMapChecks checkInfo =
         ()
 
 
-randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
-    firstThatReportsError
+    findMap (\check -> check ())
         [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
-        ()
 
 
 randomMapAlwaysErrorInfo : { message : String, details : List String }
@@ -6704,18 +6702,17 @@ randomMapAlwaysChecks checkInfo =
             Nothing
 
 
-randomMapAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+randomMapAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapAlwaysCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
-                (Rule.errorWithFix
-                    randomMapAlwaysErrorInfo
-                    checkInfo.later.fnRange
+                { info = randomMapAlwaysErrorInfo
+                , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo))
                     ]
-                )
+                }
 
         _ ->
             Nothing
@@ -7103,7 +7100,7 @@ mapPureChecks mappable checkInfo =
 pureToMapCompositionChecks :
     { a | moduleName : ModuleName, pure : String, map : String }
     -> CompositionIntoCheckInfo
-    -> Maybe (Error {})
+    -> Maybe ErrorInfoAndFix
 pureToMapCompositionChecks mappable checkInfo =
     case
         ( checkInfo.earlier.fn == ( mappable.moduleName, mappable.pure )
@@ -7130,14 +7127,13 @@ pureToMapCompositionChecks mappable checkInfo =
                             ]
             in
             Just
-                (Rule.errorWithFix
+                { info =
                     -- TODO reword error info
                     { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
                     , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
                     }
-                    checkInfo.later.fnRange
-                    fixes
-                )
+                , fix = fixes
+                }
 
         _ ->
             Nothing
@@ -7404,7 +7400,7 @@ resultToMaybeChecks checkInfo =
         ()
 
 
-resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe (Error {})
+resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultToMaybeCompositionChecks checkInfo =
     let
         resultToMaybeFunctionRange : Range
@@ -7414,30 +7410,30 @@ resultToMaybeCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Result" ], "Err" ), [] ) ->
             Just
-                (Rule.errorWithFix
+                { info =
                     { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
                     , details = [ "You can replace this call by always Nothing." ]
                     }
-                    resultToMaybeFunctionRange
+                , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                             ++ " "
                             ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
                         )
                     ]
-                )
+                }
 
         ( ( [ "Result" ], "Ok" ), [] ) ->
             Just
-                (Rule.errorWithFix
+                { info =
                     { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on a value that is Ok will result in Just that value itself"
                     , details = [ "You can replace this call by Just." ]
                     }
-                    resultToMaybeFunctionRange
+                , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                     ]
-                )
+                }
 
         _ ->
             Nothing
