@@ -3587,22 +3587,6 @@ comparisonError bool checkInfo =
 
 
 
--- IF EXPRESSIONS
-
-
-targetIfKeyword : Range -> Range
-targetIfKeyword ifExpressionRange =
-    let
-        ifStart : Location
-        ifStart =
-            ifExpressionRange.start
-    in
-    { start = ifStart
-    , end = { ifStart | column = ifStart.column + 2 }
-    }
-
-
-
 -- BASICS
 
 
@@ -8222,6 +8206,18 @@ type alias IfCheckInfo =
     , condition : Node Expression
     , trueBranch : Node Expression
     , falseBranch : Node Expression
+    }
+
+
+targetIfKeyword : Range -> Range
+targetIfKeyword ifExpressionRange =
+    let
+        ifStart : Location
+        ifStart =
+            ifExpressionRange.start
+    in
+    { start = ifStart
+    , end = { ifStart | column = ifStart.column + 2 }
     }
 
 
