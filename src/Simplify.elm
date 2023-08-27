@@ -1663,7 +1663,7 @@ onlyMaybeError maybeError =
     }
 
 
-firstThatConstructsJust : List (a -> Maybe (Error {})) -> a -> Maybe (Error {})
+firstThatConstructsJust : List (a -> Maybe b) -> a -> Maybe b
 firstThatConstructsJust remainingChecks data =
     findMap (\checkFn -> checkFn data) remainingChecks
 
