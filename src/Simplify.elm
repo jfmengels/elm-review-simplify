@@ -6749,21 +6749,6 @@ randomMapAlwaysCompositionChecks checkInfo =
 --
 
 
-{-| Properties of a `Container` type that can be
-transformed (e.g. added to, removed from)
-and observed (e.g. checked for emptiness, size, member).
--}
-type alias Collection =
-    { moduleName : ModuleName
-    , represents : String
-    , emptyAsString : QualifyResources {} -> String
-    , emptyDescription : String
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    , nameForSize : String
-    , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-    }
-
-
 extractQualifyResources : QualifyResources a -> QualifyResources {}
 extractQualifyResources resources =
     { importLookup = resources.importLookup
@@ -6938,6 +6923,21 @@ type alias Defaultable =
     , emptyDescription : String
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     , isSomethingConstructor : QualifyResources {} -> String
+    }
+
+
+{-| Properties of a `Container` type that can be
+transformed (e.g. added to, removed from)
+and observed (e.g. checked for emptiness, size, member).
+-}
+type alias Collection =
+    { moduleName : ModuleName
+    , represents : String
+    , emptyAsString : QualifyResources {} -> String
+    , emptyDescription : String
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    , nameForSize : String
+    , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
     }
 
 
