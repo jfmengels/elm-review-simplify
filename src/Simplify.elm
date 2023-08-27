@@ -1663,9 +1663,7 @@ onlyMaybeError maybeError =
     }
 
 
-firstThatConstructsJust : List (a -> Maybe b) -> a -> Maybe b
-firstThatConstructsJust remainingChecks data =
-    findMap (\checkFn -> checkFn data) remainingChecks
+
 
 
 expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
@@ -9312,6 +9310,9 @@ findMap mapper nodes =
                 Nothing ->
                     findMap mapper rest
 
+firstThatConstructsJust : List (a -> Maybe b) -> a -> Maybe b
+firstThatConstructsJust remainingChecks data =
+    findMap (\checkFn -> checkFn data) remainingChecks
 
 findMapNeighboringAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
 findMapNeighboringAfter before tryMap list =
