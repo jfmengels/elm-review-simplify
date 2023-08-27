@@ -7400,11 +7400,6 @@ resultToMaybeChecks checkInfo =
 
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultToMaybeCompositionChecks checkInfo =
-    let
-        resultToMaybeFunctionRange : Range
-        resultToMaybeFunctionRange =
-            checkInfo.later.fnRange
-    in
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Result" ], "Err" ), [] ) ->
             Just
