@@ -6762,7 +6762,7 @@ emptyAsString qualifyResources emptiable =
     emptiable.emptyAsString (extractQualifyResources qualifyResources)
 
 
-listCollection : Collection
+listCollection : Collection {}
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -6774,7 +6774,7 @@ listCollection =
     }
 
 
-setCollection : Collection
+setCollection : Collection {}
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
@@ -6836,7 +6836,7 @@ setDetermineSize lookupTable expressionNode =
         ]
 
 
-dictCollection : Collection
+dictCollection : Collection {}
 dictCollection =
     { moduleName = [ "Dict" ]
     , represents = "Dict"
@@ -6905,24 +6905,26 @@ dictDetermineSize lookupTable expressionNode =
 
 {-| Properties of a type that can hold some data or none.
 -}
-type alias Container =
-    { moduleName : ModuleName
-    , represents : String
-    , emptyAsString : QualifyResources {} -> String
-    , emptyDescription : String
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+type alias Container otherProperties =
+    { otherProperties
+        | moduleName : ModuleName
+        , represents : String
+        , emptyAsString : QualifyResources {} -> String
+        , emptyDescription : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
 
 
 {-| Properties of a `Container` type with an explicit constructor for the "there is some data there" case.
 -}
-type alias Defaultable =
-    { moduleName : ModuleName
-    , represents : String
-    , emptyAsString : QualifyResources {} -> String
-    , emptyDescription : String
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    , isSomethingConstructor : QualifyResources {} -> String
+type alias Defaultable otherProperties =
+    { otherProperties
+        | moduleName : ModuleName
+        , represents : String
+        , emptyAsString : QualifyResources {} -> String
+        , emptyDescription : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+        , isSomethingConstructor : QualifyResources {} -> String
     }
 
 
@@ -6930,18 +6932,19 @@ type alias Defaultable =
 transformed (e.g. added to, removed from)
 and observed (e.g. checked for emptiness, size, member).
 -}
-type alias Collection =
-    { moduleName : ModuleName
-    , represents : String
-    , emptyAsString : QualifyResources {} -> String
-    , emptyDescription : String
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    , nameForSize : String
-    , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+type alias Collection otherProperties =
+    { otherProperties
+        | moduleName : ModuleName
+        , represents : String
+        , emptyAsString : QualifyResources {} -> String
+        , emptyDescription : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+        , nameForSize : String
+        , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
     }
 
 
-maybeCollection : Defaultable
+maybeCollection : Defaultable {}
 maybeCollection =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -6958,7 +6961,7 @@ maybeCollection =
     }
 
 
-resultCollection : Defaultable
+resultCollection : Defaultable {}
 resultCollection =
     { moduleName = [ "Result" ]
     , represents = "result"
@@ -6975,7 +6978,7 @@ resultCollection =
     }
 
 
-cmdCollection : Container
+cmdCollection : Container {}
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
@@ -6991,7 +6994,7 @@ cmdCollection =
     }
 
 
-subCollection : Container
+subCollection : Container {}
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
@@ -7646,7 +7649,7 @@ callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
         Nothing
 
 
-collectionFilterChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionFilterChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFilterChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -7696,7 +7699,7 @@ collectionFilterChecks collection checkInfo =
         ()
 
 
-collectionRemoveChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -7706,7 +7709,7 @@ collectionRemoveChecks collection checkInfo =
             Nothing
 
 
-collectionIntersectChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionIntersectChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -7727,7 +7730,7 @@ collectionIntersectChecks collection checkInfo =
         ()
 
 
-collectionDiffChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -7778,7 +7781,7 @@ collectionDiffChecks collection checkInfo =
         ()
 
 
-collectionUnionChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -7827,7 +7830,7 @@ collectionUnionChecks collection checkInfo =
         ()
 
 
-collectionInsertChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -7853,7 +7856,7 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -7877,7 +7880,7 @@ collectionMemberChecks collection checkInfo =
             Nothing
 
 
-collectionIsEmptyChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
@@ -7908,7 +7911,7 @@ collectionIsEmptyChecks collection checkInfo =
             Nothing
 
 
-collectionSizeChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionSizeChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly size) ->
@@ -7925,7 +7928,7 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-collectionFromListChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionFromListChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
     case AstHelpers.getListLiteral checkInfo.firstArg of
         Just [] ->
@@ -7947,7 +7950,7 @@ collectionFromListChecks collection checkInfo =
             Nothing
 
 
-collectionToListChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionToListChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionToListChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
@@ -7964,7 +7967,7 @@ collectionToListChecks collection checkInfo =
             Nothing
 
 
-collectionPartitionChecks : Collection -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection checkInfo =
     let
         collectionEmptyAsString : String
