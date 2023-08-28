@@ -1999,36 +1999,46 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -------------------
         -- RECORD ACCESS --
         -------------------
-        Expression.RecordAccess record field ->
+        Expression.RecordAccess record (Node fieldRange fieldName) ->
+            let
+                dotFieldRange : Range
+                dotFieldRange =
+                    { start = (Node.range record).end, end = fieldRange.end }
+
+                maybeErrorInfoAndFix : Maybe ErrorInfoAndFix
+                maybeErrorInfoAndFix =
+                    case Node.value (AstHelpers.removeParens record) of
+                        Expression.RecordExpr setters ->
+                            recordAccessChecks
+                                { nodeRange = expressionRange
+                                , maybeRecordNameRange = Nothing
+                                , fieldName = fieldName
+                                , setters = setters
+                                }
+
+                        Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
+                            recordAccessChecks
+                                { nodeRange = expressionRange
+                                , maybeRecordNameRange = Just recordNameRange
+                                , fieldName = fieldName
+                                , setters = setters
+                                }
+
+                        Expression.LetExpression letIn ->
+                            Just (injectRecordAccessIntoLetExpression dotFieldRange letIn.expression fieldName)
+
+                        Expression.IfBlock _ thenBranch elseBranch ->
+                            distributeFieldAccess "an if/then/else" dotFieldRange [ thenBranch, elseBranch ] fieldName
+
+                        Expression.CaseExpression caseOf ->
+                            distributeFieldAccess "a case/of" dotFieldRange (List.map Tuple.second caseOf.cases) fieldName
+
+                        _ ->
+                            Nothing
+            in
             onlyMaybeError
-                (case Node.value (AstHelpers.removeParens record) of
-                    Expression.RecordExpr setters ->
-                        recordAccessChecks
-                            { nodeRange = expressionRange
-                            , maybeRecordNameRange = Nothing
-                            , fieldName = Node.value field
-                            , setters = setters
-                            }
-
-                    Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                        recordAccessChecks
-                            { nodeRange = expressionRange
-                            , maybeRecordNameRange = Just recordNameRange
-                            , fieldName = Node.value field
-                            , setters = setters
-                            }
-
-                    Expression.LetExpression letIn ->
-                        Just (injectRecordAccessIntoLetExpression (Node.range record) letIn.expression field)
-
-                    Expression.IfBlock _ thenBranch elseBranch ->
-                        distributeFieldAccess "an if/then/else" (Node.range record) [ thenBranch, elseBranch ] field
-
-                    Expression.CaseExpression caseOf ->
-                        distributeFieldAccess "a case/of" (Node.range record) (List.map Tuple.second caseOf.cases) field
-
-                    _ ->
-                        Nothing
+                (maybeErrorInfoAndFix
+                    |> Maybe.map (\e -> Rule.errorWithFix e.info dotFieldRange e.fix)
                 )
 
         --------
@@ -8664,7 +8674,7 @@ recordAccessChecks :
     , fieldName : String
     , setters : List (Node Expression.RecordSetter)
     }
-    -> Maybe (Error {})
+    -> Maybe ErrorInfoAndFix
 recordAccessChecks checkInfo =
     let
         maybeMatchingSetterValue : Maybe (Node Expression)
@@ -8682,71 +8692,59 @@ recordAccessChecks checkInfo =
     case maybeMatchingSetterValue of
         Just setter ->
             Just
-                (Rule.errorWithFix
+                { info =
                     { message = "Field access can be simplified"
                     , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
                     }
-                    checkInfo.nodeRange
-                    (replaceBySubExpressionFix checkInfo.nodeRange setter)
-                )
+                , fix = replaceBySubExpressionFix checkInfo.nodeRange setter
+                }
 
         Nothing ->
             case checkInfo.maybeRecordNameRange of
                 Just recordNameRange ->
                     Just
-                        (Rule.errorWithFix
+                        { info =
                             { message = "Field access can be simplified"
                             , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
                             }
-                            checkInfo.nodeRange
+                        , fix =
                             [ Fix.replaceRangeBy { start = checkInfo.nodeRange.start, end = recordNameRange.start } ""
                             , Fix.replaceRangeBy { start = recordNameRange.end, end = checkInfo.nodeRange.end } ("." ++ checkInfo.fieldName)
                             ]
-                        )
+                        }
 
                 Nothing ->
                     Nothing
 
 
-distributeFieldAccess : String -> Range -> List (Node Expression) -> Node String -> Maybe (Error {})
-distributeFieldAccess kind recordRange branches (Node fieldRange fieldName) =
+distributeFieldAccess : String -> Range -> List (Node Expression) -> String -> Maybe ErrorInfoAndFix
+distributeFieldAccess kind dotFieldRange branches fieldName =
     case recordLeavesRanges branches of
         Just records ->
             Just
-                (let
-                    fieldAccessRange : Range
-                    fieldAccessRange =
-                        { start = recordRange.end, end = fieldRange.end }
-                 in
-                 Rule.errorWithFix
+                { info =
                     { message = "Field access can be simplified"
                     , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
                     }
-                    fieldAccessRange
-                    (Fix.removeRange fieldAccessRange
+                , fix =
+                    Fix.removeRange dotFieldRange
                         :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
-                    )
-                )
+                }
 
         Nothing ->
             Nothing
 
 
-injectRecordAccessIntoLetExpression : Range -> Node Expression -> Node String -> Error {}
-injectRecordAccessIntoLetExpression recordRange letBody (Node fieldRange fieldName) =
-    let
-        removalRange : Range
-        removalRange =
-            { start = recordRange.end, end = fieldRange.end }
-    in
-    Rule.errorWithFix
+injectRecordAccessIntoLetExpression : Range -> Node Expression -> String -> ErrorInfoAndFix
+injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
+    { info =
         { message = "Field access can be simplified"
         , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
         }
-        removalRange
-        (Fix.removeRange removalRange
+    , fix =
+        Fix.removeRange dotFieldRange
             :: replaceSubExpressionByRecordAccessFix fieldName letBody
-        )
+    }
 
 
 recordLeavesRanges : List (Node Expression) -> Maybe (List Range)
