@@ -8749,37 +8749,25 @@ injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
 
 returnsRecordInAllBranches : List (Node Expression) -> Maybe (List (Node Expression))
 returnsRecordInAllBranches nodes =
-    returnsRecordInAllBranchesHelp nodes []
+    case Match.traverse (sameInAllBranches getRecordLeafExpression) nodes of
+        Match.Determined leaves ->
+            Just (List.concat leaves)
+
+        Match.Undetermined ->
+            Nothing
 
 
-returnsRecordInAllBranchesHelp : List (Node Expression) -> List (Node Expression) -> Maybe (List (Node Expression))
-returnsRecordInAllBranchesHelp nodes foundRanges =
-    case nodes of
-        [] ->
-            Just foundRanges
+getRecordLeafExpression : Node Expression -> Maybe (Node Expression)
+getRecordLeafExpression expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.RecordExpr _ ->
+            Just expressionNode
 
-        node :: rest ->
-            case Node.value node of
-                Expression.IfBlock _ thenBranch elseBranch ->
-                    returnsRecordInAllBranchesHelp (thenBranch :: elseBranch :: rest) foundRanges
+        Expression.RecordUpdateExpression _ _ ->
+            Just expressionNode
 
-                Expression.LetExpression letIn ->
-                    returnsRecordInAllBranchesHelp (letIn.expression :: rest) foundRanges
-
-                Expression.ParenthesizedExpression child ->
-                    returnsRecordInAllBranchesHelp (child :: rest) foundRanges
-
-                Expression.CaseExpression caseOf ->
-                    returnsRecordInAllBranchesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
-
-                Expression.RecordExpr _ ->
-                    returnsRecordInAllBranchesHelp rest (node :: foundRanges)
-
-                Expression.RecordUpdateExpression _ _ ->
-                    returnsRecordInAllBranchesHelp rest (node :: foundRanges)
-
-                _ ->
-                    Nothing
+        _ ->
+            Nothing
 
 
 
