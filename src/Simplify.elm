@@ -8719,7 +8719,7 @@ recordAccessChecks checkInfo =
 
 distributeFieldAccess : String -> Range -> List (Node Expression) -> String -> Maybe ErrorInfoAndFix
 distributeFieldAccess kind dotFieldRange branches fieldName =
-    case recordLeavesRanges branches of
+    case returnsRecordInAllBranches branches of
         Just records ->
             Just
                 { info =
@@ -8728,7 +8728,7 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
                     }
                 , fix =
                     Fix.removeRange dotFieldRange
-                        :: List.map (\(Node leafRange _) -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
+                        :: List.concatMap (\leaf -> replaceSubExpressionByRecordAccessFix fieldName leaf) records
                 }
 
         Nothing ->
@@ -8747,13 +8747,13 @@ injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
     }
 
 
-recordLeavesRanges : List (Node Expression) -> Maybe (List (Node Expression))
-recordLeavesRanges nodes =
-    recordLeavesRangesHelp nodes []
+returnsRecordInAllBranches : List (Node Expression) -> Maybe (List (Node Expression))
+returnsRecordInAllBranches nodes =
+    returnsRecordInAllBranchesHelp nodes []
 
 
-recordLeavesRangesHelp : List (Node Expression) -> List (Node Expression) -> Maybe (List (Node Expression))
-recordLeavesRangesHelp nodes foundRanges =
+returnsRecordInAllBranchesHelp : List (Node Expression) -> List (Node Expression) -> Maybe (List (Node Expression))
+returnsRecordInAllBranchesHelp nodes foundRanges =
     case nodes of
         [] ->
             Just foundRanges
@@ -8761,22 +8761,22 @@ recordLeavesRangesHelp nodes foundRanges =
         node :: rest ->
             case Node.value node of
                 Expression.IfBlock _ thenBranch elseBranch ->
-                    recordLeavesRangesHelp (thenBranch :: elseBranch :: rest) foundRanges
+                    returnsRecordInAllBranchesHelp (thenBranch :: elseBranch :: rest) foundRanges
 
                 Expression.LetExpression letIn ->
-                    recordLeavesRangesHelp (letIn.expression :: rest) foundRanges
+                    returnsRecordInAllBranchesHelp (letIn.expression :: rest) foundRanges
 
                 Expression.ParenthesizedExpression child ->
-                    recordLeavesRangesHelp (child :: rest) foundRanges
+                    returnsRecordInAllBranchesHelp (child :: rest) foundRanges
 
                 Expression.CaseExpression caseOf ->
-                    recordLeavesRangesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
+                    returnsRecordInAllBranchesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
 
                 Expression.RecordExpr _ ->
-                    recordLeavesRangesHelp rest (node :: foundRanges)
+                    returnsRecordInAllBranchesHelp rest (node :: foundRanges)
 
                 Expression.RecordUpdateExpression _ _ ->
-                    recordLeavesRangesHelp rest (node :: foundRanges)
+                    returnsRecordInAllBranchesHelp rest (node :: foundRanges)
 
                 _ ->
                     Nothing
