@@ -8728,7 +8728,7 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
                     }
                 , fix =
                     Fix.removeRange dotFieldRange
-                        :: List.map (\leafRange -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
+                        :: List.map (\(Node leafRange _) -> Fix.insertAt leafRange.end ("." ++ fieldName)) records
                 }
 
         Nothing ->
@@ -8747,19 +8747,19 @@ injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
     }
 
 
-recordLeavesRanges : List (Node Expression) -> Maybe (List Range)
+recordLeavesRanges : List (Node Expression) -> Maybe (List (Node Expression))
 recordLeavesRanges nodes =
     recordLeavesRangesHelp nodes []
 
 
-recordLeavesRangesHelp : List (Node Expression) -> List Range -> Maybe (List Range)
+recordLeavesRangesHelp : List (Node Expression) -> List (Node Expression) -> Maybe (List (Node Expression))
 recordLeavesRangesHelp nodes foundRanges =
     case nodes of
         [] ->
             Just foundRanges
 
-        (Node range expr) :: rest ->
-            case expr of
+        node :: rest ->
+            case Node.value node of
                 Expression.IfBlock _ thenBranch elseBranch ->
                     recordLeavesRangesHelp (thenBranch :: elseBranch :: rest) foundRanges
 
@@ -8773,10 +8773,10 @@ recordLeavesRangesHelp nodes foundRanges =
                     recordLeavesRangesHelp (List.map Tuple.second caseOf.cases ++ rest) foundRanges
 
                 Expression.RecordExpr _ ->
-                    recordLeavesRangesHelp rest (range :: foundRanges)
+                    recordLeavesRangesHelp rest (node :: foundRanges)
 
                 Expression.RecordUpdateExpression _ _ ->
-                    recordLeavesRangesHelp rest (range :: foundRanges)
+                    recordLeavesRangesHelp rest (node :: foundRanges)
 
                 _ ->
                     Nothing
