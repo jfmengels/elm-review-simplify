@@ -1663,9 +1663,6 @@ onlyMaybeError maybeError =
     }
 
 
-
-
-
 expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp (Node expressionRange expression) config context =
     let
@@ -3104,10 +3101,10 @@ notOnKnownBoolCheck checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Expression is equal to " ++ notBoolAsString
-                    , details = [ "You can replace the call to `not` by the boolean value directly." ]
+                    { message = "Using not on a bool known to be " ++ AstHelpers.boolToString bool ++ " can be replaced by " ++ notBoolAsString
+                    , details = [ "You can replace this call by " ++ notBoolAsString ++ "." ]
                     }
-                    checkInfo.parentRange
+                    checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( [ "Basics" ], notBoolAsString ) checkInfo))
                     ]
@@ -9308,9 +9305,11 @@ findMap mapper nodes =
                 Nothing ->
                     findMap mapper rest
 
+
 firstThatConstructsJust : List (a -> Maybe b) -> a -> Maybe b
 firstThatConstructsJust remainingChecks data =
     findMap (\checkFn -> checkFn data) remainingChecks
+
 
 findMapNeighboringAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
 findMapNeighboringAfter before tryMap list =

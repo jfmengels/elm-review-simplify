@@ -1416,9 +1416,9 @@ a = not True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to False"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not True"
+                            { message = "Using not on a bool known to be True can be replaced by False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
@@ -1432,9 +1432,9 @@ a = not False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to True"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not False"
+                            { message = "Using not on a bool known to be False can be replaced by True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = True
@@ -1448,9 +1448,9 @@ a = not (True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to False"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not (True)"
+                            { message = "Using not on a bool known to be True can be replaced by False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
@@ -1464,9 +1464,9 @@ a = not <| True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to False"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not <| True"
+                            { message = "Using not on a bool known to be True can be replaced by False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
@@ -1480,9 +1480,9 @@ a = True |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to False"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "True |> not"
+                            { message = "Using not on a bool known to be True can be replaced by False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
@@ -4140,9 +4140,9 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to False"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not x"
+                            { message = "Using not on a bool known to be True can be replaced by False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
@@ -4198,9 +4198,9 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to True"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not x"
+                            { message = "Using not on a bool known to be False can be replaced by True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
@@ -4878,9 +4878,9 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression is equal to True"
-                            , details = [ "You can replace the call to `not` by the boolean value directly." ]
-                            , under = "not a"
+                            { message = "Using not on a bool known to be False can be replaced by True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
