@@ -6975,12 +6975,12 @@ cmdCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
     , emptyDescription =
-        -- TODO change to qualifiedToString ( [ "Platform", "Cmd" ], "none" )
         "Cmd.none"
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
-    , batchDescription = "Cmd.batch"
+    , batchDescription =
+        "Cmd.batch"
     }
 
 
@@ -6992,7 +6992,6 @@ subCollection =
         \resources ->
             qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
     , emptyDescription =
-        -- TODO change to qualifiedToString ( [ "Platform", "Sub" ], "none" )
         "Sub.none"
     , isEmpty =
         \lookupTable expr ->
