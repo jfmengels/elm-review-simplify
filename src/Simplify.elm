@@ -7002,13 +7002,7 @@ subCollection =
 
 
 containerMapChecks :
-    { a
-        | moduleName : ModuleName
-        , represents : String
-        , emptyDescription : String
-        , emptyAsString : QualifyResources {} -> String
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    }
+    Container otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 containerMapChecks collection checkInfo =
