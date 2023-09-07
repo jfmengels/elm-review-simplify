@@ -3855,7 +3855,7 @@ stringSliceChecks checkInfo =
                 , details = [ "You can replace this call by an empty string." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                (alwaysResultsInFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
     in
     firstThatConstructsJust
         [ \() ->
@@ -3895,7 +3895,7 @@ stringSliceChecks checkInfo =
                                                             , details = [ "You can replace this call by an empty string." ]
                                                             }
                                                             checkInfo.fnRange
-                                                            (replaceByEmptyFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
+                                                            (alwaysResultsInFix emptyStringAsString checkInfo.parentRange (thirdArg checkInfo) checkInfo)
                                                         )
 
                                                 _ ->
@@ -3995,7 +3995,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
                 , details = [ "You can replace this call by " ++ config.replacementDescription ++ "." ]
                 }
                 checkInfo.fnRange
-                (replaceByEmptyFix config.replacement checkInfo.parentRange config.lastArg checkInfo)
+                (alwaysResultsInFix config.replacement checkInfo.parentRange config.lastArg checkInfo)
             )
 
     else
@@ -4543,7 +4543,7 @@ listConcatMapChecks checkInfo =
                                     , details = [ "You can replace this call by an empty list." ]
                                     }
                                     checkInfo.fnRange
-                                    (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                                    (alwaysResultsInFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
                                 )
 
                         _ ->
@@ -5367,7 +5367,7 @@ listFoldAnyDirectionChecks checkInfo =
                             , details = [ "You can replace this call by " ++ determiningAsString ++ "." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix (qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) checkInfo))
+                            (alwaysResultsInFix (qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) checkInfo))
                                 checkInfo.parentRange
                                 (thirdArg checkInfo)
                                 checkInfo
@@ -5668,7 +5668,7 @@ listFilterMapChecks checkInfo =
                             , details = [ "You can remove this call and replace it by an empty list." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                            (alwaysResultsInFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
                         )
 
                 Undetermined ->
@@ -5800,7 +5800,7 @@ listRangeChecks checkInfo =
                                 , details = [ "The second argument to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " is bigger than the first one, therefore you can replace this list by an empty list." ]
                                 }
                                 checkInfo.fnRange
-                                (replaceByEmptyFix "[]" checkInfo.parentRange (Just rangeEndValue) checkInfo)
+                                (alwaysResultsInFix "[]" checkInfo.parentRange (Just rangeEndValue) checkInfo)
                             )
 
                     else
@@ -5827,7 +5827,7 @@ listRepeatChecks checkInfo =
                         , details = [ "Using " ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                        (alwaysResultsInFix "[]" checkInfo.parentRange (secondArg checkInfo) checkInfo)
                     )
 
             else
@@ -7242,7 +7242,7 @@ maybeAndThenChecks checkInfo =
                             , details = [ "You can remove this call and replace it by Nothing." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix maybeEmptyAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
+                            (alwaysResultsInFix maybeEmptyAsString checkInfo.parentRange (secondArg checkInfo) checkInfo)
                         )
 
                 Undetermined ->
@@ -7659,7 +7659,7 @@ containerFilterChecks container checkInfo =
                             , details = [ "You can remove this call and replace it by " ++ containerEmptyAsString ++ "." ]
                             }
                             checkInfo.fnRange
-                            (replaceByEmptyFix containerEmptyAsString checkInfo.parentRange maybeContainerArg checkInfo)
+                            (alwaysResultsInFix containerEmptyAsString checkInfo.parentRange maybeContainerArg checkInfo)
                         )
 
                 Undetermined ->
@@ -7707,7 +7707,7 @@ collectionDiffChecks collection checkInfo =
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (replaceByEmptyFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
+                        (alwaysResultsInFix collectionEmptyAsString checkInfo.parentRange maybeCollectionArg checkInfo)
                     )
 
             else
@@ -8879,17 +8879,17 @@ rightBoundaryRange range =
     }
 
 
-replaceByEmptyFix : String -> Range -> Maybe a -> QualifyResources b -> List Fix
-replaceByEmptyFix empty parentRange lastArg qualifyResources =
+alwaysResultsInFix : String -> Range -> Maybe a -> QualifyResources b -> List Fix
+alwaysResultsInFix constantReplacement parentRange lastArg qualifyResources =
     [ case lastArg of
         Just _ ->
-            Fix.replaceRangeBy parentRange empty
+            Fix.replaceRangeBy parentRange constantReplacement
 
         Nothing ->
             Fix.replaceRangeBy parentRange
                 (qualifiedToString (qualify ( [ "Basics" ], "always" ) qualifyResources)
                     ++ " "
-                    ++ empty
+                    ++ constantReplacement
                 )
     ]
 
