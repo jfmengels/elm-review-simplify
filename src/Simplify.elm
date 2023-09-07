@@ -5497,27 +5497,27 @@ listFoldAnyDirectionChecks checkInfo =
 
 listFoldlCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFoldlCompositionChecks checkInfo =
-    foldAndSetToListCompositionChecks "foldl" checkInfo
+    foldAndSetToListCompositionChecks checkInfo
 
 
 listFoldrCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFoldrCompositionChecks checkInfo =
-    foldAndSetToListCompositionChecks "foldr" checkInfo
+    foldAndSetToListCompositionChecks checkInfo
 
 
-foldAndSetToListCompositionChecks : String -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-foldAndSetToListCompositionChecks foldOperationName checkInfo =
+foldAndSetToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+foldAndSetToListCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Set" ], "toList" ), [] ) ->
             Just
                 { info =
                     { message = "To fold a set, you don't need to convert to a List"
-                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], checkInfo.later.fnName ) ++ " directly is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
                     keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
                         ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
-                                (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
+                                (qualifiedToString (qualify ( [ "Set" ], checkInfo.later.fnName ) checkInfo))
                            ]
                 }
 
