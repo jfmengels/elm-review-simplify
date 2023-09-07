@@ -5705,7 +5705,7 @@ listFilterMapChecks checkInfo =
                                     , \() ->
                                         case listArg of
                                             Node listRange (Expression.ListExpr list) ->
-                                                case collectJusts checkInfo.lookupTable list [] of
+                                                case collectJusts checkInfo.lookupTable list of
                                                     Just justRanges ->
                                                         Just
                                                             (Rule.errorWithFix
@@ -5737,19 +5737,18 @@ listFilterMapChecks checkInfo =
         ()
 
 
-collectJusts : ModuleNameLookupTable -> List (Node Expression) -> List Range -> Maybe (List Range)
-collectJusts lookupTable list acc =
-    case list of
-        [] ->
-            Just acc
-
-        element :: restOfList ->
+collectJusts : ModuleNameLookupTable -> List (Node Expression) -> Maybe (List Range)
+collectJusts lookupTable list =
+    traverse
+        (\element ->
             case AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable element of
                 Just justCall ->
-                    collectJusts lookupTable restOfList ({ start = justCall.fnRange.start, end = (Node.range justCall.firstArg).start } :: acc)
+                    { start = justCall.fnRange.start, end = (Node.range justCall.firstArg).start } |> Just
 
                 Nothing ->
                     Nothing
+        )
+        list
 
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
