@@ -7004,12 +7004,9 @@ containerMapChecks collection checkInfo =
     firstThatConstructsJust
         [ \() -> containerMapIdentityChecks collection checkInfo
         , \() ->
-            case secondArg checkInfo of
-                Just collectionArg ->
-                    callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo
-
-                Nothing ->
-                    Nothing
+            Maybe.andThen
+                (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
+                (secondArg checkInfo)
         ]
         ()
 
@@ -7631,12 +7628,9 @@ containerFilterChecks container checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            case maybeContainerArg of
-                Just containerArg ->
-                    callOnEmptyReturnsEmptyCheck containerArg container checkInfo
-
-                Nothing ->
-                    Nothing
+            Maybe.andThen
+                (\containerArg -> callOnEmptyReturnsEmptyCheck containerArg container checkInfo)
+                maybeContainerArg
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
@@ -7674,31 +7668,19 @@ containerFilterChecks container checkInfo =
 
 collectionRemoveChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
-    case secondArg checkInfo of
-        Just collectionArg ->
-            callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo
-
-        Nothing ->
-            Nothing
+    Maybe.andThen
+        (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
+        (secondArg checkInfo)
 
 
 collectionIntersectChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection checkInfo =
-    let
-        maybeCollectionArg : Maybe (Node Expression)
-        maybeCollectionArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
+        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
         , \() ->
-            case maybeCollectionArg of
-                Just collectionArg ->
-                    callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo
-
-                Nothing ->
-                    Nothing
+            Maybe.andThen
+                (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
+                (secondArg checkInfo)
         ]
         ()
 
