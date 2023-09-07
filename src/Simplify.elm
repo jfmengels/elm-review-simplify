@@ -7647,18 +7647,13 @@ containerFilterChecks container checkInfo =
                         )
 
                 Determined False ->
-                    let
-                        containerEmptyAsString : String
-                        containerEmptyAsString =
-                            emptyAsString checkInfo container
-                    in
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ containerEmptyAsString
-                            , details = [ "You can remove this call and replace it by " ++ containerEmptyAsString ++ "." ]
+                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ container.emptyDescription
+                            , details = [ "You can remove this call and replace it by " ++ container.emptyDescription ++ "." ]
                             }
                             checkInfo.fnRange
-                            (alwaysResultsInFix containerEmptyAsString maybeContainerArg checkInfo)
+                            (alwaysResultsInFix (emptyAsString checkInfo container) maybeContainerArg checkInfo)
                         )
 
                 Undetermined ->
