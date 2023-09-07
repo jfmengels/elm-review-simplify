@@ -5263,16 +5263,16 @@ listMaximumChecks checkInfo =
 
 listFoldlChecks : CheckInfo -> Maybe (Error {})
 listFoldlChecks checkInfo =
-    listFoldAnyDirectionChecks "foldl" checkInfo
+    listFoldAnyDirectionChecks checkInfo
 
 
 listFoldrChecks : CheckInfo -> Maybe (Error {})
 listFoldrChecks checkInfo =
-    listFoldAnyDirectionChecks "foldr" checkInfo
+    listFoldAnyDirectionChecks checkInfo
 
 
-listFoldAnyDirectionChecks : String -> CheckInfo -> Maybe (Error {})
-listFoldAnyDirectionChecks foldOperationName checkInfo =
+listFoldAnyDirectionChecks : CheckInfo -> Maybe (Error {})
+listFoldAnyDirectionChecks checkInfo =
     case secondArg checkInfo of
         Nothing ->
             Nothing
@@ -5296,7 +5296,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             Rule.errorWithFix
                                 { message = "Use " ++ replacementOperationAsString ++ " instead"
                                 , details =
-                                    [ "Using " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
+                                    [ "Using " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 fixes
@@ -5361,7 +5361,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 AstHelpers.boolToString operation.determining
                         in
                         Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in " ++ determiningAsString
+                            { message = "The call to " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " will result in " ++ determiningAsString
                             , details = [ "You can replace this call by " ++ determiningAsString ++ "." ]
                             }
                             checkInfo.fnRange
@@ -5380,7 +5380,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                         in
                         Rule.errorWithFix
                             { message = "Use " ++ replacementOperationAsString ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
+                            , details = [ "Using " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
@@ -5400,12 +5400,12 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                     Just
                                         (Rule.errorWithFix
                                             { message = "To fold a set, you don't need to convert to a List"
-                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], foldOperationName ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], checkInfo.fnName ) ++ " directly is meant for this exact purpose and will also be faster." ]
                                             }
                                             checkInfo.fnRange
                                             (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
                                                 ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                        (qualifiedToString (qualify ( [ "Set" ], foldOperationName ) checkInfo))
+                                                        (qualifiedToString (qualify ( [ "Set" ], checkInfo.fnName ) checkInfo))
                                                    ]
                                             )
                                         )
@@ -5422,7 +5422,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                                 Just [] ->
                                     Just
                                         (Rule.errorWithFix
-                                            { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
+                                            { message = "The call to " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " will result in the initial accumulator"
                                             , details = [ "You can replace this call by the initial accumulator." ]
                                             }
                                             checkInfo.fnRange
@@ -5440,7 +5440,7 @@ listFoldAnyDirectionChecks foldOperationName checkInfo =
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "The call to " ++ qualifiedToString ( [ "List" ], foldOperationName ) ++ " will result in the initial accumulator"
+                                        { message = "The call to " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " will result in the initial accumulator"
                                         , details = [ "You can replace this call by the initial accumulator." ]
                                         }
                                         checkInfo.fnRange
