@@ -5743,17 +5743,12 @@ collectJusts lookupTable list acc =
         [] ->
             Just acc
 
-        (Node _ element) :: restOfList ->
-            case element of
-                Expression.Application ((Node justRange (Expression.FunctionOrValue _ "Just")) :: (Node justArgRange _) :: []) ->
-                    case ModuleNameLookupTable.moduleNameAt lookupTable justRange of
-                        Just [ "Maybe" ] ->
-                            collectJusts lookupTable restOfList ({ start = justRange.start, end = justArgRange.start } :: acc)
+        element :: restOfList ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable element of
+                Just justCall ->
+                    collectJusts lookupTable restOfList ({ start = justCall.fnRange.start, end = (Node.range justCall.firstArg).start } :: acc)
 
-                        _ ->
-                            Nothing
-
-                _ ->
+                Nothing ->
                     Nothing
 
 
