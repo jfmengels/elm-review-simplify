@@ -7006,7 +7006,7 @@ containerMapChecks collection checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    callOnEmptyReturnsEmptyCheck "map" collectionArg collection checkInfo
+                    callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo
 
                 Nothing ->
                     Nothing
@@ -7598,8 +7598,7 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 
 
 callOnEmptyReturnsEmptyCheck :
-    String
-    -> Node Expression
+    Node Expression
     ->
         { a
             | moduleName : ModuleName
@@ -7608,12 +7607,12 @@ callOnEmptyReturnsEmptyCheck :
         }
     -> CheckInfo
     -> Maybe (Error {})
-callOnEmptyReturnsEmptyCheck fnName collectionArg collection checkInfo =
+callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo =
     if collection.isEmpty checkInfo.lookupTable collectionArg then
         Just
             (Rule.errorWithFix
                 (operationDoesNotChangeSpecificLastArgErrorInfo
-                    { fn = ( collection.moduleName, fnName ), replacementDescription = collection.emptyDescription }
+                    { fn = ( collection.moduleName, checkInfo.fnName ), replacementDescription = collection.emptyDescription }
                 )
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
@@ -7634,7 +7633,7 @@ containerFilterChecks container checkInfo =
         [ \() ->
             case maybeContainerArg of
                 Just containerArg ->
-                    callOnEmptyReturnsEmptyCheck "filter" containerArg container checkInfo
+                    callOnEmptyReturnsEmptyCheck containerArg container checkInfo
 
                 Nothing ->
                     Nothing
@@ -7677,7 +7676,7 @@ collectionRemoveChecks : Collection otherProperties -> CheckInfo -> Maybe (Error
 collectionRemoveChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            callOnEmptyReturnsEmptyCheck "remove" collectionArg collection checkInfo
+            callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo
 
         Nothing ->
             Nothing
@@ -7692,11 +7691,11 @@ collectionIntersectChecks collection checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsEmptyCheck "intersect" checkInfo.firstArg collection checkInfo
+            callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
         , \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    callOnEmptyReturnsEmptyCheck "intersect" collectionArg collection checkInfo
+                    callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo
 
                 Nothing ->
                     Nothing
