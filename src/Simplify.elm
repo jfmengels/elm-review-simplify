@@ -2387,6 +2387,7 @@ compositionChecks =
                                     , parentRange = checkInfo.parentRange
                                     , later =
                                         { range = laterFnOrCall.nodeRange
+                                        , fnName = laterFnOrCall.fnName
                                         , fnRange = laterFnOrCall.fnRange
                                         , args = laterFnOrCall.args
                                         }
@@ -2425,6 +2426,7 @@ type alias CompositionIntoCheckInfo =
     , parentRange : Range
     , later :
         { range : Range
+        , fnName : String
         , fnRange : Range
         , args : List (Node Expression)
         }
