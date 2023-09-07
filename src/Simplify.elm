@@ -1668,6 +1668,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
     let
         toCheckInfo :
             { fnRange : Range
+            , fnName : String
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
             , usingRightPizza : Bool
@@ -1684,6 +1685,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , inferredConstants = context.inferredConstants
             , parentRange = expressionRange
             , fnRange = checkInfo.fnRange
+            , fnName = checkInfo.fnName
             , firstArg = checkInfo.firstArg
             , argsAfterFirst = checkInfo.argsAfterFirst
             , secondArg = List.head checkInfo.argsAfterFirst
@@ -1724,6 +1726,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
+                                                , fnName = fnName
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsAfterFirst
                                                 , usingRightPizza = False
@@ -1778,6 +1781,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
+                                                , fnName = fnName
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
                                                 , usingRightPizza = False
@@ -1800,6 +1804,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
+                                                , fnName = fnName
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                                 , usingRightPizza = False
@@ -1840,6 +1845,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
+                                                , fnName = fnName
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
                                                 , usingRightPizza = True
@@ -1862,6 +1868,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
+                                                , fnName = fnName
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                                 , usingRightPizza = True
@@ -2175,6 +2182,7 @@ type alias CheckInfo =
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
+    , fnName : String
     , usingRightPizza : Bool
     , firstArg : Node Expression
     , argsAfterFirst : List (Node Expression)
