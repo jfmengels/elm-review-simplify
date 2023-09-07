@@ -6257,19 +6257,32 @@ setFromListCompositionChecks checkInfo =
 
 
 subAndCmdBatchChecks : String -> CheckInfo -> Maybe (Error {})
-subAndCmdBatchChecks moduleName checkInfo =
+subAndCmdBatchChecks moduleAlias checkInfo =
+    let
+        moduleName : ModuleName
+        moduleName =
+            [ "Platform", moduleAlias ]
+
+        noneDescription : String
+        noneDescription =
+            moduleAlias ++ ".none"
+
+        batchDescription : String
+        batchDescription =
+            moduleAlias ++ ".batch"
+    in
     firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Replace by " ++ moduleName ++ ".batch"
-                            , details = [ moduleName ++ ".batch [] and " ++ moduleName ++ ".none are equivalent but the latter is more idiomatic in Elm code" ]
+                            { message = "Replace by " ++ batchDescription
+                            , details = [ batchDescription ++ " [] and " ++ noneDescription ++ " are equivalent but the latter is more idiomatic in Elm code" ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
+                                (qualifiedToString (qualify ( moduleName, "none" ) checkInfo))
                             ]
                         )
 
@@ -6278,7 +6291,7 @@ subAndCmdBatchChecks moduleName checkInfo =
                         (\arg ->
                             case AstHelpers.removeParens arg.current of
                                 Node batchRange (Expression.FunctionOrValue _ "none") ->
-                                    if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just [ "Platform", moduleName ] then
+                                    if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just moduleName then
                                         let
                                             argRange : Range
                                             argRange =
@@ -6286,8 +6299,8 @@ subAndCmdBatchChecks moduleName checkInfo =
                                         in
                                         Just
                                             (Rule.errorWithFix
-                                                { message = "Unnecessary " ++ moduleName ++ ".none"
-                                                , details = [ moduleName ++ ".none will be ignored by " ++ moduleName ++ ".batch." ]
+                                                { message = "Unnecessary " ++ noneDescription
+                                                , details = [ noneDescription ++ " will be ignored by " ++ batchDescription ++ "." ]
                                                 }
                                                 argRange
                                                 (case arg.before of
@@ -6301,7 +6314,7 @@ subAndCmdBatchChecks moduleName checkInfo =
 
                                                             Nothing ->
                                                                 [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                    (qualifiedToString (qualify ( [ "Platform", moduleName ], "none" ) checkInfo))
+                                                                    (qualifiedToString (qualify ( moduleName, "none" ) checkInfo))
                                                                 ]
                                                 )
                                             )
@@ -6322,8 +6335,8 @@ subAndCmdBatchChecks moduleName checkInfo =
                 Just listSingletonArg ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Unnecessary " ++ moduleName ++ ".batch"
-                            , details = [ moduleName ++ ".batch with a single element is equal to that element." ]
+                            { message = "Unnecessary " ++ batchDescription
+                            , details = [ batchDescription ++ " with a single element is equal to that element." ]
                             }
                             checkInfo.fnRange
                             (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
