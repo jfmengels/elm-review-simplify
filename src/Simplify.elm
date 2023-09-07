@@ -2293,9 +2293,9 @@ functionCallChecks =
         , ( ( [ "String" ], "slice" ), stringSliceChecks )
         , ( ( [ "String" ], "left" ), stringLeftChecks )
         , ( ( [ "String" ], "right" ), stringRightChecks )
-        , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks "Cmd" )
+        , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks cmdCollection )
         , ( ( [ "Platform", "Cmd" ], "map" ), containerMapChecks cmdCollection )
-        , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks "Sub" )
+        , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
         , ( ( [ "Platform", "Sub" ], "map" ), containerMapChecks subCollection )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
@@ -6256,33 +6256,28 @@ setFromListCompositionChecks checkInfo =
             Nothing
 
 
-subAndCmdBatchChecks : String -> CheckInfo -> Maybe (Error {})
-subAndCmdBatchChecks moduleAlias checkInfo =
-    let
-        moduleName : ModuleName
-        moduleName =
-            [ "Platform", moduleAlias ]
-
-        noneDescription : String
-        noneDescription =
-            moduleAlias ++ ".none"
-
-        batchDescription : String
-        batchDescription =
-            moduleAlias ++ ".batch"
-    in
+subAndCmdBatchChecks :
+    { typeProperties
+        | moduleName : ModuleName
+        , emptyDescription : String
+        , emptyAsString : QualifyResources {} -> String
+        , batchDescription : String
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+subAndCmdBatchChecks batchable checkInfo =
     firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Replace by " ++ batchDescription
-                            , details = [ batchDescription ++ " [] and " ++ noneDescription ++ " are equivalent but the latter is more idiomatic in Elm code" ]
+                            { message = "Replace by " ++ batchable.batchDescription
+                            , details = [ batchable.batchDescription ++ " [] and " ++ batchable.emptyDescription ++ " are equivalent but the latter is more idiomatic in Elm code" ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( moduleName, "none" ) checkInfo))
+                                (emptyAsString checkInfo batchable)
                             ]
                         )
 
@@ -6291,7 +6286,7 @@ subAndCmdBatchChecks moduleAlias checkInfo =
                         (\arg ->
                             case AstHelpers.removeParens arg.current of
                                 Node batchRange (Expression.FunctionOrValue _ "none") ->
-                                    if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just moduleName then
+                                    if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just batchable.moduleName then
                                         let
                                             argRange : Range
                                             argRange =
@@ -6299,8 +6294,8 @@ subAndCmdBatchChecks moduleAlias checkInfo =
                                         in
                                         Just
                                             (Rule.errorWithFix
-                                                { message = "Unnecessary " ++ noneDescription
-                                                , details = [ noneDescription ++ " will be ignored by " ++ batchDescription ++ "." ]
+                                                { message = "Unnecessary " ++ batchable.emptyDescription
+                                                , details = [ batchable.emptyDescription ++ " will be ignored by " ++ batchable.batchDescription ++ "." ]
                                                 }
                                                 argRange
                                                 (case arg.before of
@@ -6314,7 +6309,7 @@ subAndCmdBatchChecks moduleAlias checkInfo =
 
                                                             Nothing ->
                                                                 [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                    (qualifiedToString (qualify ( moduleName, "none" ) checkInfo))
+                                                                    (emptyAsString checkInfo batchable)
                                                                 ]
                                                 )
                                             )
@@ -6335,8 +6330,8 @@ subAndCmdBatchChecks moduleAlias checkInfo =
                 Just listSingletonArg ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Unnecessary " ++ batchDescription
-                            , details = [ batchDescription ++ " with a single element is equal to that element." ]
+                            { message = "Unnecessary " ++ batchable.batchDescription
+                            , details = [ batchable.batchDescription ++ " with a single element is equal to that element." ]
                             }
                             checkInfo.fnRange
                             (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
@@ -6972,7 +6967,7 @@ resultCollection =
     }
 
 
-cmdCollection : Container {}
+cmdCollection : Container { batchDescription : String }
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
@@ -6985,10 +6980,11 @@ cmdCollection =
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
+    , batchDescription = "Cmd.batch"
     }
 
 
-subCollection : Container {}
+subCollection : Container { batchDescription : String }
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
@@ -7001,6 +6997,8 @@ subCollection =
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
+    , batchDescription =
+        "Sub.batch"
     }
 
 
