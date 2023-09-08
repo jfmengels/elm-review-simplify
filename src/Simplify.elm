@@ -4203,8 +4203,13 @@ mapPureOnPureErrorInfo :
     { a | moduleName : ModuleName, map : String, pure : String, pureDescription : String }
     -> { message : String, details : List String }
 mapPureOnPureErrorInfo mappable =
-    { message = "Using " ++ qualifiedToString ( [ "Result" ], mappable.map ) ++ " on Err will result in Err with the function applied to the error"
-    , details = [ "You can replace this call by Err with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
+    let
+        pureFnInErrorInfo : String
+        pureFnInErrorInfo =
+            qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
+    in
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the error"
+    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
     }
 
 
