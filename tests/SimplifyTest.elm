@@ -6221,8 +6221,8 @@ a = String.reverse ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.reverse on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.reverse on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6338,8 +6338,8 @@ a = String.slice a z ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.slice on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6463,8 +6463,8 @@ a = String.left n ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.left on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6556,8 +6556,8 @@ a = String.right n ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right on an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.right on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6973,8 +6973,8 @@ a = List.concat []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.concat on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7249,8 +7249,8 @@ a = List.concatMap f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.concatMap on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8663,8 +8663,8 @@ a = List.filterMap f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.filterMap on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8679,8 +8679,8 @@ a = List.filterMap f <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.filterMap on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8695,8 +8695,8 @@ a = [] |> List.filterMap f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.filterMap on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9066,8 +9066,8 @@ a = List.indexedMap f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.indexedMap on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.indexedMap on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12707,8 +12707,8 @@ a = List.intersperse x []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.intersperse on an empty list will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.intersperse on [] will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.intersperse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13862,8 +13862,8 @@ a = Result.map f (Err z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an error will result in an error"
-                            , details = [ "You can replace this call by an error." ]
+                            { message = "Using Result.map on an error will result in the given error"
+                            , details = [ "You can replace this call by the given error." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13878,8 +13878,8 @@ a = Result.map f <| Err z
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an error will result in an error"
-                            , details = [ "You can replace this call by an error." ]
+                            { message = "Using Result.map on an error will result in the given error"
+                            , details = [ "You can replace this call by the given error." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13894,8 +13894,8 @@ a = Err z |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an error will result in an error"
-                            , details = [ "You can replace this call by an error." ]
+                            { message = "Using Result.map on an error will result in the given error"
+                            , details = [ "You can replace this call by the given error." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14181,8 +14181,8 @@ a = Result.mapError f (Ok z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an ok value will result in an ok value"
-                            , details = [ "You can replace this call by an ok value." ]
+                            { message = "Using Result.mapError on an okay value will result in the given okay value"
+                            , details = [ "You can replace this call by the given okay value." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14197,8 +14197,8 @@ a = Result.mapError f <| Ok z
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an ok value will result in an ok value"
-                            , details = [ "You can replace this call by an ok value." ]
+                            { message = "Using Result.mapError on an okay value will result in the given okay value"
+                            , details = [ "You can replace this call by the given okay value." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14213,8 +14213,8 @@ a = Ok z |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an ok value will result in an ok value"
-                            , details = [ "You can replace this call by an ok value." ]
+                            { message = "Using Result.mapError on an okay value will result in the given okay value"
+                            , details = [ "You can replace this call by the given okay value." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
