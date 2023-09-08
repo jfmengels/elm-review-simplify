@@ -3957,6 +3957,10 @@ stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
+            Maybe.andThen
+                (\mappableArg -> callOnEmptyReturnsEmptyCheck mappableArg stringCollection checkInfo)
+                (secondArg checkInfo)
+        , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
@@ -3970,20 +3974,6 @@ stringRightChecks checkInfo =
                         checkInfo
 
                 Nothing ->
-                    Nothing
-        , \() ->
-            case secondArg checkInfo of
-                Just (Node _ (Expression.Literal "")) ->
-                    Just
-                        (Rule.errorWithFix
-                            (operationDoesNotChangeSpecificLastArgErrorInfo
-                                { fn = ( [ "String" ], "right" ), specific = stringCollection.emptyDescription }
-                            )
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                        )
-
-                _ ->
                     Nothing
         ]
         ()
