@@ -4083,6 +4083,10 @@ stringReplaceChecks checkInfo =
         Just replacementArg ->
             firstThatConstructsJust
                 [ \() ->
+                    Maybe.andThen
+                        (\stringArg -> callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo)
+                        (thirdArg checkInfo)
+                , \() ->
                     case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
                         Normalize.ConfirmedEquality ->
                             Just
@@ -4092,24 +4096,6 @@ stringReplaceChecks checkInfo =
                                     }
                                     checkInfo.fnRange
                                     (toIdentityFix { lastArg = thirdArg checkInfo, resources = checkInfo })
-                                )
-
-                        _ ->
-                            Nothing
-                , \() ->
-                    case thirdArg checkInfo of
-                        Just (Node thirdRange (Expression.Literal "")) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "The result of String.replace will be the empty string"
-                                    , details = [ "Replacing anything on " ++ emptyStringAsString ++ " results in " ++ emptyStringAsString ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange
-                                        { start = checkInfo.fnRange.start
-                                        , end = thirdRange.start
-                                        }
-                                    ]
                                 )
 
                         _ ->

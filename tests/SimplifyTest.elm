@@ -6013,8 +6013,8 @@ a = String.replace x y ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The result of String.replace will be the empty string"
-                            , details = [ "Replacing anything on \"\" results in \"\"." ]
+                            { message = "Using String.replace on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.replace"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
