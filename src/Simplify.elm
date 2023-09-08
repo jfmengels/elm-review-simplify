@@ -4240,14 +4240,7 @@ maybeMapCompositionChecks checkInfo =
 resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg resultWithOkAsPure checkInfo)
-                (secondArg checkInfo)
-        , \() ->
-            mapIdentityChecks
-                { moduleName = [ "Result" ], represents = "result" }
-                checkInfo
+        [ \() -> containerMapChecks resultWithOkAsPure checkInfo
         , \() -> mapPureChecks resultWithOkAsPure checkInfo
         ]
         ()
@@ -4255,6 +4248,7 @@ resultMapChecks checkInfo =
 
 resultWithOkAsPure :
     { moduleName : ModuleName
+    , represents : String
     , map : String
     , pure : String
     , pureDescription : String
@@ -4263,6 +4257,7 @@ resultWithOkAsPure :
     }
 resultWithOkAsPure =
     { moduleName = [ "Result" ]
+    , represents = "result"
     , pure = "Ok"
     , pureDescription = "ok value"
     , map = "map"
@@ -4275,6 +4270,7 @@ resultWithOkAsPure =
 
 resultWithErrAsPure :
     { moduleName : ModuleName
+    , represents : String
     , map : String
     , pure : String
     , pureDescription : String
@@ -4283,6 +4279,7 @@ resultWithErrAsPure :
     }
 resultWithErrAsPure =
     { moduleName = [ "Result" ]
+    , represents = "result"
     , pure = "Err"
     , pureDescription = "error"
     , map = "mapError"
@@ -4322,10 +4319,7 @@ resultMapErrorChecks checkInfo =
             secondArg checkInfo
     in
     firstThatConstructsJust
-        [ \() ->
-            mapIdentityChecks
-                { moduleName = [ "Result" ], represents = "result" }
-                checkInfo
+        [ \() -> containerMapChecks resultWithErrAsPure checkInfo
         , \() -> mapPureChecks resultWithErrAsPure checkInfo
         , \() ->
             case maybeResultArg of

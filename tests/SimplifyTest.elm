@@ -14181,8 +14181,8 @@ a = Result.mapError f (Ok z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
-                            , details = [ "You can remove the Result.mapError call." ]
+                            { message = "Using Result.mapError on an ok value will result in an ok value"
+                            , details = [ "You can replace this call by an ok value." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14197,8 +14197,8 @@ a = Result.mapError f <| Ok z
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
-                            , details = [ "You can remove the Result.mapError call." ]
+                            { message = "Using Result.mapError on an ok value will result in an ok value"
+                            , details = [ "You can replace this call by an ok value." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14213,8 +14213,8 @@ a = Ok z |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Ok will always return the Ok result value"
-                            , details = [ "You can remove the Result.mapError call." ]
+                            { message = "Using Result.mapError on an ok value will result in an ok value"
+                            , details = [ "You can replace this call by an ok value." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
