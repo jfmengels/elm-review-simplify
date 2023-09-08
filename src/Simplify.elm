@@ -6032,7 +6032,7 @@ listTakeChecks checkInfo =
         , \() ->
             case maybeListArg of
                 Just listArg ->
-                    case determineListLength checkInfo.lookupTable listArg of
+                    case listDetermineLength checkInfo.lookupTable listArg of
                         Just (Exactly 0) ->
                             Just
                                 (Rule.errorWithFix
@@ -6086,7 +6086,7 @@ listDropChecks checkInfo =
         , \() ->
             case maybeListArg of
                 Just listArg ->
-                    case determineListLength checkInfo.lookupTable listArg of
+                    case listDetermineLength checkInfo.lookupTable listArg of
                         Just (Exactly 0) ->
                             Just
                                 (Rule.errorWithFix
@@ -6703,18 +6703,18 @@ listCollection =
     , emptyDescription = Constant "[]"
     , isEmpty = \_ expr -> AstHelpers.getListLiteral expr == Just []
     , nameForSize = "length"
-    , determineSize = determineListLength
+    , determineSize = listDetermineLength
     }
 
 
-determineListLength : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-determineListLength lookupTable expressionNode =
+listDetermineLength : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+listDetermineLength lookupTable expressionNode =
     case Node.value (AstHelpers.removeParens expressionNode) of
         Expression.ListExpr list ->
             Just (Exactly (List.length list))
 
         Expression.OperatorApplication "::" _ _ right ->
-            case determineListLength lookupTable right of
+            case listDetermineLength lookupTable right of
                 Just (Exactly n) ->
                     Just (Exactly (n + 1))
 
