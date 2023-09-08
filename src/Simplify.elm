@@ -2281,7 +2281,7 @@ functionCallChecks =
         , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
         , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
         , ( ( [ "String" ], "fromList" ), stringFromListChecks )
-        , ( ( [ "String" ], "isEmpty" ), stringIsEmptyChecks )
+        , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
         , ( ( [ "String" ], "length" ), stringLengthChecks )
@@ -3748,30 +3748,6 @@ stringFromListChecks checkInfo =
                     Nothing
         ]
         ()
-
-
-stringIsEmptyChecks : CheckInfo -> Maybe (Error {})
-stringIsEmptyChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.Literal str ->
-            let
-                replacementValueAsString : String
-                replacementValueAsString =
-                    AstHelpers.boolToString (str == "")
-            in
-            Just
-                (Rule.errorWithFix
-                    { message = "The call to String.isEmpty will result in " ++ replacementValueAsString
-                    , details = [ "You can replace this call by " ++ replacementValueAsString ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Basics" ], replacementValueAsString ) checkInfo))
-                    ]
-                )
-
-        _ ->
-            Nothing
 
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})
