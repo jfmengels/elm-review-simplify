@@ -4251,10 +4251,12 @@ resultMapCompositionChecks checkInfo =
     pureToMapCompositionChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
 
 
-resultMapErrorOnErrErrorInfo : { message : String, details : List String }
-resultMapErrorOnErrErrorInfo =
-    { message = "Using " ++ qualifiedToString ( [ "Result" ], "mapError" ) ++ " on Err will result in Err with the function applied to the error"
-    , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
+mapPureOnPureErrorInfo :
+    { a | moduleName : ModuleName, map : String, pure : String, pureDescription : String }
+    -> { message : String, details : List String }
+mapPureOnPureErrorInfo mappable =
+    { message = "Using " ++ qualifiedToString ( [ "Result" ], mappable.map ) ++ " on Err will result in Err with the function applied to the error"
+    , details = [ "You can replace this call by Err with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
     }
 
 
@@ -4308,7 +4310,7 @@ resultMapErrorCompositionChecks checkInfo =
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Result" ], "Err" ), [] ) ->
                     Just
-                        { info = resultMapErrorOnErrErrorInfo
+                        { info = mapPureOnPureErrorInfo { moduleName = [ "Result" ], map = "mapError", pure = "Err", pureDescription = "error" }
                         , fix =
                             keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
                                 ++ [ case checkInfo.direction of
