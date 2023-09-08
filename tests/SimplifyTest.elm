@@ -364,7 +364,7 @@ type MaybeExists
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on an empty list will result in Nothing"
+                            { message = "Using List.head on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.head"
                             }
@@ -5453,7 +5453,7 @@ a = "a" ++ ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with an empty string"
+                            { message = "Unnecessary concatenation with \"\""
                             , details = [ "You should remove the concatenation with the empty string." ]
                             , under = "++"
                             }
@@ -5476,7 +5476,7 @@ a = "" ++ "a"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with an empty string"
+                            { message = "Unnecessary concatenation with \"\""
                             , details = [ "You should remove the concatenation with the empty string." ]
                             , under = "++"
                             }
@@ -5516,7 +5516,7 @@ a = [ a, 1 ] ++ [ b, 2 ]
 a = [ a, 1 , b, 2 ]
 """
                         ]
-        , test "should report concatenating an empty list and something" <|
+        , test "should report concatenating [] and something" <|
             \() ->
                 """module A exposing (..)
 a = [] ++ something
@@ -5524,7 +5524,7 @@ a = [] ++ something
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with an empty list"
+                            { message = "Unnecessary concatenation with []"
                             , details = [ "You should remove the concatenation with the empty list." ]
                             , under = "++"
                             }
@@ -5532,7 +5532,7 @@ a = [] ++ something
 a = something
 """
                         ]
-        , test "should report concatenating something and an empty list" <|
+        , test "should report concatenating something and []" <|
             \() ->
                 """module A exposing (..)
 a = something ++ []
@@ -5540,7 +5540,7 @@ a = something ++ []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with an empty list"
+                            { message = "Unnecessary concatenation with []"
                             , details = [ "You should remove the concatenation with the empty list." ]
                             , under = "++"
                             }
@@ -5764,8 +5764,8 @@ a = String.concat []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.concat on an empty list will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.concat on [] will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5793,8 +5793,8 @@ a = String.join b []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.join on an empty list will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.join on [] will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.join"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5871,8 +5871,8 @@ a = String.repeat n ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5887,8 +5887,8 @@ a = String.repeat 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with length 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5903,8 +5903,8 @@ a = String.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with length 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5919,8 +5919,8 @@ a = String.repeat -5 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with negative length will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with negative length will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6014,7 +6014,7 @@ a = String.replace x y ""
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The result of String.replace will be the empty string"
-                            , details = [ "Replacing anything on an empty string results in an empty string." ]
+                            , details = [ "Replacing anything on \"\" results in \"\"." ]
                             , under = "String.replace"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6099,8 +6099,8 @@ a = String.words ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.words on an empty string will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using String.words on \"\" will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "String.words"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6129,8 +6129,8 @@ a = String.lines ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.lines on an empty string will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using String.lines on \"\" will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "String.lines"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6274,8 +6274,8 @@ a = String.slice b 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.slice with end index 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6290,8 +6290,8 @@ a = String.slice b 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.slice with end index 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6306,8 +6306,8 @@ a = String.slice n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with equal start and end index will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "String.slice with equal start and end index will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6322,8 +6322,8 @@ a = String.slice n n str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with equal start and end index will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "String.slice with equal start and end index will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6354,8 +6354,8 @@ a = String.slice 2 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with a start index greater than the end index will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "String.slice with a start index greater than the end index will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6370,8 +6370,8 @@ a = String.slice -1 -2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with a negative start index closer to the right than the negative end index will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "String.slice with a negative start index closer to the right than the negative end index will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6415,8 +6415,8 @@ a = String.left 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.left with length 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6431,8 +6431,8 @@ a = String.left 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.left with length 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6447,8 +6447,8 @@ a = String.left -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with negative length will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.left with negative length will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6492,8 +6492,8 @@ a = String.right 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.right with length 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6508,8 +6508,8 @@ a = String.right 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with length 0 will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.right with length 0 will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6524,8 +6524,8 @@ a = String.right -1 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with negative length will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.right with negative length will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6540,8 +6540,8 @@ a = String.right -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with negative length will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.right with negative length will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6726,7 +6726,7 @@ a =
             2, 3 ]
 """
                         ]
-        , test "should report using :: to an empty list literal" <|
+        , test "should report using :: to [] literal" <|
             \() ->
                 """module A exposing (..)
 a = 1 :: []
@@ -7265,8 +7265,8 @@ a = List.concatMap (always []) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concatMap will result in on an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "List.concatMap will result in on []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7281,8 +7281,8 @@ a = List.concatMap (always [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concatMap will result in on an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "List.concatMap will result in on []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7514,7 +7514,7 @@ a = List.head []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on an empty list will result in Nothing"
+                            { message = "Using List.head on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.head"
                             }
@@ -7673,7 +7673,7 @@ a = List.tail []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on an empty list will result in Nothing"
+                            { message = "Using List.tail on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.tail"
                             }
@@ -7689,8 +7689,8 @@ a = List.tail (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
-                            , details = [ "You can replace this call by Just the empty list." ]
+                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7705,8 +7705,8 @@ a = List.tail <| List.singleton b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
-                            , details = [ "You can replace this call by Just the empty list." ]
+                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7721,8 +7721,8 @@ a = List.singleton b |> List.tail
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
-                            , details = [ "You can replace this call by Just the empty list." ]
+                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7737,8 +7737,8 @@ a = List.tail [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just the empty list"
-                            , details = [ "You can replace this call by Just the empty list." ]
+                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7801,7 +7801,7 @@ a = List.member a []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an empty list will result in False"
+                            { message = "Using List.member on [] will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.member"
                             }
@@ -8711,8 +8711,8 @@ a = List.filterMap (always Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8727,8 +8727,8 @@ a = List.filterMap (always Nothing) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8743,8 +8743,8 @@ a = x |> List.filterMap (always Nothing)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8759,8 +8759,8 @@ a = List.filterMap (always Nothing)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8775,8 +8775,8 @@ a = List.filterMap <| always Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8791,8 +8791,8 @@ a = always Nothing |> List.filterMap
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8871,8 +8871,8 @@ a = List.filterMap (\\a -> Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11591,7 +11591,7 @@ a = List.range 10 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by []." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11607,7 +11607,7 @@ a = List.range 0xF 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by []." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11623,7 +11623,7 @@ a = 5 |> List.range 10
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by an empty list." ]
+                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by []." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11721,8 +11721,8 @@ a = List.repeat 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.repeat will result in an empty list"
-                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            { message = "List.repeat will result in []"
+                            , details = [ "Using List.repeat with a number less than 1 will result in []. You can replace this call by []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11737,8 +11737,8 @@ a = List.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.repeat will result in an empty list"
-                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            { message = "List.repeat will result in []"
+                            , details = [ "Using List.repeat with a number less than 1 will result in []. You can replace this call by []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11753,8 +11753,8 @@ a = List.repeat -5 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.repeat will result in an empty list"
-                            , details = [ "Using List.repeat with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                            { message = "List.repeat will result in []"
+                            , details = [ "Using List.repeat with a number less than 1 will result in []. You can replace this call by []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12416,8 +12416,8 @@ a = List.take 0 x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with length 0 will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.take with length 0 will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12432,8 +12432,8 @@ a = List.take 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with length 0 will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.take with length 0 will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12448,8 +12448,8 @@ a = List.take -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with negative length will result in an empty list"
-                            , details = [ "You can replace this call by an empty list." ]
+                            { message = "Using List.take with negative length will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17988,7 +17988,7 @@ a = Random.list 0 generator
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list 0 can be replaced by Random.constant []"
-                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , details = [ "Random.list 0 always generates []. This means you can replace the call with Random.constant []." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18006,7 +18006,7 @@ a = Random.list 0 <| generator
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list 0 can be replaced by Random.constant []"
-                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , details = [ "Random.list 0 always generates []. This means you can replace the call with Random.constant []." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18024,7 +18024,7 @@ a = generator |> Random.list 0
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list 0 can be replaced by Random.constant []"
-                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , details = [ "Random.list 0 always generates []. This means you can replace the call with Random.constant []." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18042,7 +18042,7 @@ a = Random.list 0
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list 0 can be replaced by Random.constant []"
-                            , details = [ "Random.list 0 always generates an empty list. This means you can replace the call with always (Random.constant [])." ]
+                            , details = [ "Random.list 0 always generates []. This means you can replace the call with always (Random.constant [])." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18060,7 +18060,7 @@ a = Random.list -1 generator
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list with a negative length can be replaced by Random.constant []"
-                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , details = [ "Random.list with a negative length always generates []. This means you can replace the call with Random.constant []." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18078,7 +18078,7 @@ a = Random.list -1 <| generator
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list with a negative length can be replaced by Random.constant []"
-                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , details = [ "Random.list with a negative length always generates []. This means you can replace the call with Random.constant []." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18096,7 +18096,7 @@ a = generator |> Random.list -1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list with a negative length can be replaced by Random.constant []"
-                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with Random.constant []." ]
+                            , details = [ "Random.list with a negative length always generates []. This means you can replace the call with Random.constant []." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18114,7 +18114,7 @@ a = Random.list -1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Random.list with a negative length can be replaced by Random.constant []"
-                            , details = [ "Random.list with a negative length always generates an empty list. This means you can replace the call with always (Random.constant [])." ]
+                            , details = [ "Random.list with a negative length always generates []. This means you can replace the call with always (Random.constant [])." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

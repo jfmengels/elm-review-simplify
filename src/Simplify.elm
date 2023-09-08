@@ -2820,7 +2820,7 @@ plusplusChecks checkInfo =
                 ( Expression.Literal "", Expression.Literal _ ) ->
                     Just
                         (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "string" })
+                            (concatenateEmptyErrorInfo { represents = "string", emptyDescription = emptyStringAsString })
                             checkInfo.operatorRange
                             (keepOnlyFix
                                 { keep = checkInfo.rightRange
@@ -2832,7 +2832,7 @@ plusplusChecks checkInfo =
                 ( Expression.Literal _, Expression.Literal "" ) ->
                     Just
                         (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "string" })
+                            (concatenateEmptyErrorInfo { represents = "string", emptyDescription = emptyStringAsString })
                             checkInfo.operatorRange
                             (keepOnlyFix
                                 { keep = checkInfo.leftRange
@@ -2848,7 +2848,7 @@ plusplusChecks checkInfo =
                 Just [] ->
                     Just
                         (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "list" })
+                            (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
                             checkInfo.operatorRange
                             (keepOnlyFix
                                 { keep = checkInfo.rightRange
@@ -2864,7 +2864,7 @@ plusplusChecks checkInfo =
                 Just [] ->
                     Just
                         (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "list" })
+                            (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
                             checkInfo.operatorRange
                             (keepOnlyFix
                                 { keep = checkInfo.leftRange
@@ -2922,9 +2922,9 @@ plusplusChecks checkInfo =
         ()
 
 
-concatenateEmptyErrorInfo : { represents : String } -> { message : String, details : List String }
+concatenateEmptyErrorInfo : { represents : String, emptyDescription : String } -> { message : String, details : List String }
 concatenateEmptyErrorInfo config =
-    { message = "Unnecessary concatenation with an empty " ++ config.represents
+    { message = "Unnecessary concatenation with " ++ config.emptyDescription
     , details = [ "You should remove the concatenation with the empty " ++ config.represents ++ "." ]
     }
 
@@ -3780,8 +3780,8 @@ stringConcatChecks checkInfo =
         Just [] ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using String.concat on an empty list will result in an empty string"
-                    , details = [ "You can replace this call by an empty string." ]
+                    { message = "Using String.concat on [] will result in " ++ emptyStringAsString
+                    , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
@@ -3797,8 +3797,8 @@ stringWordsChecks checkInfo =
         Expression.Literal "" ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using String.words on an empty string will result in an empty list"
-                    , details = [ "You can replace this call by an empty list." ]
+                    { message = "Using String.words on " ++ emptyStringAsString ++ " will result in []"
+                    , details = [ "You can replace this call by []." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
@@ -3814,8 +3814,8 @@ stringLinesChecks checkInfo =
         Expression.Literal "" ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using String.lines on an empty string will result in an empty list"
-                    , details = [ "You can replace this call by an empty list." ]
+                    { message = "Using String.lines on " ++ emptyStringAsString ++ " will result in []"
+                    , details = [ "You can replace this call by []." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
@@ -3851,8 +3851,8 @@ stringSliceChecks checkInfo =
         resultsInEmptyErrorInSituation : String -> Error {}
         resultsInEmptyErrorInSituation situation =
             Rule.errorWithFix
-                { message = situation ++ " will result in an empty string"
-                , details = [ "You can replace this call by an empty string." ]
+                { message = situation ++ " will result in " ++ emptyStringAsString
+                , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                 }
                 checkInfo.fnRange
                 (alwaysResultsInFix emptyStringAsString (thirdArg checkInfo) checkInfo)
@@ -3891,8 +3891,8 @@ stringSliceChecks checkInfo =
                                                 0 ->
                                                     Just
                                                         (Rule.errorWithFix
-                                                            { message = "Using String.slice with end index 0 will result in an empty string"
-                                                            , details = [ "You can replace this call by an empty string." ]
+                                                            { message = "Using String.slice with end index 0 will result in " ++ emptyStringAsString
+                                                            , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                                                             }
                                                             checkInfo.fnRange
                                                             (alwaysResultsInFix emptyStringAsString (thirdArg checkInfo) checkInfo)
@@ -3942,7 +3942,7 @@ stringLeftChecks checkInfo =
                         { fn = ( [ "String" ], "left" )
                         , int = length
                         , intDescription = "length"
-                        , replacementDescription = "an empty string"
+                        , replacementDescription = emptyStringAsString
                         , replacement = emptyStringAsString
                         , lastArg = secondArg checkInfo
                         }
@@ -4012,7 +4012,7 @@ stringRightChecks checkInfo =
                         { fn = ( [ "String" ], "right" )
                         , int = length
                         , intDescription = "length"
-                        , replacementDescription = "an empty string"
+                        , replacementDescription = emptyStringAsString
                         , replacement = emptyStringAsString
                         , lastArg = secondArg checkInfo
                         }
@@ -4053,8 +4053,8 @@ stringJoinChecks checkInfo =
                 Just (Node _ (Expression.ListExpr [])) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using String.join on an empty list will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.join on [] will result in " ++ emptyStringAsString
+                            , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
@@ -4107,8 +4107,8 @@ stringRepeatChecks checkInfo =
                 Just (Node _ (Expression.Literal "")) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using String.repeat with an empty string will result in an empty string"
-                            , details = [ "You can replace this call by an empty string." ]
+                            { message = "Using String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
+                            , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
@@ -4139,7 +4139,7 @@ stringRepeatChecks checkInfo =
                                 { fn = ( [ "String" ], "repeat" )
                                 , int = intValue
                                 , intDescription = "length"
-                                , replacementDescription = "an empty string"
+                                , replacementDescription = emptyStringAsString
                                 , replacement = emptyStringAsString
                                 , lastArg = secondArg checkInfo
                                 }
@@ -4178,7 +4178,7 @@ stringReplaceChecks checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "The result of String.replace will be the empty string"
-                                    , details = [ "Replacing anything on an empty string results in an empty string." ]
+                                    , details = [ "Replacing anything on " ++ emptyStringAsString ++ " results in " ++ emptyStringAsString ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.removeRange
@@ -4580,8 +4580,8 @@ listConcatMapChecks checkInfo =
                         Just [] ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString ( [ "List" ], "concatMap" ) ++ " will result in on an empty list"
-                                    , details = [ "You can replace this call by an empty list." ]
+                                    { message = qualifiedToString ( [ "List" ], "concatMap" ) ++ " will result in on []"
+                                    , details = [ "You can replace this call by []." ]
                                     }
                                     checkInfo.fnRange
                                     (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
@@ -4836,7 +4836,7 @@ listHeadChecks checkInfo =
                 Expression.ListExpr [] ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on an empty list will result in Nothing"
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             }
                             checkInfo.fnRange
@@ -4873,8 +4873,8 @@ listTailExistsError =
 
 listEmptyTailExistsError : { message : String, details : List String }
 listEmptyTailExistsError =
-    { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with a single element will result in Just the empty list"
-    , details = [ "You can replace this call by Just the empty list." ]
+    { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with a single element will result in Just []"
+    , details = [ "You can replace this call by Just []." ]
     }
 
 
@@ -4891,7 +4891,7 @@ listTailChecks checkInfo =
                 Expression.ListExpr [] ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on an empty list will result in Nothing"
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             }
                             checkInfo.fnRange
@@ -5112,7 +5112,7 @@ listMemberChecks checkInfo =
                         Expression.ListExpr [] ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on an empty list will result in False"
+                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on [] will result in False"
                                     , details = [ "You can replace this call by False." ]
                                     }
                                     checkInfo.fnRange
@@ -5704,8 +5704,8 @@ listFilterMapChecks checkInfo =
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in an empty list"
-                            , details = [ "You can remove this call and replace it by an empty list." ]
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
@@ -5823,7 +5823,7 @@ listRangeChecks checkInfo =
                         Just
                             (Rule.errorWithFix
                                 { message = "The call to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " will result in []"
-                                , details = [ "The second argument to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " is bigger than the first one, therefore you can replace this list by an empty list." ]
+                                , details = [ "The second argument to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " is bigger than the first one, therefore you can replace this list by []." ]
                                 }
                                 checkInfo.fnRange
                                 (alwaysResultsInFix "[]" (Just rangeEndValue) checkInfo)
@@ -5849,8 +5849,8 @@ listRepeatChecks checkInfo =
             if intValue < 1 then
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString ( [ "List" ], "repeat" ) ++ " will result in an empty list"
-                        , details = [ "Using " ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " with a number less than 1 will result in an empty list. You can replace this call by an empty list." ]
+                        { message = qualifiedToString ( [ "List" ], "repeat" ) ++ " will result in []"
+                        , details = [ "Using " ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " with a number less than 1 will result in []. You can replace this call by []." ]
                         }
                         checkInfo.fnRange
                         (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
@@ -6112,7 +6112,7 @@ listTakeChecks checkInfo =
                         , int = length
                         , intDescription = "length"
                         , replacement = "[]"
-                        , replacementDescription = "an empty list"
+                        , replacementDescription = "[]"
                         , lastArg = maybeListArg
                         }
                         checkInfo
@@ -6625,7 +6625,7 @@ randomListChecks checkInfo =
                         Just
                             (Rule.errorWithFix
                                 { message = callDescription ++ " can be replaced by Random.constant []"
-                                , details = [ callDescription ++ " always generates an empty list. This means you can replace the call with " ++ replacement ++ "." ]
+                                , details = [ callDescription ++ " always generates []. This means you can replace the call with " ++ replacement ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
