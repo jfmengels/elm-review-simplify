@@ -6650,7 +6650,7 @@ randomListChecks checkInfo =
 randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
+        [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
         , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
@@ -7004,7 +7004,7 @@ containerMapChecks :
     -> Maybe (Error {})
 containerMapChecks collection checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapIdentityChecks collection checkInfo
+        [ \() -> mapIdentityChecks collection checkInfo
         , \() ->
             Maybe.andThen
                 (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
@@ -7040,17 +7040,6 @@ mapIdentityChecks mappable checkInfo =
 
     else
         Nothing
-
-
-containerMapIdentityChecks :
-    { a
-        | moduleName : ModuleName
-        , represents : String
-    }
-    -> CheckInfo
-    -> Maybe (Error {})
-containerMapIdentityChecks mappable checkInfo =
-    mapIdentityChecks mappable checkInfo
 
 
 mapPureChecks :
