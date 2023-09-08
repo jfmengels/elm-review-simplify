@@ -518,6 +518,9 @@ Destructuring using case expressions
     List.indexedMap (\_ value -> f value) list
     --> List.map (\value -> f value) list
 
+    List.intersperse a []
+    --> []
+
     List.isEmpty []
     --> True
 
