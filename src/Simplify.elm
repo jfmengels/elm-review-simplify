@@ -4240,20 +4240,57 @@ maybeMapCompositionChecks checkInfo =
 resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapChecks resultCollection checkInfo
+        [ \() ->
+            Maybe.andThen
+                (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg resultWithOkAsPure checkInfo)
+                (secondArg checkInfo)
+        , \() ->
+            mapIdentityChecks
+                { moduleName = [ "Result" ], represents = "result" }
+                checkInfo
         , \() -> mapPureChecks resultWithOkAsPure checkInfo
         ]
         ()
 
 
-resultWithOkAsPure : { moduleName : ModuleName, map : String, pure : String, pureDescription : String }
+resultWithOkAsPure :
+    { moduleName : ModuleName
+    , map : String
+    , pure : String
+    , pureDescription : String
+    , emptyDescription : String
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
 resultWithOkAsPure =
-    { moduleName = [ "Result" ], pure = "Ok", pureDescription = "ok value", map = "map" }
+    { moduleName = [ "Result" ]
+    , pure = "Ok"
+    , pureDescription = "ok value"
+    , map = "map"
+    , emptyDescription = "an error"
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+    }
 
 
-resultWithErrAsPure : { moduleName : ModuleName, map : String, pure : String, pureDescription : String }
+resultWithErrAsPure :
+    { moduleName : ModuleName
+    , map : String
+    , pure : String
+    , pureDescription : String
+    , emptyDescription : String
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
 resultWithErrAsPure =
-    { moduleName = [ "Result" ], pure = "Err", pureDescription = "error", map = "mapError" }
+    { moduleName = [ "Result" ]
+    , pure = "Err"
+    , pureDescription = "error"
+    , map = "mapError"
+    , emptyDescription = "an ok value"
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+    }
 
 
 resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -4285,7 +4322,6 @@ resultMapErrorChecks checkInfo =
             secondArg checkInfo
     in
     firstThatConstructsJust
-        -- TODO use containerMapChecks
         [ \() ->
             mapIdentityChecks
                 { moduleName = [ "Result" ], represents = "result" }
@@ -6947,23 +6983,6 @@ maybeCollection =
     }
 
 
-resultCollection : Defaultable {}
-resultCollection =
-    { moduleName = [ "Result" ]
-    , represents = "result"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
-    , emptyDescription = "an error"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
-    , isSomethingConstructor =
-        \resources ->
-            qualifiedToString (qualify ( [ "Result" ], "Ok" ) resources)
-    }
-
-
 cmdCollection : Container { batchDescription : String }
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
@@ -7254,7 +7273,7 @@ resultAndThenChecks checkInfo =
                             Determined okCalls ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "Calling " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on a value that is known to be Ok"
+                                        { message = "Calling " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on a value that is known to be Ok"
                                         , details = [ "You can remove the Ok and just call the function directly." ]
                                         }
                                         checkInfo.fnRange
@@ -7270,7 +7289,7 @@ resultAndThenChecks checkInfo =
                             Determined _ ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "Using " ++ qualifiedToString ( resultCollection.moduleName, "andThen" ) ++ " on an error will result in the error"
+                                        { message = "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on an error will result in the error"
                                         , details = [ "You can replace this call by the error itself." ]
                                         }
                                         checkInfo.fnRange
@@ -7295,7 +7314,7 @@ resultAndThenChecks checkInfo =
                                     }
                                     checkInfo.fnRange
                                     (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( resultCollection.moduleName, "map" ) checkInfo))
+                                        (qualifiedToString (qualify ( [ "Result" ], "map" ) checkInfo))
                                         :: fix
                                     )
                                 )
