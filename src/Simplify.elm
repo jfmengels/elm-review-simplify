@@ -6167,6 +6167,7 @@ subAndCmdBatchChecks :
         | moduleName : ModuleName
         , emptyDescription : SpecificDescription
         , emptyAsString : QualifyResources {} -> String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
         , batchDescription : String
     }
     -> CheckInfo
@@ -6190,41 +6191,36 @@ subAndCmdBatchChecks batchable checkInfo =
                 Just (arg0 :: arg1 :: arg2Up) ->
                     neighboringMap
                         (\arg ->
-                            case AstHelpers.removeParens arg.current of
-                                Node batchRange (Expression.FunctionOrValue _ "none") ->
-                                    if ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable batchRange == Just batchable.moduleName then
-                                        let
-                                            argRange : Range
-                                            argRange =
-                                                Node.range arg.current
-                                        in
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription
-                                                , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchable.batchDescription ++ "." ]
-                                                }
-                                                argRange
-                                                (case arg.before of
-                                                    Just (Node prevRange _) ->
-                                                        [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
+                            if batchable.isEmpty checkInfo.lookupTable arg.current then
+                                let
+                                    argRange : Range
+                                    argRange =
+                                        Node.range arg.current
+                                in
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription
+                                        , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchable.batchDescription ++ "." ]
+                                        }
+                                        argRange
+                                        (case arg.before of
+                                            Just (Node prevRange _) ->
+                                                [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
+
+                                            Nothing ->
+                                                case arg.after of
+                                                    Just (Node nextRange _) ->
+                                                        [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
 
                                                     Nothing ->
-                                                        case arg.after of
-                                                            Just (Node nextRange _) ->
-                                                                [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
+                                                        [ Fix.replaceRangeBy checkInfo.parentRange
+                                                            (emptyAsString checkInfo batchable)
+                                                        ]
+                                        )
+                                    )
 
-                                                            Nothing ->
-                                                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                    (emptyAsString checkInfo batchable)
-                                                                ]
-                                                )
-                                            )
-
-                                    else
-                                        Nothing
-
-                                _ ->
-                                    Nothing
+                            else
+                                Nothing
                         )
                         (arg0 :: arg1 :: arg2Up)
                         |> findMap identity
