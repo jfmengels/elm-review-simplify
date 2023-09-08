@@ -4153,7 +4153,6 @@ resultMapChecks checkInfo =
 resultWithOkAsPure :
     { moduleName : ModuleName
     , represents : String
-    , map : String
     , pure : String
     , pureDescription : String
     , emptyDescription : SpecificDescription
@@ -4164,7 +4163,6 @@ resultWithOkAsPure =
     , represents = "result"
     , pure = "Ok"
     , pureDescription = "okay value"
-    , map = "map"
     , emptyDescription = An "error"
     , isEmpty =
         \lookupTable expr ->
@@ -4175,7 +4173,6 @@ resultWithOkAsPure =
 resultWithErrAsPure :
     { moduleName : ModuleName
     , represents : String
-    , map : String
     , pure : String
     , pureDescription : String
     , emptyDescription : SpecificDescription
@@ -4186,7 +4183,6 @@ resultWithErrAsPure =
     , represents = "result"
     , pure = "Err"
     , pureDescription = "error"
-    , map = "mapError"
     , emptyDescription = An "okay value"
     , isEmpty =
         \lookupTable expr ->
@@ -4200,15 +4196,16 @@ resultMapCompositionChecks checkInfo =
 
 
 mapPureOnPureErrorInfo :
-    { a | moduleName : ModuleName, map : String, pure : String, pureDescription : String }
+    String
+    -> { a | moduleName : ModuleName, pure : String, pureDescription : String }
     -> { message : String, details : List String }
-mapPureOnPureErrorInfo mappable =
+mapPureOnPureErrorInfo mapFnName mappable =
     let
         pureFnInErrorInfo : String
         pureFnInErrorInfo =
             qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the " ++ mappable.pureDescription
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the " ++ mappable.pureDescription
     , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
     }
 
@@ -4258,7 +4255,7 @@ resultMapErrorCompositionChecks checkInfo =
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Result" ], "Err" ), [] ) ->
                     Just
-                        { info = mapPureOnPureErrorInfo resultWithErrAsPure
+                        { info = mapPureOnPureErrorInfo "mapError" resultWithErrAsPure
                         , fix =
                             keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
                                 ++ [ case checkInfo.direction of
@@ -7050,7 +7047,7 @@ mapIdentityChecks mappable checkInfo =
 
 
 mapPureChecks :
-    { a | moduleName : List String, pure : String, pureDescription : String, map : String }
+    { a | moduleName : List String, pure : String, pureDescription : String }
     -> CheckInfo
     -> Maybe (Error {})
 mapPureChecks mappable checkInfo =
@@ -7076,7 +7073,7 @@ mapPureChecks mappable checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            (mapPureOnPureErrorInfo mappable)
+                            (mapPureOnPureErrorInfo (AstHelpers.qualifiedName checkInfo.fn) mappable)
                             checkInfo.fnRange
                             (if checkInfo.usingRightPizza then
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
@@ -7103,7 +7100,7 @@ mapPureChecks mappable checkInfo =
 
 
 pureToMapCompositionChecks :
-    { a | moduleName : ModuleName, pure : String, pureDescription : String, map : String }
+    { a | moduleName : ModuleName, pure : String, pureDescription : String }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 pureToMapCompositionChecks mappable checkInfo =
@@ -7132,7 +7129,7 @@ pureToMapCompositionChecks mappable checkInfo =
                             ]
             in
             Just
-                { info = mapPureOnPureErrorInfo mappable
+                { info = mapPureOnPureErrorInfo checkInfo.later.fnName mappable
                 , fix = fixes
                 }
 
