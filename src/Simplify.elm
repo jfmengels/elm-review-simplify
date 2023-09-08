@@ -4287,7 +4287,7 @@ resultMapErrorChecks checkInfo =
     firstThatConstructsJust
         -- TODO use containerMapChecks
         [ \() ->
-            mapIdentityChecks "mapError"
+            mapIdentityChecks
                 { moduleName = [ "Result" ], represents = "result" }
                 checkInfo
         , \() -> mapPureChecks resultWithErrAsPure checkInfo
@@ -7021,19 +7021,17 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
 
 
 mapIdentityChecks :
-    String
-    ->
-        { a
-            | moduleName : ModuleName
-            , represents : String
-        }
+    { a
+        | moduleName : ModuleName
+        , represents : String
+    }
     -> CheckInfo
     -> Maybe (Error {})
-mapIdentityChecks mapFnName mappable checkInfo =
+mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (identityError
-                { toFix = qualifiedToString ( mappable.moduleName, mapFnName ) ++ " with an identity function"
+                { toFix = qualifiedToString ( mappable.moduleName, checkInfo.fnName ) ++ " with an identity function"
                 , lastArg = secondArg checkInfo
                 , lastArgName = mappable.represents
                 , resources = checkInfo
@@ -7052,7 +7050,7 @@ containerMapIdentityChecks :
     -> CheckInfo
     -> Maybe (Error {})
 containerMapIdentityChecks mappable checkInfo =
-    mapIdentityChecks "map" mappable checkInfo
+    mapIdentityChecks mappable checkInfo
 
 
 mapPureChecks :
