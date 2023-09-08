@@ -2284,7 +2284,7 @@ functionCallChecks =
         , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
         , ( ( [ "String" ], "join" ), stringJoinChecks )
-        , ( ( [ "String" ], "length" ), stringLengthChecks )
+        , ( ( [ "String" ], "length" ), collectionSizeChecks stringCollection )
         , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
         , ( ( [ "String" ], "replace" ), stringReplaceChecks )
         , ( ( [ "String" ], "words" ), stringWordsChecks )
@@ -4056,23 +4056,6 @@ stringJoinChecks checkInfo =
                     Nothing
         ]
         ()
-
-
-stringLengthChecks : CheckInfo -> Maybe (Error {})
-stringLengthChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.Literal str ->
-            Just
-                (Rule.errorWithFix
-                    { message = "The length of the string is " ++ String.fromInt (String.length str)
-                    , details = [ "The length of the string can be determined by looking at the code." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange (String.fromInt (String.length str)) ]
-                )
-
-        _ ->
-            Nothing
 
 
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
