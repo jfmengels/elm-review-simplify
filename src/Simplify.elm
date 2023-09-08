@@ -3803,22 +3803,15 @@ stringLinesChecks checkInfo =
 
 stringReverseChecks : CheckInfo -> Maybe (Error {})
 stringReverseChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.Literal "" ->
-            Just
-                (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo
-                        { fn = ( [ "String" ], "reverse" ), specific = stringCollection.emptyDescription }
-                    )
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                )
-
-        _ ->
+    firstThatConstructsJust
+        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg stringCollection checkInfo
+        , \() ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
                 (AstHelpers.getSpecificValueOrFunction ( [ "String" ], "reverse" ))
                 checkInfo
+        ]
+        ()
 
 
 stringSliceChecks : CheckInfo -> Maybe (Error {})
