@@ -6960,7 +6960,7 @@ maybeCollection =
     }
 
 
-cmdCollection : Container { batchDescription : String }
+cmdCollection : Container {}
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
@@ -6972,12 +6972,10 @@ cmdCollection =
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
-    , batchDescription =
-        "Cmd.batch"
     }
 
 
-subCollection : Container { batchDescription : String }
+subCollection : Container {}
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
@@ -6989,8 +6987,6 @@ subCollection =
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
-    , batchDescription =
-        "Sub.batch"
     }
 
 
