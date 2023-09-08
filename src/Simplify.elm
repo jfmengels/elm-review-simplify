@@ -3690,23 +3690,6 @@ basicsAlwaysCompositionChecks checkInfo =
             Nothing
 
 
-callWithEmptyListArgReturnsEmptyListCheck : { checkedArg : Node Expression, fn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
-callWithEmptyListArgReturnsEmptyListCheck config checkInfo =
-    case AstHelpers.getListLiteral config.checkedArg of
-        Just [] ->
-            Just
-                (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo
-                        { fn = config.fn, specific = listCollection.emptyDescription }
-                    )
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                )
-
-        _ ->
-            Nothing
-
-
 
 -- STRING
 
@@ -4294,10 +4277,7 @@ resultMapErrorCompositionChecks checkInfo =
 listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            callWithEmptyListArgReturnsEmptyListCheck
-                { fn = ( [ "List" ], "concat" ), checkedArg = checkInfo.firstArg }
-                checkInfo
+        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
@@ -4528,7 +4508,8 @@ listConcatMapChecks checkInfo =
             case secondArg checkInfo of
                 Just listArg ->
                     firstThatConstructsJust
-                        [ \() ->
+                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
+                        , \() ->
                             case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                                 Just listSingleton ->
                                     Just
@@ -4544,10 +4525,6 @@ listConcatMapChecks checkInfo =
 
                                 Nothing ->
                                     Nothing
-                        , \() ->
-                            callWithEmptyListArgReturnsEmptyListCheck
-                                { fn = ( [ "List" ], "concatMap" ), checkedArg = listArg }
-                                checkInfo
                         ]
                         ()
 
@@ -4582,9 +4559,7 @@ listIndexedMapChecks checkInfo =
         [ \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    callWithEmptyListArgReturnsEmptyListCheck
-                        { fn = ( [ "List" ], "indexedMap" ), checkedArg = listArg }
-                        checkInfo
+                    callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
 
                 Nothing ->
                     Nothing
@@ -4649,9 +4624,7 @@ listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks checkInfo =
     case secondArg checkInfo of
         Just listArg ->
-            callWithEmptyListArgReturnsEmptyListCheck
-                { fn = ( [ "List" ], "intersperse" ), checkedArg = listArg }
-                checkInfo
+            callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
 
         Nothing ->
             Nothing
@@ -5627,10 +5600,7 @@ listFilterMapChecks checkInfo =
             case secondArg checkInfo of
                 Just listArg ->
                     firstThatConstructsJust
-                        [ \() ->
-                            callWithEmptyListArgReturnsEmptyListCheck
-                                { fn = ( [ "List" ], "filterMap" ), checkedArg = listArg }
-                                checkInfo
+                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
                         , \() ->
                             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                                 firstThatConstructsJust
