@@ -1038,6 +1038,14 @@ type alias QualifyResources a =
     }
 
 
+defaultQualifyResources : QualifyResources {}
+defaultQualifyResources =
+    { importLookup = implicitImports
+    , localBindings = RangeDict.empty
+    , moduleBindings = Set.empty
+    }
+
+
 type Exposed
     = ExposedAll
     | ExposedSome (Set String)
@@ -6168,19 +6176,23 @@ subAndCmdBatchChecks :
         , emptyDescription : SpecificDescription
         , emptyAsString : QualifyResources {} -> String
         , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-        , batchDescription : String
     }
     -> CheckInfo
     -> Maybe (Error {})
 subAndCmdBatchChecks batchable checkInfo =
+    let
+        batchDescription : String
+        batchDescription =
+            qualifiedToString (qualify ( batchable.moduleName, checkInfo.fnName ) defaultQualifyResources)
+    in
     firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just [] ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Replace by " ++ batchable.batchDescription
-                            , details = [ batchable.batchDescription ++ " [] and " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription ++ " are equivalent but the latter is more idiomatic in Elm code" ]
+                            { message = "Replace by " ++ batchDescription
+                            , details = [ batchDescription ++ " [] and " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription ++ " are equivalent but the latter is more idiomatic in Elm code" ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange
@@ -6200,7 +6212,7 @@ subAndCmdBatchChecks batchable checkInfo =
                                 Just
                                     (Rule.errorWithFix
                                         { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription
-                                        , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchable.batchDescription ++ "." ]
+                                        , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchDescription ++ "." ]
                                         }
                                         argRange
                                         (case arg.before of
@@ -6232,8 +6244,8 @@ subAndCmdBatchChecks batchable checkInfo =
                 Just listSingletonArg ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Unnecessary " ++ batchable.batchDescription
-                            , details = [ batchable.batchDescription ++ " with a single element is equal to that element." ]
+                            { message = "Unnecessary " ++ batchDescription
+                            , details = [ batchDescription ++ " with a single element is equal to that element." ]
                             }
                             checkInfo.fnRange
                             (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
