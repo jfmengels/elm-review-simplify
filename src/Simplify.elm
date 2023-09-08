@@ -5332,12 +5332,12 @@ listFoldAnyDirectionChecks checkInfo =
                                     Just
                                         (Rule.errorWithFix
                                             { message = "To fold a set, you don't need to convert to a List"
-                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], Tuple.second checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
                                             }
                                             checkInfo.fnRange
                                             (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
                                                 ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                        (qualifiedToString (qualify ( [ "Set" ], Tuple.second checkInfo.fn ) checkInfo))
+                                                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) checkInfo))
                                                    ]
                                             )
                                         )

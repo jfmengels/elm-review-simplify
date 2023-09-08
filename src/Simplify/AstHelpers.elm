@@ -8,7 +8,7 @@ module Simplify.AstHelpers exposing
     , getCollapsedCons, getListLiteral, getListSingleton
     , getTuple
     , boolToString, orderToString, emptyStringAsString
-    , moduleNameFromString, qualifiedToString
+    , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
     , getTypeExposeIncludingVariants, nameOfExpose
     )
@@ -43,7 +43,7 @@ module Simplify.AstHelpers exposing
 
 ### qualification
 
-@docs moduleNameFromString, qualifiedToString
+@docs moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
 
 
 ### misc
@@ -921,6 +921,16 @@ qualifiedToString ( moduleName, name ) =
 
         _ :: _ ->
             moduleNameToString moduleName ++ "." ++ name
+
+
+qualifiedName : ( ModuleName, String ) -> String
+qualifiedName ( _, name ) =
+    name
+
+
+qualifiedModuleName : ( ModuleName, String ) -> ModuleName
+qualifiedModuleName ( moduleName, _ ) =
+    moduleName
 
 
 moduleNameToString : ModuleName -> String
