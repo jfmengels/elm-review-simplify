@@ -4625,12 +4625,8 @@ listIndexedMapChecks checkInfo =
 
 listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks checkInfo =
-    case secondArg checkInfo of
-        Just listArg ->
-            callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-
-        Nothing ->
-            Nothing
+    Maybe.andThen (\listArg -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo)
+        (secondArg checkInfo)
 
 
 listAppendEmptyErrorInfo : { message : String, details : List String }
