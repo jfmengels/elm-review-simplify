@@ -6789,12 +6789,7 @@ stringDetermineLength : Expression -> Maybe CollectionSize
 stringDetermineLength expression =
     case expression of
         Expression.Literal string ->
-            case String.uncons string of
-                Nothing ->
-                    Just (Exactly 0)
-
-                Just _ ->
-                    Just NotEmpty
+            Just (Exactly (String.length string))
 
         _ ->
             Nothing
