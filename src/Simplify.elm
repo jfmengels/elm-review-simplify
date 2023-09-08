@@ -5705,8 +5705,12 @@ listFilterMapChecks checkInfo =
                                     , \() ->
                                         case listArg of
                                             Node listRange (Expression.ListExpr list) ->
-                                                case collectJusts checkInfo.lookupTable list of
-                                                    Just justRanges ->
+                                                case
+                                                    traverse
+                                                        (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
+                                                        list
+                                                of
+                                                    Just justCalls ->
                                                         Just
                                                             (Rule.errorWithFix
                                                                 { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
@@ -5714,7 +5718,9 @@ listFilterMapChecks checkInfo =
                                                                 }
                                                                 checkInfo.fnRange
                                                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
-                                                                    ++ List.map Fix.removeRange justRanges
+                                                                    ++ List.concatMap
+                                                                        (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
+                                                                        justCalls
                                                                 )
                                                             )
 
@@ -5735,20 +5741,6 @@ listFilterMapChecks checkInfo =
                     Nothing
         ]
         ()
-
-
-collectJusts : ModuleNameLookupTable -> List (Node Expression) -> Maybe (List Range)
-collectJusts lookupTable list =
-    traverse
-        (\element ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable element of
-                Just justCall ->
-                    { start = justCall.fnRange.start, end = (Node.range justCall.firstArg).start } |> Just
-
-                Nothing ->
-                    Nothing
-        )
-        list
 
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
