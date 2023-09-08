@@ -7911,10 +7911,19 @@ collectionPartitionChecks collection checkInfo =
             case secondArg checkInfo of
                 Just collectionArg ->
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
+                        let
+                            emptyCollectionInResultAsString : String
+                            emptyCollectionInResultAsString =
+                                specificDescriptionToStringWithoutArticle collection.emptyDescription
+
+                            tupleResultAsString : String
+                            tupleResultAsString =
+                                "( " ++ emptyCollectionInResultAsString ++ ", " ++ emptyCollectionInResultAsString ++ " )"
+                        in
                         Just
                             (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.emptyDescription ++ " will result in ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )"
-                                , details = [ "You can replace this call by ( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )." ]
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.emptyDescription ++ " will result in " ++ tupleResultAsString
+                                , details = [ "You can replace this call by " ++ tupleResultAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )") ]
