@@ -4127,14 +4127,14 @@ maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> containerMapChecks maybeCollection checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
+        , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value", map = "map" } checkInfo
         ]
         ()
 
 
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks checkInfo =
-    pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", map = "map" } checkInfo
+    pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value", map = "map" } checkInfo
 
 
 
@@ -4208,7 +4208,7 @@ mapPureOnPureErrorInfo mappable =
         pureFnInErrorInfo =
             qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the error"
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the " ++ mappable.pureDescription
     , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
     }
 
@@ -6573,7 +6573,7 @@ randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
+        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value", map = "map" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
         ()
@@ -6582,7 +6582,7 @@ randomMapChecks checkInfo =
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", map = "map" } checkInfo
+        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value", map = "map" } checkInfo
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
         ()
@@ -7050,7 +7050,7 @@ mapIdentityChecks mappable checkInfo =
 
 
 mapPureChecks :
-    { a | moduleName : List String, pure : String, map : String }
+    { a | moduleName : List String, pure : String, pureDescription : String, map : String }
     -> CheckInfo
     -> Maybe (Error {})
 mapPureChecks mappable checkInfo =
@@ -7076,10 +7076,7 @@ mapPureChecks mappable checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            -- TODO reword error info to something more like resultMapErrorOnErrErrorInfo
-                            { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
-                            , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
-                            }
+                            (mapPureOnPureErrorInfo mappable)
                             checkInfo.fnRange
                             (if checkInfo.usingRightPizza then
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
@@ -7106,7 +7103,7 @@ mapPureChecks mappable checkInfo =
 
 
 pureToMapCompositionChecks :
-    { a | moduleName : ModuleName, pure : String, map : String }
+    { a | moduleName : ModuleName, pure : String, pureDescription : String, map : String }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 pureToMapCompositionChecks mappable checkInfo =
@@ -7135,11 +7132,7 @@ pureToMapCompositionChecks mappable checkInfo =
                             ]
             in
             Just
-                { info =
-                    -- TODO reword error info
-                    { message = "Calling " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ mappable.pure
-                    , details = [ "The function can be called without " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ "." ]
-                    }
+                { info = mapPureOnPureErrorInfo mappable
                 , fix = fixes
                 }
 

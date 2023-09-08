@@ -13383,8 +13383,8 @@ a = Maybe.map f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13399,8 +13399,8 @@ a = Maybe.map f <| Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13415,8 +13415,8 @@ a = Just x |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13431,8 +13431,8 @@ a = x |> Just |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13447,8 +13447,8 @@ a = Maybe.map f <| Just <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13463,8 +13463,8 @@ a = Maybe.map f << Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13479,8 +13479,8 @@ a = Just >> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13495,8 +13495,8 @@ a = Maybe.map f << Just << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13511,8 +13511,8 @@ a = g << Maybe.map f << Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13527,8 +13527,8 @@ a = Just >> Maybe.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.map on a value that is Just"
-                            , details = [ "The function can be called without Maybe.map." ]
+                            { message = "Using Maybe.map on a value that is Just will result in Just with the function applied to the just value"
+                            , details = [ "You can replace this call by Just with the function directly applied to the just value itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14006,8 +14006,8 @@ a = Result.map f (Ok x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14022,8 +14022,8 @@ a = Result.map f <| Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14038,8 +14038,8 @@ a = Ok x |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14054,8 +14054,8 @@ a = x |> Ok |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14070,8 +14070,8 @@ a = Result.map f <| Ok <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14086,8 +14086,8 @@ a = Result.map f << Ok
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14102,8 +14102,8 @@ a = Ok >> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14118,8 +14118,8 @@ a = Result.map f << Ok << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14134,8 +14134,8 @@ a = g << Result.map f << Ok
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14150,8 +14150,8 @@ a = Ok >> Result.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.map on a value that is Ok"
-                            , details = [ "The function can be called without Result.map." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14325,8 +14325,8 @@ a = Result.mapError f (Err x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Err"
-                            , details = [ "The function can be called without Result.mapError." ]
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14341,8 +14341,8 @@ a = Result.mapError f <| Err x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Err"
-                            , details = [ "The function can be called without Result.mapError." ]
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14357,8 +14357,8 @@ a = Err x |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Err"
-                            , details = [ "The function can be called without Result.mapError." ]
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14373,8 +14373,8 @@ a = x |> Err |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Err"
-                            , details = [ "The function can be called without Result.mapError." ]
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14389,8 +14389,8 @@ a = Result.mapError f <| Err <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.mapError on a value that is Err"
-                            , details = [ "The function can be called without Result.mapError." ]
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
+                            , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18885,8 +18885,8 @@ a = Random.map f (Random.constant x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18903,8 +18903,8 @@ a = Random.map f <| Random.constant x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18921,8 +18921,8 @@ a = Random.constant x |> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18939,8 +18939,8 @@ a = x |> Random.constant |> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18957,8 +18957,8 @@ a = Random.map f <| Random.constant <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18975,8 +18975,8 @@ a = Random.map f << Random.constant
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18993,8 +18993,8 @@ a = Random.constant >> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -19011,8 +19011,8 @@ a = Random.map f << Random.constant << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -19029,8 +19029,8 @@ a = g << Random.map f << Random.constant
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -19047,8 +19047,8 @@ a = Random.constant >> Random.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Random.map on a value that is constant"
-                            , details = [ "The function can be called without Random.map." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
