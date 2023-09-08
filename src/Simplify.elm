@@ -6905,9 +6905,7 @@ type alias Defaultable otherProperties =
         }
 
 
-{-| Properties of a `Container` type that can be
-transformed (e.g. added to, removed from)
-and observed (e.g. checked for emptiness, size, member).
+{-| Properties of a `Container` type that has multiple elements.
 -}
 type alias Collection otherProperties =
     Container
