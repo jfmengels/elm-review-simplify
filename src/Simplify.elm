@@ -1679,7 +1679,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
     let
         toCheckInfo :
             { fnRange : Range
-            , fnName : String
+            , fn : ( ModuleName, String )
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
             , usingRightPizza : Bool
@@ -1696,7 +1696,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , inferredConstants = context.inferredConstants
             , parentRange = expressionRange
             , fnRange = checkInfo.fnRange
-            , fnName = checkInfo.fnName
+            , fn = checkInfo.fn
             , firstArg = checkInfo.firstArg
             , argsAfterFirst = checkInfo.argsAfterFirst
             , secondArg = List.head checkInfo.argsAfterFirst
@@ -1737,7 +1737,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fnName = fnName
+                                                , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsAfterFirst
                                                 , usingRightPizza = False
@@ -1792,7 +1792,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fnName = fnName
+                                                , fn = ( moduleName, fnName )
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
                                                 , usingRightPizza = False
@@ -1815,7 +1815,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fnName = fnName
+                                                , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                                 , usingRightPizza = False
@@ -1856,7 +1856,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fnName = fnName
+                                                , fn = ( moduleName, fnName )
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
                                                 , usingRightPizza = True
@@ -1879,7 +1879,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fnName = fnName
+                                                , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                                 , usingRightPizza = True
@@ -2193,7 +2193,7 @@ type alias CheckInfo =
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
-    , fnName : String
+    , fn : ( ModuleName, String )
     , usingRightPizza : Bool
     , firstArg : Node Expression
     , argsAfterFirst : List (Node Expression)
@@ -5229,7 +5229,7 @@ listFoldAnyDirectionChecks checkInfo =
                             Rule.errorWithFix
                                 { message = "Use " ++ replacementOperationAsString ++ " instead"
                                 , details =
-                                    [ "Using " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
+                                    [ "Using " ++ qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 fixes
@@ -5294,7 +5294,7 @@ listFoldAnyDirectionChecks checkInfo =
                                 AstHelpers.boolToString operation.determining
                         in
                         Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " will result in " ++ determiningAsString
+                            { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in " ++ determiningAsString
                             , details = [ "You can replace this call by " ++ determiningAsString ++ "." ]
                             }
                             checkInfo.fnRange
@@ -5312,7 +5312,7 @@ listFoldAnyDirectionChecks checkInfo =
                         in
                         Rule.errorWithFix
                             { message = "Use " ++ replacementOperationAsString ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
+                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
@@ -5332,12 +5332,12 @@ listFoldAnyDirectionChecks checkInfo =
                                     Just
                                         (Rule.errorWithFix
                                             { message = "To fold a set, you don't need to convert to a List"
-                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], checkInfo.fnName ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], Tuple.second checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
                                             }
                                             checkInfo.fnRange
                                             (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
                                                 ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                        (qualifiedToString (qualify ( [ "Set" ], checkInfo.fnName ) checkInfo))
+                                                        (qualifiedToString (qualify ( [ "Set" ], Tuple.second checkInfo.fn ) checkInfo))
                                                    ]
                                             )
                                         )
@@ -5354,7 +5354,7 @@ listFoldAnyDirectionChecks checkInfo =
                                 Just [] ->
                                     Just
                                         (Rule.errorWithFix
-                                            { message = "The call to " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " will result in the initial accumulator"
+                                            { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
                                             , details = [ "You can replace this call by the initial accumulator." ]
                                             }
                                             checkInfo.fnRange
@@ -5372,7 +5372,7 @@ listFoldAnyDirectionChecks checkInfo =
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "The call to " ++ qualifiedToString ( [ "List" ], checkInfo.fnName ) ++ " will result in the initial accumulator"
+                                        { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
                                         , details = [ "You can replace this call by the initial accumulator." ]
                                         }
                                         checkInfo.fnRange
@@ -6183,7 +6183,7 @@ subAndCmdBatchChecks batchable checkInfo =
     let
         batchDescription : String
         batchDescription =
-            qualifiedToString (qualify ( batchable.moduleName, checkInfo.fnName ) defaultQualifyResources)
+            qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
     in
     firstThatConstructsJust
         [ \() ->
@@ -7033,7 +7033,7 @@ mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (identityError
-                { toFix = qualifiedToString ( mappable.moduleName, checkInfo.fnName ) ++ " with an identity function"
+                { toFix = qualifiedToString checkInfo.fn ++ " with an identity function"
                 , lastArg = secondArg checkInfo
                 , lastArgName = mappable.represents
                 , resources = checkInfo
@@ -7600,7 +7600,7 @@ callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo =
         Just
             (Rule.errorWithFix
                 (operationDoesNotChangeSpecificLastArgErrorInfo
-                    { fn = ( collection.moduleName, checkInfo.fnName )
+                    { fn = checkInfo.fn
                     , specific = collection.emptyDescription
                     }
                 )
