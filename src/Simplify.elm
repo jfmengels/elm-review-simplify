@@ -4208,7 +4208,7 @@ mapPureOnPureErrorInfo mappable =
         pureFnInErrorInfo =
             qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the error"
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mappable.map ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the error"
     , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
     }
 

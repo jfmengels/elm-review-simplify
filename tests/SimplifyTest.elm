@@ -695,7 +695,7 @@ a = Result.mapError f << (\\error -> Err error)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -712,7 +712,7 @@ a = Result.mapError f << (\\error -> error |> Err)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -729,7 +729,7 @@ a = Result.mapError f << (\\error -> Err <| error)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -746,7 +746,7 @@ a = Result.mapError f << (\\error -> \\sorry -> (error |> Err) <| sorry)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -763,7 +763,7 @@ a = Result.mapError f << (\\error -> \\sorry -> (error |> Err) <| sorry)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -779,7 +779,7 @@ a = (\\result -> Result.mapError f result) << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -795,7 +795,7 @@ a = (\\result -> \\sorry -> (result |> Result.mapError f) <| sorry) << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14405,7 +14405,7 @@ a = Result.mapError f << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14421,7 +14421,7 @@ a = Err >> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14437,7 +14437,7 @@ a = Result.mapError f << Err << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14453,7 +14453,7 @@ a = g << Result.mapError f << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14469,7 +14469,7 @@ a = Err >> Result.mapError f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on Err will result in Err with the function applied to the error"
+                            { message = "Using Result.mapError on a value that is Err will result in Err with the function applied to the error"
                             , details = [ "You can replace this call by Err with the function directly applied to the error itself." ]
                             , under = "Result.mapError"
                             }
