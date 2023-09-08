@@ -3828,19 +3828,11 @@ stringSliceChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            case thirdArg checkInfo of
-                Just (Node _ (Expression.Literal "")) ->
-                    Just
-                        (Rule.errorWithFix
-                            (operationDoesNotChangeSpecificLastArgErrorInfo
-                                { fn = ( [ "String" ], "slice" ), specific = stringCollection.emptyDescription }
-                            )
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                        )
-
-                _ ->
-                    Nothing
+            Maybe.andThen
+                (\stringArg ->
+                    callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo
+                )
+                (thirdArg checkInfo)
         , \() ->
             case secondArg checkInfo of
                 Just endArg ->
