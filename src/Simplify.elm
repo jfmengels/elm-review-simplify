@@ -7776,7 +7776,7 @@ collectionInsertChecks collection checkInfo =
             if collection.isEmpty checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ emptyAsString checkInfo collection
+                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ specificDescriptionAsIncomingToString collection.emptyDescription
                         , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
