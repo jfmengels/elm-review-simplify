@@ -4241,14 +4241,24 @@ resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> containerMapChecks resultCollection checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
+        , \() -> mapPureChecks resultWithOkAsPure checkInfo
         ]
         ()
 
 
+resultWithOkAsPure : { moduleName : ModuleName, map : String, pure : String, pureDescription : String }
+resultWithOkAsPure =
+    { moduleName = [ "Result" ], pure = "Ok", pureDescription = "ok value", map = "map" }
+
+
+resultWithErrAsPure : { moduleName : ModuleName, map : String, pure : String, pureDescription : String }
+resultWithErrAsPure =
+    { moduleName = [ "Result" ], pure = "Err", pureDescription = "error", map = "mapError" }
+
+
 resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapCompositionChecks checkInfo =
-    pureToMapCompositionChecks { moduleName = [ "Result" ], pure = "Ok", map = "map" } checkInfo
+    pureToMapCompositionChecks resultWithOkAsPure checkInfo
 
 
 mapPureOnPureErrorInfo :
@@ -4280,8 +4290,7 @@ resultMapErrorChecks checkInfo =
             mapIdentityChecks "mapError"
                 { moduleName = [ "Result" ], represents = "result" }
                 checkInfo
-        , \() ->
-            mapPureChecks { moduleName = [ "Result" ], pure = "Err", map = "mapError" } checkInfo
+        , \() -> mapPureChecks resultWithErrAsPure checkInfo
         , \() ->
             case maybeResultArg of
                 Just resultArg ->
@@ -4310,7 +4319,7 @@ resultMapErrorCompositionChecks checkInfo =
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Result" ], "Err" ), [] ) ->
                     Just
-                        { info = mapPureOnPureErrorInfo { moduleName = [ "Result" ], map = "mapError", pure = "Err", pureDescription = "error" }
+                        { info = mapPureOnPureErrorInfo resultWithErrAsPure
                         , fix =
                             keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
                                 ++ [ case checkInfo.direction of
