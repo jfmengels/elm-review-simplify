@@ -7018,15 +7018,20 @@ subCollection =
 
 
 containerMapChecks :
-    Container otherProperties
+    { otherProperties
+        | moduleName : ModuleName
+        , represents : String
+        , emptyDescription : String
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
     -> CheckInfo
     -> Maybe (Error {})
-containerMapChecks collection checkInfo =
+containerMapChecks mappable checkInfo =
     firstThatConstructsJust
-        [ \() -> mapIdentityChecks collection checkInfo
+        [ \() -> mapIdentityChecks mappable checkInfo
         , \() ->
             Maybe.andThen
-                (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
+                (\mappableArg -> callOnEmptyReturnsEmptyCheck mappableArg mappable checkInfo)
                 (secondArg checkInfo)
         ]
         ()
