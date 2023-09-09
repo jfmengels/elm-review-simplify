@@ -7408,6 +7408,31 @@ callOnEmptyReturnsCheck config collection checkInfo =
         Nothing
 
 
+callOnPureReturnsItsValue :
+    Node Expression
+    ->
+        { otherProperties
+            | getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+            , pureDescription : SpecificDescription
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+callOnPureReturnsItsValue containerWithPureArg containerWithPure checkInfo =
+    case containerWithPure.getPureValue checkInfo.lookupTable containerWithPureArg of
+        Nothing ->
+            Nothing
+
+        Just pureArg ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString containerWithPure.pureDescription ++ " will result in the value inside"
+                    , details = [ "You can replace this call by the value inside " ++ specificDescriptionAsReferenceToString "the" containerWithPure.pureDescription ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    (replaceBySubExpressionFix checkInfo.parentRange pureArg)
+                )
+
+
 containerFilterChecks : Container otherProperties -> CheckInfo -> Maybe (Error {})
 containerFilterChecks container checkInfo =
     let
