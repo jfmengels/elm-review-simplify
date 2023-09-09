@@ -7600,12 +7600,12 @@ containerFilterChecks container checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return True is the same as not using " ++ qualifiedToString ( container.moduleName, "filter" )
-                            , details = [ "You can remove this call and replace it by the " ++ container.represents ++ " itself." ]
+                        (identityError
+                            { toFix = qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return True"
+                            , lastArg = maybeContainerArg
+                            , lastArgName = container.represents
+                            , resources = checkInfo
                             }
-                            checkInfo.fnRange
-                            (toIdentityFix maybeContainerArg checkInfo)
                         )
 
                 Determined False ->

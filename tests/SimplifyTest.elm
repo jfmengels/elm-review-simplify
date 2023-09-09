@@ -8458,8 +8458,8 @@ a = List.filter (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8474,8 +8474,8 @@ a = List.filter (\\x -> True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8490,8 +8490,8 @@ a = List.filter (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8506,8 +8506,8 @@ a = List.filter <| (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8522,8 +8522,8 @@ a = always True |> List.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True is the same as not using List.filter"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15111,8 +15111,8 @@ a = Set.filter (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15129,8 +15129,8 @@ a = Set.filter (\\x -> True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15147,8 +15147,8 @@ a = Set.filter (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15165,8 +15165,8 @@ a = Set.filter <| (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15183,8 +15183,8 @@ a = always True |> Set.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True is the same as not using Set.filter"
-                            , details = [ "You can remove this call and replace it by the set itself." ]
+                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
