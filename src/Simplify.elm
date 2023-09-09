@@ -5726,20 +5726,7 @@ listReverseChecks checkInfo =
 listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "sort" ) ++ " on [] will result in []"
-                            , details = [ "You can replace this call by []." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                        )
-
-                _ ->
-                    Nothing
+        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
