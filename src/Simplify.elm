@@ -5190,42 +5190,41 @@ listFoldAnyDirectionChecks checkInfo =
                 [ \() ->
                     case maybeListArg of
                         Just listArg ->
-                            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
-                                Just setToListCall ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "To fold a set, you don't need to convert to a List"
-                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
-                                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) checkInfo))
-                                                   ]
-                                            )
-                                        )
+                            firstThatConstructsJust
+                                [ \() ->
+                                    case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
+                                        Just setToListCall ->
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message = "To fold a set, you don't need to convert to a List"
+                                                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                                                    }
+                                                    checkInfo.fnRange
+                                                    (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
+                                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                                (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) checkInfo))
+                                                           ]
+                                                    )
+                                                )
 
-                                Nothing ->
-                                    Nothing
+                                        Nothing ->
+                                            Nothing
+                                , \() ->
+                                    case AstHelpers.getListLiteral listArg of
+                                        Just [] ->
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
+                                                    , details = [ "You can replace this call by the initial accumulator." ]
+                                                    }
+                                                    checkInfo.fnRange
+                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
+                                                )
 
-                        Nothing ->
-                            Nothing
-                , \() ->
-                    case maybeListArg of
-                        Just listArg ->
-                            case AstHelpers.getListLiteral listArg of
-                                Just [] ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
-                                            , details = [ "You can replace this call by the initial accumulator." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
-                                        )
-
-                                _ ->
-                                    Nothing
+                                        _ ->
+                                            Nothing
+                                ]
+                                ()
 
                         Nothing ->
                             Nothing
