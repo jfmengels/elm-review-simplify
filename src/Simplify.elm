@@ -5962,7 +5962,7 @@ listMapNChecks { n } checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "map" ++ String.fromInt n ) ++ " with any list being [] will result in []"
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with any list being [] will result in []"
                 , details = [ "You can replace this call by " ++ callReplacement ++ "." ]
                 }
                 checkInfo.fnRange
