@@ -7661,8 +7661,8 @@ collectionIntersectChecks collection checkInfo =
 collectionDiffChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
     let
-        maybeWithJustAsPureArg : Maybe (Node Expression)
-        maybeWithJustAsPureArg =
+        maybeCollectionArg : Maybe (Node Expression)
+        maybeCollectionArg =
             secondArg checkInfo
 
         collectionEmptyAsString : String
@@ -7678,13 +7678,13 @@ collectionDiffChecks collection checkInfo =
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (alwaysResultsInFix collectionEmptyAsString maybeWithJustAsPureArg checkInfo)
+                        (alwaysResultsInFix collectionEmptyAsString maybeCollectionArg checkInfo)
                     )
 
             else
                 Nothing
         , \() ->
-            case maybeWithJustAsPureArg of
+            case maybeCollectionArg of
                 Just collectionArg ->
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
                         Just
@@ -7708,8 +7708,8 @@ collectionDiffChecks collection checkInfo =
 collectionUnionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
     let
-        maybeWithJustAsPureArg : Maybe (Node Expression)
-        maybeWithJustAsPureArg =
+        maybeCollectionArg : Maybe (Node Expression)
+        maybeCollectionArg =
             secondArg checkInfo
     in
     firstThatConstructsJust
@@ -7722,14 +7722,14 @@ collectionUnionChecks collection checkInfo =
                         }
                         checkInfo.fnRange
                         (toIdentityFix
-                            { lastArg = maybeWithJustAsPureArg, resources = checkInfo }
+                            { lastArg = maybeCollectionArg, resources = checkInfo }
                         )
                     )
 
             else
                 Nothing
         , \() ->
-            case maybeWithJustAsPureArg of
+            case maybeCollectionArg of
                 Just collectionArg ->
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
                         Just
