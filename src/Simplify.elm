@@ -6875,15 +6875,6 @@ type alias Container otherProperties =
     }
 
 
-{-| Properties of a `Container` type with an explicit constructor for the "there is some data there" case.
--}
-type alias Defaultable otherProperties =
-    Container
-        { otherProperties
-            | isSomethingConstructor : QualifyResources {} -> String
-        }
-
-
 {-| Properties of a `Container` type that has multiple elements.
 -}
 type alias Collection otherProperties =
@@ -6945,7 +6936,7 @@ specificDescriptionToStringWithoutArticle referenceArgSpecificDescription =
             description
 
 
-maybeCollection : Defaultable { pure : String, pureDescription : String }
+maybeCollection : Container { pure : String, pureDescription : String }
 maybeCollection =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -6956,9 +6947,6 @@ maybeCollection =
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
-    , isSomethingConstructor =
-        \resources ->
-            qualifiedToString (qualify ( [ "Maybe" ], "Just" ) resources)
     , pure = "Just"
     , pureDescription = "just value"
     }
