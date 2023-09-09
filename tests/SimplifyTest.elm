@@ -11410,7 +11410,7 @@ a = List.all f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.all will result in True"
+                            { message = "Using List.all on [] will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.all"
                             }

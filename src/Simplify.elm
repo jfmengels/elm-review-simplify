@@ -5327,21 +5327,14 @@ listAllChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            case maybeListArg of
-                Just (Node _ (Expression.ListExpr [])) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString ( [ "List" ], "all" ) ++ " will result in True"
-                            , details = [ "You can replace this call by True." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                            ]
-                        )
-
-                _ ->
-                    Nothing
+            Maybe.andThen
+                (\listArg ->
+                    callOnEmptyReturnsCheck
+                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
+                        listCollection
+                        checkInfo
+                )
+                maybeListArg
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
