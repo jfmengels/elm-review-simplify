@@ -4089,7 +4089,7 @@ stringReplaceChecks checkInfo =
                                     , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
                                     }
                                     checkInfo.fnRange
-                                    (toIdentityFix { lastArg = thirdArg checkInfo, resources = checkInfo })
+                                    (toIdentityFix (thirdArg checkInfo) checkInfo)
                                 )
 
                         _ ->
@@ -5544,9 +5544,7 @@ listFilterMapChecks checkInfo =
                                     , details = [ "You can remove this call and replace it by the list itself." ]
                                     }
                                     checkInfo.fnRange
-                                    (toIdentityFix
-                                        { lastArg = secondArg checkInfo, resources = checkInfo }
-                                    )
+                                    (toIdentityFix (secondArg checkInfo) checkInfo)
                                 )
 
                 Undetermined ->
@@ -6017,7 +6015,7 @@ listDropChecks checkInfo =
                                     }
                             )
                             checkInfo.fnRange
-                            (toIdentityFix { lastArg = maybeListArg, resources = checkInfo })
+                            (toIdentityFix maybeListArg checkInfo)
                         )
 
                 _ ->
@@ -7200,9 +7198,7 @@ maybeAndThenChecks checkInfo =
                                     , details = [ "You can remove this call and replace it by the value itself." ]
                                     }
                                     checkInfo.fnRange
-                                    (toIdentityFix
-                                        { lastArg = maybeMaybeArg, resources = checkInfo }
-                                    )
+                                    (toIdentityFix maybeMaybeArg checkInfo)
                                 )
 
                 Undetermined ->
@@ -7618,9 +7614,7 @@ containerFilterChecks container checkInfo =
                             , details = [ "You can remove this call and replace it by the " ++ container.represents ++ " itself." ]
                             }
                             checkInfo.fnRange
-                            (toIdentityFix
-                                { lastArg = maybeContainerArg, resources = checkInfo }
-                            )
+                            (toIdentityFix maybeContainerArg checkInfo)
                         )
 
                 Determined False ->
@@ -7721,9 +7715,7 @@ collectionUnionChecks collection checkInfo =
                         , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                         }
                         checkInfo.fnRange
-                        (toIdentityFix
-                            { lastArg = maybeCollectionArg, resources = checkInfo }
-                        )
+                        (toIdentityFix maybeCollectionArg checkInfo)
                     )
 
             else
@@ -8899,23 +8891,22 @@ identityError config =
                     [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
         }
         config.resources.fnRange
-        (toIdentityFix { lastArg = config.lastArg, resources = config.resources })
+        (toIdentityFix config.lastArg config.resources)
 
 
 toIdentityFix :
-    { lastArg : Maybe (Node lastArgument)
-    , resources : QualifyResources { a | parentRange : Range }
-    }
+    Maybe (Node lastArgument)
+    -> QualifyResources { a | parentRange : Range }
     -> List Fix
-toIdentityFix config =
-    case config.lastArg of
+toIdentityFix maybeLastArg resources =
+    case maybeLastArg of
         Nothing ->
-            [ Fix.replaceRangeBy config.resources.parentRange
-                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) config.resources))
+            [ Fix.replaceRangeBy resources.parentRange
+                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) resources))
             ]
 
         Just (Node lastArgRange _) ->
-            keepOnlyFix { parentRange = config.resources.parentRange, keep = lastArgRange }
+            keepOnlyFix { parentRange = resources.parentRange, keep = lastArgRange }
 
 
 multiAlways : Int -> String -> QualifyResources a -> String
