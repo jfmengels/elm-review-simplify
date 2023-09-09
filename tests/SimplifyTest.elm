@@ -5981,8 +5981,8 @@ a = String.replace n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The result of String.replace will be the original string"
-                            , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                            { message = "Using String.replace where the pattern to replace and the replacement are equal will always return the same given string"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "String.replace"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5997,8 +5997,8 @@ a = String.replace n n x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The result of String.replace will be the original string"
-                            , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                            { message = "Using String.replace where the pattern to replace and the replacement are equal will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
                             , under = "String.replace"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

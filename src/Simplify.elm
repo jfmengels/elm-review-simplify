@@ -4084,12 +4084,12 @@ stringReplaceChecks checkInfo =
                     case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
                         Normalize.ConfirmedEquality ->
                             Just
-                                (Rule.errorWithFix
-                                    { message = "The result of String.replace will be the original string"
-                                    , details = [ "The pattern to replace and the replacement are equal, therefore the result of the String.replace call will be the original string." ]
+                                (identityError
+                                    { toFix = qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal"
+                                    , lastArg = thirdArg checkInfo
+                                    , lastArgName = "string"
+                                    , resources = checkInfo
                                     }
-                                    checkInfo.fnRange
-                                    (toIdentityFix (thirdArg checkInfo) checkInfo)
                                 )
 
                         _ ->
