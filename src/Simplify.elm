@@ -4046,8 +4046,8 @@ stringRepeatChecks checkInfo =
                                             { toFix = "String.repeat 1"
                                             , lastArg = secondArg checkInfo
                                             , lastArgName = "string to repeat"
-                                            , resources = checkInfo
                                             }
+                                            checkInfo
                                         )
 
                                 _ ->
@@ -4088,8 +4088,8 @@ stringReplaceChecks checkInfo =
                                     { toFix = qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal"
                                     , lastArg = thirdArg checkInfo
                                     , lastArgName = "string"
-                                    , resources = checkInfo
                                     }
+                                    checkInfo
                                 )
 
                         _ ->
@@ -5543,8 +5543,8 @@ listFilterMapChecks checkInfo =
                                     { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
                                     , lastArg = secondArg checkInfo
                                     , lastArgName = "list"
-                                    , resources = checkInfo
                                     }
+                                    checkInfo
                                 )
 
                 Undetermined ->
@@ -5825,8 +5825,8 @@ listSortByChecks checkInfo =
                             { toFix = qualifiedToString ( [ "List" ], "sortBy" ) ++ " (always a)"
                             , lastArgName = "list"
                             , lastArg = secondArg checkInfo
-                            , resources = checkInfo
                             }
+                            checkInfo
                         )
 
                 Nothing ->
@@ -5912,8 +5912,8 @@ listSortWithChecks checkInfo =
                                 { toFix = qualifiedToString ( [ "List" ], "sortWith" ) ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
                                 , lastArgName = "list"
                                 , lastArg = secondArg checkInfo
-                                , resources = checkInfo
                                 }
+                                checkInfo
                     in
                     case order of
                         LT ->
@@ -6005,8 +6005,8 @@ listDropChecks checkInfo =
                             { toFix = qualifiedToString checkInfo.fn ++ " 0"
                             , lastArg = maybeListArg
                             , lastArgName = "list"
-                            , resources = checkInfo
                             }
+                            checkInfo
                         )
 
                 _ ->
@@ -7017,8 +7017,8 @@ mapIdentityChecks mappable checkInfo =
                 { toFix = qualifiedToString checkInfo.fn ++ " with an identity function"
                 , lastArg = secondArg checkInfo
                 , lastArgName = mappable.represents
-                , resources = checkInfo
                 }
+                checkInfo
             )
 
     else
@@ -7188,8 +7188,8 @@ maybeAndThenChecks checkInfo =
                                     { toFix = qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Just"
                                     , lastArg = maybeMaybeArg
                                     , lastArgName = "maybe"
-                                    , resources = checkInfo
                                     }
+                                    checkInfo
                                 )
 
                 Undetermined ->
@@ -7280,8 +7280,8 @@ resultAndThenChecks checkInfo =
                                     { toFix = qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function equivalent to Ok"
                                     , lastArgName = "result"
                                     , lastArg = maybeResultArg
-                                    , resources = checkInfo
                                     }
+                                    checkInfo
                                 )
 
                 Undetermined ->
@@ -7604,8 +7604,8 @@ containerFilterChecks container checkInfo =
                             { toFix = qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return True"
                             , lastArg = maybeContainerArg
                             , lastArgName = container.represents
-                            , resources = checkInfo
                             }
+                            checkInfo
                         )
 
                 Determined False ->
@@ -7705,8 +7705,8 @@ collectionUnionChecks collection checkInfo =
                         { toFix = qualifiedToString checkInfo.fn ++ " " ++ specificDescriptionAsIncomingToString collection.emptyDescription
                         , lastArg = maybeCollectionArg
                         , lastArgName = collection.represents
-                        , resources = checkInfo
                         }
+                        checkInfo
                     )
 
             else
@@ -8867,10 +8867,10 @@ identityError :
     { toFix : String
     , lastArgName : String
     , lastArg : Maybe (Node lastArgument)
-    , resources : QualifyResources { a | fnRange : Range, parentRange : Range }
     }
+    -> QualifyResources { a | fnRange : Range, parentRange : Range }
     -> Error {}
-identityError config =
+identityError config resources =
     case config.lastArg of
         Nothing ->
             Rule.errorWithFix
@@ -8878,9 +8878,9 @@ identityError config =
                 , details =
                     [ "You can replace this call by identity." ]
                 }
-                config.resources.fnRange
-                [ Fix.replaceRangeBy config.resources.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) config.resources))
+                resources.fnRange
+                [ Fix.replaceRangeBy resources.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) resources))
                 ]
 
         Just (Node lastArgRange _) ->
@@ -8889,8 +8889,8 @@ identityError config =
                 , details =
                     [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
                 }
-                config.resources.fnRange
-                (keepOnlyFix { parentRange = config.resources.parentRange, keep = lastArgRange })
+                resources.fnRange
+                (keepOnlyFix { parentRange = resources.parentRange, keep = lastArgRange })
 
 
 multiAlways : Int -> String -> QualifyResources a -> String
