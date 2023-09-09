@@ -4127,14 +4127,14 @@ maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> containerMapChecks maybeCollection checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value", map = "map" } checkInfo
+        , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value" } checkInfo
         ]
         ()
 
 
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks checkInfo =
-    pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value", map = "map" } checkInfo
+    pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value" } checkInfo
 
 
 
@@ -6570,7 +6570,7 @@ randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value", map = "map" } checkInfo
+        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
         ()
@@ -6579,7 +6579,7 @@ randomMapChecks checkInfo =
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value", map = "map" } checkInfo
+        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value" } checkInfo
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
         ()
