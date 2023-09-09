@@ -3746,19 +3746,7 @@ stringFromListChecks checkInfo =
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})
 stringConcatChecks checkInfo =
-    case AstHelpers.getListLiteral checkInfo.firstArg of
-        Just [] ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.concat on [] will result in " ++ emptyStringAsString
-                    , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                )
-
-        _ ->
-            Nothing
+    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> emptyStringAsString } listCollection checkInfo
 
 
 stringWordsChecks : CheckInfo -> Maybe (Error {})
@@ -3984,19 +3972,11 @@ stringJoinChecks : CheckInfo -> Maybe (Error {})
 stringJoinChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case secondArg checkInfo of
-                Just (Node _ (Expression.ListExpr [])) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using String.join on [] will result in " ++ emptyStringAsString
-                            , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                        )
-
-                _ ->
-                    Nothing
+            Maybe.andThen
+                (\listArg ->
+                    callOnEmptyReturnsCheck { on = listArg, resultAsString = \_ -> emptyStringAsString } listCollection checkInfo
+                )
+                (secondArg checkInfo)
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.Literal "" ->
@@ -4684,19 +4664,9 @@ listHeadChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
+            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
+        , \() ->
             case Node.value listArg of
-                Expression.ListExpr [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on [] will result in Nothing"
-                            , details = [ "You can replace this call by Nothing." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                            ]
-                        )
-
                 Expression.ListExpr (head :: _) ->
                     Just (justFirstElementError head)
 
@@ -4739,19 +4709,9 @@ listTailChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
+            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
+        , \() ->
             case Node.value listArg of
-                Expression.ListExpr [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on [] will result in Nothing"
-                            , details = [ "You can replace this call by Nothing." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                            ]
-                        )
-
                 Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
                     Just
                         (Rule.errorWithFix
@@ -4949,6 +4909,11 @@ listMemberChecks checkInfo =
             in
             firstThatConstructsJust
                 [ \() ->
+                    callOnEmptyReturnsCheck
+                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                        listCollection
+                        checkInfo
+                , \() ->
                     case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                         Just single ->
                             if isNeedle single.element then
@@ -4961,18 +4926,6 @@ listMemberChecks checkInfo =
                             Nothing
                 , \() ->
                     case Node.value (AstHelpers.removeParens listArg) of
-                        Expression.ListExpr [] ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on [] will result in False"
-                                    , details = [ "You can replace this call by False." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.parentRange
-                                        (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
-                                    ]
-                                )
-
                         Expression.ListExpr (el0 :: el1 :: el2Up) ->
                             if List.any isNeedle (el0 :: el1 :: el2Up) then
                                 listMemberExistsError
@@ -5010,19 +4963,7 @@ listSumChecks : CheckInfo -> Maybe (Error {})
 listSumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "sum" ) ++ " on [] will result in 0"
-                            , details = [ "You can replace this call by 0." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "0" } listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
@@ -5045,19 +4986,7 @@ listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "product" ) ++ " on [] will result in 1"
-                            , details = [ "You can replace this call by 1." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange "1" ]
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "1" } listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
@@ -5080,21 +5009,7 @@ listMinimumChecks : CheckInfo -> Maybe (Error {})
 listMinimumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "minimum" ) ++ " on [] will result in Nothing"
-                            , details = [ "You can replace this call by Nothing." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                            ]
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
@@ -5120,21 +5035,7 @@ listMaximumChecks : CheckInfo -> Maybe (Error {})
 listMaximumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "maximum" ) ++ " on [] will result in Nothing"
-                            , details = [ "You can replace this call by Nothing." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                            ]
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
@@ -5975,19 +5876,7 @@ containerMapNChecks { n } container checkInfo =
 
 listUnzipChecks : CheckInfo -> Maybe (Error {})
 listUnzipChecks checkInfo =
-    case AstHelpers.getListLiteral checkInfo.firstArg of
-        Just [] ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString ( [ "List" ], "unzip" ) ++ " on [] will result in ( [], [] )"
-                    , details = [ "You can replace this call by ( [], [] )." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "( [], [] )" ]
-                )
-
-        _ ->
-            Nothing
+    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "( [], [] )" } listCollection checkInfo
 
 
 setFromListChecks : CheckInfo -> Maybe (Error {})
@@ -7495,6 +7384,39 @@ callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo =
                 )
                 checkInfo.fnRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+            )
+
+    else
+        Nothing
+
+
+callOnEmptyReturnsCheck :
+    { on : Node Expression
+    , resultAsString : QualifyResources {} -> String
+    }
+    ->
+        { a
+            | isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+            , emptyDescription : SpecificDescription
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+callOnEmptyReturnsCheck config collection checkInfo =
+    if collection.isEmpty checkInfo.lookupTable config.on then
+        let
+            resultDescription : String
+            resultDescription =
+                config.resultAsString defaultQualifyResources
+        in
+        Just
+            (Rule.errorWithFix
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString collection.emptyDescription ++ " will result in " ++ resultDescription
+                , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (config.resultAsString (extractQualifyResources checkInfo))
+                ]
             )
 
     else
