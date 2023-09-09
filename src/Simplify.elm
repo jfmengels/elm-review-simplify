@@ -4239,15 +4239,24 @@ listConcatChecks checkInfo =
                         firstListElement :: restOfListElements ->
                             firstThatConstructsJust
                                 [ \() ->
-                                    case findEmptyLiteral list of
-                                        Just emptyLiteral ->
+                                    let
+                                        getEmptyList : Node Expression -> Maybe { range : Range }
+                                        getEmptyList element =
+                                            if listCollection.isEmpty checkInfo.lookupTable element then
+                                                Just { range = Node.range element }
+
+                                            else
+                                                Nothing
+                                    in
+                                    case findMapNeighboring getEmptyList list of
+                                        Just emptyLiteralAndNeighbors ->
                                             Just
                                                 (Rule.errorWithFix
                                                     { message = "Found empty list in the list given " ++ qualifiedToString ( [ "List" ], "concat" )
                                                     , details = [ "This element is unnecessary and can be removed." ]
                                                     }
-                                                    emptyLiteral.element
-                                                    [ Fix.removeRange emptyLiteral.removalRange ]
+                                                    emptyLiteralAndNeighbors.found.range
+                                                    (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
                                                 )
 
                                         Nothing ->
@@ -4310,62 +4319,6 @@ listConcatChecks checkInfo =
                     Nothing
         ]
         ()
-
-
-findEmptyLiteral : List (Node Expression) -> Maybe { element : Range, removalRange : Range }
-findEmptyLiteral elements =
-    case elements of
-        [] ->
-            Nothing
-
-        head :: rest ->
-            let
-                headRange : Range
-                headRange =
-                    Node.range head
-            in
-            case AstHelpers.getListLiteral head of
-                Just [] ->
-                    let
-                        end : Location
-                        end =
-                            case rest of
-                                [] ->
-                                    headRange.end
-
-                                (Node nextItem _) :: _ ->
-                                    nextItem.start
-                    in
-                    Just
-                        { element = headRange
-                        , removalRange = { start = headRange.start, end = end }
-                        }
-
-                _ ->
-                    findEmptyLiteralHelp rest headRange.end
-
-
-findEmptyLiteralHelp : List (Node Expression) -> Location -> Maybe { element : Range, removalRange : Range }
-findEmptyLiteralHelp elements previousItemEnd =
-    case elements of
-        [] ->
-            Nothing
-
-        head :: rest ->
-            let
-                headRange : Range
-                headRange =
-                    Node.range head
-            in
-            case AstHelpers.getListLiteral head of
-                Just [] ->
-                    Just
-                        { element = headRange
-                        , removalRange = { start = previousItemEnd, end = headRange.end }
-                        }
-
-                _ ->
-                    findEmptyLiteralHelp rest headRange.end
 
 
 findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix
