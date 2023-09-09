@@ -2267,10 +2267,10 @@ functionCallChecks =
         , ( ( [ "List" ], "sortWith" ), listSortWithChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
-        , ( ( [ "List" ], "map2" ), listMapNChecks { n = 2 } )
-        , ( ( [ "List" ], "map3" ), listMapNChecks { n = 3 } )
-        , ( ( [ "List" ], "map4" ), listMapNChecks { n = 4 } )
-        , ( ( [ "List" ], "map5" ), listMapNChecks { n = 5 } )
+        , ( ( [ "List" ], "map2" ), containerMapNChecks { n = 2 } listCollection )
+        , ( ( [ "List" ], "map3" ), containerMapNChecks { n = 3 } listCollection )
+        , ( ( [ "List" ], "map4" ), containerMapNChecks { n = 4 } listCollection )
+        , ( ( [ "List" ], "map5" ), containerMapNChecks { n = 5 } listCollection )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
         , ( ( [ "Set" ], "map" ), containerMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), containerFilterChecks setCollection )
@@ -5952,9 +5952,9 @@ listDropChecks checkInfo =
         ()
 
 
-listMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
-listMapNChecks { n } checkInfo =
-    if List.any (listCollection.isEmpty checkInfo.lookupTable) checkInfo.argsAfterFirst then
+containerMapNChecks : { n : Int } -> Container otherProperties -> CheckInfo -> Maybe (Error {})
+containerMapNChecks { n } container checkInfo =
+    if List.any (container.isEmpty checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
             callReplacement : String
             callReplacement =
