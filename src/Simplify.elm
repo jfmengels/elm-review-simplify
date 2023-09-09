@@ -6448,8 +6448,8 @@ randomListChecks checkInfo =
                                         qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
                                             ++ " []"
                                     , lastArg = maybeElementGeneratorArg
-                                    , resources = checkInfo
                                     }
+                                    checkInfo
 
                             callDescription : String
                             callDescription =
@@ -8852,14 +8852,14 @@ replaceByBoolWithIrrelevantLastArgFix config =
             ]
 
 
-replacementWithIrrelevantLastArg : { resources : QualifyResources a, lastArg : Maybe arg, forNoLastArg : String } -> String
-replacementWithIrrelevantLastArg config =
+replacementWithIrrelevantLastArg : { lastArg : Maybe arg, forNoLastArg : String } -> QualifyResources a -> String
+replacementWithIrrelevantLastArg config resources =
     case config.lastArg of
         Just _ ->
             config.forNoLastArg
 
         Nothing ->
-            qualifiedToString (qualify ( [ "Basics" ], "always" ) config.resources)
+            qualifiedToString (qualify ( [ "Basics" ], "always" ) resources)
                 ++ (" (" ++ config.forNoLastArg ++ ")")
 
 
