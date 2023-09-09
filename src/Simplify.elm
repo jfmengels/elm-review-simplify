@@ -4126,15 +4126,15 @@ stringReplaceChecks checkInfo =
 maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapChecks maybeCollection checkInfo
-        , \() -> mapPureChecks maybeCollection checkInfo
+        [ \() -> containerMapChecks maybeWithJustAsPure checkInfo
+        , \() -> mapPureChecks maybeWithJustAsPure checkInfo
         ]
         ()
 
 
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks checkInfo =
-    pureToMapCompositionChecks maybeCollection checkInfo
+    pureToMapCompositionChecks maybeWithJustAsPure checkInfo
 
 
 
@@ -6707,8 +6707,8 @@ emptyAsString qualifyResources emptiable =
     emptiable.emptyAsString (extractQualifyResources qualifyResources)
 
 
-maybeCollection : Container { pure : String, pureDescription : String }
-maybeCollection =
+maybeWithJustAsPure : Container { pure : String, pureDescription : String }
+maybeWithJustAsPure =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
     , emptyAsString =
@@ -7132,7 +7132,7 @@ maybeAndThenChecks checkInfo =
     let
         maybeEmptyAsString : String
         maybeEmptyAsString =
-            emptyAsString checkInfo maybeCollection
+            emptyAsString checkInfo maybeWithJustAsPure
 
         maybeMaybeArg : Maybe (Node Expression)
         maybeMaybeArg =
@@ -7147,7 +7147,7 @@ maybeAndThenChecks checkInfo =
                             Determined justCalls ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "Calling " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " on a value that is known to be Just"
+                                        { message = "Calling " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " on a value that is known to be Just"
                                         , details = [ "You can remove the Just and just call the function directly." ]
                                         }
                                         checkInfo.fnRange
@@ -7164,7 +7164,7 @@ maybeAndThenChecks checkInfo =
                                 Just
                                     (Rule.errorWithFix
                                         (operationDoesNotChangeSpecificLastArgErrorInfo
-                                            { fn = ( maybeCollection.moduleName, "andThen" ), specific = maybeCollection.emptyDescription }
+                                            { fn = ( maybeWithJustAsPure.moduleName, "andThen" ), specific = maybeWithJustAsPure.emptyDescription }
                                         )
                                         checkInfo.fnRange
                                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
@@ -7183,12 +7183,12 @@ maybeAndThenChecks checkInfo =
                         NonDirectConstruction fix ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Use " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ " instead"
-                                    , details = [ "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeCollection.moduleName, "map" ) ++ "." ]
+                                    { message = "Use " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ " instead"
+                                    , details = [ "Using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( maybeCollection.moduleName, "map" ) checkInfo))
+                                        (qualifiedToString (qualify ( maybeWithJustAsPure.moduleName, "map" ) checkInfo))
                                         :: fix
                                     )
                                 )
@@ -7196,7 +7196,7 @@ maybeAndThenChecks checkInfo =
                         DirectConstruction ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" )
+                                    { message = "Using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" )
                                     , details = [ "You can remove this call and replace it by the value itself." ]
                                     }
                                     checkInfo.fnRange
@@ -7212,7 +7212,7 @@ maybeAndThenChecks checkInfo =
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( maybeCollection.moduleName, "andThen" ) ++ " with a function that will always return Nothing will result in Nothing"
+                            { message = "Using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Nothing will result in Nothing"
                             , details = [ "You can remove this call and replace it by Nothing." ]
                             }
                             checkInfo.fnRange
@@ -7661,8 +7661,8 @@ collectionIntersectChecks collection checkInfo =
 collectionDiffChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
     let
-        maybeCollectionArg : Maybe (Node Expression)
-        maybeCollectionArg =
+        maybeWithJustAsPureArg : Maybe (Node Expression)
+        maybeWithJustAsPureArg =
             secondArg checkInfo
 
         collectionEmptyAsString : String
@@ -7678,13 +7678,13 @@ collectionDiffChecks collection checkInfo =
                         , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
                         }
                         checkInfo.fnRange
-                        (alwaysResultsInFix collectionEmptyAsString maybeCollectionArg checkInfo)
+                        (alwaysResultsInFix collectionEmptyAsString maybeWithJustAsPureArg checkInfo)
                     )
 
             else
                 Nothing
         , \() ->
-            case maybeCollectionArg of
+            case maybeWithJustAsPureArg of
                 Just collectionArg ->
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
                         Just
@@ -7710,8 +7710,8 @@ collectionDiffChecks collection checkInfo =
 collectionUnionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
     let
-        maybeCollectionArg : Maybe (Node Expression)
-        maybeCollectionArg =
+        maybeWithJustAsPureArg : Maybe (Node Expression)
+        maybeWithJustAsPureArg =
             secondArg checkInfo
     in
     firstThatConstructsJust
@@ -7724,14 +7724,14 @@ collectionUnionChecks collection checkInfo =
                         }
                         checkInfo.fnRange
                         (toIdentityFix
-                            { lastArg = maybeCollectionArg, resources = checkInfo }
+                            { lastArg = maybeWithJustAsPureArg, resources = checkInfo }
                         )
                     )
 
             else
                 Nothing
         , \() ->
-            case maybeCollectionArg of
+            case maybeWithJustAsPureArg of
                 Just collectionArg ->
                     if collection.isEmpty checkInfo.lookupTable collectionArg then
                         Just
