@@ -6544,7 +6544,11 @@ resultWithErrAsPure =
     }
 
 
-listCollection : Collection {}
+listCollection :
+    Collection
+        { getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+        , pureDescription : SpecificDescription
+        }
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -6553,6 +6557,10 @@ listCollection =
     , isEmpty = \_ expr -> AstHelpers.getListLiteral expr == Just []
     , nameForSize = "length"
     , determineSize = listDetermineLength
+    , getPureValue =
+        \lookupTable expr ->
+            Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
+    , pureDescription = A "singleton list"
     }
 
 
