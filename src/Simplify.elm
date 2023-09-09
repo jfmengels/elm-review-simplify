@@ -5713,20 +5713,7 @@ listRepeatChecks checkInfo =
 listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ " on [] will result in []"
-                            , details = [ "You can replace this call by []." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                        )
-
-                _ ->
-                    Nothing
+        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
             removeAlongWithOtherFunctionCheck
                 reverseReverseCompositionErrorMessage
