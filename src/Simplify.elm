@@ -5860,41 +5860,28 @@ subAndCmdBatchChecks batchable checkInfo =
                         )
 
                 Just (arg0 :: arg1 :: arg2Up) ->
-                    neighboringMap
-                        (\arg ->
-                            if batchable.isEmpty checkInfo.lookupTable arg.current then
-                                let
-                                    argRange : Range
-                                    argRange =
-                                        Node.range arg.current
-                                in
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription
-                                        , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchDescription ++ "." ]
-                                        }
-                                        argRange
-                                        (case arg.before of
-                                            Just (Node prevRange _) ->
-                                                [ Fix.removeRange { start = prevRange.end, end = argRange.end } ]
-
-                                            Nothing ->
-                                                case arg.after of
-                                                    Just (Node nextRange _) ->
-                                                        [ Fix.removeRange { start = argRange.start, end = nextRange.start } ]
-
-                                                    Nothing ->
-                                                        [ Fix.replaceRangeBy checkInfo.parentRange
-                                                            (emptyAsString checkInfo batchable)
-                                                        ]
-                                        )
-                                    )
+                    let
+                        getEmpty : Node Expression -> Maybe { range : Range }
+                        getEmpty element =
+                            if batchable.isEmpty checkInfo.lookupTable element then
+                                Just { range = Node.range element }
 
                             else
                                 Nothing
-                        )
-                        (arg0 :: arg1 :: arg2Up)
-                        |> findMap identity
+                    in
+                    case findMapNeighboring getEmpty (arg0 :: arg1 :: arg2Up) of
+                        Just emptyAndNeighboring ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription
+                                    , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchDescription ++ "." ]
+                                    }
+                                    emptyAndNeighboring.found.range
+                                    (listLiteralElementRemoveFix emptyAndNeighboring)
+                                )
+
+                        Nothing ->
+                            Nothing
 
                 _ ->
                     Nothing
@@ -9005,17 +8992,6 @@ findMapNeighboringAfter before tryMap list =
 findMapNeighboring : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
 findMapNeighboring tryMap list =
     findMapNeighboringAfter Nothing tryMap list
-
-
-neighboringMap : ({ before : Maybe a, current : a, after : Maybe a } -> b) -> List a -> List b
-neighboringMap changeWithNeighboring list =
-    List.map3
-        (\before current after ->
-            changeWithNeighboring { before = before, current = current, after = after }
-        )
-        (Nothing :: List.map Just list)
-        list
-        (List.map Just (List.drop 1 list) ++ [ Nothing ])
 
 
 withBeforeMap : ({ before : Maybe a, current : a } -> b) -> List a -> List b
