@@ -4231,22 +4231,11 @@ listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnPureReturnsItsValue checkInfo.firstArg listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
                     case list of
-                        (Node elementRange _) :: [] ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " on a list with 1 element"
-                                    , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                                    }
-                                    checkInfo.parentRange
-                                    [ Fix.removeRange { start = checkInfo.parentRange.start, end = elementRange.start }
-                                    , Fix.removeRange { start = elementRange.end, end = checkInfo.parentRange.end }
-                                    ]
-                                )
-
                         firstListElement :: restOfListElements ->
                             firstThatConstructsJust
                                 [ \() ->
@@ -4964,20 +4953,7 @@ listSumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "0" } listCollection checkInfo
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just listSingletonArg ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Summing a list with a single element will result in the element itself"
-                            , details = [ "You can replace this call by the single element itself." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
-                        )
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnPureReturnsItsValue checkInfo.firstArg listCollection checkInfo
         ]
         ()
 
@@ -4987,20 +4963,7 @@ listProductChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "1" } listCollection checkInfo
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just listSingletonArg ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString ( [ "List" ], "product" ) ++ " on a list with a single element will result in the element itself"
-                            , details = [ "You can replace this call by the single element itself." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
-                        )
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnPureReturnsItsValue checkInfo.firstArg listCollection checkInfo
         ]
         ()
 

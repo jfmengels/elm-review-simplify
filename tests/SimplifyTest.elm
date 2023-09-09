@@ -6989,9 +6989,9 @@ a = List.concat [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary use of List.concat on a list with 1 element"
-                            , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                            , under = "List.concat [ b ]"
+                            { message = "Using List.concat on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = b
@@ -7005,9 +7005,9 @@ a = List.concat <| [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary use of List.concat on a list with 1 element"
-                            , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                            , under = "List.concat <| [ b ]"
+                            { message = "Using List.concat on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = b
@@ -7021,9 +7021,9 @@ a = [ b ] |> List.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary use of List.concat on a list with 1 element"
-                            , details = [ "The value of the operation will be the element itself. You should replace this expression by that." ]
-                            , under = "[ b ] |> List.concat"
+                            { message = "Using List.concat on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = b
@@ -9293,8 +9293,8 @@ a = List.sum [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Summing a list with a single element will result in the element itself"
-                            , details = [ "You can replace this call by the single element itself." ]
+                            { message = "Using List.sum on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.sum"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9347,8 +9347,8 @@ a = List.product [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.product on a list with a single element will result in the element itself"
-                            , details = [ "You can replace this call by the single element itself." ]
+                            { message = "Using List.product on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.product"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
