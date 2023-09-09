@@ -8871,33 +8871,26 @@ identityError :
     }
     -> Error {}
 identityError config =
-    Rule.errorWithFix
-        { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgName
-        , details =
-            case config.lastArg of
-                Nothing ->
-                    [ "You can replace this call by identity." ]
-
-                Just _ ->
-                    [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
-        }
-        config.resources.fnRange
-        (toIdentityFix config.lastArg config.resources)
-
-
-toIdentityFix :
-    Maybe (Node lastArgument)
-    -> QualifyResources { a | parentRange : Range }
-    -> List Fix
-toIdentityFix maybeLastArg resources =
-    case maybeLastArg of
+    case config.lastArg of
         Nothing ->
-            [ Fix.replaceRangeBy resources.parentRange
-                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) resources))
-            ]
+            Rule.errorWithFix
+                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgName
+                , details =
+                    [ "You can replace this call by identity." ]
+                }
+                config.resources.fnRange
+                [ Fix.replaceRangeBy config.resources.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) config.resources))
+                ]
 
         Just (Node lastArgRange _) ->
-            keepOnlyFix { parentRange = resources.parentRange, keep = lastArgRange }
+            Rule.errorWithFix
+                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgName
+                , details =
+                    [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
+                }
+                config.resources.fnRange
+                (keepOnlyFix { parentRange = config.resources.parentRange, keep = lastArgRange })
 
 
 multiAlways : Int -> String -> QualifyResources a -> String
