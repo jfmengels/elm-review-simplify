@@ -4155,11 +4155,11 @@ resultMapCompositionChecks checkInfo =
     pureToMapCompositionChecks resultWithOkAsPure checkInfo
 
 
-mapPureOnPureErrorInfo :
+mapPureErrorInfo :
     String
     -> { a | moduleName : ModuleName, pure : String, pureDescription : String }
     -> { message : String, details : List String }
-mapPureOnPureErrorInfo mapFnName mappable =
+mapPureErrorInfo mapFnName mappable =
     let
         pureFnInErrorInfo : String
         pureFnInErrorInfo =
@@ -4215,7 +4215,7 @@ resultMapErrorCompositionChecks checkInfo =
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Result" ], "Err" ), [] ) ->
                     Just
-                        { info = mapPureOnPureErrorInfo "mapError" resultWithErrAsPure
+                        { info = mapPureErrorInfo "mapError" resultWithErrAsPure
                         , fix =
                             keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
                                 ++ [ case checkInfo.direction of
@@ -7063,7 +7063,7 @@ mapPureChecks mappable checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            (mapPureOnPureErrorInfo (AstHelpers.qualifiedName checkInfo.fn) mappable)
+                            (mapPureErrorInfo (AstHelpers.qualifiedName checkInfo.fn) mappable)
                             checkInfo.fnRange
                             (if checkInfo.usingRightPizza then
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
@@ -7119,7 +7119,7 @@ pureToMapCompositionChecks mappable checkInfo =
                             ]
             in
             Just
-                { info = mapPureOnPureErrorInfo checkInfo.later.fnName mappable
+                { info = mapPureErrorInfo checkInfo.later.fnName mappable
                 , fix = fixes
                 }
 
