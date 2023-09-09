@@ -5954,7 +5954,7 @@ listDropChecks checkInfo =
 
 listMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
 listMapNChecks { n } checkInfo =
-    if List.any (\list -> AstHelpers.getListLiteral list == Just []) checkInfo.argsAfterFirst then
+    if List.any (listCollection.isEmpty checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
             callReplacement : String
             callReplacement =
