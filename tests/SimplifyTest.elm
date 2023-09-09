@@ -11471,7 +11471,7 @@ a = List.any f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.any will result in False"
+                            { message = "Using List.any on [] will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.any"
                             }

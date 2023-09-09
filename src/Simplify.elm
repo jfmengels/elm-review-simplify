@@ -5369,21 +5369,14 @@ listAnyChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            case maybeListArg of
-                Just (Node _ (Expression.ListExpr [])) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " will result in False"
-                            , details = [ "You can replace this call by False." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
-                            ]
-                        )
-
-                _ ->
-                    Nothing
+            Maybe.andThen
+                (\listArg ->
+                    callOnEmptyReturnsCheck
+                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                        listCollection
+                        checkInfo
+                )
+                maybeListArg
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined False ->
