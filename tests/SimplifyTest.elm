@@ -8807,8 +8807,8 @@ a = List.filterMap Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8823,8 +8823,8 @@ a = List.filterMap Just <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8839,8 +8839,8 @@ a = x |> List.filterMap Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8855,8 +8855,8 @@ a = List.filterMap Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as not using List.filterMap"
-                            , details = [ "You can remove this call and replace it by the list itself." ]
+                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

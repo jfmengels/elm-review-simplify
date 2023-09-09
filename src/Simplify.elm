@@ -5539,12 +5539,12 @@ listFilterMapChecks checkInfo =
 
                         DirectConstruction ->
                             Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( [ "List" ], "filterMap" )
-                                    , details = [ "You can remove this call and replace it by the list itself." ]
+                                (identityError
+                                    { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
+                                    , lastArg = secondArg checkInfo
+                                    , lastArgName = "list"
+                                    , resources = checkInfo
                                     }
-                                    checkInfo.fnRange
-                                    (toIdentityFix (secondArg checkInfo) checkInfo)
                                 )
 
                 Undetermined ->
