@@ -4127,14 +4127,14 @@ maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> containerMapChecks maybeCollection checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value" } checkInfo
+        , \() -> mapPureChecks maybeCollection checkInfo
         ]
         ()
 
 
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks checkInfo =
-    pureToMapCompositionChecks { moduleName = [ "Maybe" ], pure = "Just", pureDescription = "just value" } checkInfo
+    pureToMapCompositionChecks maybeCollection checkInfo
 
 
 
@@ -6945,7 +6945,7 @@ specificDescriptionToStringWithoutArticle referenceArgSpecificDescription =
             description
 
 
-maybeCollection : Defaultable {}
+maybeCollection : Defaultable { pure : String, pureDescription : String }
 maybeCollection =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -6959,6 +6959,8 @@ maybeCollection =
     , isSomethingConstructor =
         \resources ->
             qualifiedToString (qualify ( [ "Maybe" ], "Just" ) resources)
+    , pure = "Just"
+    , pureDescription = "just value"
     }
 
 
