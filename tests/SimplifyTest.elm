@@ -7039,7 +7039,7 @@ a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
-                            , under = "List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]"
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [  1, 2, 3 ,  4, 5, 6 ]
@@ -7055,7 +7055,7 @@ a = List.concat <| [ [ 1, 2, 3 ], [ 4, 5, 6 ] ]
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
-                            , under = "List.concat <| [ [ 1, 2, 3 ], [ 4, 5, 6 ] ]"
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [  1, 2, 3 ,  4, 5, 6  ]
@@ -7071,7 +7071,7 @@ a = [ [ 1, 2, 3 ], [ 4, 5, 6 ] ] |> List.concat
                         [ Review.Test.error
                             { message = "Expression could be simplified to be a single List"
                             , details = [ "Try moving all the elements into a single list." ]
-                            , under = "[ [ 1, 2, 3 ], [ 4, 5, 6 ] ] |> List.concat"
+                            , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [  1, 2, 3 ,  4, 5, 6  ]

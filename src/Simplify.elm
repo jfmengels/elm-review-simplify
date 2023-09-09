@@ -4260,7 +4260,7 @@ listConcatChecks checkInfo =
                                                     { message = "Expression could be simplified to be a single List"
                                                     , details = [ "Try moving all the elements into a single list." ]
                                                     }
-                                                    checkInfo.parentRange
+                                                    checkInfo.fnRange
                                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
                                                         ++ List.concatMap removeBoundariesFix (firstListElement :: restOfListElements)
                                                     )
