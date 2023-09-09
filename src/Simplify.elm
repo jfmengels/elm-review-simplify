@@ -6001,21 +6001,12 @@ listDropChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 0 ->
                     Just
-                        -- TODO use identityError
-                        (Rule.errorWithFix
-                            (case maybeListArg of
-                                Just _ ->
-                                    { message = "Dropping 0 items from a list will result in the list itself"
-                                    , details = [ "You can replace this call by the list itself." ]
-                                    }
-
-                                Nothing ->
-                                    { message = "Dropping 0 items from a list will result in the list itself"
-                                    , details = [ "You can replace this function by identity." ]
-                                    }
-                            )
-                            checkInfo.fnRange
-                            (toIdentityFix maybeListArg checkInfo)
+                        (identityError
+                            { toFix = qualifiedToString checkInfo.fn ++ " 0"
+                            , lastArg = maybeListArg
+                            , lastArgName = "list"
+                            , resources = checkInfo
+                            }
                         )
 
                 _ ->

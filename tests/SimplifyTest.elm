@@ -12494,7 +12494,7 @@ a = List.drop 0 x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dropping 0 items from a list will result in the list itself"
+                            { message = "Using List.drop 0 will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.drop"
                             }
@@ -12510,7 +12510,7 @@ a = x |> List.drop 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dropping 0 items from a list will result in the list itself"
+                            { message = "Using List.drop 0 will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.drop"
                             }
@@ -12526,8 +12526,8 @@ a = List.drop 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dropping 0 items from a list will result in the list itself"
-                            , details = [ "You can replace this function by identity." ]
+                            { message = "Using List.drop 0 will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
                             , under = "List.drop"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
