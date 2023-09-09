@@ -5915,24 +5915,9 @@ listTakeChecks checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case maybeListArg of
-                Just listArg ->
-                    case listDetermineLength checkInfo.lookupTable listArg of
-                        Just (Exactly 0) ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "take" ) ++ " on [] will result in []"
-                                    , details = [ "You can replace this call by []." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                                )
-
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+            Maybe.andThen
+                (\listArg -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo)
+                maybeListArg
         ]
         ()
 
