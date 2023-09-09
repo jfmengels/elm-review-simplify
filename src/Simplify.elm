@@ -4150,46 +4150,6 @@ resultMapChecks checkInfo =
         ()
 
 
-resultWithOkAsPure :
-    { moduleName : ModuleName
-    , represents : String
-    , pure : String
-    , pureDescription : String
-    , emptyDescription : SpecificDescription
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-resultWithOkAsPure =
-    { moduleName = [ "Result" ]
-    , represents = "result"
-    , pure = "Ok"
-    , pureDescription = "okay value"
-    , emptyDescription = An "error"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
-    }
-
-
-resultWithErrAsPure :
-    { moduleName : ModuleName
-    , represents : String
-    , pure : String
-    , pureDescription : String
-    , emptyDescription : SpecificDescription
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-resultWithErrAsPure =
-    { moduleName = [ "Result" ]
-    , represents = "result"
-    , pure = "Err"
-    , pureDescription = "error"
-    , emptyDescription = An "okay value"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
-    }
-
-
 resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapCompositionChecks checkInfo =
     pureToMapCompositionChecks resultWithOkAsPure checkInfo
@@ -6661,6 +6621,79 @@ randomMapAlwaysCompositionChecks checkInfo =
 --
 
 
+{-| Properties of a type that can hold some data or none.
+-}
+type alias Container otherProperties =
+    { otherProperties
+        | moduleName : ModuleName
+        , represents : String
+        , emptyAsString : QualifyResources {} -> String
+        , emptyDescription : SpecificDescription
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+
+
+{-| Properties of a `Container` type that has multiple elements.
+-}
+type alias Collection otherProperties =
+    Container
+        { otherProperties
+            | nameForSize : String
+            , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+        }
+
+
+{-| Description of a subset of values.
+
+  - Only one value is possible, like Cmd.none or [] → Constant
+  - Multiple values are possible, like `Ok anyValue` or `[ onlyElementAnyValue ]`? → `A`/`An` depending on the indefinite article in front of the description
+
+-}
+type SpecificDescription
+    = A String
+    | An String
+    | Constant String
+
+
+specificDescriptionAsIncomingToString : SpecificDescription -> String
+specificDescriptionAsIncomingToString incomingArgSpecificDescription =
+    case incomingArgSpecificDescription of
+        A description ->
+            "a " ++ description
+
+        An description ->
+            "an " ++ description
+
+        Constant description ->
+            description
+
+
+specificDescriptionAsReferenceToString : String -> SpecificDescription -> String
+specificDescriptionAsReferenceToString startWithDefiniteArticle referenceArgSpecificDescription =
+    case referenceArgSpecificDescription of
+        A description ->
+            startWithDefiniteArticle ++ " " ++ description
+
+        An description ->
+            startWithDefiniteArticle ++ " " ++ description
+
+        Constant description ->
+            description
+
+
+specificDescriptionToStringWithoutArticle : SpecificDescription -> String
+specificDescriptionToStringWithoutArticle referenceArgSpecificDescription =
+    case referenceArgSpecificDescription of
+        A description ->
+            description
+
+        An description ->
+            description
+
+        Constant description ->
+            description
+
+
 extractQualifyResources : QualifyResources a -> QualifyResources {}
 extractQualifyResources resources =
     { importLookup = resources.importLookup
@@ -6672,6 +6705,62 @@ extractQualifyResources resources =
 emptyAsString : QualifyResources a -> { emptiable | emptyAsString : QualifyResources {} -> String } -> String
 emptyAsString qualifyResources emptiable =
     emptiable.emptyAsString (extractQualifyResources qualifyResources)
+
+
+maybeCollection : Container { pure : String, pureDescription : String }
+maybeCollection =
+    { moduleName = [ "Maybe" ]
+    , represents = "maybe"
+    , emptyAsString =
+        \resources ->
+            qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
+    , emptyDescription = Constant "Nothing"
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
+    , pure = "Just"
+    , pureDescription = "just value"
+    }
+
+
+resultWithOkAsPure :
+    { moduleName : ModuleName
+    , represents : String
+    , pure : String
+    , pureDescription : String
+    , emptyDescription : SpecificDescription
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+resultWithOkAsPure =
+    { moduleName = [ "Result" ]
+    , represents = "result"
+    , pure = "Ok"
+    , pureDescription = "okay value"
+    , emptyDescription = An "error"
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+    }
+
+
+resultWithErrAsPure :
+    { moduleName : ModuleName
+    , represents : String
+    , pure : String
+    , pureDescription : String
+    , emptyDescription : SpecificDescription
+    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+resultWithErrAsPure =
+    { moduleName = [ "Result" ]
+    , represents = "result"
+    , pure = "Err"
+    , pureDescription = "error"
+    , emptyDescription = An "okay value"
+    , isEmpty =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+    }
 
 
 listCollection : Collection {}
@@ -6861,95 +6950,6 @@ dictDetermineSize lookupTable expressionNode =
                 _ ->
                     Nothing
         ]
-
-
-{-| Properties of a type that can hold some data or none.
--}
-type alias Container otherProperties =
-    { otherProperties
-        | moduleName : ModuleName
-        , represents : String
-        , emptyAsString : QualifyResources {} -> String
-        , emptyDescription : SpecificDescription
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-
-
-{-| Properties of a `Container` type that has multiple elements.
--}
-type alias Collection otherProperties =
-    Container
-        { otherProperties
-            | nameForSize : String
-            , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-        }
-
-
-{-| Description of a subset of values.
-
-  - Only one value is possible, like Cmd.none or [] → Constant
-  - Multiple values are possible, like `Ok anyValue` or `[ onlyElementAnyValue ]`? → `A`/`An` depending on the indefinite article in front of the description
-
--}
-type SpecificDescription
-    = A String
-    | An String
-    | Constant String
-
-
-specificDescriptionAsIncomingToString : SpecificDescription -> String
-specificDescriptionAsIncomingToString incomingArgSpecificDescription =
-    case incomingArgSpecificDescription of
-        A description ->
-            "a " ++ description
-
-        An description ->
-            "an " ++ description
-
-        Constant description ->
-            description
-
-
-specificDescriptionAsReferenceToString : String -> SpecificDescription -> String
-specificDescriptionAsReferenceToString startWithDefiniteArticle referenceArgSpecificDescription =
-    case referenceArgSpecificDescription of
-        A description ->
-            startWithDefiniteArticle ++ " " ++ description
-
-        An description ->
-            startWithDefiniteArticle ++ " " ++ description
-
-        Constant description ->
-            description
-
-
-specificDescriptionToStringWithoutArticle : SpecificDescription -> String
-specificDescriptionToStringWithoutArticle referenceArgSpecificDescription =
-    case referenceArgSpecificDescription of
-        A description ->
-            description
-
-        An description ->
-            description
-
-        Constant description ->
-            description
-
-
-maybeCollection : Container { pure : String, pureDescription : String }
-maybeCollection =
-    { moduleName = [ "Maybe" ]
-    , represents = "maybe"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
-    , emptyDescription = Constant "Nothing"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
-    , pure = "Just"
-    , pureDescription = "just value"
-    }
 
 
 cmdCollection : Container {}
