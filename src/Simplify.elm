@@ -5755,20 +5755,7 @@ listSortByChecks checkInfo =
         [ case secondArg checkInfo of
             Just listArg ->
                 firstThatConstructsJust
-                    [ \() ->
-                        case AstHelpers.getListLiteral listArg of
-                            Just [] ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " on [] will result in []"
-                                        , details = [ "You can replace this call by []." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                                    )
-
-                            _ ->
-                                Nothing
+                    [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
                     , \() ->
                         case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                             Just _ ->
