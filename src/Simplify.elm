@@ -4045,7 +4045,7 @@ stringRepeatChecks checkInfo =
                                         (identityError
                                             { toFix = "String.repeat 1"
                                             , lastArg = secondArg checkInfo
-                                            , lastArgName = "string to repeat"
+                                            , lastArgRepresents = "string to repeat"
                                             }
                                             checkInfo
                                         )
@@ -4087,7 +4087,7 @@ stringReplaceChecks checkInfo =
                                 (identityError
                                     { toFix = qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal"
                                     , lastArg = thirdArg checkInfo
-                                    , lastArgName = "string"
+                                    , lastArgRepresents = "string"
                                     }
                                     checkInfo
                                 )
@@ -5542,7 +5542,7 @@ listFilterMapChecks checkInfo =
                                 (identityError
                                     { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
                                     , lastArg = secondArg checkInfo
-                                    , lastArgName = "list"
+                                    , lastArgRepresents = "list"
                                     }
                                     checkInfo
                                 )
@@ -5823,7 +5823,7 @@ listSortByChecks checkInfo =
                     Just
                         (identityError
                             { toFix = qualifiedToString ( [ "List" ], "sortBy" ) ++ " (always a)"
-                            , lastArgName = "list"
+                            , lastArgRepresents = "list"
                             , lastArg = secondArg checkInfo
                             }
                             checkInfo
@@ -5910,7 +5910,7 @@ listSortWithChecks checkInfo =
                         fixToIdentity =
                             identityError
                                 { toFix = qualifiedToString ( [ "List" ], "sortWith" ) ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
-                                , lastArgName = "list"
+                                , lastArgRepresents = "list"
                                 , lastArg = secondArg checkInfo
                                 }
                                 checkInfo
@@ -6004,7 +6004,7 @@ listDropChecks checkInfo =
                         (identityError
                             { toFix = qualifiedToString checkInfo.fn ++ " 0"
                             , lastArg = maybeListArg
-                            , lastArgName = "list"
+                            , lastArgRepresents = "list"
                             }
                             checkInfo
                         )
@@ -7016,7 +7016,7 @@ mapIdentityChecks mappable checkInfo =
             (identityError
                 { toFix = qualifiedToString checkInfo.fn ++ " with an identity function"
                 , lastArg = secondArg checkInfo
-                , lastArgName = mappable.represents
+                , lastArgRepresents = mappable.represents
                 }
                 checkInfo
             )
@@ -7187,7 +7187,7 @@ maybeAndThenChecks checkInfo =
                                 (identityError
                                     { toFix = qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Just"
                                     , lastArg = maybeMaybeArg
-                                    , lastArgName = "maybe"
+                                    , lastArgRepresents = "maybe"
                                     }
                                     checkInfo
                                 )
@@ -7278,7 +7278,7 @@ resultAndThenChecks checkInfo =
                             Just
                                 (identityError
                                     { toFix = qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function equivalent to Ok"
-                                    , lastArgName = "result"
+                                    , lastArgRepresents = "result"
                                     , lastArg = maybeResultArg
                                     }
                                     checkInfo
@@ -7603,7 +7603,7 @@ containerFilterChecks container checkInfo =
                         (identityError
                             { toFix = qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return True"
                             , lastArg = maybeContainerArg
-                            , lastArgName = container.represents
+                            , lastArgRepresents = container.represents
                             }
                             checkInfo
                         )
@@ -7704,7 +7704,7 @@ collectionUnionChecks collection checkInfo =
                     (identityError
                         { toFix = qualifiedToString checkInfo.fn ++ " " ++ specificDescriptionAsIncomingToString collection.emptyDescription
                         , lastArg = maybeCollectionArg
-                        , lastArgName = collection.represents
+                        , lastArgRepresents = collection.represents
                         }
                         checkInfo
                     )
@@ -8865,7 +8865,7 @@ replacementWithIrrelevantLastArg config resources =
 
 identityError :
     { toFix : String
-    , lastArgName : String
+    , lastArgRepresents : String
     , lastArg : Maybe (Node lastArgument)
     }
     -> QualifyResources { a | fnRange : Range, parentRange : Range }
@@ -8874,7 +8874,7 @@ identityError config resources =
     case config.lastArg of
         Nothing ->
             Rule.errorWithFix
-                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgName
+                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgRepresents
                 , details =
                     [ "You can replace this call by identity." ]
                 }
@@ -8885,9 +8885,9 @@ identityError config resources =
 
         Just (Node lastArgRange _) ->
             Rule.errorWithFix
-                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgName
+                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgRepresents
                 , details =
-                    [ "You can replace this call by the " ++ config.lastArgName ++ " itself." ]
+                    [ "You can replace this call by the " ++ config.lastArgRepresents ++ " itself." ]
                 }
                 resources.fnRange
                 (keepOnlyFix { parentRange = resources.parentRange, keep = lastArgRange })
