@@ -7479,8 +7479,7 @@ callOnEmptyReturnsEmptyCheck :
     Node Expression
     ->
         { a
-            | moduleName : ModuleName
-            , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+            | isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
             , emptyDescription : SpecificDescription
         }
     -> CheckInfo
