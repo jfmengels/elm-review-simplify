@@ -16267,7 +16267,7 @@ a = Set.union Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Set.empty"
+                            { message = "Using Set.union Set.empty will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.union"
                             }

@@ -7701,12 +7701,12 @@ collectionUnionChecks collection checkInfo =
         [ \() ->
             if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
                 Just
-                    (Rule.errorWithFix
-                        { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
-                        , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                    (identityError
+                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ specificDescriptionAsIncomingToString collection.emptyDescription
+                        , lastArg = maybeCollectionArg
+                        , lastArgName = collection.represents
+                        , resources = checkInfo
                         }
-                        checkInfo.fnRange
-                        (toIdentityFix maybeCollectionArg checkInfo)
                     )
 
             else
