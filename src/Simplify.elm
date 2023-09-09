@@ -7184,12 +7184,12 @@ maybeAndThenChecks checkInfo =
 
                         DirectConstruction ->
                             Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Just is the same as not using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" )
-                                    , details = [ "You can remove this call and replace it by the value itself." ]
+                                (identityError
+                                    { toFix = qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Just"
+                                    , lastArg = maybeMaybeArg
+                                    , lastArgName = "maybe"
+                                    , resources = checkInfo
                                     }
-                                    checkInfo.fnRange
-                                    (toIdentityFix maybeMaybeArg checkInfo)
                                 )
 
                 Undetermined ->

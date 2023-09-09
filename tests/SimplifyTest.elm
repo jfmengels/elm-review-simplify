@@ -13572,8 +13572,8 @@ a = Maybe.andThen Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that will always return Just is the same as not using Maybe.andThen"
-                            , details = [ "You can remove this call and replace it by the value itself." ]
+                            { message = "Using Maybe.andThen with a function that will always return Just will always return the same given maybe"
+                            , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
