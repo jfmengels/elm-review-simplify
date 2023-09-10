@@ -11814,8 +11814,8 @@ a = List.sort [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Sorting a list with a single element will result in the list itself"
-                            , details = [ "You can replace this call by the list itself." ]
+                            { message = "Using List.sort on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11868,8 +11868,8 @@ b = List.sortBy fn [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Sorting a list with a single element will result in the list itself"
-                            , details = [ "You can replace this call by the list itself." ]
+                            { message = "Using List.sortBy on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
                             , under = "List.sortBy"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12052,8 +12052,8 @@ b = List.sortWith fn [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Sorting a list with a single element will result in the list itself"
-                            , details = [ "You can replace this call by the list itself." ]
+                            { message = "Using List.sortWith on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

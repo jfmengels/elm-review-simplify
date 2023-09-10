@@ -5475,24 +5475,7 @@ listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Sorting a list with a single element will result in the list itself"
-                            , details = [ "You can replace this call by the list itself." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix
-                                { parentRange = checkInfo.parentRange
-                                , keep = Node.range checkInfo.firstArg
-                                }
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnSingletonListDoesNotChangeItCheck checkInfo.firstArg checkInfo
         ]
         ()
 
@@ -5505,24 +5488,7 @@ listSortByChecks checkInfo =
                 Just listArg ->
                     firstThatConstructsJust
                         [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                        , \() ->
-                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                                Just _ ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Sorting a list with a single element will result in the list itself"
-                                            , details = [ "You can replace this call by the list itself." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (keepOnlyFix
-                                                { parentRange = checkInfo.parentRange
-                                                , keep = Node.range listArg
-                                                }
-                                            )
-                                        )
-
-                                Nothing ->
-                                    Nothing
+                        , \() -> callOnSingletonListDoesNotChangeItCheck listArg checkInfo
                         ]
                         ()
 
@@ -5572,24 +5538,7 @@ listSortWithChecks checkInfo =
                 Just listArg ->
                     firstThatConstructsJust
                         [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                        , \() ->
-                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                                Just _ ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Sorting a list with a single element will result in the list itself"
-                                            , details = [ "You can replace this call by the list itself." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (keepOnlyFix
-                                                { parentRange = checkInfo.parentRange
-                                                , keep = Node.range listArg
-                                                }
-                                            )
-                                        )
-
-                                _ ->
-                                    Nothing
+                        , \() -> callOnSingletonListDoesNotChangeItCheck listArg checkInfo
                         ]
                         ()
 
@@ -7279,6 +7228,25 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+callOnSingletonListDoesNotChangeItCheck : Node Expression -> CheckInfo -> Maybe (Error {})
+callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
+    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+        Just _ ->
+            Just
+                (Rule.errorWithFix
+                    (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = A "singleton list" })
+                    checkInfo.fnRange
+                    (keepOnlyFix
+                        { parentRange = checkInfo.parentRange
+                        , keep = Node.range listArg
+                        }
+                    )
+                )
+
+        Nothing ->
+            Nothing
 
 
 callOnEmptyReturnsEmptyCheck :
