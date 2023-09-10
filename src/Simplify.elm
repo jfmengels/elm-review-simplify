@@ -5609,7 +5609,7 @@ listSortWithChecks checkInfo =
                         fixToIdentity : Error {}
                         fixToIdentity =
                             identityError
-                                { toFix = qualifiedToString ( [ "List" ], "sortWith" ) ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
+                                { toFix = qualifiedToString checkInfo.fn ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
                                 , lastArgRepresents = "list"
                                 , lastArg = secondArg checkInfo
                                 }
@@ -5619,7 +5619,7 @@ listSortWithChecks checkInfo =
                         LT ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "sortWith" ) ++ " (\\_ _ -> LT) is the same as using " ++ qualifiedToString ( [ "List" ], "reverse" )
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " (\\_ _ -> LT) is the same as using " ++ qualifiedToString ( [ "List" ], "reverse" )
                                     , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ "." ]
                                     }
                                     checkInfo.fnRange
