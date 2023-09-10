@@ -7308,21 +7308,22 @@ callOnEmptyReturnsEmptyCheck :
         }
     -> CheckInfo
     -> Maybe (Error {})
-callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo =
-    if collection.isEmpty checkInfo.lookupTable collectionArg then
-        Just
-            (Rule.errorWithFix
-                (operationDoesNotChangeSpecificLastArgErrorInfo
-                    { fn = checkInfo.fn
-                    , specific = collection.emptyDescription
-                    }
+callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo =
+    case sameInAllBranches (getEmpty checkInfo.lookupTable emptiable) emptiableArg of
+        Determined _ ->
+            Just
+                (Rule.errorWithFix
+                    (operationDoesNotChangeSpecificLastArgErrorInfo
+                        { fn = checkInfo.fn
+                        , specific = emptiable.emptyDescription
+                        }
+                    )
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range emptiableArg })
                 )
-                checkInfo.fnRange
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
-            )
 
-    else
-        Nothing
+        Undetermined ->
+            Nothing
 
 
 callOnEmptyReturnsCheck :
