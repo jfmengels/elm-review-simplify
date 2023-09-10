@@ -14498,8 +14498,8 @@ a = Result.andThen f (Err z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen on an error will result in the error"
-                            , details = [ "You can replace this call by the error itself." ]
+                            { message = "Using Result.andThen on an error will result in the given error"
+                            , details = [ "You can replace this call by the given error." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

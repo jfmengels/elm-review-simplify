@@ -6894,19 +6894,12 @@ resultAndThenChecks checkInfo =
                                 Undetermined ->
                                     Nothing
                         , \() ->
-                            case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
-                                Determined _ ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on an error will result in the error"
-                                            , details = [ "You can replace this call by the error itself." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
-                                        )
-
-                                Undetermined ->
-                                    Nothing
+                            callOnDoesNotChangeItCheck
+                                { getValue = \lookupTable expr -> Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+                                , description = An "error"
+                                }
+                                resultArg
+                                checkInfo
                         ]
                         ()
 
