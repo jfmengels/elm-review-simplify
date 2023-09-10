@@ -5252,33 +5252,35 @@ listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
-                Determined justConstruction ->
-                    case justConstruction of
-                        NonDirectConstruction fix ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
-                                    , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                        :: fix
-                                    )
-                                )
-
-                        DirectConstruction ->
-                            Just
-                                (identityError
-                                    { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
-                                    , lastArg = secondArg checkInfo
-                                    , lastArgRepresents = "list"
-                                    }
-                                    checkInfo
-                                )
+            case constructs (sameCallInAllBranches ( [ "Maybe" ], "Just" )) checkInfo.lookupTable checkInfo.firstArg of
+                Determined justCalls ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
+                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                                :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) justCalls
+                            )
+                        )
 
                 Undetermined ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    Just
+                        (identityError
+                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
+                            , lastArg = secondArg checkInfo
+                            , lastArgRepresents = "list"
+                            }
+                            checkInfo
+                        )
+
+                Nothing ->
                     Nothing
         , \() ->
             case returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable checkInfo.firstArg of
@@ -6911,31 +6913,33 @@ resultAndThenChecks checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
-                Determined okConstruction ->
-                    case okConstruction of
-                        NonDirectConstruction fix ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Use " ++ qualifiedToString ( [ "Result" ], "map" ) ++ " instead"
-                                    , details = [ "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function that always returns Ok is the same thing as using " ++ qualifiedToString ( [ "Result" ], "map" ) ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "Result" ], "map" ) checkInfo))
-                                        :: fix
-                                    )
-                                )
+            case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    Just
+                        (identityError
+                            { toFix = qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function equivalent to Ok"
+                            , lastArgRepresents = "result"
+                            , lastArg = maybeResultArg
+                            }
+                            checkInfo
+                        )
 
-                        DirectConstruction ->
-                            Just
-                                (identityError
-                                    { toFix = qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function equivalent to Ok"
-                                    , lastArgRepresents = "result"
-                                    , lastArg = maybeResultArg
-                                    }
-                                    checkInfo
-                                )
+                Nothing ->
+                    Nothing
+        , \() ->
+            case constructs (sameCallInAllBranches ( [ "Result" ], "Ok" )) checkInfo.lookupTable checkInfo.firstArg of
+                Determined okCalls ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Use " ++ qualifiedToString ( [ "Result" ], "map" ) ++ " instead"
+                            , details = [ "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function that always returns Ok is the same thing as using " ++ qualifiedToString ( [ "Result" ], "map" ) ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ "Result" ], "map" ) checkInfo))
+                                :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) okCalls
+                            )
+                        )
 
                 Undetermined ->
                     Nothing
@@ -8744,32 +8748,6 @@ needsParens expr =
 returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match (List Range)
 returnsSpecificValueOrFunctionInAllBranches specificQualified lookupTable expressionNode =
     constructs (sameValueOrFunctionInAllBranches specificQualified) lookupTable expressionNode
-
-
-constructsSpecificInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match ConstructionKind
-constructsSpecificInAllBranches specificFullyQualifiedFn lookupTable expressionNode =
-    case AstHelpers.getSpecificValueOrFunction specificFullyQualifiedFn lookupTable expressionNode of
-        Just _ ->
-            Determined DirectConstruction
-
-        Nothing ->
-            constructs (sameCallInAllBranches specificFullyQualifiedFn) lookupTable expressionNode
-                |> Match.map
-                    (\calls ->
-                        NonDirectConstruction
-                            (List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) calls)
-                    )
-
-
-type ConstructionKind
-    = -- either
-      --   - `always specific`
-      --   - `\a -> ... (specific a)`
-      --   - `... specific`
-      DirectConstruction
-    | -- `a` argument not directly used,
-      -- e.g. `\a -> ... (specific (f a))` or `\a -> if a then specific b`
-      NonDirectConstruction (List Fix)
 
 
 constructs :
