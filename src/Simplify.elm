@@ -3878,8 +3878,7 @@ stringLeftChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
-                        { fn = ( [ "String" ], "left" )
-                        , int = length
+                        { int = length
                         , intDescription = "length"
                         , replacementDescription = emptyStringAsString
                         , replacement = emptyStringAsString
@@ -3894,8 +3893,7 @@ stringLeftChecks checkInfo =
 
 
 callWithNonPositiveIntCanBeReplacedByCheck :
-    { fn : ( ModuleName, String )
-    , int : number
+    { int : number
     , intDescription : String
     , replacement : String
     , replacementDescription : String
@@ -3916,7 +3914,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString config.fn ++ " with " ++ lengthDescription ++ " will result in " ++ config.replacementDescription
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription ++ " will result in " ++ config.replacementDescription
                 , details = [ "You can replace this call by " ++ config.replacementDescription ++ "." ]
                 }
                 checkInfo.fnRange
@@ -3938,8 +3936,7 @@ stringRightChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
-                        { fn = ( [ "String" ], "right" )
-                        , int = length
+                        { int = length
                         , intDescription = "length"
                         , replacementDescription = emptyStringAsString
                         , replacement = emptyStringAsString
@@ -4019,8 +4016,7 @@ stringRepeatChecks checkInfo =
                                     Nothing
                         , \() ->
                             callWithNonPositiveIntCanBeReplacedByCheck
-                                { fn = ( [ "String" ], "repeat" )
-                                , int = intValue
+                                { int = intValue
                                 , intDescription = "length"
                                 , replacementDescription = emptyStringAsString
                                 , replacement = emptyStringAsString
@@ -5687,8 +5683,7 @@ listTakeChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
-                        { fn = ( [ "List" ], "take" )
-                        , int = length
+                        { int = length
                         , intDescription = "length"
                         , replacement = "[]"
                         , replacementDescription = "[]"
