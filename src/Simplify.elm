@@ -4330,25 +4330,7 @@ listConcatMapChecks checkInfo =
 
             else
                 Nothing
-        , \() ->
-            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just alwaysResult ->
-                    case AstHelpers.getListLiteral alwaysResult of
-                        Just [] ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString ( [ "List" ], "concatMap" ) ++ " will result in on []"
-                                    , details = [ "You can replace this call by []." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
-                                )
-
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+        , \() -> andThenInCombinationWithEmptyChecks listCollection checkInfo
         , \() ->
             case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
                 Expression.LambdaExpression lambda ->
@@ -4374,26 +4356,21 @@ listConcatMapChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    firstThatConstructsJust
-                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                        , \() ->
-                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                                Just listSingleton ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
-                                            , details = [ "You can replace this call by a call to the function directly." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (Fix.removeRange checkInfo.fnRange
-                                                :: replaceBySubExpressionFix (Node.range listArg) listSingleton.element
-                                            )
-                                        )
+                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                        Just listSingleton ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
+                                    , details = [ "You can replace this call by a call to the function directly." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.removeRange checkInfo.fnRange
+                                        :: replaceBySubExpressionFix (Node.range listArg) listSingleton.element
+                                    )
+                                )
 
-                                Nothing ->
-                                    Nothing
-                        ]
-                        ()
+                        Nothing ->
+                            Nothing
 
                 Nothing ->
                     Nothing

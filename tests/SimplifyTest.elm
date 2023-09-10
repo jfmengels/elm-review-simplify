@@ -7265,8 +7265,8 @@ a = List.concatMap (always []) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concatMap will result in on []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.concatMap with a function that will always return [] will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7281,8 +7281,8 @@ a = List.concatMap (always [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concatMap will result in on []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.concatMap with a function that will always return [] will result in []"
+                            , details = [ "You can remove this call and replace it by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
