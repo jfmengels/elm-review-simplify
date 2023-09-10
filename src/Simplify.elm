@@ -7216,15 +7216,32 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 
 callOnSingletonListDoesNotChangeItCheck : Node Expression -> CheckInfo -> Maybe (Error {})
 callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
-    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+    callOnDoesNotChangeItCheck
+        { getValue = \lookupTable expr -> Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
+        , description = A "singleton list"
+        }
+        listArg
+        checkInfo
+
+
+callOnDoesNotChangeItCheck :
+    { a
+        | description : SpecificDescription
+        , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+    }
+    -> Node Expression
+    -> CheckInfo
+    -> Maybe (Error {})
+callOnDoesNotChangeItCheck constructable constructableArg checkInfo =
+    case AstHelpers.getListSingleton checkInfo.lookupTable constructableArg of
         Just _ ->
             Just
                 (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = A "singleton list" })
+                    (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
                     checkInfo.fnRange
                     (keepOnlyFix
                         { parentRange = checkInfo.parentRange
-                        , keep = Node.range listArg
+                        , keep = Node.range constructableArg
                         }
                     )
                 )
