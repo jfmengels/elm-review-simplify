@@ -6394,7 +6394,7 @@ resultWithOkAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
     , pure = "Ok"
-    , pureDescription = An "okay value"
+    , pureDescription = An "okay result"
     , emptyDescription = An "error"
     , isEmpty =
         \lookupTable expr ->
@@ -6415,7 +6415,7 @@ resultWithErrAsPure =
     , represents = "result"
     , pure = "Err"
     , pureDescription = An "error"
-    , emptyDescription = An "okay value"
+    , emptyDescription = An "okay result"
     , isEmpty =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)

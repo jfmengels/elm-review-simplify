@@ -14006,8 +14006,8 @@ a = Result.map f (Ok x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14022,8 +14022,8 @@ a = Result.map f <| Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14038,8 +14038,8 @@ a = Ok x |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14054,8 +14054,8 @@ a = x |> Ok |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14070,8 +14070,8 @@ a = Result.map f <| Ok <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14086,8 +14086,8 @@ a = Result.map f << Ok
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14102,8 +14102,8 @@ a = Ok >> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14118,8 +14118,8 @@ a = Result.map f << Ok << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14134,8 +14134,8 @@ a = g << Result.map f << Ok
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14150,8 +14150,8 @@ a = Ok >> Result.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay value"
-                            , details = [ "You can replace this call by Ok with the function directly applied to the okay value itself." ]
+                            { message = "Using Result.map on a value that is Ok will result in Ok with the function applied to the okay result"
+                            , details = [ "You can replace this call by Ok with the function directly applied to the okay result itself." ]
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14181,8 +14181,8 @@ a = Result.mapError f (Ok z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an okay value will result in the given okay value"
-                            , details = [ "You can replace this call by the given okay value." ]
+                            { message = "Using Result.mapError on an okay result will result in the given okay result"
+                            , details = [ "You can replace this call by the given okay result." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14197,8 +14197,8 @@ a = Result.mapError f <| Ok z
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an okay value will result in the given okay value"
-                            , details = [ "You can replace this call by the given okay value." ]
+                            { message = "Using Result.mapError on an okay result will result in the given okay result"
+                            , details = [ "You can replace this call by the given okay result." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14213,8 +14213,8 @@ a = Ok z |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an okay value will result in the given okay value"
-                            , details = [ "You can replace this call by the given okay value." ]
+                            { message = "Using Result.mapError on an okay result will result in the given okay result"
+                            , details = [ "You can replace this call by the given okay result." ]
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
