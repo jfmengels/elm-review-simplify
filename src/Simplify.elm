@@ -4131,13 +4131,6 @@ mapPureErrorInfo mapFnName mappable =
     }
 
 
-resultMapErrorOnOkErrorInfo : { message : String, details : List String }
-resultMapErrorOnOkErrorInfo =
-    { message = "Calling " ++ qualifiedToString ( [ "Result" ], "mapError" ) ++ " on a value that is Ok will always return the Ok result value"
-    , details = [ "You can remove the " ++ qualifiedToString ( [ "Result" ], "mapError" ) ++ " call." ]
-    }
-
-
 resultMapErrorChecks : CheckInfo -> Maybe (Error {})
 resultMapErrorChecks checkInfo =
     let
@@ -4175,7 +4168,11 @@ resultMapErrorCompositionChecks checkInfo =
 
                 ( ( [ "Result" ], "Ok" ), [] ) ->
                     Just
-                        { info = resultMapErrorOnOkErrorInfo
+                        { info =
+                            operationDoesNotChangeSpecificLastArgErrorInfo
+                                { fn = ( [ "Result" ], "mapError" )
+                                , specific = resultWithErrAsPure.emptyDescription
+                                }
                         , fix =
                             keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange }
                         }
