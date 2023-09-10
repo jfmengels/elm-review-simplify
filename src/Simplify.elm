@@ -4171,7 +4171,7 @@ resultMapErrorCompositionChecks checkInfo =
                         { info =
                             operationDoesNotChangeSpecificLastArgErrorInfo
                                 { fn = ( [ "Result" ], "mapError" )
-                                , specific = resultWithErrAsPure.emptyDescription
+                                , specific = resultWithErrAsPure.empty.description
                                 }
                         , fix =
                             keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange }
@@ -4535,7 +4535,7 @@ listHeadChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
+            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsPure.empty.asString } listCollection checkInfo
         , \() ->
             case Node.value listArg of
                 Expression.ListExpr (head :: _) ->
@@ -4580,7 +4580,7 @@ listTailChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
+            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsPure.empty.asString } listCollection checkInfo
         , \() ->
             case Node.value listArg of
                 Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
@@ -4854,7 +4854,7 @@ listMinimumChecks : CheckInfo -> Maybe (Error {})
 listMinimumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsPure.empty.asString } listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
@@ -4880,7 +4880,7 @@ listMaximumChecks : CheckInfo -> Maybe (Error {})
 listMaximumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsPure.emptyAsString } listCollection checkInfo
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsPure.empty.asString } listCollection checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
@@ -5636,7 +5636,7 @@ listDropChecks checkInfo =
 
 containerMapNChecks : { n : Int } -> Container otherProperties -> CheckInfo -> Maybe (Error {})
 containerMapNChecks { n } container checkInfo =
-    if List.any (container.isEmpty checkInfo.lookupTable) checkInfo.argsAfterFirst then
+    if List.any (container.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
             callReplacement : String
             callReplacement =
@@ -5712,9 +5712,11 @@ setFromListCompositionChecks checkInfo =
 subAndCmdBatchChecks :
     { typeProperties
         | moduleName : ModuleName
-        , emptyDescription : SpecificDescription
-        , emptyAsString : QualifyResources {} -> String
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+        , empty :
+            { description : SpecificDescription
+            , asString : QualifyResources {} -> String
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
     }
     -> CheckInfo
     -> Maybe (Error {})
@@ -5731,7 +5733,7 @@ subAndCmdBatchChecks batchable checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Replace by " ++ batchDescription
-                            , details = [ batchDescription ++ " [] and " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription ++ " are equivalent but the latter is more idiomatic in Elm code" ]
+                            , details = [ batchDescription ++ " [] and " ++ specificDescriptionToStringWithoutArticle batchable.empty.description ++ " are equivalent but the latter is more idiomatic in Elm code" ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange
@@ -5744,8 +5746,8 @@ subAndCmdBatchChecks batchable checkInfo =
                         Just emptyAndNeighboring ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.emptyDescription
-                                    , details = [ specificDescriptionAsReferenceToString "The" batchable.emptyDescription ++ " will be ignored by " ++ batchDescription ++ "." ]
+                                    { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.empty.description
+                                    , details = [ specificDescriptionAsReferenceToString "The" batchable.empty.description ++ " will be ignored by " ++ batchDescription ++ "." ]
                                     }
                                     emptyAndNeighboring.found.range
                                     (listLiteralElementRemoveFix emptyAndNeighboring)
@@ -6182,9 +6184,11 @@ type alias Container otherProperties =
     { otherProperties
         | moduleName : ModuleName
         , represents : String
-        , emptyAsString : QualifyResources {} -> String
-        , emptyDescription : SpecificDescription
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+        , empty :
+            { asString : QualifyResources {} -> String
+            , description : SpecificDescription
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
     }
 
 
@@ -6200,11 +6204,11 @@ type alias Collection otherProperties =
 
 getEmpty :
     ModuleNameLookupTable
-    -> { otherProperties | isEmpty : ModuleNameLookupTable -> Node Expression -> Bool }
+    -> { otherProperties | empty : { empty | is : ModuleNameLookupTable -> Node Expression -> Bool } }
     -> Node Expression
     -> Maybe { range : Range }
 getEmpty lookupTable emptiable expressionNode =
-    if emptiable.isEmpty lookupTable expressionNode then
+    if emptiable.empty.is lookupTable expressionNode then
         Just { range = Node.range expressionNode }
 
     else
@@ -6270,9 +6274,9 @@ extractQualifyResources resources =
     }
 
 
-emptyAsString : QualifyResources a -> { emptiable | emptyAsString : QualifyResources {} -> String } -> String
+emptyAsString : QualifyResources a -> { emptiable | empty : { empty | asString : QualifyResources {} -> String } } -> String
 emptyAsString qualifyResources emptiable =
-    emptiable.emptyAsString (extractQualifyResources qualifyResources)
+    emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
 randomGeneratorWithConstantAsPure :
@@ -6298,13 +6302,15 @@ maybeWithJustAsPure :
 maybeWithJustAsPure =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
-    , emptyDescription = Constant "Nothing"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
+    , empty =
+        { description = Constant "Nothing"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
+        , asString =
+            \resources ->
+                qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
+        }
     , pure = "Just"
     , getPureValue =
         \lookupTable expr ->
@@ -6318,18 +6324,22 @@ resultWithOkAsPure :
     , represents : String
     , pure : String
     , pureDescription : SpecificDescription
-    , emptyDescription : SpecificDescription
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    , empty :
+        { description : SpecificDescription
+        , is : ModuleNameLookupTable -> Node Expression -> Bool
+        }
     }
 resultWithOkAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
     , pure = "Ok"
     , pureDescription = An "okay result"
-    , emptyDescription = An "error"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+    , empty =
+        { description = An "error"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+        }
     }
 
 
@@ -6338,18 +6348,22 @@ resultWithErrAsPure :
     , represents : String
     , pure : String
     , pureDescription : SpecificDescription
-    , emptyDescription : SpecificDescription
-    , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+    , empty :
+        { description : SpecificDescription
+        , is : ModuleNameLookupTable -> Node Expression -> Bool
+        }
     }
 resultWithErrAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
     , pure = "Err"
     , pureDescription = An "error"
-    , emptyDescription = An "okay result"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+    , empty =
+        { description = An "okay result"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+        }
     }
 
 
@@ -6361,9 +6375,11 @@ listCollection :
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
-    , emptyAsString = \_ -> "[]"
-    , emptyDescription = Constant "[]"
-    , isEmpty = \_ expr -> AstHelpers.getListLiteral expr == Just []
+    , empty =
+        { description = Constant "[]"
+        , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
+        , asString = \_ -> "[]"
+        }
     , nameForSize = "length"
     , determineSize = listDetermineLength
     , getPureValue =
@@ -6402,9 +6418,11 @@ stringCollection : Collection {}
 stringCollection =
     { moduleName = [ "String" ]
     , represents = "string"
-    , emptyAsString = \_ -> emptyStringAsString
-    , emptyDescription = Constant emptyStringAsString
-    , isEmpty = \_ (Node _ expr) -> expr == Expression.Literal ""
+    , empty =
+        { description = Constant emptyStringAsString
+        , asString = \_ -> emptyStringAsString
+        , is = \_ (Node _ expr) -> expr == Expression.Literal ""
+        }
     , nameForSize = "length"
     , determineSize = \_ (Node _ expr) -> stringDetermineLength expr
     }
@@ -6424,13 +6442,15 @@ setCollection : Collection {}
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
-    , emptyDescription = Constant (qualifiedToString ( [ "Set" ], "empty" ))
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
+    , empty =
+        { description = Constant (qualifiedToString ( [ "Set" ], "empty" ))
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
+        , asString =
+            \resources ->
+                qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
+        }
     , nameForSize = "size"
     , determineSize = setDetermineSize
     }
@@ -6487,13 +6507,15 @@ dictCollection : Collection {}
 dictCollection =
     { moduleName = [ "Dict" ]
     , represents = "Dict"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
-    , emptyDescription = Constant (qualifiedToString ( [ "Dict" ], "empty" ))
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
+    , empty =
+        { description = Constant (qualifiedToString ( [ "Dict" ], "empty" ))
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
+        , asString =
+            \resources ->
+                qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
+        }
     , nameForSize = "size"
     , determineSize = dictDetermineSize
     }
@@ -6554,14 +6576,16 @@ cmdCollection : Container {}
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
-    , emptyDescription =
-        Constant "Cmd.none"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
+    , empty =
+        { description =
+            Constant "Cmd.none"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
+        , asString =
+            \resources ->
+                qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
+        }
     }
 
 
@@ -6569,14 +6593,16 @@ subCollection : Container {}
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
-    , emptyAsString =
-        \resources ->
-            qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
-    , emptyDescription =
-        Constant "Sub.none"
-    , isEmpty =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
+    , empty =
+        { description =
+            Constant "Sub.none"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
+        , asString =
+            \resources ->
+                qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
+        }
     }
 
 
@@ -6584,8 +6610,11 @@ containerMapChecks :
     { otherProperties
         | moduleName : ModuleName
         , represents : String
-        , emptyDescription : SpecificDescription
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+        , empty :
+            { empty
+                | description : SpecificDescription
+                , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
     }
     -> CheckInfo
     -> Maybe (Error {})
@@ -6727,9 +6756,11 @@ pureToMapCompositionChecks mappable checkInfo =
 
 andThenInCombinationWithEmptyChecks :
     { otherProperties
-        | emptyDescription : SpecificDescription
-        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-        , emptyAsString : QualifyResources {} -> String
+        | empty :
+            { description : SpecificDescription
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            , asString : QualifyResources {} -> String
+            }
     }
     -> CheckInfo
     -> Maybe (Error {})
@@ -6740,7 +6771,7 @@ andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
                 (\andThenableArg -> callOnEmptyReturnsEmptyCheck andThenableArg andThenableProperties checkInfo)
                 (secondArg checkInfo)
         , \() ->
-            case andThenableProperties.emptyDescription of
+            case andThenableProperties.empty.description of
                 Constant emptyDescription ->
                     case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable andThenableProperties)) checkInfo.lookupTable checkInfo.firstArg of
                         Determined _ ->
@@ -7256,14 +7287,17 @@ callOnEmptyReturnsEmptyCheck :
     Node Expression
     ->
         { a
-            | isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-            , emptyDescription : SpecificDescription
+            | empty :
+                { empty
+                    | is : ModuleNameLookupTable -> Node Expression -> Bool
+                    , description : SpecificDescription
+                }
         }
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo =
     callOnDoesNotChangeItCheck
-        { description = emptiable.emptyDescription, is = emptiable.isEmpty }
+        { description = emptiable.empty.description, is = emptiable.empty.is }
         emptiableArg
         checkInfo
 
@@ -7274,13 +7308,16 @@ callOnEmptyReturnsCheck :
     }
     ->
         { a
-            | isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
-            , emptyDescription : SpecificDescription
+            | empty :
+                { empty
+                    | is : ModuleNameLookupTable -> Node Expression -> Bool
+                    , description : SpecificDescription
+                }
         }
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsCheck config collection checkInfo =
-    if collection.isEmpty checkInfo.lookupTable config.on then
+    if collection.empty.is checkInfo.lookupTable config.on then
         let
             resultDescription : String
             resultDescription =
@@ -7288,7 +7325,7 @@ callOnEmptyReturnsCheck config collection checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString collection.emptyDescription ++ " will result in " ++ resultDescription
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString collection.empty.description ++ " will result in " ++ resultDescription
                 , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
                 }
                 checkInfo.fnRange
@@ -7353,8 +7390,8 @@ containerFilterChecks container checkInfo =
                 Determined False ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ specificDescriptionToStringWithoutArticle container.emptyDescription
-                            , details = [ "You can replace this call by " ++ specificDescriptionAsReferenceToString "the" container.emptyDescription ++ "." ]
+                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ specificDescriptionToStringWithoutArticle container.empty.description
+                            , details = [ "You can replace this call by " ++ specificDescriptionAsReferenceToString "the" container.empty.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix (emptyAsString checkInfo container) maybeContainerArg checkInfo)
@@ -7398,7 +7435,7 @@ collectionDiffChecks collection checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
+            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (Rule.errorWithFix
                         { message = "Diffing " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
@@ -7413,7 +7450,7 @@ collectionDiffChecks collection checkInfo =
         , \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    if collection.isEmpty checkInfo.lookupTable collectionArg then
+                    if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
                                 { message = "Diffing a " ++ collection.represents ++ " with " ++ collectionEmptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
@@ -7441,10 +7478,10 @@ collectionUnionChecks collection checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
+            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (identityError
-                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ specificDescriptionAsIncomingToString collection.emptyDescription
+                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ specificDescriptionAsIncomingToString collection.empty.description
                         , lastArg = maybeCollectionArg
                         , lastArgRepresents = collection.represents
                         }
@@ -7456,10 +7493,10 @@ collectionUnionChecks collection checkInfo =
         , \() ->
             case maybeCollectionArg of
                 Just collectionArg ->
-                    if collection.isEmpty checkInfo.lookupTable collectionArg then
+                    if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary union with " ++ collection.emptyAsString (extractQualifyResources checkInfo)
+                                { message = "Unnecessary union with " ++ collection.empty.asString (extractQualifyResources checkInfo)
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
@@ -7479,10 +7516,10 @@ collectionInsertChecks : Collection otherProperties -> CheckInfo -> Maybe (Error
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            if collection.isEmpty checkInfo.lookupTable collectionArg then
+            if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ specificDescriptionAsIncomingToString collection.emptyDescription
+                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ specificDescriptionAsIncomingToString collection.empty.description
                         , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7504,10 +7541,10 @@ collectionMemberChecks : Collection otherProperties -> CheckInfo -> Maybe (Error
 collectionMemberChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            if collection.isEmpty checkInfo.lookupTable collectionArg then
+            if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.emptyDescription ++ " will result in False"
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.empty.description ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
@@ -7578,7 +7615,7 @@ collectionFromListChecks collection checkInfo =
             let
                 replacementDescription : String
                 replacementDescription =
-                    specificDescriptionToStringWithoutArticle collection.emptyDescription
+                    specificDescriptionToStringWithoutArticle collection.empty.description
             in
             Just
                 (Rule.errorWithFix
@@ -7595,7 +7632,7 @@ collectionFromListChecks collection checkInfo =
 
 collectionToListChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
 collectionToListChecks collection checkInfo =
-    if collection.isEmpty checkInfo.lookupTable checkInfo.firstArg then
+    if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
         Just
             (Rule.errorWithFix
                 { message = "The call to " ++ qualifiedToString ( collection.moduleName, "toList" ) ++ " will result in []"
@@ -7620,11 +7657,11 @@ collectionPartitionChecks collection checkInfo =
         [ \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    if collection.isEmpty checkInfo.lookupTable collectionArg then
+                    if collection.empty.is checkInfo.lookupTable collectionArg then
                         let
                             emptyCollectionInResultAsString : String
                             emptyCollectionInResultAsString =
-                                specificDescriptionToStringWithoutArticle collection.emptyDescription
+                                specificDescriptionToStringWithoutArticle collection.empty.description
 
                             tupleResultAsString : String
                             tupleResultAsString =
@@ -7632,7 +7669,7 @@ collectionPartitionChecks collection checkInfo =
                         in
                         Just
                             (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.emptyDescription ++ " will result in " ++ tupleResultAsString
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.empty.description ++ " will result in " ++ tupleResultAsString
                                 , details = [ "You can replace this call by " ++ tupleResultAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -7652,7 +7689,7 @@ collectionPartitionChecks collection checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "All elements will go to the first " ++ collection.represents
-                                    , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ specificDescriptionToStringWithoutArticle collection.emptyDescription ++ "." ]
+                                    , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ specificDescriptionToStringWithoutArticle collection.empty.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
@@ -7667,7 +7704,7 @@ collectionPartitionChecks collection checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "All elements will go to the second " ++ collection.represents
-                            , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ specificDescriptionToStringWithoutArticle collection.emptyDescription ++ "." ]
+                            , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ specificDescriptionToStringWithoutArticle collection.empty.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (case secondArg checkInfo of
