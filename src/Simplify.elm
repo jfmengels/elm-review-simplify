@@ -6060,8 +6060,8 @@ randomListChecks checkInfo =
                 Just 1 ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString ( [ "Random" ], "list" ) ++ " 1 can be replaced by " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" )
-                            , details = [ "This " ++ qualifiedToString ( [ "Random" ], "list" ) ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" ) ++ "." ]
+                            { message = qualifiedToString checkInfo.fn ++ " 1 can be replaced by " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" )
+                            , details = [ "This " ++ qualifiedToString checkInfo.fn ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
@@ -6117,7 +6117,7 @@ randomListChecks checkInfo =
                             let
                                 currentAsString : String
                                 currentAsString =
-                                    qualifiedToString ( [ "Random" ], "list" ) ++ " n (" ++ qualifiedToString ( [ "Random" ], "constant" ) ++ " el)"
+                                    qualifiedToString checkInfo.fn ++ " n (" ++ qualifiedToString ( [ "Random" ], "constant" ) ++ " el)"
 
                                 replacementAsString : String
                                 replacementAsString =
