@@ -3789,8 +3789,8 @@ stringReverseChecks checkInfo =
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg stringCollection checkInfo
         , \() ->
             removeAlongWithOtherFunctionCheck
-                reverseReverseCompositionErrorMessage
-                (AstHelpers.getSpecificValueOrFunction ( [ "String" ], "reverse" ))
+                (doubleToggleErrorInfo checkInfo.fn)
+                (AstHelpers.getSpecificValueOrFunction checkInfo.fn)
                 checkInfo
         ]
         ()
@@ -3959,13 +3959,6 @@ stringRightChecks checkInfo =
                     Nothing
         ]
         ()
-
-
-reverseReverseCompositionErrorMessage : { message : String, details : List String }
-reverseReverseCompositionErrorMessage =
-    { message = "Unnecessary double reversal"
-    , details = [ "Composing `reverse` with `reverse` cancel each other out." ]
-    }
 
 
 stringJoinChecks : CheckInfo -> Maybe (Error {})
@@ -5518,8 +5511,8 @@ listReverseChecks checkInfo =
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
             removeAlongWithOtherFunctionCheck
-                reverseReverseCompositionErrorMessage
-                (AstHelpers.getSpecificValueOrFunction ( [ "List" ], "reverse" ))
+                (doubleToggleErrorInfo checkInfo.fn)
+                (AstHelpers.getSpecificValueOrFunction checkInfo.fn)
                 checkInfo
         ]
         ()

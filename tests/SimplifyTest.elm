@@ -6237,8 +6237,8 @@ a = String.reverse <| String.reverse <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double reversal"
-                            , details = [ "Composing `reverse` with `reverse` cancel each other out." ]
+                            { message = "Unnecessary double String.reverse"
+                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
                             , under = "String.reverse <| String.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12370,8 +12370,8 @@ a = List.reverse <| List.reverse <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double reversal"
-                            , details = [ "Composing `reverse` with `reverse` cancel each other out." ]
+                            { message = "Unnecessary double List.reverse"
+                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
                             , under = "List.reverse <| List.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
