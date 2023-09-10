@@ -4148,23 +4148,6 @@ resultMapErrorChecks checkInfo =
     firstThatConstructsJust
         [ \() -> containerMapChecks resultWithErrAsPure checkInfo
         , \() -> mapPureChecks resultWithErrAsPure checkInfo
-        , \() ->
-            case maybeResultArg of
-                Just resultArg ->
-                    case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
-                        Determined _ ->
-                            Just
-                                (Rule.errorWithFix
-                                    resultMapErrorOnOkErrorInfo
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
-                                )
-
-                        Undetermined ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
         ]
         ()
 
