@@ -6798,7 +6798,7 @@ andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptyDescription ++ " will result in " ++ emptyDescription
-                                    , details = [ "You can remove this call and replace it by " ++ emptyDescription ++ "." ]
+                                    , details = [ "You can replace this call by " ++ emptyDescription ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (alwaysResultsInFix (emptyAsString checkInfo andThenableProperties)

@@ -7266,7 +7266,7 @@ a = List.concatMap (always []) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with a function that will always return [] will result in []"
-                            , details = [ "You can remove this call and replace it by []." ]
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7282,7 +7282,7 @@ a = List.concatMap (always [])
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.concatMap with a function that will always return [] will result in []"
-                            , details = [ "You can remove this call and replace it by []." ]
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13589,7 +13589,7 @@ a = Maybe.andThen (always Nothing) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using Maybe.andThen with a function that will always return Nothing will result in Nothing"
-                            , details = [ "You can remove this call and replace it by Nothing." ]
+                            , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
