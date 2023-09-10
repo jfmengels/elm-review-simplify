@@ -7262,21 +7262,10 @@ callOnEmptyReturnsEmptyCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo =
-    case sameInAllBranches (getEmpty checkInfo.lookupTable emptiable) emptiableArg of
-        Determined _ ->
-            Just
-                (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo
-                        { fn = checkInfo.fn
-                        , specific = emptiable.emptyDescription
-                        }
-                    )
-                    checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range emptiableArg })
-                )
-
-        Undetermined ->
-            Nothing
+    callOnDoesNotChangeItCheck
+        { description = emptiable.emptyDescription, is = emptiable.isEmpty }
+        emptiableArg
+        checkInfo
 
 
 callOnEmptyReturnsCheck :
