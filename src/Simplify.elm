@@ -7576,17 +7576,17 @@ collectionFromListChecks collection checkInfo =
     case AstHelpers.getListLiteral checkInfo.firstArg of
         Just [] ->
             let
-                collectionEmptyAsString : String
-                collectionEmptyAsString =
-                    emptyAsString checkInfo collection
+                replacementDescription : String
+                replacementDescription =
+                    specificDescriptionToStringWithoutArticle collection.emptyDescription
             in
             Just
                 (Rule.errorWithFix
-                    { message = "The call to " ++ qualifiedToString ( collection.moduleName, "fromList" ) ++ " will result in " ++ collectionEmptyAsString
-                    , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " [] will result in " ++ replacementDescription
+                    , details = [ "You can replace this call by " ++ replacementDescription ++ "." ]
                     }
                     checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange collectionEmptyAsString ]
+                    [ Fix.replaceRangeBy checkInfo.parentRange (emptyAsString checkInfo collection) ]
                 )
 
         _ ->
