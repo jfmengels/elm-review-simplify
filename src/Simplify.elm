@@ -6810,24 +6810,9 @@ andThenInCombinationWithEmptyChecks :
 andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case secondArg checkInfo of
-                Just andThenableArg ->
-                    case sameInAllBranches (getEmpty checkInfo.lookupTable andThenableProperties) andThenableArg of
-                        Determined _ ->
-                            Just
-                                (Rule.errorWithFix
-                                    (operationDoesNotChangeSpecificLastArgErrorInfo
-                                        { fn = checkInfo.fn, specific = andThenableProperties.emptyDescription }
-                                    )
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range andThenableArg })
-                                )
-
-                        Undetermined ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+            Maybe.andThen
+                (\andThenableArg -> callOnEmptyReturnsEmptyCheck andThenableArg andThenableProperties checkInfo)
+                (secondArg checkInfo)
         , \() ->
             case andThenableProperties.emptyDescription of
                 Constant emptyDescription ->
