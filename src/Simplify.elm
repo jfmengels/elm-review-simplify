@@ -7296,10 +7296,7 @@ callOnEmptyReturnsEmptyCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo =
-    callOnDoesNotChangeItCheck
-        { description = emptiable.empty.description, is = emptiable.empty.is }
-        emptiableArg
-        checkInfo
+    callOnDoesNotChangeItCheck emptiable.empty emptiableArg checkInfo
 
 
 callOnEmptyReturnsCheck :
