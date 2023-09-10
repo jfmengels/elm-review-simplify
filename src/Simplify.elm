@@ -5500,32 +5500,34 @@ listSortChecks checkInfo =
 listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks checkInfo =
     firstThatConstructsJust
-        [ case secondArg checkInfo of
-            Just listArg ->
-                firstThatConstructsJust
-                    [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                    , \() ->
-                        case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                            Just _ ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Sorting a list with a single element will result in the list itself"
-                                        , details = [ "You can replace this call by the list itself." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (keepOnlyFix
-                                            { parentRange = checkInfo.parentRange
-                                            , keep = Node.range listArg
+        [ \() ->
+            case secondArg checkInfo of
+                Just listArg ->
+                    firstThatConstructsJust
+                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
+                        , \() ->
+                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                                Just _ ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Sorting a list with a single element will result in the list itself"
+                                            , details = [ "You can replace this call by the list itself." ]
                                             }
+                                            checkInfo.fnRange
+                                            (keepOnlyFix
+                                                { parentRange = checkInfo.parentRange
+                                                , keep = Node.range listArg
+                                                }
+                                            )
                                         )
-                                    )
 
-                            Nothing ->
-                                Nothing
-                    ]
+                                Nothing ->
+                                    Nothing
+                        ]
+                        ()
 
-            Nothing ->
-                \() -> Nothing
+                Nothing ->
+                    Nothing
         , \() ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
@@ -5565,32 +5567,34 @@ listSortByChecks checkInfo =
 listSortWithChecks : CheckInfo -> Maybe (Error {})
 listSortWithChecks checkInfo =
     firstThatConstructsJust
-        [ case secondArg checkInfo of
-            Just listArg ->
-                firstThatConstructsJust
-                    [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                    , \() ->
-                        case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                            Just _ ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Sorting a list with a single element will result in the list itself"
-                                        , details = [ "You can replace this call by the list itself." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (keepOnlyFix
-                                            { parentRange = checkInfo.parentRange
-                                            , keep = Node.range listArg
+        [ \() ->
+            case secondArg checkInfo of
+                Just listArg ->
+                    firstThatConstructsJust
+                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
+                        , \() ->
+                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                                Just _ ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Sorting a list with a single element will result in the list itself"
+                                            , details = [ "You can replace this call by the list itself." ]
                                             }
+                                            checkInfo.fnRange
+                                            (keepOnlyFix
+                                                { parentRange = checkInfo.parentRange
+                                                , keep = Node.range listArg
+                                                }
+                                            )
                                         )
-                                    )
 
-                            _ ->
-                                Nothing
-                    ]
+                                _ ->
+                                    Nothing
+                        ]
+                        ()
 
-            Nothing ->
-                \() -> Nothing
+                Nothing ->
+                    Nothing
         , \() ->
             let
                 alwaysAlwaysOrder : Maybe Order
@@ -6938,43 +6942,45 @@ resultAndThenChecks checkInfo =
             secondArg checkInfo
     in
     firstThatConstructsJust
-        [ case maybeResultArg of
-            Just resultArg ->
-                firstThatConstructsJust
-                    [ \() ->
-                        case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
-                            Determined okCalls ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Calling " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on a value that is known to be Ok"
-                                        , details = [ "You can remove the Ok and just call the function directly." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                            :: List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
+        [ \() ->
+            case maybeResultArg of
+                Just resultArg ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
+                                Determined okCalls ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Calling " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on a value that is known to be Ok"
+                                            , details = [ "You can remove the Ok and just call the function directly." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                                :: List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
+                                            )
                                         )
-                                    )
 
-                            Undetermined ->
-                                Nothing
-                    , \() ->
-                        case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
-                            Determined _ ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on an error will result in the error"
-                                        , details = [ "You can replace this call by the error itself." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
-                                    )
+                                Undetermined ->
+                                    Nothing
+                        , \() ->
+                            case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
+                                Determined _ ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on an error will result in the error"
+                                            , details = [ "You can replace this call by the error itself." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg })
+                                        )
 
-                            Undetermined ->
-                                Nothing
-                    ]
+                                Undetermined ->
+                                    Nothing
+                        ]
+                        ()
 
-            Nothing ->
-                \() -> Nothing
+                Nothing ->
+                    Nothing
         , \() ->
             case constructsSpecificInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined okConstruction ->
