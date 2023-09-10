@@ -7226,20 +7226,30 @@ callOnDoesNotChangeItCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnDoesNotChangeItCheck constructable constructableArg checkInfo =
-    if constructable.is checkInfo.lookupTable constructableArg then
-        Just
-            (Rule.errorWithFix
-                (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
-                checkInfo.fnRange
-                (keepOnlyFix
-                    { parentRange = checkInfo.parentRange
-                    , keep = Node.range constructableArg
-                    }
-                )
-            )
+    let
+        getConstructable : Node Expression -> Maybe ()
+        getConstructable expressionNode =
+            if constructable.is checkInfo.lookupTable expressionNode then
+                Just ()
 
-    else
-        Nothing
+            else
+                Nothing
+    in
+    case sameInAllBranches getConstructable constructableArg of
+        Determined _ ->
+            Just
+                (Rule.errorWithFix
+                    (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
+                    checkInfo.fnRange
+                    (keepOnlyFix
+                        { parentRange = checkInfo.parentRange
+                        , keep = Node.range constructableArg
+                        }
+                    )
+                )
+
+        Undetermined ->
+            Nothing
 
 
 callOnEmptyReturnsEmptyCheck :
