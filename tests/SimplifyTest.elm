@@ -13709,8 +13709,8 @@ a = Maybe.andThen f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.andThen on a value that is known to be Just"
-                            , details = [ "You can remove the Just and just call the function directly." ]
+                            { message = "Calling Maybe.andThen on a just value"
+                            , details = [ "You can replace the call the by the function directly applied to the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13725,8 +13725,8 @@ a = Just x |> Maybe.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.andThen on a value that is known to be Just"
-                            , details = [ "You can remove the Just and just call the function directly." ]
+                            { message = "Calling Maybe.andThen on a just value"
+                            , details = [ "You can replace the call the by the function directly applied to the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

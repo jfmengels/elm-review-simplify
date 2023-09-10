@@ -4118,7 +4118,7 @@ resultMapCompositionChecks checkInfo =
 
 mapPureErrorInfo :
     String
-    -> { a | moduleName : ModuleName, pure : String, pureDescription : String }
+    -> { a | moduleName : ModuleName, pure : String, pureDescription : SpecificDescription }
     -> { message : String, details : List String }
 mapPureErrorInfo mapFnName mappable =
     let
@@ -4126,8 +4126,8 @@ mapPureErrorInfo mapFnName mappable =
         pureFnInErrorInfo =
             qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the " ++ mappable.pureDescription
-    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the " ++ mappable.pureDescription ++ " itself." ]
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on a value that is " ++ pureFnInErrorInfo ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the " ++ specificDescriptionToStringWithoutArticle mappable.pureDescription
+    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the " ++ specificDescriptionToStringWithoutArticle mappable.pureDescription ++ " itself." ]
     }
 
 
@@ -6191,7 +6191,7 @@ randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value" } checkInfo
+        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = A "constant value" } checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
         ()
@@ -6200,7 +6200,7 @@ randomMapChecks checkInfo =
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = "constant value" } checkInfo
+        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = A "constant value" } checkInfo
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
         ()
@@ -6368,7 +6368,12 @@ emptyAsString qualifyResources emptiable =
     emptiable.emptyAsString (extractQualifyResources qualifyResources)
 
 
-maybeWithJustAsPure : Container { pure : String, pureDescription : String }
+maybeWithJustAsPure :
+    Container
+        { pure : String
+        , pureDescription : SpecificDescription
+        , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+        }
 maybeWithJustAsPure =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -6380,7 +6385,10 @@ maybeWithJustAsPure =
         \lookupTable expr ->
             isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
     , pure = "Just"
-    , pureDescription = "just value"
+    , getPureValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
+    , pureDescription = A "just value"
     }
 
 
@@ -6388,7 +6396,7 @@ resultWithOkAsPure :
     { moduleName : ModuleName
     , represents : String
     , pure : String
-    , pureDescription : String
+    , pureDescription : SpecificDescription
     , emptyDescription : SpecificDescription
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
@@ -6396,7 +6404,7 @@ resultWithOkAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
     , pure = "Ok"
-    , pureDescription = "okay value"
+    , pureDescription = An "okay value"
     , emptyDescription = An "error"
     , isEmpty =
         \lookupTable expr ->
@@ -6408,7 +6416,7 @@ resultWithErrAsPure :
     { moduleName : ModuleName
     , represents : String
     , pure : String
-    , pureDescription : String
+    , pureDescription : SpecificDescription
     , emptyDescription : SpecificDescription
     , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
     }
@@ -6416,7 +6424,7 @@ resultWithErrAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
     , pure = "Err"
-    , pureDescription = "error"
+    , pureDescription = An "error"
     , emptyDescription = An "okay value"
     , isEmpty =
         \lookupTable expr ->
@@ -6706,7 +6714,7 @@ mapIdentityChecks mappable checkInfo =
 
 
 mapPureChecks :
-    { a | moduleName : List String, pure : String, pureDescription : String }
+    { a | moduleName : List String, pure : String, pureDescription : SpecificDescription }
     -> CheckInfo
     -> Maybe (Error {})
 mapPureChecks mappable checkInfo =
@@ -6759,7 +6767,7 @@ mapPureChecks mappable checkInfo =
 
 
 pureToMapCompositionChecks :
-    { a | moduleName : ModuleName, pure : String, pureDescription : String }
+    { a | moduleName : ModuleName, pure : String, pureDescription : SpecificDescription }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 pureToMapCompositionChecks mappable checkInfo =
@@ -6796,98 +6804,166 @@ pureToMapCompositionChecks mappable checkInfo =
             Nothing
 
 
-maybeAndThenChecks : CheckInfo -> Maybe (Error {})
-maybeAndThenChecks checkInfo =
+andThenInCombinationWithEmptyChecks :
+    { otherProperties
+        | emptyDescription : SpecificDescription
+        , isEmpty : ModuleNameLookupTable -> Node Expression -> Bool
+        , emptyAsString : QualifyResources {} -> String
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
     let
-        maybeEmptyAsString : String
-        maybeEmptyAsString =
-            emptyAsString checkInfo maybeWithJustAsPure
+        getEmpty : Node Expression -> Maybe { range : Range }
+        getEmpty element =
+            if andThenableProperties.isEmpty checkInfo.lookupTable element then
+                Just { range = Node.range element }
 
-        maybeMaybeArg : Maybe (Node Expression)
-        maybeMaybeArg =
+            else
+                Nothing
+    in
+    firstThatConstructsJust
+        [ \() ->
+            case secondArg checkInfo of
+                Just andThenableArg ->
+                    case sameInAllBranches getEmpty andThenableArg of
+                        Determined _ ->
+                            Just
+                                (Rule.errorWithFix
+                                    (operationDoesNotChangeSpecificLastArgErrorInfo
+                                        { fn = checkInfo.fn, specific = andThenableProperties.emptyDescription }
+                                    )
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range andThenableArg })
+                                )
+
+                        Undetermined ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case andThenableProperties.emptyDescription of
+                Constant emptyDescription ->
+                    case constructs (\_ -> sameInAllBranches getEmpty) checkInfo.lookupTable checkInfo.firstArg of
+                        Determined _ ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptyDescription ++ " will result in " ++ emptyDescription
+                                    , details = [ "You can remove this call and replace it by " ++ emptyDescription ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (alwaysResultsInFix (emptyAsString checkInfo andThenableProperties)
+                                        (secondArg checkInfo)
+                                        checkInfo
+                                    )
+                                )
+
+                        Undetermined ->
+                            Nothing
+
+                A _ ->
+                    Nothing
+
+                An _ ->
+                    Nothing
+        ]
+        ()
+
+
+getPureCall :
+    { otherProperties | getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression) }
+    -> ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe { value : Node Expression, nodeRange : Range }
+getPureCall withPure lookupTable expressionNode =
+    Maybe.map (\value -> { value = value, nodeRange = Node.range expressionNode })
+        (withPure.getPureValue lookupTable expressionNode)
+
+
+andThenInCombinationWithPureChecks :
+    { otherProperties
+        | moduleName : ModuleName
+        , represents : String
+        , pure : String
+        , pureDescription : SpecificDescription
+        , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+andThenInCombinationWithPureChecks andThenable checkInfo =
+    let
+        maybeAndThenableArg : Maybe (Node Expression)
+        maybeAndThenableArg =
             secondArg checkInfo
     in
     firstThatConstructsJust
-        [ case maybeMaybeArg of
-            Just maybeArg ->
-                firstThatConstructsJust
-                    [ \() ->
-                        case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
-                            Determined justCalls ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on a value that is known to be Just"
-                                        , details = [ "You can remove the Just and just call the function directly." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                            :: List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls
-                                        )
-                                    )
-
-                            Undetermined ->
-                                Nothing
-                    , \() ->
-                        case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable maybeArg of
-                            Determined _ ->
-                                Just
-                                    (Rule.errorWithFix
-                                        (operationDoesNotChangeSpecificLastArgErrorInfo
-                                            { fn = checkInfo.fn, specific = maybeWithJustAsPure.emptyDescription }
-                                        )
-                                        checkInfo.fnRange
-                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
-                                    )
-
-                            Undetermined ->
-                                Nothing
-                    ]
-
-            Nothing ->
-                \() -> Nothing
-        , \() ->
-            case constructsSpecificInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
-                Determined justConstruction ->
-                    case justConstruction of
-                        NonDirectConstruction fix ->
+        [ \() ->
+            case maybeAndThenableArg of
+                Just maybeArg ->
+                    case sameInAllBranches (getPureCall andThenable checkInfo.lookupTable) maybeArg of
+                        Determined pureCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Use " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ " instead"
-                                    , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ "." ]
+                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString andThenable.pureDescription
+                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ specificDescriptionAsReferenceToString "the" andThenable.pureDescription ++ "." ]
                                     }
                                     checkInfo.fnRange
-                                    (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( maybeWithJustAsPure.moduleName, "map" ) checkInfo))
-                                        :: fix
+                                    (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                        :: List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.value) pureCalls
                                     )
                                 )
 
-                        DirectConstruction ->
-                            Just
-                                (identityError
-                                    { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
-                                    , lastArg = maybeMaybeArg
-                                    , lastArgRepresents = "maybe"
-                                    }
-                                    checkInfo
-                                )
+                        Undetermined ->
+                            Nothing
 
-                Undetermined ->
+                Nothing ->
                     Nothing
         , \() ->
-            case returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable checkInfo.firstArg of
-                Determined _ ->
+            case AstHelpers.getSpecificValueOrFunction ( andThenable.moduleName, andThenable.pure ) checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    Just
+                        (identityError
+                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ qualifiedToString (qualify ( andThenable.moduleName, andThenable.pure ) defaultQualifyResources)
+                            , lastArg = maybeAndThenableArg
+                            , lastArgRepresents = andThenable.represents
+                            }
+                            checkInfo
+                        )
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case
+                constructs
+                    (\lookupTable -> sameInAllBranches (\expr -> getPureCall andThenable lookupTable expr))
+                    checkInfo.lookupTable
+                    checkInfo.firstArg
+            of
+                Determined pureCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing will result in Nothing"
-                            , details = [ "You can remove this call and replace it by Nothing." ]
+                            { message = "Use " ++ qualifiedToString ( andThenable.moduleName, "map" ) ++ " instead"
+                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( andThenable.moduleName, "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
-                            (alwaysResultsInFix maybeEmptyAsString (secondArg checkInfo) checkInfo)
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( andThenable.moduleName, "map" ) checkInfo))
+                                :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) pureCalls
+                            )
                         )
 
                 Undetermined ->
                     Nothing
+        ]
+        ()
+
+
+maybeAndThenChecks : CheckInfo -> Maybe (Error {})
+maybeAndThenChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> andThenInCombinationWithPureChecks maybeWithJustAsPure checkInfo
+        , \() -> andThenInCombinationWithEmptyChecks maybeWithJustAsPure checkInfo
         ]
         ()
 
