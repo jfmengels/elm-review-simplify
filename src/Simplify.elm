@@ -6895,8 +6895,8 @@ resultAndThenChecks checkInfo =
                                     Nothing
                         , \() ->
                             callOnDoesNotChangeItCheck
-                                { getValue = \lookupTable expr -> Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
-                                , description = An "error"
+                                { description = An "error"
+                                , is = \lookupTable expr -> isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
                                 }
                                 resultArg
                                 checkInfo
@@ -7210,8 +7210,8 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 callOnSingletonListDoesNotChangeItCheck : Node Expression -> CheckInfo -> Maybe (Error {})
 callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
     callOnDoesNotChangeItCheck
-        { getValue = \lookupTable expr -> Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
-        , description = A "singleton list"
+        { description = A "singleton list"
+        , is = \lookupTable expr -> isJust (AstHelpers.getListSingleton lookupTable expr)
         }
         listArg
         checkInfo
@@ -7220,27 +7220,26 @@ callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
 callOnDoesNotChangeItCheck :
     { a
         | description : SpecificDescription
-        , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+        , is : ModuleNameLookupTable -> Node Expression -> Bool
     }
     -> Node Expression
     -> CheckInfo
     -> Maybe (Error {})
 callOnDoesNotChangeItCheck constructable constructableArg checkInfo =
-    case constructable.getValue checkInfo.lookupTable constructableArg of
-        Just _ ->
-            Just
-                (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
-                    checkInfo.fnRange
-                    (keepOnlyFix
-                        { parentRange = checkInfo.parentRange
-                        , keep = Node.range constructableArg
-                        }
-                    )
+    if constructable.is checkInfo.lookupTable constructableArg then
+        Just
+            (Rule.errorWithFix
+                (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
+                checkInfo.fnRange
+                (keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = Node.range constructableArg
+                    }
                 )
+            )
 
-        Nothing ->
-            Nothing
+    else
+        Nothing
 
 
 callOnEmptyReturnsEmptyCheck :
