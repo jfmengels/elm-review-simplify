@@ -6149,8 +6149,8 @@ randomListChecks checkInfo =
 randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> mapIdentityChecks { moduleName = [ "Random" ], represents = "random generator" } checkInfo
-        , \() -> mapPureChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = A "constant value" } checkInfo
+        [ \() -> mapIdentityChecks randomGeneratorWithConstantAsPure checkInfo
+        , \() -> mapPureChecks randomGeneratorWithConstantAsPure checkInfo
         , \() -> randomMapAlwaysChecks checkInfo
         ]
         ()
@@ -6159,7 +6159,7 @@ randomMapChecks checkInfo =
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> pureToMapCompositionChecks { moduleName = [ "Random" ], pure = "constant", pureDescription = A "constant value" } checkInfo
+        [ \() -> pureToMapCompositionChecks randomGeneratorWithConstantAsPure checkInfo
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
         ()
@@ -6338,6 +6338,20 @@ extractQualifyResources resources =
 emptyAsString : QualifyResources a -> { emptiable | emptyAsString : QualifyResources {} -> String } -> String
 emptyAsString qualifyResources emptiable =
     emptiable.emptyAsString (extractQualifyResources qualifyResources)
+
+
+randomGeneratorWithConstantAsPure :
+    { moduleName : ModuleName
+    , represents : String
+    , pure : String
+    , pureDescription : SpecificDescription
+    }
+randomGeneratorWithConstantAsPure =
+    { moduleName = [ "Random" ]
+    , represents = "random generator"
+    , pure = "constant"
+    , pureDescription = A "constant value"
+    }
 
 
 maybeWithJustAsPure :
