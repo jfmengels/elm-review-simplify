@@ -4058,11 +4058,11 @@ stringReplaceChecks checkInfo =
                 , \() ->
                     case ( Node.value checkInfo.firstArg, Node.value replacementArg, thirdArg checkInfo ) of
                         ( Expression.Literal first, Expression.Literal second, Just (Node thirdRange (Expression.Literal third)) ) ->
-                            if not (String.contains "\u{000D}" first) && String.replace first second third == third then
+                            if not (String.contains "\u{000D}" first) && not (String.contains first third) then
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "The result of String.replace will be the original string"
-                                        , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
+                                        { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                                        , details = [ "You can replace this call by the given string itself." ]
                                         }
                                         checkInfo.fnRange
                                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = thirdRange })

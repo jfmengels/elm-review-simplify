@@ -6029,8 +6029,8 @@ a = String.replace "x" "y" "z"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The result of String.replace will be the original string"
-                            , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
+                            { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                            , details = [ "You can replace this call by the given string itself." ]
                             , under = "String.replace"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6045,8 +6045,8 @@ a = "z" |> String.replace "x" "y"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The result of String.replace will be the original string"
-                            , details = [ "The replacement doesn't haven't any noticeable impact. You can remove the call to String.replace." ]
+                            { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                            , details = [ "You can replace this call by the given string itself." ]
                             , under = "String.replace"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
