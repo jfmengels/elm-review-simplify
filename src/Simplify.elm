@@ -5306,7 +5306,7 @@ listFilterMapChecks checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in []"
-                            , details = [ "You can remove this call and replace it by []." ]
+                            , details = [ "You can replace this call by []." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
@@ -7362,7 +7362,7 @@ containerFilterChecks container checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ specificDescriptionToStringWithoutArticle container.emptyDescription
-                            , details = [ "You can remove this call and replace it by " ++ specificDescriptionAsReferenceToString "the" container.emptyDescription ++ "." ]
+                            , details = [ "You can replace this call by " ++ specificDescriptionAsReferenceToString "the" container.emptyDescription ++ "." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix (emptyAsString checkInfo container) maybeContainerArg checkInfo)
