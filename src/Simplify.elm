@@ -6816,7 +6816,7 @@ maybeAndThenChecks checkInfo =
                             Determined justCalls ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "Calling " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " on a value that is known to be Just"
+                                        { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on a value that is known to be Just"
                                         , details = [ "You can remove the Just and just call the function directly." ]
                                         }
                                         checkInfo.fnRange
@@ -6833,7 +6833,7 @@ maybeAndThenChecks checkInfo =
                                 Just
                                     (Rule.errorWithFix
                                         (operationDoesNotChangeSpecificLastArgErrorInfo
-                                            { fn = ( maybeWithJustAsPure.moduleName, "andThen" ), specific = maybeWithJustAsPure.emptyDescription }
+                                            { fn = checkInfo.fn, specific = maybeWithJustAsPure.emptyDescription }
                                         )
                                         checkInfo.fnRange
                                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg })
