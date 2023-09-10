@@ -2468,19 +2468,20 @@ compositionIntoChecks =
         ]
 
 
-removeAlongWithOtherFunctionCheck :
-    { message : String, details : List String }
-    -> (ModuleNameLookupTable -> Node Expression -> Maybe Range)
-    -> CheckInfo
-    -> Maybe (Error {})
-removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
+removeAlongWithOtherFunctionCheck : CheckInfo -> Maybe (Error {})
+removeAlongWithOtherFunctionCheck checkInfo =
+    let
+        fnToFind : ( ModuleName, String )
+        fnToFind =
+            checkInfo.fn
+    in
     case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
         Expression.Application (secondFn :: firstArgOfSecondCall :: _) ->
-            case secondFunctionCheck checkInfo.lookupTable secondFn of
+            case AstHelpers.getSpecificValueOrFunction fnToFind checkInfo.lookupTable secondFn of
                 Just secondRange ->
                     Just
                         (Rule.errorWithFix
-                            errorMessage
+                            (doubleToggleErrorInfo fnToFind)
                             (Range.combine [ checkInfo.fnRange, secondRange ])
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
                                 ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
@@ -2492,11 +2493,11 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
                     Nothing
 
         Expression.OperatorApplication "|>" _ firstArgOfSecondCall secondFn ->
-            case secondFunctionCheck checkInfo.lookupTable secondFn of
+            case AstHelpers.getSpecificValueOrFunction fnToFind checkInfo.lookupTable secondFn of
                 Just secondRange ->
                     Just
                         (Rule.errorWithFix
-                            errorMessage
+                            (doubleToggleErrorInfo fnToFind)
                             (Range.combine [ checkInfo.fnRange, secondRange ])
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
                                 ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
@@ -2508,11 +2509,11 @@ removeAlongWithOtherFunctionCheck errorMessage secondFunctionCheck checkInfo =
                     Nothing
 
         Expression.OperatorApplication "<|" _ secondFn firstArgOfSecondCall ->
-            case secondFunctionCheck checkInfo.lookupTable secondFn of
+            case AstHelpers.getSpecificValueOrFunction fnToFind checkInfo.lookupTable secondFn of
                 Just secondRange ->
                     Just
                         (Rule.errorWithFix
-                            errorMessage
+                            (doubleToggleErrorInfo fnToFind)
                             (Range.combine [ checkInfo.fnRange, secondRange ])
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
                                 ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
@@ -3099,10 +3100,7 @@ basicsNegateCompositionChecks checkInfo =
 
 basicsNegateChecks : CheckInfo -> Maybe (Error {})
 basicsNegateChecks checkInfo =
-    removeAlongWithOtherFunctionCheck
-        (doubleToggleErrorInfo ( [ "Basics" ], "negate" ))
-        (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "negate" ))
-        checkInfo
+    removeAlongWithOtherFunctionCheck checkInfo
 
 
 
@@ -3114,8 +3112,6 @@ basicsNotChecks checkInfo =
     firstThatConstructsJust
         [ notOnKnownBoolCheck
         , removeAlongWithOtherFunctionCheck
-            (doubleToggleErrorInfo ( [ "Basics" ], "not" ))
-            (AstHelpers.getSpecificValueOrFunction ( [ "Basics" ], "not" ))
         , isNotOnBooleanOperatorCheck
         ]
         checkInfo
@@ -3787,11 +3783,7 @@ stringReverseChecks : CheckInfo -> Maybe (Error {})
 stringReverseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg stringCollection checkInfo
-        , \() ->
-            removeAlongWithOtherFunctionCheck
-                (doubleToggleErrorInfo checkInfo.fn)
-                (AstHelpers.getSpecificValueOrFunction checkInfo.fn)
-                checkInfo
+        , \() -> removeAlongWithOtherFunctionCheck checkInfo
         ]
         ()
 
@@ -5510,10 +5502,7 @@ listReverseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
-            removeAlongWithOtherFunctionCheck
-                (doubleToggleErrorInfo checkInfo.fn)
-                (AstHelpers.getSpecificValueOrFunction checkInfo.fn)
-                checkInfo
+            removeAlongWithOtherFunctionCheck checkInfo
         ]
         ()
 
