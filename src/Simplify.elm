@@ -6853,7 +6853,7 @@ maybeAndThenChecks checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "Use " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ " instead"
-                                    , details = [ "Using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ "." ]
+                                    , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "map" ) ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.replaceRangeBy checkInfo.fnRange
@@ -6865,7 +6865,7 @@ maybeAndThenChecks checkInfo =
                         DirectConstruction ->
                             Just
                                 (identityError
-                                    { toFix = qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Just"
+                                    { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
                                     , lastArg = maybeMaybeArg
                                     , lastArgRepresents = "maybe"
                                     }
@@ -6879,7 +6879,7 @@ maybeAndThenChecks checkInfo =
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( maybeWithJustAsPure.moduleName, "andThen" ) ++ " with a function that will always return Nothing will result in Nothing"
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing will result in Nothing"
                             , details = [ "You can remove this call and replace it by Nothing." ]
                             }
                             checkInfo.fnRange
