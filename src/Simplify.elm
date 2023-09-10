@@ -4220,16 +4220,7 @@ listConcatChecks checkInfo =
                         firstListElement :: restOfListElements ->
                             firstThatConstructsJust
                                 [ \() ->
-                                    let
-                                        getEmptyList : Node Expression -> Maybe { range : Range }
-                                        getEmptyList element =
-                                            if listCollection.isEmpty checkInfo.lookupTable element then
-                                                Just { range = Node.range element }
-
-                                            else
-                                                Nothing
-                                    in
-                                    case findMapNeighboring getEmptyList list of
+                                    case findMapNeighboring (getEmpty checkInfo.lookupTable listCollection) list of
                                         Just emptyLiteralAndNeighbors ->
                                             Just
                                                 (Rule.errorWithFix
@@ -5837,16 +5828,7 @@ subAndCmdBatchChecks batchable checkInfo =
                         )
 
                 Just (arg0 :: arg1 :: arg2Up) ->
-                    let
-                        getEmpty : Node Expression -> Maybe { range : Range }
-                        getEmpty element =
-                            if batchable.isEmpty checkInfo.lookupTable element then
-                                Just { range = Node.range element }
-
-                            else
-                                Nothing
-                    in
-                    case findMapNeighboring getEmpty (arg0 :: arg1 :: arg2Up) of
+                    case findMapNeighboring (getEmpty checkInfo.lookupTable batchable) (arg0 :: arg1 :: arg2Up) of
                         Just emptyAndNeighboring ->
                             Just
                                 (Rule.errorWithFix
@@ -6302,6 +6284,19 @@ type alias Collection otherProperties =
             | nameForSize : String
             , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
         }
+
+
+getEmpty :
+    ModuleNameLookupTable
+    -> { otherProperties | isEmpty : ModuleNameLookupTable -> Node Expression -> Bool }
+    -> Node Expression
+    -> Maybe { range : Range }
+getEmpty lookupTable emptiable expressionNode =
+    if emptiable.isEmpty lookupTable expressionNode then
+        Just { range = Node.range expressionNode }
+
+    else
+        Nothing
 
 
 {-| Description of a subset of values.
@@ -6813,20 +6808,11 @@ andThenInCombinationWithEmptyChecks :
     -> CheckInfo
     -> Maybe (Error {})
 andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
-    let
-        getEmpty : Node Expression -> Maybe { range : Range }
-        getEmpty element =
-            if andThenableProperties.isEmpty checkInfo.lookupTable element then
-                Just { range = Node.range element }
-
-            else
-                Nothing
-    in
     firstThatConstructsJust
         [ \() ->
             case secondArg checkInfo of
                 Just andThenableArg ->
-                    case sameInAllBranches getEmpty andThenableArg of
+                    case sameInAllBranches (getEmpty checkInfo.lookupTable andThenableProperties) andThenableArg of
                         Determined _ ->
                             Just
                                 (Rule.errorWithFix
@@ -6845,7 +6831,7 @@ andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
         , \() ->
             case andThenableProperties.emptyDescription of
                 Constant emptyDescription ->
-                    case constructs (\_ -> sameInAllBranches getEmpty) checkInfo.lookupTable checkInfo.firstArg of
+                    case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable andThenableProperties)) checkInfo.lookupTable checkInfo.firstArg of
                         Determined _ ->
                             Just
                                 (Rule.errorWithFix
