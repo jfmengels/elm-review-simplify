@@ -6354,7 +6354,7 @@ randomGeneratorWithConstantAsPure =
     { moduleName = [ "Random" ]
     , represents = "random generator"
     , pure = "constant"
-    , pureDescription = A "constant value"
+    , pureDescription = A "constant generator"
     }
 
 

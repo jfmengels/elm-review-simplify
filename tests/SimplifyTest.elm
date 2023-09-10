@@ -18885,8 +18885,8 @@ a = Random.map f (Random.constant x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18903,8 +18903,8 @@ a = Random.map f <| Random.constant x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18921,8 +18921,8 @@ a = Random.constant x |> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18939,8 +18939,8 @@ a = x |> Random.constant |> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18957,8 +18957,8 @@ a = Random.map f <| Random.constant <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18975,8 +18975,8 @@ a = Random.map f << Random.constant
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18993,8 +18993,8 @@ a = Random.constant >> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -19011,8 +19011,8 @@ a = Random.map f << Random.constant << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -19029,8 +19029,8 @@ a = g << Random.map f << Random.constant
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -19047,8 +19047,8 @@ a = Random.constant >> Random.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant value"
-                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant value itself." ]
+                            { message = "Using Random.map on a value that is Random.constant will result in Random.constant with the function applied to the constant generator"
+                            , details = [ "You can replace this call by Random.constant with the function directly applied to the constant generator itself." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
