@@ -7233,7 +7233,7 @@ callOnDoesNotChangeItCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnDoesNotChangeItCheck constructable constructableArg checkInfo =
-    case AstHelpers.getListSingleton checkInfo.lookupTable constructableArg of
+    case constructable.getValue checkInfo.lookupTable constructableArg of
         Just _ ->
             Just
                 (Rule.errorWithFix
