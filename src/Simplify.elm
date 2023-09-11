@@ -6079,15 +6079,15 @@ randomListChecks checkInfo =
 randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> mapIdentityChecks randomGeneratorWithConstantAsWrap checkInfo
-        , \() -> wrapperMapChecks randomGeneratorWithConstantAsWrap checkInfo
+        [ \() -> mapIdentityChecks randomGeneratorWrapper checkInfo
+        , \() -> wrapperMapChecks randomGeneratorWrapper checkInfo
         ]
         ()
 
 
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
-    wrapperMapCompositionChecks randomGeneratorWithConstantAsWrap checkInfo
+    wrapperMapCompositionChecks randomGeneratorWrapper checkInfo
 
 
 
@@ -6224,8 +6224,8 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-randomGeneratorWithConstantAsWrap : WrapperProperties {}
-randomGeneratorWithConstantAsWrap =
+randomGeneratorWrapper : WrapperProperties {}
+randomGeneratorWrapper =
     { moduleName = [ "Random" ]
     , represents = "random generator"
     , wrap =
