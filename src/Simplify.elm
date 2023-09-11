@@ -5424,16 +5424,25 @@ listRangeChecks checkInfo =
 
 listRepeatChecks : CheckInfo -> Maybe (Error {})
 listRepeatChecks checkInfo =
+    emptiableRepeatChecks listCollection checkInfo
+
+
+emptiableRepeatChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableRepeatChecks emptiable checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
             if intValue < 1 then
+                let
+                    replacementInErrorInfo =
+                        descriptionToStringWithoutArticle emptiable.empty.description
+                in
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString ( [ "List" ], "repeat" ) ++ " will result in []"
-                        , details = [ "Using " ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " with a number less than 1 will result in []. You can replace this call by []." ]
+                        { message = qualifiedToString checkInfo.fn ++ " will result in " ++ replacementInErrorInfo
+                        , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a number less than 1 will result in " ++ replacementInErrorInfo ++ ". You can replace this call by " ++ replacementInErrorInfo ++ "." ]
                         }
                         checkInfo.fnRange
-                        (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
+                        (alwaysResultsInFix (emptyAsString checkInfo emptiable) (secondArg checkInfo) checkInfo)
                     )
 
             else
@@ -5447,8 +5456,7 @@ listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
-        , \() ->
-            removeAlongWithOtherFunctionCheck checkInfo
+        , \() -> removeAlongWithOtherFunctionCheck checkInfo
         ]
         ()
 
