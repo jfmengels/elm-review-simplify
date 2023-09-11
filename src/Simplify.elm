@@ -6297,7 +6297,7 @@ emptyAsString qualifyResources emptiable =
 
 randomGeneratorWithConstantAsPure :
     TypeProperties
-        { pure : ConstructWithOneArg
+        { pure : ConstructWithOneArgProperties
         }
 randomGeneratorWithConstantAsPure =
     { moduleName = [ "Random" ]
@@ -6314,7 +6314,7 @@ randomGeneratorWithConstantAsPure =
 
 maybeWithJustAsPure :
     Emptiable
-        { pure : ConstructWithOneArg
+        { pure : ConstructWithOneArgProperties
         }
 maybeWithJustAsPure =
     { moduleName = [ "Maybe" ]
@@ -6340,7 +6340,7 @@ maybeWithJustAsPure =
 
 resultWithOkAsPure :
     TypeProperties
-        { pure : ConstructWithOneArg
+        { pure : ConstructWithOneArgProperties
         , empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
@@ -6365,7 +6365,7 @@ resultWithOkAsPure =
     }
 
 
-type alias ConstructWithOneArg =
+type alias ConstructWithOneArgProperties =
     { description : Description
     , fnName : String
     , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
@@ -6374,7 +6374,7 @@ type alias ConstructWithOneArg =
 
 resultWithErrAsPure :
     TypeProperties
-        { pure : ConstructWithOneArg
+        { pure : ConstructWithOneArgProperties
         , empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
@@ -6401,7 +6401,7 @@ resultWithErrAsPure =
 
 listCollection :
     Collection
-        { pure : ConstructWithOneArg
+        { pure : ConstructWithOneArgProperties
         }
 listCollection =
     { moduleName = [ "List" ]
@@ -6837,7 +6837,7 @@ getValueWithNodeRange getValue expressionNode =
 andThenInCombinationWithPureChecks :
     TypeProperties
         { otherProperties
-            | pure : ConstructWithOneArg
+            | pure : ConstructWithOneArgProperties
         }
     -> CheckInfo
     -> Maybe (Error {})
@@ -7355,7 +7355,7 @@ callOnPureReturnsItsValue :
     Node Expression
     ->
         { otherProperties
-            | pure : ConstructWithOneArg
+            | pure : ConstructWithOneArgProperties
         }
     -> CheckInfo
     -> Maybe (Error {})
