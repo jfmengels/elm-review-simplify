@@ -6102,13 +6102,6 @@ randomMapCompositionChecks checkInfo =
         ()
 
 
-mapAlwaysErrorInfo : { pureFn : ( ModuleName, String ), mapFn : ( ModuleName, String ) } -> { message : String, details : List String }
-mapAlwaysErrorInfo config =
-    { message = "Using " ++ qualifiedToString config.mapFn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString config.pureFn ++ " with that value"
-    , details = [ "You can replace this call by " ++ qualifiedToString config.pureFn ++ " with the value produced by the mapper function." ]
-    }
-
-
 randomMapAlwaysChecks : CheckInfo -> Maybe (Error {})
 randomMapAlwaysChecks checkInfo =
     mapAlwaysChecks randomGeneratorWithConstantAsPure checkInfo
@@ -6131,7 +6124,9 @@ mapAlwaysChecks mappable checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    (mapAlwaysErrorInfo { mapFn = checkInfo.fn, pureFn = ( mappable.moduleName, mappable.pure ) })
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.pure ) ++ " with that value"
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.pure ) ++ " with the value produced by the mapper function." ]
+                    }
                     checkInfo.fnRange
                     (case secondArg checkInfo of
                         Nothing ->
@@ -6180,7 +6175,9 @@ mapAlwaysCompositionChecks mappable checkInfo =
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
                 { info =
-                    mapAlwaysErrorInfo { pureFn = ( mappable.moduleName, mappable.pure ), mapFn = ( mappable.moduleName, checkInfo.later.fnName ) }
+                    { message = "Using " ++ qualifiedToString ( mappable.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.pure )
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.pure ) ++ "." ]
+                    }
                 , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
                         (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
