@@ -3872,7 +3872,7 @@ stringLeftChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
-                (\mappableArg -> callOnEmptyReturnsEmptyCheck mappableArg stringCollection checkInfo)
+                (\wrapperArg -> callOnEmptyReturnsEmptyCheck wrapperArg stringCollection checkInfo)
                 (secondArg checkInfo)
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -3930,7 +3930,7 @@ stringRightChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
-                (\mappableArg -> callOnEmptyReturnsEmptyCheck mappableArg stringCollection checkInfo)
+                (\stringArg -> callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo)
                 (secondArg checkInfo)
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -4125,14 +4125,14 @@ mapWrapErrorInfo :
     String
     -> { a | moduleName : ModuleName, wrap : { wrap | description : Description, fnName : String } }
     -> { message : String, details : List String }
-mapWrapErrorInfo mapFnName mappable =
+mapWrapErrorInfo mapFnName wrapper =
     let
         wrapFnInErrorInfo : String
         wrapFnInErrorInfo =
-            qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) defaultQualifyResources)
+            qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on " ++ descriptionAsIncomingToString mappable.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
-    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" mappable.wrap.description ++ " itself." ]
+    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, mapFnName ) ++ " on " ++ descriptionAsIncomingToString wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
+    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ " itself." ]
     }
 
 
@@ -4310,7 +4310,7 @@ listConcatMapChecks checkInfo =
 
             else
                 Nothing
-        , \() -> andThenInCombinationWithEmptyChecks listCollection checkInfo
+        , \() -> emptiableAndThenChecks listCollection checkInfo
         , \() ->
             case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
                 Expression.LambdaExpression lambda ->
@@ -6104,7 +6104,7 @@ mapAlwaysChecks :
     { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
     -> CheckInfo
     -> Maybe (Error {})
-mapAlwaysChecks mappable checkInfo =
+mapAlwaysChecks wrapper checkInfo =
     case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
         Just (Node alwaysMapResultRange alwaysMapResult) ->
             let
@@ -6117,8 +6117,8 @@ mapAlwaysChecks mappable checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.wrap.fnName ) ++ " with that value"
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.wrap.fnName ) ++ " with the value produced by the mapper function." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
                     }
                     checkInfo.fnRange
                     (case secondArg checkInfo of
@@ -6127,7 +6127,7 @@ mapAlwaysChecks mappable checkInfo =
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
                                 (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                                     ++ " ("
-                                    ++ qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo)
+                                    ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -6139,7 +6139,7 @@ mapAlwaysChecks mappable checkInfo =
                         Just _ ->
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo)
+                                (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -6163,17 +6163,17 @@ mapAlwaysCompositionChecks :
     { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-mapAlwaysCompositionChecks mappable checkInfo =
+mapAlwaysCompositionChecks wrapper checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
                 { info =
-                    { message = "Using " ++ qualifiedToString ( mappable.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.wrap.fnName )
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.wrap.fnName ) ++ "." ]
+                    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
                     }
                 , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo))
+                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
                     ]
                 }
 
@@ -6651,12 +6651,12 @@ emptiableMapChecks :
         }
     -> CheckInfo
     -> Maybe (Error {})
-emptiableMapChecks mappable checkInfo =
+emptiableMapChecks emptiable checkInfo =
     firstThatConstructsJust
-        [ \() -> mapIdentityChecks mappable checkInfo
+        [ \() -> mapIdentityChecks emptiable checkInfo
         , \() ->
             Maybe.andThen
-                (\mappableArg -> callOnEmptyReturnsEmptyCheck mappableArg mappable checkInfo)
+                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
                 (secondArg checkInfo)
         ]
         ()
@@ -6697,10 +6697,10 @@ mapWrapChecks :
     { a | moduleName : List String, wrap : { wrap | description : Description, fnName : String } }
     -> CheckInfo
     -> Maybe (Error {})
-mapWrapChecks mappable checkInfo =
+mapWrapChecks wrapper checkInfo =
     case secondArg checkInfo of
-        Just mappableArg ->
-            case sameCallInAllBranches ( mappable.moduleName, mappable.wrap.fnName ) checkInfo.lookupTable mappableArg of
+        Just wrapperArg ->
+            case sameCallInAllBranches ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo.lookupTable wrapperArg of
                 Determined wrapCalls ->
                     let
                         mappingArgRange : Range
@@ -6720,19 +6720,19 @@ mapWrapChecks mappable checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            (mapWrapErrorInfo (AstHelpers.qualifiedName checkInfo.fn) mappable)
+                            (mapWrapErrorInfo (AstHelpers.qualifiedName checkInfo.fn) wrapper)
                             checkInfo.fnRange
                             (if checkInfo.usingRightPizza then
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
                                 , Fix.insertAt mappingArgRange.end
-                                    (" |> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo))
+                                    (" |> " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
                                 ]
                                     ++ removeWrapCalls
 
                              else
                                 [ Fix.replaceRangeBy
                                     { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                    (qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo) ++ " (")
+                                    (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " (")
                                 , Fix.insertAt checkInfo.parentRange.end ")"
                                 ]
                                     ++ removeWrapCalls
@@ -6750,9 +6750,9 @@ wrapToMapCompositionChecks :
     { a | moduleName : ModuleName, wrap : { wrap | description : Description, fnName : String } }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-wrapToMapCompositionChecks mappable checkInfo =
+wrapToMapCompositionChecks wrapper checkInfo =
     case
-        ( checkInfo.earlier.fn == ( mappable.moduleName, mappable.wrap.fnName )
+        ( checkInfo.earlier.fn == ( wrapper.moduleName, wrapper.wrap.fnName )
         , checkInfo.later.args
         )
     of
@@ -6765,18 +6765,18 @@ wrapToMapCompositionChecks mappable checkInfo =
                             [ Fix.removeRange
                                 { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
                             , Fix.insertAt mapperFunctionRange.end
-                                (" >> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo))
+                                (" >> " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
                             ]
 
                         RightToLeft ->
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                                (qualifiedToString (qualify ( mappable.moduleName, mappable.wrap.fnName ) checkInfo) ++ " << ")
+                                (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " << ")
                             , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
                             ]
             in
             Just
-                { info = mapWrapErrorInfo checkInfo.later.fnName mappable
+                { info = mapWrapErrorInfo checkInfo.later.fnName wrapper
                 , fix = fixes
                 }
 
@@ -6784,22 +6784,22 @@ wrapToMapCompositionChecks mappable checkInfo =
             Nothing
 
 
-andThenInCombinationWithEmptyChecks :
+emptiableAndThenChecks :
     { otherProperties
         | empty : ConstantProperties
     }
     -> CheckInfo
     -> Maybe (Error {})
-andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
+emptiableAndThenChecks emptiable checkInfo =
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
-                (\andThenableArg -> callOnEmptyReturnsEmptyCheck andThenableArg andThenableProperties checkInfo)
+                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
                 (secondArg checkInfo)
         , \() ->
-            case andThenableProperties.empty.description of
+            case emptiable.empty.description of
                 Constant emptyDescription ->
-                    case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable andThenableProperties)) checkInfo.lookupTable checkInfo.firstArg of
+                    case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                         Determined _ ->
                             Just
                                 (Rule.errorWithFix
@@ -6807,7 +6807,7 @@ andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
                                     , details = [ "You can replace this call by " ++ emptyDescription ++ "." ]
                                     }
                                     checkInfo.fnRange
-                                    (alwaysResultsInFix (emptyAsString checkInfo andThenableProperties)
+                                    (alwaysResultsInFix (emptyAsString checkInfo emptiable)
                                         (secondArg checkInfo)
                                         checkInfo
                                     )
@@ -6834,26 +6834,26 @@ getValueWithNodeRange getValue expressionNode =
         (getValue expressionNode)
 
 
-andThenInCombinationWithWrapChecks :
+wrapperAndThenChecks :
     WrapperProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
-andThenInCombinationWithWrapChecks andThenable checkInfo =
+wrapperAndThenChecks wrapper checkInfo =
     let
-        maybeAndThenableArg : Maybe (Node Expression)
-        maybeAndThenableArg =
+        maybeWrapperArg : Maybe (Node Expression)
+        maybeWrapperArg =
             secondArg checkInfo
     in
     firstThatConstructsJust
         [ \() ->
-            case maybeAndThenableArg of
+            case maybeWrapperArg of
                 Just maybeArg ->
-                    case sameInAllBranches (getValueWithNodeRange (andThenable.wrap.getValue checkInfo.lookupTable)) maybeArg of
+                    case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) maybeArg of
                         Determined wrapCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString andThenable.wrap.description
-                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" andThenable.wrap.description ++ "." ]
+                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString wrapper.wrap.description
+                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -6867,13 +6867,13 @@ andThenInCombinationWithWrapChecks andThenable checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificValueOrFunction ( andThenable.moduleName, andThenable.wrap.fnName ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFunction ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (identityError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ qualifiedToString (qualify ( andThenable.moduleName, andThenable.wrap.fnName ) defaultQualifyResources)
-                            , lastArg = maybeAndThenableArg
-                            , lastArgRepresents = andThenable.represents
+                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
+                            , lastArg = maybeWrapperArg
+                            , lastArgRepresents = wrapper.represents
                             }
                             checkInfo
                         )
@@ -6883,19 +6883,19 @@ andThenInCombinationWithWrapChecks andThenable checkInfo =
         , \() ->
             case
                 constructs
-                    (\lookupTable -> sameInAllBranches (\expr -> getValueWithNodeRange (andThenable.wrap.getValue lookupTable) expr))
+                    (\lookupTable -> sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue lookupTable) expr))
                     checkInfo.lookupTable
                     checkInfo.firstArg
             of
                 Determined wrapCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( andThenable.moduleName, "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( andThenable.moduleName, "map" ) ++ "." ]
+                            { message = "Use " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " instead"
+                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( andThenable.moduleName, "map" ) checkInfo))
+                                (qualifiedToString (qualify ( wrapper.moduleName, "map" ) checkInfo))
                                 :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
                             )
                         )
@@ -6909,8 +6909,8 @@ andThenInCombinationWithWrapChecks andThenable checkInfo =
 maybeAndThenChecks : CheckInfo -> Maybe (Error {})
 maybeAndThenChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> andThenInCombinationWithWrapChecks maybeWithJustAsWrap checkInfo
-        , \() -> andThenInCombinationWithEmptyChecks maybeWithJustAsWrap checkInfo
+        [ \() -> wrapperAndThenChecks maybeWithJustAsWrap checkInfo
+        , \() -> emptiableAndThenChecks maybeWithJustAsWrap checkInfo
         ]
         ()
 
