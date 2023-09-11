@@ -6304,6 +6304,7 @@ randomGeneratorWithConstantAsPure :
         { pure :
             { description : Description
             , fnName : String
+            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
             }
         }
 randomGeneratorWithConstantAsPure =
@@ -6312,6 +6313,9 @@ randomGeneratorWithConstantAsPure =
     , pure =
         { description = A "constant generator"
         , fnName = "constant"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) lookupTable expr)
         }
     }
 
@@ -6351,6 +6355,7 @@ resultWithOkAsPure :
         { pure :
             { description : Description
             , fnName : String
+            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
             }
         , empty :
             { description : Description
@@ -6363,6 +6368,9 @@ resultWithOkAsPure =
     , pure =
         { description = An "okay result"
         , fnName = "Ok"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
         }
     , empty =
         { description = An "error"
@@ -6378,6 +6386,7 @@ resultWithErrAsPure :
         { pure :
             { description : Description
             , fnName : String
+            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
             }
         , empty :
             { description : Description
@@ -6390,6 +6399,9 @@ resultWithErrAsPure =
     , pure =
         { description = An "error"
         , fnName = "Err"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
         }
     , empty =
         { description = An "okay result"
