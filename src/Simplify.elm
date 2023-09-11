@@ -6891,7 +6891,7 @@ wrapperAndThenChecks wrapper checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Use " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns Just is the same thing as using " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ "." ]
+                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources) ++ " is the same thing as using " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
