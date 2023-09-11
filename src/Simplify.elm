@@ -6119,7 +6119,8 @@ type alias ConstantProperties =
 
 {-| Properties of a type that has a construction function that takes one value.
 
-Example "wrap" construction functions: `Just`, `Err`, `List.singleton` and `[ a ]`, `Cmd.batch [ a ]`
+Example "wrap" construction functions: `Just`, `Err`, `List.singleton` and `[ a ]`
+Note that for example `Cmd.batch [ a ]` is not a "warp" because it keeps the type of the inner value `a`
 
 -}
 type alias WrapperProperties otherProperties =
