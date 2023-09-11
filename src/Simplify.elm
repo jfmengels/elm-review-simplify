@@ -5309,7 +5309,6 @@ listFilterMapChecks checkInfo =
                                             Just listMapCall ->
                                                 Just
                                                     (Rule.errorWithFix
-                                                        -- TODO rework error info
                                                         { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                                                         , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                                         }
@@ -5373,7 +5372,6 @@ listFilterMapCompositionChecks checkInfo =
                     ( ( [ "List" ], "map" ), _ :: [] ) ->
                         Just
                             { info =
-                                -- TODO rework error info
                                 { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
                                 , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                                 }
