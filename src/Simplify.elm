@@ -2242,7 +2242,7 @@ functionCallChecks =
         , ( ( [ "List" ], "tail" ), listTailChecks )
         , ( ( [ "List" ], "member" ), listMemberChecks )
         , ( ( [ "List" ], "map" ), listMapChecks )
-        , ( ( [ "List" ], "filter" ), containerFilterChecks listCollection )
+        , ( ( [ "List" ], "filter" ), emptiableFilterChecks listCollection )
         , ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
         , ( ( [ "List" ], "concat" ), listConcatChecks )
         , ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
@@ -2267,13 +2267,13 @@ functionCallChecks =
         , ( ( [ "List" ], "sortWith" ), listSortWithChecks )
         , ( ( [ "List" ], "take" ), listTakeChecks )
         , ( ( [ "List" ], "drop" ), listDropChecks )
-        , ( ( [ "List" ], "map2" ), containerMapNChecks { n = 2 } listCollection )
-        , ( ( [ "List" ], "map3" ), containerMapNChecks { n = 3 } listCollection )
-        , ( ( [ "List" ], "map4" ), containerMapNChecks { n = 4 } listCollection )
-        , ( ( [ "List" ], "map5" ), containerMapNChecks { n = 5 } listCollection )
+        , ( ( [ "List" ], "map2" ), emptiableMapNChecks { n = 2 } listCollection )
+        , ( ( [ "List" ], "map3" ), emptiableMapNChecks { n = 3 } listCollection )
+        , ( ( [ "List" ], "map4" ), emptiableMapNChecks { n = 4 } listCollection )
+        , ( ( [ "List" ], "map5" ), emptiableMapNChecks { n = 5 } listCollection )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
-        , ( ( [ "Set" ], "map" ), containerMapChecks setCollection )
-        , ( ( [ "Set" ], "filter" ), containerFilterChecks setCollection )
+        , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
+        , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
         , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
@@ -2305,9 +2305,9 @@ functionCallChecks =
         , ( ( [ "String" ], "left" ), stringLeftChecks )
         , ( ( [ "String" ], "right" ), stringRightChecks )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks cmdCollection )
-        , ( ( [ "Platform", "Cmd" ], "map" ), containerMapChecks cmdCollection )
+        , ( ( [ "Platform", "Cmd" ], "map" ), emptiableMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
-        , ( ( [ "Platform", "Sub" ], "map" ), containerMapChecks subCollection )
+        , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
@@ -4092,7 +4092,7 @@ stringReplaceChecks checkInfo =
 maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapChecks maybeWithJustAsPure checkInfo
+        [ \() -> emptiableMapChecks maybeWithJustAsPure checkInfo
         , \() -> mapPureChecks maybeWithJustAsPure checkInfo
         ]
         ()
@@ -4110,7 +4110,7 @@ maybeMapCompositionChecks checkInfo =
 resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapChecks resultWithOkAsPure checkInfo
+        [ \() -> emptiableMapChecks resultWithOkAsPure checkInfo
         , \() -> mapPureChecks resultWithOkAsPure checkInfo
         ]
         ()
@@ -4139,7 +4139,7 @@ mapPureErrorInfo mapFnName mappable =
 resultMapErrorChecks : CheckInfo -> Maybe (Error {})
 resultMapErrorChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapChecks resultWithErrAsPure checkInfo
+        [ \() -> emptiableMapChecks resultWithErrAsPure checkInfo
         , \() -> mapPureChecks resultWithErrAsPure checkInfo
         ]
         ()
@@ -4630,7 +4630,7 @@ listTailChecks checkInfo =
 listMapChecks : CheckInfo -> Maybe (Error {})
 listMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> containerMapChecks listCollection checkInfo
+        [ \() -> emptiableMapChecks listCollection checkInfo
         , \() -> dictToListMapChecks checkInfo
         ]
         ()
@@ -5634,9 +5634,9 @@ listDropChecks checkInfo =
         ()
 
 
-containerMapNChecks : { n : Int } -> Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
-containerMapNChecks { n } container checkInfo =
-    if List.any (container.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
+emptiableMapNChecks : { n : Int } -> Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableMapNChecks { n } emptiable checkInfo =
+    if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
             callReplacement : String
             callReplacement =
@@ -6620,7 +6620,7 @@ subCollection =
     }
 
 
-containerMapChecks :
+emptiableMapChecks :
     { otherProperties
         | moduleName : ModuleName
         , represents : String
@@ -6632,7 +6632,7 @@ containerMapChecks :
     }
     -> CheckInfo
     -> Maybe (Error {})
-containerMapChecks mappable checkInfo =
+emptiableMapChecks mappable checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks mappable checkInfo
         , \() ->
@@ -7352,42 +7352,42 @@ callOnPureReturnsItsValue :
         }
     -> CheckInfo
     -> Maybe (Error {})
-callOnPureReturnsItsValue containerWithPureArg containerWithPure checkInfo =
-    case containerWithPure.getPureValue checkInfo.lookupTable containerWithPureArg of
+callOnPureReturnsItsValue emptiableWithPureArg emptiableWithPure checkInfo =
+    case emptiableWithPure.getPureValue checkInfo.lookupTable emptiableWithPureArg of
         Nothing ->
             Nothing
 
         Just pureArg ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString containerWithPure.pureDescription ++ " will result in the value inside"
-                    , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" containerWithPure.pureDescription ++ "." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString emptiableWithPure.pureDescription ++ " will result in the value inside"
+                    , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" emptiableWithPure.pureDescription ++ "." ]
                     }
                     checkInfo.fnRange
                     (replaceBySubExpressionFix checkInfo.parentRange pureArg)
                 )
 
 
-containerFilterChecks : Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
-containerFilterChecks container checkInfo =
+emptiableFilterChecks : Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableFilterChecks emptiable checkInfo =
     let
-        maybeContainerArg : Maybe (Node Expression)
-        maybeContainerArg =
+        maybeEmptiableArg : Maybe (Node Expression)
+        maybeEmptiableArg =
             secondArg checkInfo
     in
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
-                (\containerArg -> callOnEmptyReturnsEmptyCheck containerArg container checkInfo)
-                maybeContainerArg
+                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
+                maybeEmptiableArg
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     Just
                         (identityError
-                            { toFix = qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return True"
-                            , lastArg = maybeContainerArg
-                            , lastArgRepresents = container.represents
+                            { toFix = qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return True"
+                            , lastArg = maybeEmptiableArg
+                            , lastArgRepresents = emptiable.represents
                             }
                             checkInfo
                         )
@@ -7395,11 +7395,11 @@ containerFilterChecks container checkInfo =
                 Determined False ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ descriptionToStringWithoutArticle container.empty.description
-                            , details = [ "You can replace this call by " ++ descriptionAsReferenceToString "the" container.empty.description ++ "." ]
+                            { message = "Using " ++ qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ descriptionToStringWithoutArticle emptiable.empty.description
+                            , details = [ "You can replace this call by " ++ descriptionAsReferenceToString "the" emptiable.empty.description ++ "." ]
                             }
                             checkInfo.fnRange
-                            (alwaysResultsInFix (emptyAsString checkInfo container) maybeContainerArg checkInfo)
+                            (alwaysResultsInFix (emptyAsString checkInfo emptiable) maybeEmptiableArg checkInfo)
                         )
 
                 Undetermined ->
