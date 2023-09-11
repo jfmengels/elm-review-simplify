@@ -6295,10 +6295,7 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-randomGeneratorWithConstantAsWrap :
-    TypeProperties
-        { wrap : ConstructWithOneArgProperties
-        }
+randomGeneratorWithConstantAsWrap : WrapperProperties {}
 randomGeneratorWithConstantAsWrap =
     { moduleName = [ "Random" ]
     , represents = "random generator"
@@ -6314,8 +6311,7 @@ randomGeneratorWithConstantAsWrap =
 
 maybeWithJustAsWrap :
     Emptiable
-        { wrap : ConstructWithOneArgProperties
-        }
+        (WrapperProperties {})
 maybeWithJustAsWrap =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -6339,9 +6335,8 @@ maybeWithJustAsWrap =
 
 
 resultWithOkAsWrap :
-    TypeProperties
-        { wrap : ConstructWithOneArgProperties
-        , empty :
+    WrapperProperties
+        { empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
@@ -6365,6 +6360,13 @@ resultWithOkAsWrap =
     }
 
 
+type alias WrapperProperties otherProperties =
+    TypeProperties
+        { otherProperties
+            | wrap : ConstructWithOneArgProperties
+        }
+
+
 type alias ConstructWithOneArgProperties =
     { description : Description
     , fnName : String
@@ -6373,9 +6375,8 @@ type alias ConstructWithOneArgProperties =
 
 
 resultWithErrAsWrap :
-    TypeProperties
-        { wrap : ConstructWithOneArgProperties
-        , empty :
+    WrapperProperties
+        { empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
@@ -6401,8 +6402,7 @@ resultWithErrAsWrap =
 
 listCollection :
     Collection
-        { wrap : ConstructWithOneArgProperties
-        }
+        (WrapperProperties {})
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -6835,10 +6835,7 @@ getValueWithNodeRange getValue expressionNode =
 
 
 andThenInCombinationWithWrapChecks :
-    TypeProperties
-        { otherProperties
-            | wrap : ConstructWithOneArgProperties
-        }
+    WrapperProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 andThenInCombinationWithWrapChecks andThenable checkInfo =
