@@ -6662,16 +6662,7 @@ emptiableMapChecks emptiable checkInfo =
         ()
 
 
-operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
-operationDoesNotChangeSpecificLastArgErrorInfo config =
-    let
-        specificLastArgReference : String
-        specificLastArgReference =
-            descriptionAsReferenceToString "the given" config.specific
-    in
-    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionAsIncomingToString config.specific ++ " will result in " ++ specificLastArgReference
-    , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
-    }
+
 
 
 mapIdentityChecks :
@@ -8650,6 +8641,16 @@ replacementWithIrrelevantLastArg config resources =
             qualifiedToString (qualify ( [ "Basics" ], "always" ) resources)
                 ++ (" (" ++ config.forNoLastArg ++ ")")
 
+operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
+operationDoesNotChangeSpecificLastArgErrorInfo config =
+    let
+        specificLastArgReference : String
+        specificLastArgReference =
+            descriptionAsReferenceToString "the given" config.specific
+    in
+    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionAsIncomingToString config.specific ++ " will result in " ++ specificLastArgReference
+    , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
+    }
 
 identityError :
     { toFix : String
