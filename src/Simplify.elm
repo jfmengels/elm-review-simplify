@@ -6133,7 +6133,7 @@ type alias ConstructWithOneArgProperties =
 
 {-| Properties of an `Emptiable` type that has multiple elements.
 -}
-type alias Collection otherProperties =
+type alias CollectionProperties otherProperties =
     EmptiableProperties
         { otherProperties
             | nameForSize : String
@@ -6310,7 +6310,7 @@ resultWithErrAsWrap =
 
 
 listCollection :
-    Collection
+    CollectionProperties
         (WrapperProperties {})
 listCollection =
     { moduleName = [ "List" ]
@@ -6357,7 +6357,7 @@ listDetermineLength lookupTable expressionNode =
             Nothing
 
 
-stringCollection : Collection {}
+stringCollection : CollectionProperties {}
 stringCollection =
     { moduleName = [ "String" ]
     , represents = "string"
@@ -6381,7 +6381,7 @@ stringDetermineLength expression =
             Nothing
 
 
-setCollection : Collection {}
+setCollection : CollectionProperties {}
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
@@ -6446,7 +6446,7 @@ setDetermineSize lookupTable expressionNode =
         ()
 
 
-dictCollection : Collection {}
+dictCollection : CollectionProperties {}
 dictCollection =
     { moduleName = [ "Dict" ]
     , represents = "Dict"
@@ -7406,14 +7406,14 @@ emptiableFilterChecks emptiable checkInfo =
         ()
 
 
-collectionRemoveChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
     Maybe.andThen
         (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
         (secondArg checkInfo)
 
 
-collectionIntersectChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionIntersectChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
@@ -7425,7 +7425,7 @@ collectionIntersectChecks collection checkInfo =
         ()
 
 
-collectionDiffChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -7472,7 +7472,7 @@ collectionDiffChecks collection checkInfo =
         ()
 
 
-collectionUnionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -7515,7 +7515,7 @@ collectionUnionChecks collection checkInfo =
         ()
 
 
-collectionInsertChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -7540,7 +7540,7 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -7563,7 +7563,7 @@ collectionMemberChecks collection checkInfo =
             Nothing
 
 
-collectionIsEmptyChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
@@ -7594,7 +7594,7 @@ collectionIsEmptyChecks collection checkInfo =
             Nothing
 
 
-collectionSizeChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSizeChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly size) ->
@@ -7611,7 +7611,7 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-collectionFromListChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionFromListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
     case AstHelpers.getListLiteral checkInfo.firstArg of
         Just [] ->
@@ -7633,7 +7633,7 @@ collectionFromListChecks collection checkInfo =
             Nothing
 
 
-collectionToListChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionToListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionToListChecks collection checkInfo =
     if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
         Just
@@ -7649,7 +7649,7 @@ collectionToListChecks collection checkInfo =
         Nothing
 
 
-collectionPartitionChecks : Collection otherProperties -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection checkInfo =
     let
         collectionEmptyAsString : String
