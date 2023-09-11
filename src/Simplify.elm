@@ -6090,82 +6090,6 @@ randomMapCompositionChecks checkInfo =
     wrapperMapCompositionChecks randomGeneratorWithConstantAsWrap checkInfo
 
 
-mapAlwaysChecks :
-    { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
-    -> CheckInfo
-    -> Maybe (Error {})
-mapAlwaysChecks wrapper checkInfo =
-    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-        Just (Node alwaysMapResultRange alwaysMapResult) ->
-            let
-                ( leftParenIfRequired, rightParenIfRequired ) =
-                    if needsParens alwaysMapResult then
-                        ( "(", ")" )
-
-                    else
-                        ( "", "" )
-            in
-            Just
-                (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
-                    }
-                    checkInfo.fnRange
-                    (case secondArg checkInfo of
-                        Nothing ->
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
-                                    ++ " ("
-                                    ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
-                                    ++ " "
-                                    ++ leftParenIfRequired
-                                )
-                            , Fix.replaceRangeBy
-                                { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
-                                (rightParenIfRequired ++ ")")
-                            ]
-
-                        Just _ ->
-                            [ Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
-                                    ++ " "
-                                    ++ leftParenIfRequired
-                                )
-                            , Fix.replaceRangeBy
-                                { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
-                                rightParenIfRequired
-                            ]
-                    )
-                )
-
-        Nothing ->
-            Nothing
-
-
-mapAlwaysCompositionChecks :
-    { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-mapAlwaysCompositionChecks wrapper checkInfo =
-    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-        ( ( [ "Basics" ], "always" ), [] ) ->
-            Just
-                { info =
-                    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
-                    }
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
-                    ]
-                }
-
-        _ ->
-            Nothing
-
-
 
 --
 
@@ -6772,6 +6696,82 @@ wrapToMapCompositionChecks wrapper checkInfo =
             Just
                 { info = mapWrapErrorInfo checkInfo.later.fnName wrapper
                 , fix = fixes
+                }
+
+        _ ->
+            Nothing
+
+
+mapAlwaysChecks :
+    { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
+    -> CheckInfo
+    -> Maybe (Error {})
+mapAlwaysChecks wrapper checkInfo =
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+        Just (Node alwaysMapResultRange alwaysMapResult) ->
+            let
+                ( leftParenIfRequired, rightParenIfRequired ) =
+                    if needsParens alwaysMapResult then
+                        ( "(", ")" )
+
+                    else
+                        ( "", "" )
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
+                    }
+                    checkInfo.fnRange
+                    (case secondArg checkInfo of
+                        Nothing ->
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
+                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                                    ++ " ("
+                                    ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
+                                    ++ " "
+                                    ++ leftParenIfRequired
+                                )
+                            , Fix.replaceRangeBy
+                                { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
+                                (rightParenIfRequired ++ ")")
+                            ]
+
+                        Just _ ->
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
+                                (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
+                                    ++ " "
+                                    ++ leftParenIfRequired
+                                )
+                            , Fix.replaceRangeBy
+                                { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
+                                rightParenIfRequired
+                            ]
+                    )
+                )
+
+        Nothing ->
+            Nothing
+
+
+mapAlwaysCompositionChecks :
+    { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+mapAlwaysCompositionChecks wrapper checkInfo =
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "Basics" ], "always" ), [] ) ->
+            Just
+                { info =
+                    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
+                    }
+                , fix =
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
+                    ]
                 }
 
         _ ->
