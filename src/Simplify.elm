@@ -6850,8 +6850,8 @@ wrapperAndThenChecks wrapper checkInfo =
                         Determined wrapCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString wrapper.wrap.description
-                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ "." ]
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionAsReferenceToString "the" wrapper.wrap.description
+                                    , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }

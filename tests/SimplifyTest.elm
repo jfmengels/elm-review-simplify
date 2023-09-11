@@ -13709,8 +13709,8 @@ a = Maybe.andThen f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.andThen on a just value"
-                            , details = [ "You can replace the call the by the function directly applied to the value inside the just value." ]
+                            { message = "Using Maybe.andThen on a just value is the same as applying the function to the value from the just value"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13725,8 +13725,8 @@ a = Just x |> Maybe.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Maybe.andThen on a just value"
-                            , details = [ "You can replace the call the by the function directly applied to the value inside the just value." ]
+                            { message = "Using Maybe.andThen on a just value is the same as applying the function to the value from the just value"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14592,8 +14592,8 @@ a = Result.andThen f (Ok x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.andThen on an okay result"
-                            , details = [ "You can replace the call the by the function directly applied to the value inside the okay result." ]
+                            { message = "Using Result.andThen on an okay result is the same as applying the function to the value from the okay result"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14608,8 +14608,8 @@ a = Ok x |> Result.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.andThen on an okay result"
-                            , details = [ "You can replace the call the by the function directly applied to the value inside the okay result." ]
+                            { message = "Using Result.andThen on an okay result is the same as applying the function to the value from the okay result"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
