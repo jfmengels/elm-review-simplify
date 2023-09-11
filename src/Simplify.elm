@@ -4118,7 +4118,7 @@ resultMapCompositionChecks checkInfo =
 
 mapPureErrorInfo :
     String
-    -> { a | moduleName : ModuleName, pure : String, pureDescription : SpecificDescription }
+    -> { a | moduleName : ModuleName, pure : String, pureDescription : Description }
     -> { message : String, details : List String }
 mapPureErrorInfo mapFnName mappable =
     let
@@ -4126,8 +4126,8 @@ mapPureErrorInfo mapFnName mappable =
         pureFnInErrorInfo =
             qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on " ++ specificDescriptionAsIncomingToString mappable.pureDescription ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the value inside"
-    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the value inside " ++ specificDescriptionAsReferenceToString "the" mappable.pureDescription ++ " itself." ]
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on " ++ descriptionAsIncomingToString mappable.pureDescription ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the value inside"
+    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" mappable.pureDescription ++ " itself." ]
     }
 
 
@@ -5713,7 +5713,7 @@ subAndCmdBatchChecks :
     { typeProperties
         | moduleName : ModuleName
         , empty :
-            { description : SpecificDescription
+            { description : Description
             , asString : QualifyResources {} -> String
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
@@ -5733,7 +5733,7 @@ subAndCmdBatchChecks batchable checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Replace by " ++ batchDescription
-                            , details = [ batchDescription ++ " [] and " ++ specificDescriptionToStringWithoutArticle batchable.empty.description ++ " are equivalent but the latter is more idiomatic in Elm code" ]
+                            , details = [ batchDescription ++ " [] and " ++ descriptionToStringWithoutArticle batchable.empty.description ++ " are equivalent but the latter is more idiomatic in Elm code" ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange
@@ -5746,8 +5746,8 @@ subAndCmdBatchChecks batchable checkInfo =
                         Just emptyAndNeighboring ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ specificDescriptionToStringWithoutArticle batchable.empty.description
-                                    , details = [ specificDescriptionAsReferenceToString "The" batchable.empty.description ++ " will be ignored by " ++ batchDescription ++ "." ]
+                                    { message = "Unnecessary " ++ descriptionToStringWithoutArticle batchable.empty.description
+                                    , details = [ descriptionAsReferenceToString "The" batchable.empty.description ++ " will be ignored by " ++ batchDescription ++ "." ]
                                     }
                                     emptyAndNeighboring.found.range
                                     (listLiteralElementRemoveFix emptyAndNeighboring)
@@ -6186,7 +6186,7 @@ type alias Emptiable otherProperties =
         , represents : String
         , empty :
             { asString : QualifyResources {} -> String
-            , description : SpecificDescription
+            , description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
     }
@@ -6221,15 +6221,15 @@ getEmpty lookupTable emptiable expressionNode =
   - Multiple values are possible, like `Ok anyValue` or `[ onlyElementAnyValue ]`? → `A`/`An` depending on the indefinite article in front of the description
 
 -}
-type SpecificDescription
+type Description
     = A String
     | An String
     | Constant String
 
 
-specificDescriptionAsIncomingToString : SpecificDescription -> String
-specificDescriptionAsIncomingToString incomingArgSpecificDescription =
-    case incomingArgSpecificDescription of
+descriptionAsIncomingToString : Description -> String
+descriptionAsIncomingToString incomingArgDescription =
+    case incomingArgDescription of
         A description ->
             "a " ++ description
 
@@ -6240,9 +6240,9 @@ specificDescriptionAsIncomingToString incomingArgSpecificDescription =
             description
 
 
-specificDescriptionAsReferenceToString : String -> SpecificDescription -> String
-specificDescriptionAsReferenceToString startWithDefiniteArticle referenceArgSpecificDescription =
-    case referenceArgSpecificDescription of
+descriptionAsReferenceToString : String -> Description -> String
+descriptionAsReferenceToString startWithDefiniteArticle referenceArgDescription =
+    case referenceArgDescription of
         A description ->
             startWithDefiniteArticle ++ " " ++ description
 
@@ -6253,9 +6253,9 @@ specificDescriptionAsReferenceToString startWithDefiniteArticle referenceArgSpec
             description
 
 
-specificDescriptionToStringWithoutArticle : SpecificDescription -> String
-specificDescriptionToStringWithoutArticle referenceArgSpecificDescription =
-    case referenceArgSpecificDescription of
+descriptionToStringWithoutArticle : Description -> String
+descriptionToStringWithoutArticle referenceArgDescription =
+    case referenceArgDescription of
         A description ->
             description
 
@@ -6283,7 +6283,7 @@ randomGeneratorWithConstantAsPure :
     { moduleName : ModuleName
     , represents : String
     , pure : String
-    , pureDescription : SpecificDescription
+    , pureDescription : Description
     }
 randomGeneratorWithConstantAsPure =
     { moduleName = [ "Random" ]
@@ -6296,7 +6296,7 @@ randomGeneratorWithConstantAsPure =
 maybeWithJustAsPure :
     Emptiable
         { pure : String
-        , pureDescription : SpecificDescription
+        , pureDescription : Description
         , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
         }
 maybeWithJustAsPure =
@@ -6323,9 +6323,9 @@ resultWithOkAsPure :
     { moduleName : ModuleName
     , represents : String
     , pure : String
-    , pureDescription : SpecificDescription
+    , pureDescription : Description
     , empty :
-        { description : SpecificDescription
+        { description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
         }
     }
@@ -6347,9 +6347,9 @@ resultWithErrAsPure :
     { moduleName : ModuleName
     , represents : String
     , pure : String
-    , pureDescription : SpecificDescription
+    , pureDescription : Description
     , empty :
-        { description : SpecificDescription
+        { description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
         }
     }
@@ -6370,7 +6370,7 @@ resultWithErrAsPure =
 listCollection :
     Collection
         { getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-        , pureDescription : SpecificDescription
+        , pureDescription : Description
         }
 listCollection =
     { moduleName = [ "List" ]
@@ -6612,7 +6612,7 @@ containerMapChecks :
         , represents : String
         , empty :
             { empty
-                | description : SpecificDescription
+                | description : Description
                 , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
     }
@@ -6629,14 +6629,14 @@ containerMapChecks mappable checkInfo =
         ()
 
 
-operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : SpecificDescription } -> { message : String, details : List String }
+operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
 operationDoesNotChangeSpecificLastArgErrorInfo config =
     let
         specificLastArgReference : String
         specificLastArgReference =
-            specificDescriptionAsReferenceToString "the given" config.specific
+            descriptionAsReferenceToString "the given" config.specific
     in
-    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ specificDescriptionAsIncomingToString config.specific ++ " will result in " ++ specificLastArgReference
+    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionAsIncomingToString config.specific ++ " will result in " ++ specificLastArgReference
     , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
     }
 
@@ -6664,7 +6664,7 @@ mapIdentityChecks mappable checkInfo =
 
 
 mapPureChecks :
-    { a | moduleName : List String, pure : String, pureDescription : SpecificDescription }
+    { a | moduleName : List String, pure : String, pureDescription : Description }
     -> CheckInfo
     -> Maybe (Error {})
 mapPureChecks mappable checkInfo =
@@ -6717,7 +6717,7 @@ mapPureChecks mappable checkInfo =
 
 
 pureToMapCompositionChecks :
-    { a | moduleName : ModuleName, pure : String, pureDescription : SpecificDescription }
+    { a | moduleName : ModuleName, pure : String, pureDescription : Description }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 pureToMapCompositionChecks mappable checkInfo =
@@ -6757,7 +6757,7 @@ pureToMapCompositionChecks mappable checkInfo =
 andThenInCombinationWithEmptyChecks :
     { otherProperties
         | empty :
-            { description : SpecificDescription
+            { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             , asString : QualifyResources {} -> String
             }
@@ -6814,7 +6814,7 @@ andThenInCombinationWithPureChecks :
         | moduleName : ModuleName
         , represents : String
         , pure : String
-        , pureDescription : SpecificDescription
+        , pureDescription : Description
         , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
     }
     -> CheckInfo
@@ -6833,8 +6833,8 @@ andThenInCombinationWithPureChecks andThenable checkInfo =
                         Determined pureCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString andThenable.pureDescription
-                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ specificDescriptionAsReferenceToString "the" andThenable.pureDescription ++ "." ]
+                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString andThenable.pureDescription
+                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" andThenable.pureDescription ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -7244,7 +7244,7 @@ callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
 
 callOnDoesNotChangeItCheck :
     { a
-        | description : SpecificDescription
+        | description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
     }
     -> Node Expression
@@ -7284,7 +7284,7 @@ callOnEmptyReturnsEmptyCheck :
             | empty :
                 { empty
                     | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : SpecificDescription
+                    , description : Description
                 }
         }
     -> CheckInfo
@@ -7302,7 +7302,7 @@ callOnEmptyReturnsCheck :
             | empty :
                 { empty
                     | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : SpecificDescription
+                    , description : Description
                 }
         }
     -> CheckInfo
@@ -7316,7 +7316,7 @@ callOnEmptyReturnsCheck config collection checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString collection.empty.description ++ " will result in " ++ resultDescription
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString collection.empty.description ++ " will result in " ++ resultDescription
                 , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
                 }
                 checkInfo.fnRange
@@ -7334,7 +7334,7 @@ callOnPureReturnsItsValue :
     ->
         { otherProperties
             | getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            , pureDescription : SpecificDescription
+            , pureDescription : Description
         }
     -> CheckInfo
     -> Maybe (Error {})
@@ -7346,8 +7346,8 @@ callOnPureReturnsItsValue containerWithPureArg containerWithPure checkInfo =
         Just pureArg ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ specificDescriptionAsIncomingToString containerWithPure.pureDescription ++ " will result in the value inside"
-                    , details = [ "You can replace this call by the value inside " ++ specificDescriptionAsReferenceToString "the" containerWithPure.pureDescription ++ "." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString containerWithPure.pureDescription ++ " will result in the value inside"
+                    , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" containerWithPure.pureDescription ++ "." ]
                     }
                     checkInfo.fnRange
                     (replaceBySubExpressionFix checkInfo.parentRange pureArg)
@@ -7381,8 +7381,8 @@ containerFilterChecks container checkInfo =
                 Determined False ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ specificDescriptionToStringWithoutArticle container.empty.description
-                            , details = [ "You can replace this call by " ++ specificDescriptionAsReferenceToString "the" container.empty.description ++ "." ]
+                            { message = "Using " ++ qualifiedToString ( container.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ descriptionToStringWithoutArticle container.empty.description
+                            , details = [ "You can replace this call by " ++ descriptionAsReferenceToString "the" container.empty.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix (emptyAsString checkInfo container) maybeContainerArg checkInfo)
@@ -7472,7 +7472,7 @@ collectionUnionChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (identityError
-                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ specificDescriptionAsIncomingToString collection.empty.description
+                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ descriptionAsIncomingToString collection.empty.description
                         , lastArg = maybeCollectionArg
                         , lastArgRepresents = collection.represents
                         }
@@ -7487,7 +7487,7 @@ collectionUnionChecks collection checkInfo =
                     if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary union with " ++ specificDescriptionAsIncomingToString collection.empty.description
+                                { message = "Unnecessary union with " ++ descriptionAsIncomingToString collection.empty.description
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
@@ -7510,7 +7510,7 @@ collectionInsertChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ specificDescriptionAsIncomingToString collection.empty.description
+                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ descriptionAsIncomingToString collection.empty.description
                         , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7535,7 +7535,7 @@ collectionMemberChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.empty.description ++ " will result in False"
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ descriptionAsIncomingToString collection.empty.description ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
@@ -7606,7 +7606,7 @@ collectionFromListChecks collection checkInfo =
             let
                 replacementDescription : String
                 replacementDescription =
-                    specificDescriptionToStringWithoutArticle collection.empty.description
+                    descriptionToStringWithoutArticle collection.empty.description
             in
             Just
                 (Rule.errorWithFix
@@ -7652,7 +7652,7 @@ collectionPartitionChecks collection checkInfo =
                         let
                             emptyCollectionInResultAsString : String
                             emptyCollectionInResultAsString =
-                                specificDescriptionToStringWithoutArticle collection.empty.description
+                                descriptionToStringWithoutArticle collection.empty.description
 
                             tupleResultAsString : String
                             tupleResultAsString =
@@ -7660,7 +7660,7 @@ collectionPartitionChecks collection checkInfo =
                         in
                         Just
                             (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ specificDescriptionAsIncomingToString collection.empty.description ++ " will result in " ++ tupleResultAsString
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ descriptionAsIncomingToString collection.empty.description ++ " will result in " ++ tupleResultAsString
                                 , details = [ "You can replace this call by " ++ tupleResultAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -7680,7 +7680,7 @@ collectionPartitionChecks collection checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "All elements will go to the first " ++ collection.represents
-                                    , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ specificDescriptionToStringWithoutArticle collection.empty.description ++ "." ]
+                                    , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ descriptionToStringWithoutArticle collection.empty.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
@@ -7695,7 +7695,7 @@ collectionPartitionChecks collection checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "All elements will go to the second " ++ collection.represents
-                            , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ specificDescriptionToStringWithoutArticle collection.empty.description ++ "." ]
+                            , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ descriptionToStringWithoutArticle collection.empty.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (case secondArg checkInfo of
