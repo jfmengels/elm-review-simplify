@@ -4123,7 +4123,7 @@ resultMapCompositionChecks checkInfo =
 
 mapWrapErrorInfo :
     String
-    -> { a | moduleName : ModuleName, wrap : { wrap | description : Description, fnName : String } }
+    -> WrapperProperties otherProperties
     -> { message : String, details : List String }
 mapWrapErrorInfo mapFnName wrapper =
     let
@@ -6618,7 +6618,7 @@ wrapperMapCompositionChecks wrapper checkInfo =
 
 
 mapWrapChecks :
-    { a | moduleName : List String, wrap : { wrap | description : Description, fnName : String } }
+    WrapperProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 mapWrapChecks wrapper checkInfo =
@@ -6671,7 +6671,7 @@ mapWrapChecks wrapper checkInfo =
 
 
 wrapToMapCompositionChecks :
-    { a | moduleName : ModuleName, wrap : { wrap | description : Description, fnName : String } }
+    WrapperProperties otherProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 wrapToMapCompositionChecks wrapper checkInfo =
@@ -6709,7 +6709,7 @@ wrapToMapCompositionChecks wrapper checkInfo =
 
 
 mapAlwaysChecks :
-    { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
+    WrapperProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 mapAlwaysChecks wrapper checkInfo =
@@ -6763,7 +6763,7 @@ mapAlwaysChecks wrapper checkInfo =
 
 
 mapAlwaysCompositionChecks :
-    { otherProperties | moduleName : ModuleName, wrap : { wrap | fnName : String } }
+    WrapperProperties otherProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 mapAlwaysCompositionChecks wrapper checkInfo =
