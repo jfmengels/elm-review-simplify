@@ -7487,7 +7487,7 @@ collectionUnionChecks collection checkInfo =
                     if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary union with " ++ collection.empty.asString (extractQualifyResources checkInfo)
+                                { message = "Unnecessary union with " ++ specificDescriptionAsIncomingToString collection.empty.description
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
