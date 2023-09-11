@@ -6301,11 +6301,7 @@ emptyAsString qualifyResources emptiable =
 
 randomGeneratorWithConstantAsPure :
     TypeProperties
-        { pure :
-            { description : Description
-            , fnName : String
-            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
+        { pure : ConstructWithOneArg
         }
 randomGeneratorWithConstantAsPure =
     { moduleName = [ "Random" ]
@@ -6322,11 +6318,7 @@ randomGeneratorWithConstantAsPure =
 
 maybeWithJustAsPure :
     Emptiable
-        { pure :
-            { description : Description
-            , fnName : String
-            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
+        { pure : ConstructWithOneArg
         }
 maybeWithJustAsPure =
     { moduleName = [ "Maybe" ]
@@ -6352,11 +6344,7 @@ maybeWithJustAsPure =
 
 resultWithOkAsPure :
     TypeProperties
-        { pure :
-            { description : Description
-            , fnName : String
-            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
+        { pure : ConstructWithOneArg
         , empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
@@ -6381,13 +6369,16 @@ resultWithOkAsPure =
     }
 
 
+type alias ConstructWithOneArg =
+    { description : Description
+    , fnName : String
+    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+    }
+
+
 resultWithErrAsPure :
     TypeProperties
-        { pure :
-            { description : Description
-            , fnName : String
-            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
+        { pure : ConstructWithOneArg
         , empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
@@ -6414,11 +6405,7 @@ resultWithErrAsPure =
 
 listCollection :
     Collection
-        { pure :
-            { description : Description
-            , fnName : String
-            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
+        { pure : ConstructWithOneArg
         }
 listCollection =
     { moduleName = [ "List" ]
@@ -6858,12 +6845,7 @@ getValueWithNodeRange getValue expressionNode =
 andThenInCombinationWithPureChecks :
     TypeProperties
         { otherProperties
-            | pure :
-                { pure
-                    | description : Description
-                    , fnName : String
-                    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-                }
+            | pure : ConstructWithOneArg
         }
     -> CheckInfo
     -> Maybe (Error {})
@@ -7381,11 +7363,7 @@ callOnPureReturnsItsValue :
     Node Expression
     ->
         { otherProperties
-            | pure :
-                { pure
-                    | getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-                    , description : Description
-                }
+            | pure : ConstructWithOneArg
         }
     -> CheckInfo
     -> Maybe (Error {})
