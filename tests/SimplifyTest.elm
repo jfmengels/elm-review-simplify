@@ -18417,8 +18417,8 @@ a = Random.map (\\_ -> x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18435,8 +18435,8 @@ a = Random.map (always x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18453,8 +18453,8 @@ a = Random.map (always <| x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18471,8 +18471,8 @@ a = Random.map (x |> always) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18489,8 +18489,8 @@ a = Random.map (always x) <| generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18507,8 +18507,8 @@ a = generator |> Random.map (always x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18525,8 +18525,8 @@ a = Random.map (\\_ -> f x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18543,8 +18543,8 @@ a = Random.map (always <| f x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18561,8 +18561,8 @@ a = Random.map (f x |> always) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18579,8 +18579,8 @@ a = Random.map (\\_ -> x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18597,8 +18597,8 @@ a = Random.map <| \\_ -> x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18615,8 +18615,8 @@ a = (\\_ -> x) |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18633,8 +18633,8 @@ a = Random.map (always x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18651,8 +18651,8 @@ a = Random.map (always <| x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18669,8 +18669,8 @@ a = Random.map (x |> always)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18687,8 +18687,8 @@ a = Random.map (\\_ -> f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18705,8 +18705,8 @@ a = Random.map <| \\_ -> f x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18723,8 +18723,8 @@ a = (\\_ -> f x) |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18741,8 +18741,8 @@ a = Random.map (always <| f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18759,8 +18759,8 @@ a = Random.map <| always <| f x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18777,8 +18777,8 @@ a = (always <| f x) |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18795,8 +18795,8 @@ a = Random.map (f x |> always)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18813,8 +18813,8 @@ a = Random.map <| (f x |> always)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18831,8 +18831,8 @@ a = f x |> always |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18849,8 +18849,8 @@ a = always >> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18867,8 +18867,8 @@ a = Random.map << always
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Always mapping to the same value is equivalent to Random.constant"
-                            , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

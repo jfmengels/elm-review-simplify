@@ -6104,8 +6104,8 @@ randomMapCompositionChecks checkInfo =
 
 mapAlwaysErrorInfo : { pureFn : ( ModuleName, String ), mapFn : ( ModuleName, String ) } -> { message : String, details : List String }
 mapAlwaysErrorInfo config =
-    { message = "Always mapping to the same value is equivalent to " ++ qualifiedToString config.pureFn
-    , details = [ "Since your " ++ qualifiedToString config.mapFn ++ " call always produces the same value, you can replace the whole call by " ++ qualifiedToString config.pureFn ++ " that value." ]
+    { message = "Using " ++ qualifiedToString config.mapFn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString config.pureFn ++ " with that value"
+    , details = [ "You can replace this call by " ++ qualifiedToString config.pureFn ++ " with the value produced by the mapper function." ]
     }
 
 
