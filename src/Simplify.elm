@@ -6080,8 +6080,7 @@ randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks randomGeneratorWithConstantAsWrap checkInfo
-        , \() -> mapWrapChecks randomGeneratorWithConstantAsWrap checkInfo
-        , \() -> randomMapAlwaysChecks checkInfo
+        , \() -> wrapperMapChecks randomGeneratorWithConstantAsWrap checkInfo
         ]
         ()
 
@@ -6093,11 +6092,6 @@ randomMapCompositionChecks checkInfo =
         , \() -> randomMapAlwaysCompositionChecks checkInfo
         ]
         ()
-
-
-randomMapAlwaysChecks : CheckInfo -> Maybe (Error {})
-randomMapAlwaysChecks checkInfo =
-    mapAlwaysChecks randomGeneratorWithConstantAsWrap checkInfo
 
 
 mapAlwaysChecks :
@@ -6662,9 +6656,6 @@ emptiableMapChecks emptiable checkInfo =
         ()
 
 
-
-
-
 mapIdentityChecks :
     TypeProperties properties
     -> CheckInfo
@@ -6682,6 +6673,18 @@ mapIdentityChecks mappable checkInfo =
 
     else
         Nothing
+
+
+wrapperMapChecks :
+    WrapperProperties otherProperties
+    -> CheckInfo
+    -> Maybe (Error {})
+wrapperMapChecks wrapper checkInfo =
+    firstThatConstructsJust
+        [ \() -> mapWrapChecks wrapper checkInfo
+        , \() -> mapAlwaysChecks wrapper checkInfo
+        ]
+        ()
 
 
 mapWrapChecks :
@@ -8641,6 +8644,7 @@ replacementWithIrrelevantLastArg config resources =
             qualifiedToString (qualify ( [ "Basics" ], "always" ) resources)
                 ++ (" (" ++ config.forNoLastArg ++ ")")
 
+
 operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
 operationDoesNotChangeSpecificLastArgErrorInfo config =
     let
@@ -8651,6 +8655,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionAsIncomingToString config.specific ++ " will result in " ++ specificLastArgReference
     , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
     }
+
 
 identityError :
     { toFix : String
