@@ -5634,7 +5634,7 @@ listDropChecks checkInfo =
         ()
 
 
-emptiableMapNChecks : { n : Int } -> Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableMapNChecks : { n : Int } -> EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableMapNChecks { n } emptiable checkInfo =
     if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
@@ -5710,7 +5710,7 @@ setFromListCompositionChecks checkInfo =
 
 
 subAndCmdBatchChecks :
-    Emptiable otherProperties
+    EmptiableProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 subAndCmdBatchChecks batchable checkInfo =
@@ -6103,7 +6103,7 @@ type alias TypeProperties properties =
 
 {-| Properties of a type that can hold some data or none.
 -}
-type alias Emptiable otherProperties =
+type alias EmptiableProperties otherProperties =
     TypeProperties
         { otherProperties
             | empty : ConstantProperties
@@ -6134,7 +6134,7 @@ type alias ConstructWithOneArgProperties =
 {-| Properties of an `Emptiable` type that has multiple elements.
 -}
 type alias Collection otherProperties =
-    Emptiable
+    EmptiableProperties
         { otherProperties
             | nameForSize : String
             , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
@@ -6233,7 +6233,7 @@ randomGeneratorWithConstantAsWrap =
 
 
 maybeWithJustAsWrap :
-    Emptiable
+    EmptiableProperties
         (WrapperProperties {})
 maybeWithJustAsWrap =
     { moduleName = [ "Maybe" ]
@@ -6515,7 +6515,7 @@ dictDetermineSize lookupTable expressionNode =
         ]
 
 
-cmdCollection : Emptiable {}
+cmdCollection : EmptiableProperties {}
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
@@ -6532,7 +6532,7 @@ cmdCollection =
     }
 
 
-subCollection : Emptiable {}
+subCollection : EmptiableProperties {}
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
@@ -7366,7 +7366,7 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
                 )
 
 
-emptiableFilterChecks : Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable checkInfo =
     let
         maybeEmptiableArg : Maybe (Node Expression)
