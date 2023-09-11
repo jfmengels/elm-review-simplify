@@ -14521,7 +14521,7 @@ a = Result.andThen Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function equivalent to Ok will always return the same given result"
+                            { message = "Using Result.andThen with a function that will always return Ok will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.andThen"
                             }
@@ -14592,8 +14592,8 @@ a = Result.andThen f (Ok x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.andThen on a value that is known to be Ok"
-                            , details = [ "You can remove the Ok and just call the function directly." ]
+                            { message = "Calling Result.andThen on an okay result"
+                            , details = [ "You can replace the call the by the function directly applied to the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14608,8 +14608,8 @@ a = Ok x |> Result.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling Result.andThen on a value that is known to be Ok"
-                            , details = [ "You can remove the Ok and just call the function directly." ]
+                            { message = "Calling Result.andThen on an okay result"
+                            , details = [ "You can replace the call the by the function directly applied to the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

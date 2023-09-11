@@ -6917,69 +6917,14 @@ maybeAndThenChecks checkInfo =
 
 resultAndThenChecks : CheckInfo -> Maybe (Error {})
 resultAndThenChecks checkInfo =
-    let
-        maybeResultArg : Maybe (Node Expression)
-        maybeResultArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
-            case maybeResultArg of
-                Just resultArg ->
-                    firstThatConstructsJust
-                        [ \() -> callOnEmptyReturnsEmptyCheck resultArg resultWithOkAsWrap checkInfo
-                        , \() ->
-                            case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
-                                Determined okCalls ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Calling " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " on a value that is known to be Ok"
-                                            , details = [ "You can remove the Ok and just call the function directly." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                                :: List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
-                                            )
-                                        )
-
-                                Undetermined ->
-                                    Nothing
-                        ]
-                        ()
-
-                Nothing ->
-                    Nothing
-        , \() ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (identityError
-                            { toFix = qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function equivalent to Ok"
-                            , lastArgRepresents = "result"
-                            , lastArg = maybeResultArg
-                            }
-                            checkInfo
-                        )
-
-                Nothing ->
-                    Nothing
-        , \() ->
-            case constructs (sameCallInAllBranches ( [ "Result" ], "Ok" )) checkInfo.lookupTable checkInfo.firstArg of
-                Determined okCalls ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( [ "Result" ], "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString ( [ "Result" ], "andThen" ) ++ " with a function that always returns Ok is the same thing as using " ++ qualifiedToString ( [ "Result" ], "map" ) ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "Result" ], "map" ) checkInfo))
-                                :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) okCalls
-                            )
-                        )
-
-                Undetermined ->
-                    Nothing
+            Maybe.andThen
+                (\resultArg ->
+                    callOnEmptyReturnsEmptyCheck resultArg resultWithOkAsWrap checkInfo
+                )
+                (secondArg checkInfo)
+        , \() -> wrapperAndThenChecks resultWithOkAsWrap checkInfo
         ]
         ()
 
