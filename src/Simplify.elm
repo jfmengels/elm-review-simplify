@@ -4039,7 +4039,30 @@ stringReplaceChecks checkInfo =
             firstThatConstructsJust
                 [ \() ->
                     Maybe.andThen
-                        (\stringArg -> callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo)
+                        (\stringArg ->
+                            firstThatConstructsJust
+                                [ \() -> callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo
+                                , \() ->
+                                    case ( checkInfo.firstArg, stringArg ) of
+                                        ( Node _ (Expression.Literal toReplace), Node _ (Expression.Literal third) ) ->
+                                            if not (String.contains "\u{000D}" toReplace) && not (String.contains toReplace third) then
+                                                Just
+                                                    (Rule.errorWithFix
+                                                        { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                                                        , details = [ "You can replace this call by the given string itself." ]
+                                                        }
+                                                        checkInfo.fnRange
+                                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range stringArg })
+                                                    )
+
+                                            else
+                                                Nothing
+
+                                        _ ->
+                                            Nothing
+                                ]
+                                ()
+                        )
                         (thirdArg checkInfo)
                 , \() ->
                     case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
@@ -4052,24 +4075,6 @@ stringReplaceChecks checkInfo =
                                     }
                                     checkInfo
                                 )
-
-                        _ ->
-                            Nothing
-                , \() ->
-                    case ( Node.value checkInfo.firstArg, thirdArg checkInfo ) of
-                        ( Expression.Literal first, Just (Node thirdRange (Expression.Literal third)) ) ->
-                            if not (String.contains "\u{000D}" first) && not (String.contains first third) then
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Using String.replace with a pattern not present in the given string will result in the given string"
-                                        , details = [ "You can replace this call by the given string itself." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = thirdRange })
-                                    )
-
-                            else
-                                Nothing
 
                         _ ->
                             Nothing
