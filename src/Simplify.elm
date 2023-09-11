@@ -6402,8 +6402,11 @@ resultWithErrAsPure =
 
 listCollection :
     Collection
-        { getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-        , pureDescription : Description
+        { pure :
+            { description : Description
+            , fnName : String
+            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+            }
         }
 listCollection =
     { moduleName = [ "List" ]
@@ -6415,10 +6418,13 @@ listCollection =
         }
     , nameForSize = "length"
     , determineSize = listDetermineLength
-    , getPureValue =
-        \lookupTable expr ->
-            Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
-    , pureDescription = A "singleton list"
+    , pure =
+        { description = A "singleton list"
+        , fnName = "singleton"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
+        }
     }
 
 
@@ -7363,21 +7369,24 @@ callOnPureReturnsItsValue :
     Node Expression
     ->
         { otherProperties
-            | getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            , pureDescription : Description
+            | pure :
+                { pure
+                    | getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+                    , description : Description
+                }
         }
     -> CheckInfo
     -> Maybe (Error {})
-callOnPureReturnsItsValue emptiableWithPureArg emptiableWithPure checkInfo =
-    case emptiableWithPure.getPureValue checkInfo.lookupTable emptiableWithPureArg of
+callOnPureReturnsItsValue withPureArg withPure checkInfo =
+    case withPure.pure.getValue checkInfo.lookupTable withPureArg of
         Nothing ->
             Nothing
 
         Just pureArg ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString emptiableWithPure.pureDescription ++ " will result in the value inside"
-                    , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" emptiableWithPure.pureDescription ++ "." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString withPure.pure.description ++ " will result in the value inside"
+                    , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" withPure.pure.description ++ "." ]
                     }
                     checkInfo.fnRange
                     (replaceBySubExpressionFix checkInfo.parentRange pureArg)
