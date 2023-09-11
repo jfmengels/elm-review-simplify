@@ -4056,8 +4056,8 @@ stringReplaceChecks checkInfo =
                         _ ->
                             Nothing
                 , \() ->
-                    case ( Node.value checkInfo.firstArg, Node.value replacementArg, thirdArg checkInfo ) of
-                        ( Expression.Literal first, Expression.Literal _, Just (Node thirdRange (Expression.Literal third)) ) ->
+                    case ( Node.value checkInfo.firstArg, thirdArg checkInfo ) of
+                        ( Expression.Literal first, Just (Node thirdRange (Expression.Literal third)) ) ->
                             if not (String.contains "\u{000D}" first) && not (String.contains first third) then
                                 Just
                                     (Rule.errorWithFix
