@@ -5634,7 +5634,7 @@ listDropChecks checkInfo =
         ()
 
 
-containerMapNChecks : { n : Int } -> Container otherProperties -> CheckInfo -> Maybe (Error {})
+containerMapNChecks : { n : Int } -> Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
 containerMapNChecks { n } container checkInfo =
     if List.any (container.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
@@ -6180,7 +6180,7 @@ randomMapAlwaysCompositionChecks checkInfo =
 
 {-| Properties of a type that can hold some data or none.
 -}
-type alias Container otherProperties =
+type alias Emptiable otherProperties =
     { otherProperties
         | moduleName : ModuleName
         , represents : String
@@ -6192,10 +6192,10 @@ type alias Container otherProperties =
     }
 
 
-{-| Properties of a `Container` type that has multiple elements.
+{-| Properties of an `Emptiable` type that has multiple elements.
 -}
 type alias Collection otherProperties =
-    Container
+    Emptiable
         { otherProperties
             | nameForSize : String
             , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
@@ -6294,7 +6294,7 @@ randomGeneratorWithConstantAsPure =
 
 
 maybeWithJustAsPure :
-    Container
+    Emptiable
         { pure : String
         , pureDescription : SpecificDescription
         , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
@@ -6572,7 +6572,7 @@ dictDetermineSize lookupTable expressionNode =
         ]
 
 
-cmdCollection : Container {}
+cmdCollection : Emptiable {}
 cmdCollection =
     { moduleName = [ "Platform", "Cmd" ]
     , represents = "command"
@@ -6589,7 +6589,7 @@ cmdCollection =
     }
 
 
-subCollection : Container {}
+subCollection : Emptiable {}
 subCollection =
     { moduleName = [ "Platform", "Sub" ]
     , represents = "subscription"
@@ -7354,7 +7354,7 @@ callOnPureReturnsItsValue containerWithPureArg containerWithPure checkInfo =
                 )
 
 
-containerFilterChecks : Container otherProperties -> CheckInfo -> Maybe (Error {})
+containerFilterChecks : Emptiable otherProperties -> CheckInfo -> Maybe (Error {})
 containerFilterChecks container checkInfo =
     let
         maybeContainerArg : Maybe (Node Expression)
