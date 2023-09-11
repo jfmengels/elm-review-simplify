@@ -4123,16 +4123,16 @@ resultMapCompositionChecks checkInfo =
 
 mapPureErrorInfo :
     String
-    -> { a | moduleName : ModuleName, pure : String, pureDescription : Description }
+    -> { a | moduleName : ModuleName, pure : { pure | description : Description, fnName : String } }
     -> { message : String, details : List String }
 mapPureErrorInfo mapFnName mappable =
     let
         pureFnInErrorInfo : String
         pureFnInErrorInfo =
-            qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) defaultQualifyResources)
+            qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on " ++ descriptionAsIncomingToString mappable.pureDescription ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the value inside"
-    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" mappable.pureDescription ++ " itself." ]
+    { message = "Using " ++ qualifiedToString ( mappable.moduleName, mapFnName ) ++ " on " ++ descriptionAsIncomingToString mappable.pure.description ++ " will result in " ++ pureFnInErrorInfo ++ " with the function applied to the value inside"
+    , details = [ "You can replace this call by " ++ pureFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" mappable.pure.description ++ " itself." ]
     }
 
 
@@ -6108,7 +6108,7 @@ randomMapAlwaysChecks checkInfo =
 
 
 mapAlwaysChecks :
-    { otherProperties | moduleName : ModuleName, pure : String }
+    { otherProperties | moduleName : ModuleName, pure : { pure | fnName : String } }
     -> CheckInfo
     -> Maybe (Error {})
 mapAlwaysChecks mappable checkInfo =
@@ -6124,8 +6124,8 @@ mapAlwaysChecks mappable checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.pure ) ++ " with that value"
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.pure ) ++ " with the value produced by the mapper function." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.pure.fnName ) ++ " with that value"
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.pure.fnName ) ++ " with the value produced by the mapper function." ]
                     }
                     checkInfo.fnRange
                     (case secondArg checkInfo of
@@ -6134,7 +6134,7 @@ mapAlwaysChecks mappable checkInfo =
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
                                 (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                                     ++ " ("
-                                    ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo)
+                                    ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -6146,7 +6146,7 @@ mapAlwaysChecks mappable checkInfo =
                         Just _ ->
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo)
+                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -6167,7 +6167,7 @@ randomMapAlwaysCompositionChecks checkInfo =
 
 
 mapAlwaysCompositionChecks :
-    { otherProperties | moduleName : ModuleName, pure : String }
+    { otherProperties | moduleName : ModuleName, pure : { pure | fnName : String } }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 mapAlwaysCompositionChecks mappable checkInfo =
@@ -6175,12 +6175,12 @@ mapAlwaysCompositionChecks mappable checkInfo =
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
                 { info =
-                    { message = "Using " ++ qualifiedToString ( mappable.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.pure )
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.pure ) ++ "." ]
+                    { message = "Using " ++ qualifiedToString ( mappable.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( mappable.moduleName, mappable.pure.fnName )
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( mappable.moduleName, mappable.pure.fnName ) ++ "." ]
                     }
                 , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
+                        (qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo))
                     ]
                 }
 
@@ -6296,22 +6296,28 @@ emptyAsString qualifyResources emptiable =
 randomGeneratorWithConstantAsPure :
     { moduleName : ModuleName
     , represents : String
-    , pure : String
-    , pureDescription : Description
+    , pure :
+        { description : Description
+        , fnName : String
+        }
     }
 randomGeneratorWithConstantAsPure =
     { moduleName = [ "Random" ]
     , represents = "random generator"
-    , pure = "constant"
-    , pureDescription = A "constant generator"
+    , pure =
+        { description = A "constant generator"
+        , fnName = "constant"
+        }
     }
 
 
 maybeWithJustAsPure :
     Emptiable
-        { pure : String
-        , pureDescription : Description
-        , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+        { pure :
+            { description : Description
+            , fnName : String
+            , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+            }
         }
 maybeWithJustAsPure =
     { moduleName = [ "Maybe" ]
@@ -6325,19 +6331,23 @@ maybeWithJustAsPure =
             \resources ->
                 qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
         }
-    , pure = "Just"
-    , getPureValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
-    , pureDescription = A "just value"
+    , pure =
+        { description = A "just value"
+        , fnName = "Just"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
+        }
     }
 
 
 resultWithOkAsPure :
     { moduleName : ModuleName
     , represents : String
-    , pure : String
-    , pureDescription : Description
+    , pure :
+        { description : Description
+        , fnName : String
+        }
     , empty :
         { description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
@@ -6346,8 +6356,10 @@ resultWithOkAsPure :
 resultWithOkAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
-    , pure = "Ok"
-    , pureDescription = An "okay result"
+    , pure =
+        { description = An "okay result"
+        , fnName = "Ok"
+        }
     , empty =
         { description = An "error"
         , is =
@@ -6360,8 +6372,10 @@ resultWithOkAsPure =
 resultWithErrAsPure :
     { moduleName : ModuleName
     , represents : String
-    , pure : String
-    , pureDescription : Description
+    , pure :
+        { description : Description
+        , fnName : String
+        }
     , empty :
         { description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
@@ -6370,8 +6384,10 @@ resultWithErrAsPure :
 resultWithErrAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
-    , pure = "Err"
-    , pureDescription = An "error"
+    , pure =
+        { description = An "error"
+        , fnName = "Err"
+        }
     , empty =
         { description = An "okay result"
         , is =
@@ -6678,13 +6694,13 @@ mapIdentityChecks mappable checkInfo =
 
 
 mapPureChecks :
-    { a | moduleName : List String, pure : String, pureDescription : Description }
+    { a | moduleName : List String, pure : { pure | description : Description, fnName : String } }
     -> CheckInfo
     -> Maybe (Error {})
 mapPureChecks mappable checkInfo =
     case secondArg checkInfo of
         Just mappableArg ->
-            case sameCallInAllBranches ( mappable.moduleName, mappable.pure ) checkInfo.lookupTable mappableArg of
+            case sameCallInAllBranches ( mappable.moduleName, mappable.pure.fnName ) checkInfo.lookupTable mappableArg of
                 Determined pureCalls ->
                     let
                         mappingArgRange : Range
@@ -6709,14 +6725,14 @@ mapPureChecks mappable checkInfo =
                             (if checkInfo.usingRightPizza then
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
                                 , Fix.insertAt mappingArgRange.end
-                                    (" |> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
+                                    (" |> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo))
                                 ]
                                     ++ removePureCalls
 
                              else
                                 [ Fix.replaceRangeBy
                                     { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                    (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo) ++ " (")
+                                    (qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo) ++ " (")
                                 , Fix.insertAt checkInfo.parentRange.end ")"
                                 ]
                                     ++ removePureCalls
@@ -6731,12 +6747,12 @@ mapPureChecks mappable checkInfo =
 
 
 pureToMapCompositionChecks :
-    { a | moduleName : ModuleName, pure : String, pureDescription : Description }
+    { a | moduleName : ModuleName, pure : { pure | description : Description, fnName : String } }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 pureToMapCompositionChecks mappable checkInfo =
     case
-        ( checkInfo.earlier.fn == ( mappable.moduleName, mappable.pure )
+        ( checkInfo.earlier.fn == ( mappable.moduleName, mappable.pure.fnName )
         , checkInfo.later.args
         )
     of
@@ -6749,13 +6765,13 @@ pureToMapCompositionChecks mappable checkInfo =
                             [ Fix.removeRange
                                 { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
                             , Fix.insertAt mapperFunctionRange.end
-                                (" >> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
+                                (" >> " ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo))
                             ]
 
                         RightToLeft ->
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = mapperFunctionRange.start }
-                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo) ++ " << ")
+                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure.fnName ) checkInfo) ++ " << ")
                             , Fix.removeRange { start = mapperFunctionRange.end, end = checkInfo.parentRange.end }
                             ]
             in
@@ -6813,23 +6829,25 @@ andThenInCombinationWithEmptyChecks andThenableProperties checkInfo =
         ()
 
 
-getPureCall :
-    { otherProperties | getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression) }
-    -> ModuleNameLookupTable
+getValueWithNodeRange :
+    (Node Expression -> Maybe (Node Expression))
     -> Node Expression
     -> Maybe { value : Node Expression, nodeRange : Range }
-getPureCall withPure lookupTable expressionNode =
+getValueWithNodeRange getValue expressionNode =
     Maybe.map (\value -> { value = value, nodeRange = Node.range expressionNode })
-        (withPure.getPureValue lookupTable expressionNode)
+        (getValue expressionNode)
 
 
 andThenInCombinationWithPureChecks :
     { otherProperties
         | moduleName : ModuleName
         , represents : String
-        , pure : String
-        , pureDescription : Description
-        , getPureValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+        , pure :
+            { pure
+                | description : Description
+                , fnName : String
+                , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+            }
     }
     -> CheckInfo
     -> Maybe (Error {})
@@ -6843,12 +6861,12 @@ andThenInCombinationWithPureChecks andThenable checkInfo =
         [ \() ->
             case maybeAndThenableArg of
                 Just maybeArg ->
-                    case sameInAllBranches (getPureCall andThenable checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (getValueWithNodeRange (andThenable.pure.getValue checkInfo.lookupTable)) maybeArg of
                         Determined pureCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString andThenable.pureDescription
-                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" andThenable.pureDescription ++ "." ]
+                                    { message = "Calling " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString andThenable.pure.description
+                                    , details = [ "You can replace the call the by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" andThenable.pure.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -6862,11 +6880,11 @@ andThenInCombinationWithPureChecks andThenable checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificValueOrFunction ( andThenable.moduleName, andThenable.pure ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFunction ( andThenable.moduleName, andThenable.pure.fnName ) checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (identityError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ qualifiedToString (qualify ( andThenable.moduleName, andThenable.pure ) defaultQualifyResources)
+                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ qualifiedToString (qualify ( andThenable.moduleName, andThenable.pure.fnName ) defaultQualifyResources)
                             , lastArg = maybeAndThenableArg
                             , lastArgRepresents = andThenable.represents
                             }
@@ -6878,7 +6896,7 @@ andThenInCombinationWithPureChecks andThenable checkInfo =
         , \() ->
             case
                 constructs
-                    (\lookupTable -> sameInAllBranches (\expr -> getPureCall andThenable lookupTable expr))
+                    (\lookupTable -> sameInAllBranches (\expr -> getValueWithNodeRange (andThenable.pure.getValue lookupTable) expr))
                     checkInfo.lookupTable
                     checkInfo.firstArg
             of
