@@ -6087,11 +6087,7 @@ randomMapChecks checkInfo =
 
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
-    firstThatConstructsJust
-        [ \() -> wrapToMapCompositionChecks randomGeneratorWithConstantAsWrap checkInfo
-        , \() -> randomMapAlwaysCompositionChecks checkInfo
-        ]
-        ()
+    wrapperMapCompositionChecks randomGeneratorWithConstantAsWrap checkInfo
 
 
 mapAlwaysChecks :
@@ -6146,11 +6142,6 @@ mapAlwaysChecks wrapper checkInfo =
 
         Nothing ->
             Nothing
-
-
-randomMapAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-randomMapAlwaysCompositionChecks checkInfo =
-    mapAlwaysCompositionChecks randomGeneratorWithConstantAsWrap checkInfo
 
 
 mapAlwaysCompositionChecks :
@@ -6683,6 +6674,15 @@ wrapperMapChecks wrapper checkInfo =
     firstThatConstructsJust
         [ \() -> mapWrapChecks wrapper checkInfo
         , \() -> mapAlwaysChecks wrapper checkInfo
+        ]
+        ()
+
+
+wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperMapCompositionChecks wrapper checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapToMapCompositionChecks wrapper checkInfo
+        , \() -> mapAlwaysCompositionChecks wrapper checkInfo
         ]
         ()
 
