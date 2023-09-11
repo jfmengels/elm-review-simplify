@@ -5427,26 +5427,18 @@ listRepeatChecks checkInfo =
     emptiableRepeatChecks listCollection checkInfo
 
 
-emptiableRepeatChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-emptiableRepeatChecks emptiable checkInfo =
+emptiableRepeatChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableRepeatChecks collection checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
-            if intValue < 1 then
-                let
-                    replacementInErrorInfo =
-                        descriptionToStringWithoutArticle emptiable.empty.description
-                in
-                Just
-                    (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " will result in " ++ replacementInErrorInfo
-                        , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a number less than 1 will result in " ++ replacementInErrorInfo ++ ". You can replace this call by " ++ replacementInErrorInfo ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        (alwaysResultsInFix (emptyAsString checkInfo emptiable) (secondArg checkInfo) checkInfo)
-                    )
-
-            else
-                Nothing
+            callWithNonPositiveIntCanBeReplacedByCheck
+                { int = intValue
+                , intDescription = collection.nameForSize
+                , replacementDescription = collection.empty.asString defaultQualifyResources
+                , replacement = emptyAsString checkInfo collection
+                , lastArg = secondArg checkInfo
+                }
+                checkInfo
 
         Nothing ->
             Nothing

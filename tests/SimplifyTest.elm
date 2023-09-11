@@ -11721,15 +11721,15 @@ a = List.repeat 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.repeat will result in []"
-                            , details = [ "Using List.repeat with a number less than 1 will result in []. You can replace this call by []." ]
+                            { message = "Using List.repeat with length 0 will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
 """
                         ]
-        , test "should replace List.repeat 0 by (always [])" <|
+        , test "should replace List.repeat 0 by always []" <|
             \() ->
                 """module A exposing (..)
 a = List.repeat 0
@@ -11737,8 +11737,8 @@ a = List.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.repeat will result in []"
-                            , details = [ "Using List.repeat with a number less than 1 will result in []. You can replace this call by []." ]
+                            { message = "Using List.repeat with length 0 will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11753,8 +11753,8 @@ a = List.repeat -5 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.repeat will result in []"
-                            , details = [ "Using List.repeat with a number less than 1 will result in []. You can replace this call by []." ]
+                            { message = "Using List.repeat with negative length will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
