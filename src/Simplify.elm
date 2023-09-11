@@ -6192,18 +6192,24 @@ mapAlwaysCompositionChecks mappable checkInfo =
 --
 
 
+type alias TypeProperties properties =
+    { properties
+        | moduleName : ModuleName
+        , represents : String
+    }
+
+
 {-| Properties of a type that can hold some data or none.
 -}
 type alias Emptiable otherProperties =
-    { otherProperties
-        | moduleName : ModuleName
-        , represents : String
-        , empty :
-            { asString : QualifyResources {} -> String
-            , description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            }
-    }
+    TypeProperties
+        { otherProperties
+            | empty :
+                { asString : QualifyResources {} -> String
+                , description : Description
+                , is : ModuleNameLookupTable -> Node Expression -> Bool
+                }
+        }
 
 
 {-| Properties of an `Emptiable` type that has multiple elements.
@@ -6294,13 +6300,12 @@ emptyAsString qualifyResources emptiable =
 
 
 randomGeneratorWithConstantAsPure :
-    { moduleName : ModuleName
-    , represents : String
-    , pure :
-        { description : Description
-        , fnName : String
+    TypeProperties
+        { pure :
+            { description : Description
+            , fnName : String
+            }
         }
-    }
 randomGeneratorWithConstantAsPure =
     { moduleName = [ "Random" ]
     , represents = "random generator"
@@ -6342,17 +6347,16 @@ maybeWithJustAsPure =
 
 
 resultWithOkAsPure :
-    { moduleName : ModuleName
-    , represents : String
-    , pure :
-        { description : Description
-        , fnName : String
+    TypeProperties
+        { pure :
+            { description : Description
+            , fnName : String
+            }
+        , empty :
+            { description : Description
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
         }
-    , empty :
-        { description : Description
-        , is : ModuleNameLookupTable -> Node Expression -> Bool
-        }
-    }
 resultWithOkAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
@@ -6370,17 +6374,16 @@ resultWithOkAsPure =
 
 
 resultWithErrAsPure :
-    { moduleName : ModuleName
-    , represents : String
-    , pure :
-        { description : Description
-        , fnName : String
+    TypeProperties
+        { pure :
+            { description : Description
+            , fnName : String
+            }
+        , empty :
+            { description : Description
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
         }
-    , empty :
-        { description : Description
-        , is : ModuleNameLookupTable -> Node Expression -> Bool
-        }
-    }
 resultWithErrAsPure =
     { moduleName = [ "Result" ]
     , represents = "result"
@@ -6637,15 +6640,14 @@ subCollection =
 
 
 emptiableMapChecks :
-    { otherProperties
-        | moduleName : ModuleName
-        , represents : String
-        , empty :
-            { empty
-                | description : Description
-                , is : ModuleNameLookupTable -> Node Expression -> Bool
-            }
-    }
+    TypeProperties
+        { otherProperties
+            | empty :
+                { empty
+                    | description : Description
+                    , is : ModuleNameLookupTable -> Node Expression -> Bool
+                }
+        }
     -> CheckInfo
     -> Maybe (Error {})
 emptiableMapChecks mappable checkInfo =
@@ -6672,10 +6674,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
 
 
 mapIdentityChecks :
-    { a
-        | moduleName : ModuleName
-        , represents : String
-    }
+    TypeProperties properties
     -> CheckInfo
     -> Maybe (Error {})
 mapIdentityChecks mappable checkInfo =
@@ -6839,16 +6838,15 @@ getValueWithNodeRange getValue expressionNode =
 
 
 andThenInCombinationWithPureChecks :
-    { otherProperties
-        | moduleName : ModuleName
-        , represents : String
-        , pure :
-            { pure
-                | description : Description
-                , fnName : String
-                , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
-    }
+    TypeProperties
+        { otherProperties
+            | pure :
+                { pure
+                    | description : Description
+                    , fnName : String
+                    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+                }
+        }
     -> CheckInfo
     -> Maybe (Error {})
 andThenInCombinationWithPureChecks andThenable checkInfo =
