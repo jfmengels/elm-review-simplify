@@ -6908,7 +6908,8 @@ resultAndThenChecks checkInfo =
             case maybeResultArg of
                 Just resultArg ->
                     firstThatConstructsJust
-                        [ \() ->
+                        [ \() -> callOnEmptyReturnsEmptyCheck resultArg resultWithOkAsPure checkInfo
+                        , \() ->
                             case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
                                 Determined okCalls ->
                                     Just
@@ -6924,13 +6925,6 @@ resultAndThenChecks checkInfo =
 
                                 Undetermined ->
                                     Nothing
-                        , \() ->
-                            callOnDoesNotChangeItCheck
-                                { description = An "error"
-                                , is = \lookupTable expr -> isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
-                                }
-                                resultArg
-                                checkInfo
                         ]
                         ()
 
