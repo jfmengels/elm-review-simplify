@@ -5710,14 +5710,7 @@ setFromListCompositionChecks checkInfo =
 
 
 subAndCmdBatchChecks :
-    { typeProperties
-        | moduleName : ModuleName
-        , empty :
-            { description : Description
-            , asString : QualifyResources {} -> String
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            }
-    }
+    Emptiable otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 subAndCmdBatchChecks batchable checkInfo =
@@ -6204,12 +6197,15 @@ type alias TypeProperties properties =
 type alias Emptiable otherProperties =
     TypeProperties
         { otherProperties
-            | empty :
-                { asString : QualifyResources {} -> String
-                , description : Description
-                , is : ModuleNameLookupTable -> Node Expression -> Bool
-                }
+            | empty : ConstantProperties
         }
+
+
+type alias ConstantProperties =
+    { asString : QualifyResources {} -> String
+    , description : Description
+    , is : ModuleNameLookupTable -> Node Expression -> Bool
+    }
 
 
 {-| Properties of an `Emptiable` type that has multiple elements.
@@ -6790,11 +6786,7 @@ pureToMapCompositionChecks mappable checkInfo =
 
 andThenInCombinationWithEmptyChecks :
     { otherProperties
-        | empty :
-            { description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            , asString : QualifyResources {} -> String
-            }
+        | empty : ConstantProperties
     }
     -> CheckInfo
     -> Maybe (Error {})
