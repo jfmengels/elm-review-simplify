@@ -4057,7 +4057,7 @@ stringReplaceChecks checkInfo =
                             Nothing
                 , \() ->
                     case ( Node.value checkInfo.firstArg, Node.value replacementArg, thirdArg checkInfo ) of
-                        ( Expression.Literal first, Expression.Literal second, Just (Node thirdRange (Expression.Literal third)) ) ->
+                        ( Expression.Literal first, Expression.Literal _, Just (Node thirdRange (Expression.Literal third)) ) ->
                             if not (String.contains "\u{000D}" first) && not (String.contains first third) then
                                 Just
                                     (Rule.errorWithFix
@@ -4133,11 +4133,6 @@ mapPureErrorInfo mapFnName mappable =
 
 resultMapErrorChecks : CheckInfo -> Maybe (Error {})
 resultMapErrorChecks checkInfo =
-    let
-        maybeResultArg : Maybe (Node Expression)
-        maybeResultArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() -> containerMapChecks resultWithErrAsPure checkInfo
         , \() -> mapPureChecks resultWithErrAsPure checkInfo
