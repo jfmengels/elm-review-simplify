@@ -6131,7 +6131,7 @@ type alias ConstructWithOneArgProperties =
     }
 
 
-{-| Properties of an `Emptiable` type that has multiple elements.
+{-| Properties of a type with with multiple elements. Includes `EmptiableProperties`.
 -}
 type alias CollectionProperties otherProperties =
     EmptiableProperties
