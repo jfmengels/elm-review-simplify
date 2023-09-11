@@ -6154,7 +6154,7 @@ getEmpty lookupTable emptiable expressionNode =
         Nothing
 
 
-{-| Description of a subset of values.
+{-| Description of a set of values.
 
   - Only one value is possible, like Cmd.none or [] → Constant
   - Multiple values are possible, like `Ok anyValue` or `[ onlyElementAnyValue ]`? → `A`/`An` depending on the indefinite article in front of the description
