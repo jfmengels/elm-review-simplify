@@ -6102,15 +6102,23 @@ randomMapCompositionChecks checkInfo =
         ()
 
 
-randomMapAlwaysErrorInfo : { message : String, details : List String }
-randomMapAlwaysErrorInfo =
-    { message = "Always mapping to the same value is equivalent to Random.constant"
-    , details = [ "Since your Random.map call always produces the same value, you can replace the whole call by Random.constant that value." ]
+mapAlwaysErrorInfo : { pureFn : ( ModuleName, String ), mapFn : ( ModuleName, String ) } -> { message : String, details : List String }
+mapAlwaysErrorInfo config =
+    { message = "Always mapping to the same value is equivalent to " ++ qualifiedToString config.pureFn
+    , details = [ "Since your " ++ qualifiedToString config.mapFn ++ " call always produces the same value, you can replace the whole call by " ++ qualifiedToString config.pureFn ++ " that value." ]
     }
 
 
 randomMapAlwaysChecks : CheckInfo -> Maybe (Error {})
 randomMapAlwaysChecks checkInfo =
+    mapAlwaysChecks randomGeneratorWithConstantAsPure checkInfo
+
+
+mapAlwaysChecks :
+    { otherProperties | moduleName : ModuleName, pure : String }
+    -> CheckInfo
+    -> Maybe (Error {})
+mapAlwaysChecks mappable checkInfo =
     case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
         Just (Node alwaysMapResultRange alwaysMapResult) ->
             let
@@ -6123,7 +6131,7 @@ randomMapAlwaysChecks checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    randomMapAlwaysErrorInfo
+                    (mapAlwaysErrorInfo { mapFn = checkInfo.fn, pureFn = ( mappable.moduleName, mappable.pure ) })
                     checkInfo.fnRange
                     (case secondArg checkInfo of
                         Nothing ->
@@ -6131,7 +6139,7 @@ randomMapAlwaysChecks checkInfo =
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
                                 (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                                     ++ " ("
-                                    ++ qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                    ++ qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -6143,7 +6151,7 @@ randomMapAlwaysChecks checkInfo =
                         Just _ ->
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -6160,13 +6168,22 @@ randomMapAlwaysChecks checkInfo =
 
 randomMapAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapAlwaysCompositionChecks checkInfo =
+    mapAlwaysCompositionChecks randomGeneratorWithConstantAsPure checkInfo
+
+
+mapAlwaysCompositionChecks :
+    { otherProperties | moduleName : ModuleName, pure : String }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+mapAlwaysCompositionChecks mappable checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
-                { info = randomMapAlwaysErrorInfo
+                { info =
+                    mapAlwaysErrorInfo { pureFn = ( mappable.moduleName, mappable.pure ), mapFn = ( mappable.moduleName, checkInfo.later.fnName ) }
                 , fix =
                     [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo))
+                        (qualifiedToString (qualify ( mappable.moduleName, mappable.pure ) checkInfo))
                     ]
                 }
 
