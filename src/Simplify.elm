@@ -6117,6 +6117,20 @@ type alias ConstantProperties =
     }
 
 
+type alias WrapperProperties otherProperties =
+    TypeProperties
+        { otherProperties
+            | wrap : ConstructWithOneArgProperties
+        }
+
+
+type alias ConstructWithOneArgProperties =
+    { description : Description
+    , fnName : String
+    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+    }
+
+
 {-| Properties of an `Emptiable` type that has multiple elements.
 -}
 type alias Collection otherProperties =
@@ -6266,20 +6280,6 @@ resultWithOkAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
         }
-    }
-
-
-type alias WrapperProperties otherProperties =
-    TypeProperties
-        { otherProperties
-            | wrap : ConstructWithOneArgProperties
-        }
-
-
-type alias ConstructWithOneArgProperties =
-    { description : Description
-    , fnName : String
-    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
     }
 
 
