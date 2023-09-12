@@ -6838,22 +6838,7 @@ resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
         Just resultArg ->
             firstThatConstructsJust
-                [ \() ->
-                    case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable resultArg of
-                        Determined okCalls ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "Result" ], "withDefault" ) ++ " on a value that is Ok will result in that value"
-                                    , details = [ "You can replace this call by the value wrapped in Ok." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
-                                        ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range resultArg }
-                                    )
-                                )
-
-                        Undetermined ->
-                            Nothing
+                [ \() -> callOnWrapReturnsItsValue resultArg resultWithOkAsWrap checkInfo
                 , \() ->
                     case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
                         Determined _ ->
