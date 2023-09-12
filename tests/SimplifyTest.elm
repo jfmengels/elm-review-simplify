@@ -8752,7 +8752,7 @@ a = List.filterMap (always Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8768,7 +8768,7 @@ a = List.filterMap (always Nothing) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8784,7 +8784,7 @@ a = x |> List.filterMap (always Nothing)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8800,8 +8800,8 @@ a = List.filterMap (always Nothing)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8816,8 +8816,8 @@ a = List.filterMap <| always Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8832,8 +8832,8 @@ a = always Nothing |> List.filterMap
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8912,7 +8912,7 @@ a = List.filterMap (\\a -> Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will result in []"
+                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }

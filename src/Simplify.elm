@@ -5214,12 +5214,10 @@ listFilterMapChecks checkInfo =
             case returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing will result in []"
-                            , details = [ "You can replace this call by []." ]
-                            }
-                            checkInfo.fnRange
-                            (alwaysResultsInFix "[]" (secondArg checkInfo) checkInfo)
+                        (alwaysResultsInConstantError
+                            (qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing")
+                            { replacement = \_ -> "[]", lastArg = secondArg checkInfo }
+                            checkInfo
                         )
 
                 Undetermined ->
