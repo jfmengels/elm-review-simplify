@@ -7266,8 +7266,8 @@ callOnWrapReturnsJustItsValue withWrapArg withWrap checkInfo =
         Just valueInside ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
-                    , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
+                    , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy checkInfo.fnRange
