@@ -7531,27 +7531,12 @@ collectionPartitionChecks collection checkInfo =
         [ \() ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    if collection.empty.is checkInfo.lookupTable collectionArg then
-                        let
-                            emptyCollectionInResultAsString : String
-                            emptyCollectionInResultAsString =
-                                collection.empty.asString defaultQualifyResources
-
-                            tupleResultAsString : String
-                            tupleResultAsString =
-                                "( " ++ emptyCollectionInResultAsString ++ ", " ++ emptyCollectionInResultAsString ++ " )"
-                        in
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ tupleResultAsString
-                                , details = [ "You can replace this call by " ++ tupleResultAsString ++ "." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange ("( " ++ collectionEmptyAsString ++ ", " ++ collectionEmptyAsString ++ " )") ]
-                            )
-
-                    else
-                        Nothing
+                    callOnEmptyReturnsCheck
+                        { on = collectionArg
+                        , resultAsString = \res -> "( " ++ collection.empty.asString res ++ ", " ++ collection.empty.asString res ++ " )"
+                        }
+                        collection
+                        checkInfo
 
                 Nothing ->
                     Nothing
