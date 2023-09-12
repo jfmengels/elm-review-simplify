@@ -15928,8 +15928,8 @@ a = List.singleton >> Set.fromList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
-                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            , details = [ "You can replace this call by Set.singleton." ]
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15946,8 +15946,8 @@ a = Set.fromList << List.singleton
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.fromList with a single element can be replaced using Set.singleton"
-                            , details = [ "You can replace this call by Set.singleton with the list element itself." ]
+                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            , details = [ "You can replace this call by Set.singleton." ]
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

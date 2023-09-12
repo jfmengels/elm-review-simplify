@@ -5552,18 +5552,7 @@ setFromListSingletonError =
 
 setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 setFromListCompositionChecks checkInfo =
-    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-        ( ( [ "List" ], "singleton" ), [] ) ->
-            Just
-                { info = setFromListSingletonError
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo))
-                    ]
-                }
-
-        _ ->
-            Nothing
+    wrapperFromListSingletonCompositionChecks setCollection checkInfo
 
 
 subAndCmdBatchChecks :
