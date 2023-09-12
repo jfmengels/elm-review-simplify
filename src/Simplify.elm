@@ -3744,19 +3744,9 @@ stringWordsChecks checkInfo =
 
 stringLinesChecks : CheckInfo -> Maybe (Error {})
 stringLinesChecks checkInfo =
-    case Node.value checkInfo.firstArg of
-        Expression.Literal "" ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Using String.lines on " ++ emptyStringAsString ++ " will result in []"
-                    , details = [ "You can replace this call by []." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-                )
-
-        _ ->
-            Nothing
+    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" }
+        stringCollection
+        checkInfo
 
 
 stringReverseChecks : CheckInfo -> Maybe (Error {})
