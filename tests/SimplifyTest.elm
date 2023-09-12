@@ -7289,6 +7289,38 @@ a = List.concatMap (always [])
 a = always []
 """
                         ]
+        , test "should replace List.concatMap List.singleton x by x" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap List.singleton x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap with a function that will always return List.singleton will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace List.concatMap List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.concatMap with a function that will always return List.singleton will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         , test "should replace List.concatMap (\\_ -> [a]) x by List.map (\\_ -> a) x" <|
             \() ->
                 """module A exposing (..)
@@ -7297,8 +7329,8 @@ a = List.concatMap (\\_ -> ([a])) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.map instead"
-                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7313,12 +7345,12 @@ a = List.concatMap (\\_ -> List.singleton a) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.map instead"
-                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\_ ->  a) x
+a = List.map (\\_ -> a) x
 """
                         ]
         , test "should replace List.concatMap (\\_ -> if cond then [a] else [b]) x by List.map (\\_ -> if cond then a else b) x" <|
@@ -7329,8 +7361,8 @@ a = List.concatMap (\\_ -> if cond then [a] else [b]) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.map instead"
-                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7350,8 +7382,8 @@ a = List.concatMap
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.map instead"
-                            , details = [ "The function passed to List.concatMap always returns a list with a single element." ]
+                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7371,12 +7403,12 @@ a = List.concatMap f [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
+                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  f a
+a = f a
 """
                         ]
         , test "should replace List.concatMap f [ b c ] by f (b c)" <|
@@ -7387,12 +7419,12 @@ a = List.concatMap f [ b c ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
+                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  f (b c)
+a = f (b c)
 """
                         ]
         , test "should replace List.concatMap f <| [ a ] by f <| a" <|
@@ -7403,12 +7435,12 @@ a = List.concatMap f <| [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
+                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  f <| a
+a = f <| a
 """
                         ]
         , test "should replace List.concatMap f <| [ b c ] by f <| (b c)" <|
@@ -7419,12 +7451,12 @@ a = List.concatMap f <| [ b c ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
+                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  f <| (b c)
+a = f <| (b c)
 """
                         ]
         , test "should replace [ c ] |> List.concatMap f by c |> f" <|
@@ -7435,12 +7467,12 @@ a = [ c ] |> List.concatMap f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
+                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = c |>  f
+a = c |> f
 """
                         ]
         , test "should replace [ b c ] |> List.concatMap f by (b c) |> f" <|
@@ -7451,12 +7483,12 @@ a = [ b c ] |> List.concatMap f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on an element with a single item is the same as calling the function directly on that lone element."
-                            , details = [ "You can replace this call by a call to the function directly." ]
+                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (b c) |>  f
+a = (b c) |> f
 """
                         ]
         , test "should replace List.map f >> List.concat by List.concatMap f" <|

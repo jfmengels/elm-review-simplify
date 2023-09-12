@@ -4311,49 +4311,7 @@ listConcatMapChecks checkInfo =
             else
                 Nothing
         , \() -> emptiableAndThenChecks listCollection checkInfo
-        , \() ->
-            case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
-                Expression.LambdaExpression lambda ->
-                    case replaceSingleElementListBySingleValue checkInfo.lookupTable lambda.expression of
-                        Just fixes ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                                    , details = [ "The function passed to " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " always returns a list with a single element." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                        :: fixes
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-
-                _ ->
-                    Nothing
-        , \() ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                        Just listSingleton ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " on an element with a single item is the same as calling the function directly on that lone element."
-                                    , details = [ "You can replace this call by a call to the function directly." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.removeRange checkInfo.fnRange
-                                        :: replaceBySubExpressionFix (Node.range listArg) listSingleton.element
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+        , \() -> wrapperAndThenChecks listCollection checkInfo
         ]
         ()
 
