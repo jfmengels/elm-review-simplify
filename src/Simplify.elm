@@ -2279,7 +2279,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
         , ( ( [ "Set" ], "member" ), collectionMemberChecks setCollection )
         , ( ( [ "Set" ], "fromList" ), setFromListChecks )
-        , ( ( [ "Set" ], "toList" ), collectionToListChecks setCollection )
+        , ( ( [ "Set" ], "toList" ), emptiableToListChecks setCollection )
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
         , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
@@ -2287,7 +2287,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "insert" ), collectionInsertChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
-        , ( ( [ "Dict" ], "toList" ), collectionToListChecks dictCollection )
+        , ( ( [ "Dict" ], "toList" ), emptiableToListChecks dictCollection )
         , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
         , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
         , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
@@ -7506,7 +7506,7 @@ collectionFromListChecks collection checkInfo =
             Nothing
 
 
-collectionToListChecks :
+emptiableToListChecks :
     { otherProperties
         | empty :
             { empty
@@ -7516,7 +7516,7 @@ collectionToListChecks :
     }
     -> CheckInfo
     -> Maybe (Error {})
-collectionToListChecks collection checkInfo =
+emptiableToListChecks collection checkInfo =
     callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" } collection checkInfo
 
 
