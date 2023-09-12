@@ -5543,13 +5543,6 @@ setFromListChecks checkInfo =
         ()
 
 
-setFromListSingletonError : { message : String, details : List String }
-setFromListSingletonError =
-    { message = qualifiedToString ( [ "Set" ], "fromList" ) ++ " with a single element can be replaced using " ++ qualifiedToString ( [ "Set" ], "singleton" )
-    , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Set" ], "singleton" ) ++ " with the list element itself." ]
-    }
-
-
 setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 setFromListCompositionChecks checkInfo =
     wrapperFromListSingletonCompositionChecks setCollection checkInfo
