@@ -6833,6 +6833,37 @@ resultAndThenChecks checkInfo =
         ()
 
 
+emptiableWithDefaultChecks :
+    { otherProperties
+        | empty :
+            { empty
+                | description : Description
+                , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableWithDefaultChecks emptiable checkInfo =
+    case secondArg checkInfo of
+        Just emptiableArg ->
+            case sameInAllBranches (getEmpty checkInfo.lookupTable emptiable) emptiableArg of
+                Determined _ ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on an error will result in the default value"
+                            , details = [ "You can replace this call by the default value." ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                        )
+
+                Undetermined ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
 resultWithDefaultChecks : CheckInfo -> Maybe (Error {})
 resultWithDefaultChecks checkInfo =
     case secondArg checkInfo of
