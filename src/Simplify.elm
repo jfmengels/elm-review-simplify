@@ -6252,7 +6252,7 @@ stringDetermineLength expression =
             Nothing
 
 
-setCollection : CollectionProperties {}
+setCollection : CollectionProperties (WrapperProperties {})
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
@@ -6267,6 +6267,13 @@ setCollection =
         }
     , nameForSize = "size"
     , determineSize = setDetermineSize
+    , wrap =
+        { description = A "singleton set"
+        , fnName = "singleton"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expr)
+        }
     }
 
 
