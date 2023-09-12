@@ -4132,7 +4132,7 @@ mapWrapErrorInfo mapFnName wrapper =
             qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
     in
     { message = "Using " ++ qualifiedToString ( wrapper.moduleName, mapFnName ) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
-    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ " itself." ]
+    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " itself." ]
     }
 
 
@@ -5738,7 +5738,7 @@ subAndCmdBatchChecks batchable checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "Unnecessary " ++ descriptionToStringWithoutArticle batchable.empty.description
-                                    , details = [ descriptionAsReferenceToString "The" batchable.empty.description ++ " will be ignored by " ++ batchDescription ++ "." ]
+                                    , details = [ descriptionForDefinite "The" batchable.empty.description ++ " will be ignored by " ++ batchDescription ++ "." ]
                                     }
                                     emptyAndNeighboring.found.range
                                     (listLiteralElementRemoveFix emptyAndNeighboring)
@@ -6183,8 +6183,8 @@ descriptionForIndefinite incomingArgDescription =
             description
 
 
-descriptionAsReferenceToString : String -> Description -> String
-descriptionAsReferenceToString startWithDefiniteArticle referenceArgDescription =
+descriptionForDefinite : String -> Description -> String
+descriptionForDefinite startWithDefiniteArticle referenceArgDescription =
     case referenceArgDescription of
         A description ->
             startWithDefiniteArticle ++ " " ++ description
@@ -6850,8 +6850,8 @@ wrapperAndThenChecks wrapper checkInfo =
                         Determined wrapCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionAsReferenceToString "the" wrapper.wrap.description
-                                    , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ "." ]
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
+                                    , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -7308,7 +7308,7 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
             Just
                 (Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
-                    , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" withWrap.wrap.description ++ "." ]
+                    , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
                     (replaceBySubExpressionFix checkInfo.parentRange wrapArg)
@@ -7343,7 +7343,7 @@ emptiableFilterChecks emptiable checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ descriptionToStringWithoutArticle emptiable.empty.description
-                            , details = [ "You can replace this call by " ++ descriptionAsReferenceToString "the" emptiable.empty.description ++ "." ]
+                            , details = [ "You can replace this call by " ++ descriptionForDefinite "the" emptiable.empty.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix (emptyAsString checkInfo emptiable) maybeEmptiableArg checkInfo)
@@ -8599,7 +8599,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     let
         specificLastArgReference : String
         specificLastArgReference =
-            descriptionAsReferenceToString "the given" config.specific
+            descriptionForDefinite "the given" config.specific
     in
     { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionForIndefinite config.specific ++ " will result in " ++ specificLastArgReference
     , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
