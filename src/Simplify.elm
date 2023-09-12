@@ -7465,7 +7465,7 @@ collectionIsEmptyChecks collection checkInfo =
         Just (Exactly 0) ->
             Just
                 (Rule.errorWithFix
-                    { message = "The call to " ++ qualifiedToString ( collection.moduleName, "isEmpty" ) ++ " will result in True"
+                    { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in True"
                     , details = [ "You can replace this call by True." ]
                     }
                     checkInfo.fnRange
@@ -7477,7 +7477,7 @@ collectionIsEmptyChecks collection checkInfo =
         Just _ ->
             Just
                 (Rule.errorWithFix
-                    { message = "The call to " ++ qualifiedToString ( collection.moduleName, "isEmpty" ) ++ " will result in False"
+                    { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in False"
                     , details = [ "You can replace this call by False." ]
                     }
                     checkInfo.fnRange
