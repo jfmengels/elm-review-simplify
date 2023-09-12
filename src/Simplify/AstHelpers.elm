@@ -685,8 +685,8 @@ letDeclarationListBindings letDeclarationList =
 
 getListLiteral : Node Expression -> Maybe (List (Node Expression))
 getListLiteral expressionNode =
-    case Node.value expressionNode of
-        Expression.ListExpr list ->
+    case removeParens expressionNode of
+        Node _ (Expression.ListExpr list) ->
             Just list
 
         _ ->
