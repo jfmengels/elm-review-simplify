@@ -7606,32 +7606,14 @@ collectionPartitionChecks collection checkInfo =
 
 maybeWithDefaultChecks : CheckInfo -> Maybe (Error {})
 maybeWithDefaultChecks checkInfo =
-    case secondArg checkInfo of
-        Just maybeArg ->
-            firstThatConstructsJust
-                [ \() ->
-                    callOnWrapReturnsItsValue maybeArg maybeWithJustAsWrap checkInfo
-                , \() ->
-                    case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable maybeArg of
-                        Determined _ ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "Maybe" ], "withDefault" ) ++ " on Nothing will result in the default value"
-                                    , details = [ "You can replace this call by the default value." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                                    ]
-                                )
-
-                        Undetermined ->
-                            Nothing
-                ]
-                ()
-
-        Nothing ->
-            Nothing
+    firstThatConstructsJust
+        [ \() -> emptiableWithDefaultChecks maybeWithJustAsWrap checkInfo
+        , \() ->
+            Maybe.andThen
+                (\resultArg -> callOnWrapReturnsItsValue resultArg maybeWithJustAsWrap checkInfo)
+                (secondArg checkInfo)
+        ]
+        ()
 
 
 type CollectionSize
