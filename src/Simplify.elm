@@ -7611,21 +7611,7 @@ maybeWithDefaultChecks checkInfo =
         Just maybeArg ->
             firstThatConstructsJust
                 [ \() ->
-                    case sameCallInAllBranches ( [ "Maybe" ], "Just" ) checkInfo.lookupTable maybeArg of
-                        Determined justCalls ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "Maybe" ], "withDefault" ) ++ " on a value that is Just will result in that value"
-                                    , details = [ "You can replace this call by the value wrapped in Just." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.firstArg) justCalls
-                                        ++ keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg }
-                                    )
-                                )
-
-                        Undetermined ->
-                            Nothing
+                    callOnWrapReturnsItsValue maybeArg maybeWithJustAsWrap checkInfo
                 , \() ->
                     case sameValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable maybeArg of
                         Determined _ ->
