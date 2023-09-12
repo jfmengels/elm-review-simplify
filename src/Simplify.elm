@@ -7508,18 +7508,7 @@ collectionFromListChecks collection checkInfo =
 
 collectionToListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionToListChecks collection checkInfo =
-    if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
-        Just
-            (Rule.errorWithFix
-                { message = "The call to " ++ qualifiedToString ( collection.moduleName, "toList" ) ++ " will result in []"
-                , details = [ "You can replace this call by []." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
-            )
-
-    else
-        Nothing
+    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" } collection checkInfo
 
 
 collectionPartitionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})

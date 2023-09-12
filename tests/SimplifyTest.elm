@@ -15925,7 +15925,7 @@ a = Set.toList Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to Set.toList will result in []"
+                            { message = "Using Set.toList on Set.empty will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "Set.toList"
                             }
@@ -16611,7 +16611,7 @@ a = Dict.toList Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to Dict.toList will result in []"
+                            { message = "Using Dict.toList on Dict.empty will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "Dict.toList"
                             }
