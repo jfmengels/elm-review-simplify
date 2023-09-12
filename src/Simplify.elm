@@ -5018,12 +5018,12 @@ foldAndSetToListCompositionChecks checkInfo =
             Just
                 { info =
                     { message = "To fold a set, you don't need to convert to a List"
-                    , details = [ "Using " ++ qualifiedToString checkInfo.later.fn ++ " directly is meant for this exact purpose and will also be faster." ]
+                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
                     keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
                         ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
-                                (qualifiedToString (qualify checkInfo.later.fn checkInfo))
+                                (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) checkInfo))
                            ]
                 }
 
