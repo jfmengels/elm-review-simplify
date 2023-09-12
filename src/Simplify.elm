@@ -3708,24 +3708,7 @@ stringFromListChecks checkInfo =
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> emptyStringAsString }
                 listCollection
                 checkInfo
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just listSingletonArg ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " with a list with a single char is the same as String.fromChar with the contained char"
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( [ "String" ], "fromChar" ) ++ " with the contained char." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element
-                                ++ [ Fix.insertAt checkInfo.parentRange.start
-                                        (qualifiedToString (qualify ( [ "String" ], "fromChar" ) checkInfo) ++ " ")
-                                   ]
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
+        , \() -> wrapperFromListSingletonChecks stringCollection checkInfo
         ]
         ()
 

@@ -6175,8 +6175,8 @@ a = String.fromList [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
-                            , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                            { message = "Using String.fromList on a singleton list will result in String.fromChar with the value inside"
+                            , details = [ "You can replace this call by String.fromChar with the value inside the singleton list." ]
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6191,8 +6191,8 @@ a = String.fromList [ f b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling String.fromList with a list with a single char is the same as String.fromChar with the contained char"
-                            , details = [ "You can replace this call by String.fromChar with the contained char." ]
+                            { message = "Using String.fromList on a singleton list will result in String.fromChar with the value inside"
+                            , details = [ "You can replace this call by String.fromChar with the value inside the singleton list." ]
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
