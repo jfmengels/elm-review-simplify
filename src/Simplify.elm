@@ -5133,8 +5133,8 @@ listAnyChecks checkInfo =
                 Just equatedTo ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( [ "List" ], "member" ) ++ " instead"
-                            , details = [ "This call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " checks for the presence of a value. " ++ qualifiedToString ( [ "List" ], "member" ) ++ " is meant for this exact purpose." ]
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " with that value"
+                            , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "member" ) ++ " with the specific value to find which meant for this exact purpose." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "List" ], "member" ) checkInfo))

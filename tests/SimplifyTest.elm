@@ -11592,8 +11592,8 @@ a = List.any ((==) x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.member instead"
-                            , details = [ "This call to List.any checks for the presence of a value. List.member is meant for this exact purpose." ]
+                            { message = "Using List.any with a check for equality with a specific value can be replaced by using List.member with that value"
+                            , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11608,8 +11608,8 @@ a = List.any (\\y -> y == x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.member instead"
-                            , details = [ "This call to List.any checks for the presence of a value. List.member is meant for this exact purpose." ]
+                            { message = "Using List.any with a check for equality with a specific value can be replaced by using List.member with that value"
+                            , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11624,8 +11624,8 @@ a = List.any (\\y -> x == y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.member instead"
-                            , details = [ "This call to List.any checks for the presence of a value. List.member is meant for this exact purpose." ]
+                            { message = "Using List.any with a check for equality with a specific value can be replaced by using List.member with that value"
+                            , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
