@@ -7166,18 +7166,20 @@ callOnWrapReturnsItsValue :
     -> CheckInfo
     -> Maybe (Error {})
 callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
-    case withWrap.wrap.getValue checkInfo.lookupTable withWrapArg of
-        Nothing ->
+    case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
+        Undetermined ->
             Nothing
 
-        Just wrapArg ->
+        Determined wraps ->
             Just
                 (Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
                     , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
-                    (replaceBySubExpressionFix checkInfo.parentRange wrapArg)
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range withWrapArg }
+                        ++ List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.value) wraps
+                    )
                 )
 
 
