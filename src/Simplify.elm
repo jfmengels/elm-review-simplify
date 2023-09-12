@@ -4729,44 +4729,20 @@ listMemberChecks checkInfo =
                     if checkInfo.expectNaN then
                         Nothing
 
+                    else if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
+                                , details = [ "You can replace this call by True." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                                ]
+                            )
+
                     else
-                        let
-                            knownElements : List (Node Expression)
-                            knownElements =
-                                case Node.value (AstHelpers.removeParens listArg) of
-                                    Expression.ListExpr (el0 :: el1 :: el2Up) ->
-                                        el0 :: el1 :: el2Up
-
-                                    Expression.OperatorApplication "::" _ head tail ->
-                                        case AstHelpers.getCollapsedCons tail of
-                                            Nothing ->
-                                                [ head ]
-
-                                            Just collapsedCons ->
-                                                head :: collapsedCons.consed
-
-                                    _ ->
-                                        case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                                            Nothing ->
-                                                []
-
-                                            Just singletonList ->
-                                                [ singletonList.element ]
-                        in
-                        if List.any isNeedle knownElements then
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
-                                    , details = [ "You can replace this call by True." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.parentRange
-                                        (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                                    ]
-                                )
-
-                        else
-                            Nothing
+                        Nothing
                 , \() ->
                     case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                         Just single ->
@@ -4779,6 +4755,29 @@ listMemberChecks checkInfo =
 
         Nothing ->
             Nothing
+
+
+listKnownElements : ModuleNameLookupTable -> Node Expression -> List (Node Expression)
+listKnownElements lookupTable expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.ListExpr (el0 :: el1 :: el2Up) ->
+            el0 :: el1 :: el2Up
+
+        Expression.OperatorApplication "::" _ head tail ->
+            case AstHelpers.getCollapsedCons tail of
+                Nothing ->
+                    [ head ]
+
+                Just collapsedCons ->
+                    head :: collapsedCons.consed
+
+        _ ->
+            case AstHelpers.getListSingleton lookupTable expressionNode of
+                Nothing ->
+                    []
+
+                Just singletonList ->
+                    [ singletonList.element ]
 
 
 listSumChecks : CheckInfo -> Maybe (Error {})
