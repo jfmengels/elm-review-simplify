@@ -8608,7 +8608,7 @@ needsParens expr =
 
 returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match (List Range)
 returnsSpecificValueOrFunctionInAllBranches specificQualified lookupTable expressionNode =
-    constructs (sameValueOrFunctionInAllBranches specificQualified) lookupTable expressionNode
+    constructs (\lookupTableInner -> sameInAllBranches (AstHelpers.getSpecificValueOrFunction specificQualified lookupTableInner)) lookupTable expressionNode
 
 
 constructs :
