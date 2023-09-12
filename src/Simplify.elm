@@ -6830,36 +6830,29 @@ wrapToMaybeCompositionChecks wrapper checkInfo =
 
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultToMaybeCompositionChecks checkInfo =
-    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-        ( ( [ "Result" ], "Err" ), [] ) ->
-            Just
-                { info =
-                    { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
-                    , details = [ "You can replace this call by always Nothing." ]
-                    }
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
-                            ++ " "
-                            ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
-                        )
-                    ]
-                }
+    firstThatConstructsJust
+        [ \() -> wrapToMaybeCompositionChecks resultWithOkAsWrap checkInfo
+        , \() ->
+            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                ( ( [ "Result" ], "Err" ), [] ) ->
+                    Just
+                        { info =
+                            { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
+                            , details = [ "You can replace this call by always Nothing." ]
+                            }
+                        , fix =
+                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                                    ++ " "
+                                    ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
+                                )
+                            ]
+                        }
 
-        ( ( [ "Result" ], "Ok" ), [] ) ->
-            Just
-                { info =
-                    { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on a value that is Ok will result in Just that value itself"
-                    , details = [ "You can replace this call by Just." ]
-                    }
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                    ]
-                }
-
-        _ ->
-            Nothing
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 pipelineChecks :

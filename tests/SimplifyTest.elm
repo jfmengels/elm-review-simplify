@@ -14907,7 +14907,7 @@ a = Ok >> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
+                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
                             , details = [ "You can replace this call by Just." ]
                             , under = "Result.toMaybe"
                             }
