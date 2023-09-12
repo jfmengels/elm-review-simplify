@@ -5326,11 +5326,11 @@ listRangeChecks checkInfo =
                     if rangeStartValue > rangeEndValue then
                         Just
                             (Rule.errorWithFix
-                                { message = "The call to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " will result in []"
-                                , details = [ "The second argument to " ++ qualifiedToString ( [ "List" ], "range" ) ++ " is bigger than the first one, therefore you can replace this list by []." ]
+                                { message = "Using " ++ (qualifiedToString ( [ "List" ], "range" ) ++ " with a start index greater than the end index will result in []")
+                                , details = [ "You can replace this call by []." ]
                                 }
                                 checkInfo.fnRange
-                                (alwaysResultsInFix "[]" (Just rangeEndValue) checkInfo)
+                                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
                             )
 
                     else

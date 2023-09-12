@@ -11631,8 +11631,8 @@ a = List.range 10 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by []." ]
+                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11647,8 +11647,8 @@ a = List.range 0xF 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by []." ]
+                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11663,8 +11663,8 @@ a = 5 |> List.range 10
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.range will result in []"
-                            , details = [ "The second argument to List.range is bigger than the first one, therefore you can replace this list by []." ]
+                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
