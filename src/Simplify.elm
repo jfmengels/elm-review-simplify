@@ -4932,15 +4932,12 @@ listFoldAnyDirectionChecks checkInfo =
                             determiningAsString =
                                 AstHelpers.boolToString operation.determining
                         in
-                        Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in " ++ determiningAsString
-                            , details = [ "You can replace this call by " ++ determiningAsString ++ "." ]
+                        alwaysResultsInConstantError
+                            (qualifiedToString checkInfo.fn ++ " with (" ++ operation.two ++ ") and the initial accumulator " ++ determiningAsString)
+                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) res)
+                            , lastArg = thirdArg checkInfo
                             }
-                            checkInfo.fnRange
-                            (alwaysResultsInFix (qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) checkInfo))
-                                (thirdArg checkInfo)
-                                checkInfo
-                            )
+                            checkInfo
 
                     else
                         -- initialIsTrue /= operation.determining

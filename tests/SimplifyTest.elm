@@ -9679,8 +9679,8 @@ a = List.foldl (||) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in True"
-                            , details = [ "You can replace this call by True." ]
+                            { message = "Using List.foldl with (||) and the initial accumulator True will always result in True"
+                            , details = [ "You can replace this call by always True." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9695,7 +9695,7 @@ a = List.foldl (||) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in True"
+                            { message = "Using List.foldl with (||) and the initial accumulator True will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.foldl"
                             }
@@ -9870,8 +9870,8 @@ a = List.foldl (&&) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in False"
-                            , details = [ "You can replace this call by False." ]
+                            { message = "Using List.foldl with (&&) and the initial accumulator False will always result in False"
+                            , details = [ "You can replace this call by always False." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9886,7 +9886,7 @@ a = List.foldl (&&) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in False"
+                            { message = "Using List.foldl with (&&) and the initial accumulator False will always result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.foldl"
                             }
@@ -10642,8 +10642,8 @@ a = List.foldr (||) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in True"
-                            , details = [ "You can replace this call by True." ]
+                            { message = "Using List.foldr with (||) and the initial accumulator True will always result in True"
+                            , details = [ "You can replace this call by always True." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10658,7 +10658,7 @@ a = List.foldr (||) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in True"
+                            { message = "Using List.foldr with (||) and the initial accumulator True will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.foldr"
                             }
@@ -10833,8 +10833,8 @@ a = List.foldr (&&) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in False"
-                            , details = [ "You can replace this call by False." ]
+                            { message = "Using List.foldr with (&&) and the initial accumulator False will always result in False"
+                            , details = [ "You can replace this call by always False." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10849,7 +10849,7 @@ a = List.foldr (&&) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in False"
+                            { message = "Using List.foldr with (&&) and the initial accumulator False will always result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.foldr"
                             }
