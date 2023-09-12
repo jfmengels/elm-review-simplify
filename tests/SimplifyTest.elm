@@ -9434,7 +9434,7 @@ a = List.minimum []
 a = Nothing
 """
                         ]
-        , test "should replace List.minimum [ a ] by a" <|
+        , test "should replace List.minimum [ a ] by Just a" <|
             \() ->
                 """module A exposing (..)
 a = List.minimum [ a ]
