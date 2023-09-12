@@ -5878,33 +5878,21 @@ randomListChecks checkInfo =
 
                 Just non1Length ->
                     if non1Length <= 0 then
-                        let
-                            replacement : String
-                            replacement =
-                                replacementWithIrrelevantLastArg
-                                    { forNoLastArg =
-                                        qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
-                                            ++ " []"
-                                    , lastArg = maybeElementGeneratorArg
-                                    }
-                                    checkInfo
-
-                            callDescription : String
-                            callDescription =
-                                case non1Length of
+                        Just
+                            (alwaysResultsInConstantError
+                                (case non1Length of
                                     0 ->
-                                        "Random.list 0"
+                                        "Random.list with length 0"
 
                                     _ ->
                                         "Random.list with a negative length"
-                        in
-                        Just
-                            (Rule.errorWithFix
-                                { message = callDescription ++ " can be replaced by Random.constant []"
-                                , details = [ callDescription ++ " always generates []. This means you can replace the call with " ++ replacement ++ "." ]
+                                )
+                                { replacement =
+                                    \res -> qualifiedToString (qualify ( [ "Random" ], "constant" ) res) ++ " []"
+                                , replacementNeedsParens = True
+                                , lastArg = maybeElementGeneratorArg
                                 }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
+                                checkInfo
                             )
 
                     else
