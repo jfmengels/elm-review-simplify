@@ -11467,7 +11467,7 @@ a = List.all (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.all will result in True"
+                            { message = "Using List.all with a function that will always return True will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.all"
                             }
@@ -11483,12 +11483,12 @@ a = List.all (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.all will result in True"
-                            , details = [ "You can replace this call by True." ]
+                            { message = "Using List.all with a function that will always return True will always result in True"
+                            , details = [ "You can replace this call by always True." ]
                             , under = "List.all"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always True)
+a = always True
 """
                         ]
         ]
