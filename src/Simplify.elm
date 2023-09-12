@@ -5149,7 +5149,7 @@ listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case constructs (sameCallInAllBranches ( [ "Maybe" ], "Just" )) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (\lookupTable -> sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
