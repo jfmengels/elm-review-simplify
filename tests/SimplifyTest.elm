@@ -8579,7 +8579,7 @@ a = List.filter (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
+                            { message = "Using List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8595,7 +8595,7 @@ a = List.filter (\\x -> False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
+                            { message = "Using List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8611,7 +8611,7 @@ a = List.filter (always False) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
+                            { message = "Using List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8627,7 +8627,7 @@ a = x |> List.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
+                            { message = "Using List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8643,8 +8643,8 @@ a = List.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8659,8 +8659,8 @@ a = List.filter <| (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8675,8 +8675,8 @@ a = always False |> List.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15242,7 +15242,7 @@ a = Set.filter (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15260,7 +15260,7 @@ a = Set.filter (\\x -> False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15278,7 +15278,7 @@ a = Set.filter (always False) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15296,7 +15296,7 @@ a = x |> Set.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15314,8 +15314,8 @@ a = Set.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
-                            , details = [ "You can replace this call by Set.empty." ]
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            , details = [ "You can replace this call by always Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15332,8 +15332,8 @@ a = Set.filter <| (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
-                            , details = [ "You can replace this call by Set.empty." ]
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            , details = [ "You can replace this call by always Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15350,8 +15350,8 @@ a = always False |> Set.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will result in Set.empty"
-                            , details = [ "You can replace this call by Set.empty." ]
+                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            , details = [ "You can replace this call by always Set.empty." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

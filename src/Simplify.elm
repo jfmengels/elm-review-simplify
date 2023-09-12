@@ -7276,12 +7276,12 @@ emptiableFilterChecks emptiable checkInfo =
 
                 Determined False ->
                     Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return False will result in " ++ emptiable.empty.asString defaultQualifyResources
-                            , details = [ "You can replace this call by " ++ emptiable.empty.asString defaultQualifyResources ++ "." ]
+                        (alwaysResultsInConstantError
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
+                            { replacement = emptiable.empty.asString
+                            , lastArg = maybeEmptiableArg
                             }
-                            checkInfo.fnRange
-                            (alwaysResultsInFix (emptyAsString checkInfo emptiable) maybeEmptiableArg checkInfo)
+                            checkInfo
                         )
 
                 Undetermined ->
