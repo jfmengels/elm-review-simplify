@@ -6274,8 +6274,8 @@ a = String.slice b 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.slice with end index 0 will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6290,7 +6290,7 @@ a = String.slice b 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will result in \"\""
+                            { message = "Using String.slice with end index 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
@@ -6306,8 +6306,8 @@ a = String.slice n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with equal start and end index will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.slice with equal start and end index will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6322,7 +6322,7 @@ a = String.slice n n str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with equal start and end index will result in \"\""
+                            { message = "Using String.slice with equal start and end index will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
@@ -6354,8 +6354,8 @@ a = String.slice 2 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with a start index greater than the end index will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.slice with a start index greater than the end index will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6370,8 +6370,8 @@ a = String.slice -1 -2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.slice with a negative start index closer to the right than the negative end index will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.slice with a negative start index closer to the right than the negative end index will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
