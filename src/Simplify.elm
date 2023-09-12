@@ -2236,7 +2236,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "mapError" ), resultMapErrorChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), withDefaultChecks resultWithOkAsWrap )
-        , ( ( [ "Result" ], "toMaybe" ), resultToMaybeChecks )
+        , ( ( [ "Result" ], "toMaybe" ), unwrapToMaybeChecks resultWithOkAsWrap )
         , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "head" ), listHeadChecks )
         , ( ( [ "List" ], "tail" ), listTailChecks )
@@ -6848,14 +6848,24 @@ emptiableWithDefaultChecks emptiable checkInfo =
             Nothing
 
 
-resultToMaybeChecks : CheckInfo -> Maybe (Error {})
-resultToMaybeChecks checkInfo =
+unwrapToMaybeChecks :
+    WrapperProperties
+        { otherProperties
+            | empty :
+                { empty
+                    | is : ModuleNameLookupTable -> Node Expression -> Bool
+                    , description : Description
+                }
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+unwrapToMaybeChecks emptiableWrapper checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg resultWithOkAsWrap checkInfo
+        [ \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg emptiableWrapper checkInfo
         , \() ->
             callOnEmptyReturnsCheck
                 { on = checkInfo.firstArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
-                resultWithOkAsWrap
+                emptiableWrapper
                 checkInfo
         ]
         ()
