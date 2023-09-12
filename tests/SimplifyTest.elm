@@ -7857,13 +7857,6 @@ a = List.member b (List.singleton b)
 a = True
 """
                         ]
-        , test "should not report List.member a (List.singleton a) when expecting NaN" <|
-            \() ->
-                """module A exposing (..)
-a = List.member b (List.singleton b)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
         , test "should replace List.member b (List.singleton a) by b == a" <|
             \() ->
                 """module A exposing (..)
@@ -7878,6 +7871,22 @@ a = List.member c (List.singleton b)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = c == b
+"""
+                        ]
+        , test "should replace List.member b (List.singleton b) by b == b when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = List.member b (List.singleton b)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b == b
 """
                         ]
         , test "should replace List.member a [ a ] by True" <|

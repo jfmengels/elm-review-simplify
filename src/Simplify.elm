@@ -4694,23 +4694,6 @@ listMemberChecks checkInfo =
                 needleRange =
                     Node.range needleArg
 
-                listMemberExistsError : Maybe (Error {})
-                listMemberExistsError =
-                    if checkInfo.expectNaN then
-                        Nothing
-
-                    else
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
-                                , details = [ "You can replace this call by True." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                                ]
-                            )
-
                 singleNonNormalizedEqualElementError : Node Expression -> Error {}
                 singleNonNormalizedEqualElementError element =
                     let
@@ -4743,49 +4726,59 @@ listMemberChecks checkInfo =
                         listCollection
                         checkInfo
                 , \() ->
-                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                        Just single ->
-                            if isNeedle single.element then
-                                listMemberExistsError
+                    if checkInfo.expectNaN then
+                        Nothing
 
-                            else
-                                Just (singleNonNormalizedEqualElementError single.element)
+                    else
+                        let
+                            knownElements : List (Node Expression)
+                            knownElements =
+                                case Node.value (AstHelpers.removeParens listArg) of
+                                    Expression.ListExpr (el0 :: el1 :: el2Up) ->
+                                        el0 :: el1 :: el2Up
 
-                        Nothing ->
+                                    Expression.OperatorApplication "::" _ head tail ->
+                                        case AstHelpers.getCollapsedCons tail of
+                                            Nothing ->
+                                                [ head ]
+
+                                            Just collapsedCons ->
+                                                head :: collapsedCons.consed
+
+                                    _ ->
+                                        case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                                            Nothing ->
+                                                []
+
+                                            Just singletonList ->
+                                                [ singletonList.element ]
+                        in
+                        if List.any isNeedle knownElements then
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
+                                    , details = [ "You can replace this call by True." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                                    ]
+                                )
+
+                        else
                             Nothing
                 , \() ->
-                    case Node.value (AstHelpers.removeParens listArg) of
-                        Expression.ListExpr (el0 :: el1 :: el2Up) ->
-                            if List.any isNeedle (el0 :: el1 :: el2Up) then
-                                listMemberExistsError
+                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                        Just single ->
+                            Just (singleNonNormalizedEqualElementError single.element)
 
-                            else
-                                Nothing
-
-                        Expression.OperatorApplication "::" _ head tail ->
-                            if List.any isNeedle (head :: getBeforeLastCons tail) then
-                                listMemberExistsError
-
-                            else
-                                Nothing
-
-                        _ ->
+                        Nothing ->
                             Nothing
                 ]
                 ()
 
         Nothing ->
             Nothing
-
-
-getBeforeLastCons : Node Expression -> List (Node Expression)
-getBeforeLastCons (Node _ expression) =
-    case expression of
-        Expression.OperatorApplication "::" _ beforeCons afterCons ->
-            beforeCons :: getBeforeLastCons afterCons
-
-        _ ->
-            []
 
 
 listSumChecks : CheckInfo -> Maybe (Error {})
