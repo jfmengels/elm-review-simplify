@@ -4279,7 +4279,7 @@ irrelevantEmptyElementInGivenListArgCheck listArg emptiableElement checkInfo =
                 Just emptyLiteralAndNeighbors ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
+                            { message = "Using " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
                             , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the list does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
                             }
                             emptyLiteralAndNeighbors.found.range
