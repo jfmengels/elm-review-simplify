@@ -7506,7 +7506,16 @@ collectionFromListChecks collection checkInfo =
             Nothing
 
 
-collectionToListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionToListChecks :
+    { otherProperties
+        | empty :
+            { empty
+                | is : ModuleNameLookupTable -> Node Expression -> Bool
+                , description : Description
+            }
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
 collectionToListChecks collection checkInfo =
     callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" } collection checkInfo
 
