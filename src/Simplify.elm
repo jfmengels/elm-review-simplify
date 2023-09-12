@@ -6866,31 +6866,14 @@ emptiableWithDefaultChecks emptiable checkInfo =
 
 resultWithDefaultChecks : CheckInfo -> Maybe (Error {})
 resultWithDefaultChecks checkInfo =
-    case secondArg checkInfo of
-        Just resultArg ->
-            firstThatConstructsJust
-                [ \() -> callOnWrapReturnsItsValue resultArg resultWithOkAsWrap checkInfo
-                , \() ->
-                    case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable resultArg of
-                        Determined _ ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "Result" ], "withDefault" ) ++ " on an error will result in the default value"
-                                    , details = [ "You can replace this call by the default value." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange { start = checkInfo.parentRange.start, end = (Node.range checkInfo.firstArg).start }
-                                    , Fix.removeRange { start = (Node.range checkInfo.firstArg).end, end = checkInfo.parentRange.end }
-                                    ]
-                                )
-
-                        Undetermined ->
-                            Nothing
-                ]
-                ()
-
-        Nothing ->
-            Nothing
+    firstThatConstructsJust
+        [ \() -> emptiableWithDefaultChecks resultWithOkAsWrap checkInfo
+        , \() ->
+            Maybe.andThen
+                (\resultArg -> callOnWrapReturnsItsValue resultArg resultWithOkAsWrap checkInfo)
+                (secondArg checkInfo)
+        ]
+        ()
 
 
 resultToMaybeChecks : CheckInfo -> Maybe (Error {})
