@@ -3805,7 +3805,7 @@ stringSliceChecks checkInfo =
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just
                                     (alwaysResultsInConstantError "String.slice with equal start and end index"
-                                        { replacement = emptyStringAsString, lastArg = thirdArg checkInfo }
+                                        { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
                                         checkInfo
                                     )
 
@@ -3820,7 +3820,7 @@ stringSliceChecks checkInfo =
                                                 0 ->
                                                     Just
                                                         (alwaysResultsInConstantError "String.slice with end index 0"
-                                                            { replacement = emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                            { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
                                                             checkInfo
                                                         )
 
@@ -3833,14 +3833,14 @@ stringSliceChecks checkInfo =
                                                         if startInt >= 0 && endInt >= 0 then
                                                             Just
                                                                 (alwaysResultsInConstantError "String.slice with a start index greater than the end index"
-                                                                    { replacement = emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                                    { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
                                                                     checkInfo
                                                                 )
 
                                                         else if startInt <= -1 && endInt <= -1 then
                                                             Just
                                                                 (alwaysResultsInConstantError "String.slice with a negative start index closer to the right than the negative end index"
-                                                                    { replacement = emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                                    { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
                                                                     checkInfo
                                                                 )
 
@@ -8443,27 +8443,34 @@ rightBoundaryRange range =
     }
 
 
-alwaysResultsInConstantError : String -> { replacement : String, lastArg : Maybe arg } -> CheckInfo -> Error {}
+alwaysResultsInConstantError :
+    String
+    ->
+        { replacement : QualifyResources {} -> String
+        , lastArg : Maybe arg
+        }
+    -> CheckInfo
+    -> Error {}
 alwaysResultsInConstantError usingSituation config checkInfo =
     case config.lastArg of
         Just _ ->
             Rule.errorWithFix
-                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement
-                , details = [ "You can replace this call by " ++ config.replacement ++ "." ]
+                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
+                , details = [ "You can replace this call by " ++ config.replacement defaultQualifyResources ++ "." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange config.replacement ]
+                [ Fix.replaceRangeBy checkInfo.parentRange (config.replacement (extractQualifyResources checkInfo)) ]
 
         Nothing ->
             Rule.errorWithFix
-                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement
-                , details = [ "You can replace this call by always " ++ config.replacement ++ "." ]
+                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
+                , details = [ "You can replace this call by always " ++ config.replacement defaultQualifyResources ++ "." ]
                 }
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy checkInfo.parentRange
                     (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                         ++ " "
-                        ++ config.replacement
+                        ++ config.replacement (extractQualifyResources checkInfo)
                     )
                 ]
 
