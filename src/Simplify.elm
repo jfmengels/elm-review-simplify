@@ -8553,7 +8553,56 @@ needsParens expr =
         Expression.LambdaExpression _ ->
             True
 
-        _ ->
+        Expression.UnitExpr ->
+            False
+
+        Expression.CharLiteral _ ->
+            False
+
+        Expression.Integer _ ->
+            False
+
+        Expression.Hex _ ->
+            False
+
+        Expression.Floatable _ ->
+            False
+
+        Expression.Literal _ ->
+            False
+
+        Expression.GLSLExpression _ ->
+            False
+
+        Expression.PrefixOperator _ ->
+            False
+
+        Expression.RecordAccessFunction _ ->
+            False
+
+        Expression.RecordAccess _ _ ->
+            False
+
+        Expression.FunctionOrValue _ _ ->
+            False
+
+        Expression.ParenthesizedExpression _ ->
+            False
+
+        Expression.TupledExpression _ ->
+            False
+
+        Expression.ListExpr _ ->
+            False
+
+        Expression.RecordExpr _ ->
+            False
+
+        Expression.RecordUpdateExpression _ _ ->
+            False
+
+        -- IMPOSSIBLE --
+        Expression.Operator _ ->
             False
 
 
