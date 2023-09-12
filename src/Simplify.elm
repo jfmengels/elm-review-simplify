@@ -6851,24 +6851,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
 resultToMaybeChecks : CheckInfo -> Maybe (Error {})
 resultToMaybeChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            case sameCallInAllBranches ( [ "Result" ], "Ok" ) checkInfo.lookupTable checkInfo.firstArg of
-                Determined okCalls ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on a value that is Ok will result in Just that value itself"
-                            , details = [ "You can replace this call by the value itself wrapped in Just." ]
-                            }
-                            checkInfo.fnRange
-                            (List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.firstArg) okCalls
-                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                                   ]
-                            )
-                        )
-
-                Undetermined ->
-                    Nothing
+        [ \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg resultWithOkAsWrap checkInfo
         , \() ->
             callOnEmptyReturnsCheck
                 { on = checkInfo.firstArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }

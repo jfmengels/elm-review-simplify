@@ -14820,15 +14820,15 @@ a = Result.toMaybe (Ok b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
-                            , details = [ "You can replace this call by the value itself wrapped in Just." ]
+                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Just b
 """
                         ]
-        , test "should replace Result.toMaybe <| Ok a by Just <| a" <|
+        , test "should replace Result.toMaybe <| Ok a by Just a" <|
             \() ->
                 """module A exposing (..)
 a = Result.toMaybe <| Ok b
@@ -14836,15 +14836,15 @@ a = Result.toMaybe <| Ok b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
-                            , details = [ "You can replace this call by the value itself wrapped in Just." ]
+                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just <| b
+a = Just b
 """
                         ]
-        , test "should replace Ok a |> Result.toMaybe by a |> Just" <|
+        , test "should replace Ok a |> Result.toMaybe by Just a" <|
             \() ->
                 """module A exposing (..)
 a = Ok b |> Result.toMaybe
@@ -14852,15 +14852,15 @@ a = Ok b |> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
-                            , details = [ "You can replace this call by the value itself wrapped in Just." ]
+                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = b |> Just
+a = Just b
 """
                         ]
-        , test "should replace a |> Ok |> Result.toMaybe by a |> Just" <|
+        , test "should replace a |> Ok |> Result.toMaybe by Just a" <|
             \() ->
                 """module A exposing (..)
 a = b |> Ok |> Result.toMaybe
@@ -14868,12 +14868,12 @@ a = b |> Ok |> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on a value that is Ok will result in Just that value itself"
-                            , details = [ "You can replace this call by the value itself wrapped in Just." ]
+                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = b |> Just
+a = Just b
 """
                         ]
         , test "should replace Ok >> Result.toMaybe by Just" <|
