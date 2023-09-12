@@ -13604,8 +13604,8 @@ a = Maybe.andThen (\\b -> Just c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Maybe.map instead"
-                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13620,8 +13620,8 @@ a = Maybe.andThen (\\b -> if cond then Just b else Just c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Maybe.map instead"
-                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13648,8 +13648,8 @@ a = Maybe.andThen (
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Maybe.map instead"
-                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13675,8 +13675,8 @@ a = Maybe.andThen (
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Maybe.map instead"
-                            , details = [ "Using Maybe.andThen with a function that always returns Just is the same thing as using Maybe.map." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14537,8 +14537,8 @@ a = Result.andThen (\\b -> Ok c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Result.map instead"
-                            , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                            { message = "Using Result.andThen with a function that always returns an okay result is the same as using Result.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Result.map with the function returning the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14553,8 +14553,8 @@ a = Result.andThen (\\b -> let y = 1 in Ok y) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Result.map instead"
-                            , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                            { message = "Using Result.andThen with a function that always returns an okay result is the same as using Result.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Result.map with the function returning the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14569,8 +14569,8 @@ a = Result.andThen (\\b -> if cond then Ok b else Ok c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use Result.map instead"
-                            , details = [ "Using Result.andThen with a function that always returns Ok is the same thing as using Result.map." ]
+                            { message = "Using Result.andThen with a function that always returns an okay result is the same as using Result.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Result.map with the function returning the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

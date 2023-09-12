@@ -6888,8 +6888,8 @@ wrapperAndThenChecks wrapper checkInfo =
                 Determined wrapCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources) ++ " is the same thing as using " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ "." ]
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as using " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside"
+                            , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
