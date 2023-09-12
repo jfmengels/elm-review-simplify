@@ -2231,11 +2231,11 @@ functionCallChecks =
         , ( ( [ "Basics" ], "negate" ), basicsNegateChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
-        , ( ( [ "Maybe" ], "withDefault" ), maybeWithDefaultChecks )
+        , ( ( [ "Maybe" ], "withDefault" ), withDefaultChecks maybeWithJustAsWrap )
         , ( ( [ "Result" ], "map" ), resultMapChecks )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
-        , ( ( [ "Result" ], "withDefault" ), resultWithDefaultChecks )
+        , ( ( [ "Result" ], "withDefault" ), withDefaultChecks resultWithOkAsWrap )
         , ( ( [ "Result" ], "toMaybe" ), resultToMaybeChecks )
         , ( ( [ "List" ], "append" ), listAppendChecks )
         , ( ( [ "List" ], "head" ), listHeadChecks )
@@ -6833,6 +6833,28 @@ resultAndThenChecks checkInfo =
         ()
 
 
+withDefaultChecks :
+    WrapperProperties
+        { otherProperties
+            | empty :
+                { empty
+                    | description : Description
+                    , is : ModuleNameLookupTable -> Node Expression -> Bool
+                }
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+withDefaultChecks emptiable checkInfo =
+    firstThatConstructsJust
+        [ \() -> emptiableWithDefaultChecks emptiable checkInfo
+        , \() ->
+            Maybe.andThen
+                (\subjectArg -> callOnWrapReturnsItsValue subjectArg emptiable checkInfo)
+                (secondArg checkInfo)
+        ]
+        ()
+
+
 emptiableWithDefaultChecks :
     { otherProperties
         | empty :
@@ -6862,18 +6884,6 @@ emptiableWithDefaultChecks emptiable checkInfo =
 
         Nothing ->
             Nothing
-
-
-resultWithDefaultChecks : CheckInfo -> Maybe (Error {})
-resultWithDefaultChecks checkInfo =
-    firstThatConstructsJust
-        [ \() -> emptiableWithDefaultChecks resultWithOkAsWrap checkInfo
-        , \() ->
-            Maybe.andThen
-                (\resultArg -> callOnWrapReturnsItsValue resultArg resultWithOkAsWrap checkInfo)
-                (secondArg checkInfo)
-        ]
-        ()
 
 
 resultToMaybeChecks : CheckInfo -> Maybe (Error {})
@@ -7600,18 +7610,6 @@ collectionPartitionChecks collection checkInfo =
 
                 Undetermined ->
                     Nothing
-        ]
-        ()
-
-
-maybeWithDefaultChecks : CheckInfo -> Maybe (Error {})
-maybeWithDefaultChecks checkInfo =
-    firstThatConstructsJust
-        [ \() -> emptiableWithDefaultChecks maybeWithJustAsWrap checkInfo
-        , \() ->
-            Maybe.andThen
-                (\resultArg -> callOnWrapReturnsItsValue resultArg maybeWithJustAsWrap checkInfo)
-                (secondArg checkInfo)
         ]
         ()
 
