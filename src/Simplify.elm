@@ -3910,12 +3910,9 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
                     config.intDescription ++ " 0"
         in
         Just
-            (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription ++ " will result in " ++ config.replacement defaultQualifyResources
-                , details = [ "You can replace this call by " ++ config.replacement defaultQualifyResources ++ "." ]
-                }
-                checkInfo.fnRange
-                (alwaysResultsInFix (config.replacement (extractQualifyResources checkInfo)) config.lastArg checkInfo)
+            (alwaysResultsInConstantError (qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription)
+                { replacement = config.replacement, lastArg = config.lastArg }
+                checkInfo
             )
 
     else

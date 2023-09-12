@@ -5887,7 +5887,7 @@ a = String.repeat 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with length 0 will result in \"\""
+                            { message = "Using String.repeat with length 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
@@ -5903,8 +5903,8 @@ a = String.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with length 0 will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.repeat with length 0 will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5919,7 +5919,7 @@ a = String.repeat -5 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with negative length will result in \"\""
+                            { message = "Using String.repeat with negative length will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
@@ -6415,7 +6415,7 @@ a = String.left 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with length 0 will result in \"\""
+                            { message = "Using String.left with length 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
@@ -6431,8 +6431,8 @@ a = String.left 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with length 0 will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.left with length 0 will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6447,8 +6447,8 @@ a = String.left -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with negative length will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.left with negative length will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.left"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6492,7 +6492,7 @@ a = String.right 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with length 0 will result in \"\""
+                            { message = "Using String.right with length 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
@@ -6508,8 +6508,8 @@ a = String.right 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with length 0 will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.right with length 0 will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6524,7 +6524,7 @@ a = String.right -1 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with negative length will result in \"\""
+                            { message = "Using String.right with negative length will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
@@ -6540,8 +6540,8 @@ a = String.right -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with negative length will result in \"\""
-                            , details = [ "You can replace this call by \"\"." ]
+                            { message = "Using String.right with negative length will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.right"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11762,7 +11762,7 @@ a = List.repeat 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.repeat with length 0 will result in []"
+                            { message = "Using List.repeat with length 0 will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
@@ -11778,8 +11778,8 @@ a = List.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.repeat with length 0 will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.repeat with length 0 will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.repeat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11794,7 +11794,7 @@ a = List.repeat -5 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.repeat with negative length will result in []"
+                            { message = "Using List.repeat with negative length will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
@@ -12457,7 +12457,7 @@ a = List.take 0 x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with length 0 will result in []"
+                            { message = "Using List.take with length 0 will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.take"
                             }
@@ -12473,8 +12473,8 @@ a = List.take 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with length 0 will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.take with length 0 will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -12489,8 +12489,8 @@ a = List.take -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with negative length will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.take with negative length will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
