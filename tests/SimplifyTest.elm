@@ -9442,8 +9442,8 @@ a = List.minimum [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.minimum on a list with a single element will result in Just the element itself"
-                            , details = [ "You can replace this call by Just the single element itself." ]
+                            { message = "Using List.minimum on a singleton list will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the singleton list." ]
                             , under = "List.minimum"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
