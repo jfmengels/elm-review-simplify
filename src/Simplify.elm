@@ -7178,7 +7178,7 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
                     }
                     checkInfo.fnRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range withWrapArg }
-                        ++ List.concatMap (\okCall -> replaceBySubExpressionFix okCall.nodeRange okCall.value) wraps
+                        ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
                     )
                 )
 
@@ -7192,21 +7192,22 @@ callOnWrapReturnsJustItsValue :
     -> CheckInfo
     -> Maybe (Error {})
 callOnWrapReturnsJustItsValue withWrapArg withWrap checkInfo =
-    case withWrap.wrap.getValue checkInfo.lookupTable withWrapArg of
-        Just valueInside ->
+    case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
+        Determined wraps ->
             Just
                 (Rule.errorWithFix
                     { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
                     , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
-                    (Fix.replaceRangeBy checkInfo.fnRange
-                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) valueInside
+                    (Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
+                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
+                        :: Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
+                        :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
                     )
                 )
 
-        _ ->
+        Undetermined ->
             Nothing
 
 
