@@ -2398,7 +2398,7 @@ compositionChecks =
                                     , parentRange = checkInfo.parentRange
                                     , later =
                                         { range = laterFnOrCall.nodeRange
-                                        , fnName = laterFnOrCall.fnName
+                                        , fn = ( laterFnModuleName, laterFnOrCall.fnName )
                                         , fnRange = laterFnOrCall.fnRange
                                         , args = laterFnOrCall.args
                                         }
@@ -2437,7 +2437,7 @@ type alias CompositionIntoCheckInfo =
     , parentRange : Range
     , later :
         { range : Range
-        , fnName : String
+        , fn : ( ModuleName, String )
         , fnRange : Range
         , args : List (Node Expression)
         }
@@ -4067,16 +4067,16 @@ resultMapCompositionChecks checkInfo =
 
 
 mapWrapErrorInfo :
-    String
+    ( ModuleName, String )
     -> WrapperProperties otherProperties
     -> { message : String, details : List String }
-mapWrapErrorInfo mapFnName wrapper =
+mapWrapErrorInfo mapFn wrapper =
     let
         wrapFnInErrorInfo : String
         wrapFnInErrorInfo =
             qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, mapFnName ) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
+    { message = "Using " ++ qualifiedToString mapFn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
     , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " itself." ]
     }
 
@@ -5018,12 +5018,12 @@ foldAndSetToListCompositionChecks checkInfo =
             Just
                 { info =
                     { message = "To fold a set, you don't need to convert to a List"
-                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], checkInfo.later.fnName ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                    , details = [ "Using " ++ qualifiedToString checkInfo.later.fn ++ " directly is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
                     keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.later.range }
                         ++ [ Fix.replaceRangeBy checkInfo.later.fnRange
-                                (qualifiedToString (qualify ( [ "Set" ], checkInfo.later.fnName ) checkInfo))
+                                (qualifiedToString (qualify checkInfo.later.fn checkInfo))
                            ]
                 }
 
@@ -6460,7 +6460,7 @@ mapWrapChecks wrapper checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            (mapWrapErrorInfo (AstHelpers.qualifiedName checkInfo.fn) wrapper)
+                            (mapWrapErrorInfo checkInfo.fn wrapper)
                             checkInfo.fnRange
                             (if checkInfo.usingRightPizza then
                                 [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
@@ -6516,7 +6516,7 @@ wrapToMapCompositionChecks wrapper checkInfo =
                             ]
             in
             Just
-                { info = mapWrapErrorInfo checkInfo.later.fnName wrapper
+                { info = mapWrapErrorInfo checkInfo.later.fn wrapper
                 , fix = fixes
                 }
 
@@ -6587,7 +6587,7 @@ mapAlwaysCompositionChecks wrapper checkInfo =
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
                 { info =
-                    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
+                    { message = "Using " ++ qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
                     , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
                     }
                 , fix =
@@ -6815,7 +6815,7 @@ wrapToMaybeCompositionChecks wrapper checkInfo =
     if checkInfo.earlier.fn == ( wrapper.moduleName, wrapper.wrap.fnName ) then
         Just
             { info =
-                { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
+                { message = "Using " ++ qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
                 , details = [ "You can replace this call by Just." ]
                 }
             , fix =
@@ -7424,7 +7424,7 @@ wrapperFromListSingletonCompositionChecks wrapper checkInfo =
         ( [ "List" ], "singleton" ) ->
             Just
                 { info =
-                    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
+                    { message = "Using " ++ qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
                     , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
                     }
                 , fix =
