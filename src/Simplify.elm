@@ -4273,6 +4273,39 @@ listConcatChecks checkInfo =
         ()
 
 
+irrelevantEmptyElementInGivenListArgCheck :
+    Node Expression
+    ->
+        { otherProperties
+            | empty :
+                { empty
+                    | description : Description
+                    , is : ModuleNameLookupTable -> Node Expression -> Bool
+                }
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+irrelevantEmptyElementInGivenListArgCheck listArg emptiableElement checkInfo =
+    case AstHelpers.getListLiteral listArg of
+        Just list ->
+            case findMapNeighboring (getEmpty checkInfo.lookupTable emptiableElement) list of
+                Just emptyLiteralAndNeighbors ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
+                            , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the list does not change the result of this call. You can remove " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " element." ]
+                            }
+                            emptyLiteralAndNeighbors.found.range
+                            (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
+                        )
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
 findConsecutiveListLiterals : Node Expression -> List (Node Expression) -> List Fix
 findConsecutiveListLiterals firstListElement restOfListElements =
     case ( firstListElement, restOfListElements ) of
@@ -6110,6 +6143,19 @@ descriptionForDefinite startWithDefiniteArticle referenceArgDescription =
 
         An description ->
             startWithDefiniteArticle ++ " " ++ description
+
+        Constant description ->
+            description
+
+
+descriptionWithoutArticle : Description -> String
+descriptionWithoutArticle referenceArgDescription =
+    case referenceArgDescription of
+        A description ->
+            description
+
+        An description ->
+            description
 
         Constant description ->
             description
