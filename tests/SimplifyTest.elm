@@ -10093,9 +10093,9 @@ a = List.foldl (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10110,9 +10110,9 @@ a = List.foldl (+) 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10127,9 +10127,9 @@ a = List.foldl (+) 0 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10144,9 +10144,9 @@ a = list |> List.foldl (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10161,9 +10161,9 @@ a = List.foldl (\\x -> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10178,9 +10178,9 @@ a = List.foldl (\\x y -> x + y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10195,9 +10195,9 @@ a = List.foldl (\\x y -> y + x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10212,9 +10212,9 @@ a = List.foldl (\\x y -> x |> (+) y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10229,9 +10229,9 @@ a = List.foldl (\\x y -> y |> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10246,9 +10246,9 @@ a = List.foldl (+) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10263,9 +10263,9 @@ a = List.foldl (+) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10280,9 +10280,9 @@ a = list |> List.foldl (+) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldl (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10303,9 +10303,9 @@ a = List.foldl (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10320,9 +10320,9 @@ a = List.foldl (*) 1 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10337,9 +10337,9 @@ a = List.foldl (*) 1 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10354,9 +10354,9 @@ a = list |> List.foldl (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10371,9 +10371,9 @@ a = List.foldl (\\x -> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10388,9 +10388,9 @@ a = List.foldl (\\x y -> x * y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10405,9 +10405,9 @@ a = List.foldl (\\x y -> y * x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10422,9 +10422,9 @@ a = List.foldl (\\x y -> x |> (*) y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10439,9 +10439,9 @@ a = List.foldl (\\x y -> y |> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10456,9 +10456,9 @@ a = List.foldl (*) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10473,9 +10473,9 @@ a = List.foldl (*) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10490,9 +10490,9 @@ a = list |> List.foldl (*) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldl (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldl (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11056,9 +11056,9 @@ a = List.foldr (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11073,9 +11073,9 @@ a = List.foldr (+) 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11090,9 +11090,9 @@ a = List.foldr (+) 0 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11107,9 +11107,9 @@ a = list |> List.foldr (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11124,9 +11124,9 @@ a = List.foldr (\\x -> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11141,9 +11141,9 @@ a = List.foldr (\\x y -> x + y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11158,9 +11158,9 @@ a = List.foldr (\\x y -> y + x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11175,9 +11175,9 @@ a = List.foldr (\\x y -> x |> (+) y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11192,9 +11192,9 @@ a = List.foldr (\\x y -> y |> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11209,9 +11209,9 @@ a = List.foldr (+) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11226,9 +11226,9 @@ a = List.foldr (+) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11243,9 +11243,9 @@ a = list |> List.foldr (+) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.sum instead"
+                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
                             , details =
-                                [ "Using List.foldr (+) 0 is the same as using List.sum." ]
+                                [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11266,9 +11266,9 @@ a = List.foldr (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11283,9 +11283,9 @@ a = List.foldr (*) 1 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11300,9 +11300,9 @@ a = List.foldr (*) 1 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11317,9 +11317,9 @@ a = list |> List.foldr (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11334,9 +11334,9 @@ a = List.foldr (\\x -> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11351,9 +11351,9 @@ a = List.foldr (\\x y -> x * y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11368,9 +11368,9 @@ a = List.foldr (\\x y -> y * x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11385,9 +11385,9 @@ a = List.foldr (\\x y -> x |> (*) y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11402,9 +11402,9 @@ a = List.foldr (\\x y -> y |> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11419,9 +11419,9 @@ a = List.foldr (*) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11436,9 +11436,9 @@ a = List.foldr (*) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11453,9 +11453,9 @@ a = list |> List.foldr (*) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.product instead"
+                            { message = "Using List.foldr (*) 1 is the same as using List.product"
                             , details =
-                                [ "Using List.foldr (*) 1 is the same as using List.product." ]
+                                [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

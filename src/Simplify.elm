@@ -4808,9 +4808,8 @@ listFoldAnyDirectionChecks checkInfo =
                                     qualifiedToString ( [ "List" ], operation.list )
                             in
                             Rule.errorWithFix
-                                { message = "Use " ++ replacementOperationAsString ++ " instead"
-                                , details =
-                                    [ "Using " ++ qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString ++ "." ]
+                                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString
+                                , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
                                 }
                                 checkInfo.fnRange
                                 fixes
