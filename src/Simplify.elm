@@ -4956,7 +4956,7 @@ listFoldAnyDirectionChecks checkInfo =
                                     if listCollection.empty.is checkInfo.lookupTable listArg then
                                         Just
                                             (Rule.errorWithFix
-                                                { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
+                                                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite listCollection.empty.description ++ " will result in the initial accumulator"
                                                 , details = [ "You can replace this call by the initial accumulator." ]
                                                 }
                                                 checkInfo.fnRange
