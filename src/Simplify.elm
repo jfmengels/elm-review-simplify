@@ -8450,6 +8450,31 @@ rightBoundaryRange range =
     }
 
 
+alwaysResultsInConstantError : String -> { replacement : String, lastArg : Maybe arg } -> CheckInfo -> Error {}
+alwaysResultsInConstantError situation config checkInfo =
+    case config.lastArg of
+        Just _ ->
+            Rule.errorWithFix
+                { message = situation ++ " will always result in " ++ config.replacement
+                , details = [ "You can replace this call by " ++ config.replacement ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange config.replacement ]
+
+        Nothing ->
+            Rule.errorWithFix
+                { message = situation ++ " will always result in " ++ config.replacement
+                , details = [ "You can replace this call by always " ++ config.replacement ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                        ++ " "
+                        ++ config.replacement
+                    )
+                ]
+
+
 alwaysResultsInFix : String -> Maybe a -> QualifyResources { b | parentRange : Range } -> List Fix
 alwaysResultsInFix constantReplacement lastArg checkInfo =
     [ case lastArg of
