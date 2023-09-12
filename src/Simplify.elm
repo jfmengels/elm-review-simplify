@@ -7437,6 +7437,25 @@ collectionFromListChecks collection checkInfo =
         checkInfo
 
 
+wrapperFromListSingletonChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+wrapperFromListSingletonChecks wrapper checkInfo =
+    case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+        Nothing ->
+            Nothing
+
+        Just listSingleton ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside the singleton list." ]
+                    }
+                    checkInfo.fnRange
+                    (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingleton.element
+                        ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)) ]
+                    )
+                )
+
+
 emptiableToListChecks :
     { otherProperties
         | empty :
