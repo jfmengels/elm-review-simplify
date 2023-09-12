@@ -7270,7 +7270,7 @@ emptiableFilterChecks emptiable checkInfo =
                 Determined True ->
                     Just
                         (identityError
-                            { toFix = qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return True"
+                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return True"
                             , lastArg = maybeEmptiableArg
                             , lastArgRepresents = emptiable.represents
                             }
@@ -7280,7 +7280,7 @@ emptiableFilterChecks emptiable checkInfo =
                 Determined False ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ emptiable.empty.asString defaultQualifyResources
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return False will result in " ++ emptiable.empty.asString defaultQualifyResources
                             , details = [ "You can replace this call by " ++ emptiable.empty.asString defaultQualifyResources ++ "." ]
                             }
                             checkInfo.fnRange
