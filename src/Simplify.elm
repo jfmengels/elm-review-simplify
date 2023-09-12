@@ -6850,7 +6850,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on an error will result in the default value"
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in the default value"
                             , details = [ "You can replace this call by the default value." ]
                             }
                             checkInfo.fnRange
