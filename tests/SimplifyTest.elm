@@ -7297,7 +7297,7 @@ a = List.concatMap List.singleton x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that will always return List.singleton will always return the same given list"
+                            { message = "Using List.concatMap with a function equivalent to List.singleton will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.concatMap"
                             }
@@ -7313,7 +7313,7 @@ a = List.concatMap List.singleton
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that will always return List.singleton will always return the same given list"
+                            { message = "Using List.concatMap with a function equivalent to List.singleton will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.concatMap"
                             }
@@ -13604,7 +13604,7 @@ a = Maybe.andThen Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that will always return Just will always return the same given maybe"
+                            { message = "Using Maybe.andThen with a function equivalent to Just will always return the same given maybe"
                             , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.andThen"
                             }
@@ -14553,7 +14553,7 @@ a = Result.andThen Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function that will always return Ok will always return the same given result"
+                            { message = "Using Result.andThen with a function equivalent to Ok will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.andThen"
                             }

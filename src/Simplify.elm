@@ -6827,7 +6827,7 @@ wrapperAndThenChecks wrapper checkInfo =
                 Just _ ->
                     Just
                         (identityError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
+                            { toFix = qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
                             , lastArg = maybeWrapperArg
                             , lastArgRepresents = wrapper.represents
                             }
