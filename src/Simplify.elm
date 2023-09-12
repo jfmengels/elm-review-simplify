@@ -7436,6 +7436,25 @@ wrapperFromListSingletonChecks wrapper checkInfo =
                 )
 
 
+wrapperFromListSingletonCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperFromListSingletonCompositionChecks wrapper checkInfo =
+    case checkInfo.earlier.fn of
+        ( [ "List" ], "singleton" ) ->
+            Just
+                { info =
+                    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
+                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
+                    }
+                , fix =
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
+                    ]
+                }
+
+        _ ->
+            Nothing
+
+
 emptiableToListChecks :
     { otherProperties
         | empty :
