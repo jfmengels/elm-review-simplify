@@ -11528,7 +11528,7 @@ a = List.any (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.any will result in False"
+                            { message = "Using List.any with a function that will always return False will always result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.any"
                             }
@@ -11544,12 +11544,12 @@ a = List.any (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.any will result in False"
-                            , details = [ "You can replace this call by False." ]
+                            { message = "Using List.any with a function that will always return False will always result in False"
+                            , details = [ "You can replace this call by always False." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (always False)
+a = always False
 """
                         ]
         , test "should replace List.any ((==) x) by List.member x" <|

@@ -5115,12 +5115,12 @@ listAnyChecks checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined False ->
                     Just
-                        (Rule.errorWithFix
-                            { message = "The call to " ++ qualifiedToString ( [ "List" ], "any" ) ++ " will result in False"
-                            , details = [ "You can replace this call by False." ]
+                        (alwaysResultsInConstantError
+                            (qualifiedToString ( [ "List" ], "any" ) ++ " with a function that will always return False")
+                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res)
+                            , lastArg = maybeListArg
                             }
-                            checkInfo.fnRange
-                            (replaceByBoolWithIrrelevantLastArgFix { lastArg = maybeListArg, replacement = False, checkInfo = checkInfo })
+                            checkInfo
                         )
 
                 _ ->
