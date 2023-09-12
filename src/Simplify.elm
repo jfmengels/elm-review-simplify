@@ -6162,7 +6162,7 @@ maybeWithJustAsWrap =
                 qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
         }
     , wrap =
-        { description = A "just value"
+        { description = A "just maybe"
         , fnName = "Just"
         , getValue =
             \lookupTable expr ->

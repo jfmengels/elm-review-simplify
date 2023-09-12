@@ -13424,8 +13424,8 @@ a = Maybe.map f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13440,8 +13440,8 @@ a = Maybe.map f <| Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13456,8 +13456,8 @@ a = Just x |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13472,8 +13472,8 @@ a = x |> Just |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13488,8 +13488,8 @@ a = Maybe.map f <| Just <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13504,8 +13504,8 @@ a = Maybe.map f << Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13520,8 +13520,8 @@ a = Just >> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13536,8 +13536,8 @@ a = Maybe.map f << Just << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13552,8 +13552,8 @@ a = g << Maybe.map f << Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13568,8 +13568,8 @@ a = Just >> Maybe.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just value will result in Just with the function applied to the value inside"
-                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just value itself." ]
+                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13645,8 +13645,8 @@ a = Maybe.andThen (\\b -> Just c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
-                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13661,8 +13661,8 @@ a = Maybe.andThen (\\b -> if cond then Just b else Just c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
-                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13689,8 +13689,8 @@ a = Maybe.andThen (
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
-                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13716,8 +13716,8 @@ a = Maybe.andThen (
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just value is the same as using Maybe.map with the function returning the value inside"
-                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just value." ]
+                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13750,8 +13750,8 @@ a = Maybe.andThen f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen on a just value is the same as applying the function to the value from the just value"
-                            , details = [ "You can replace this call by the function directly applied to the value inside the just value." ]
+                            { message = "Using Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13766,8 +13766,8 @@ a = Just x |> Maybe.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen on a just value is the same as applying the function to the value from the just value"
-                            , details = [ "You can replace this call by the function directly applied to the value inside the just value." ]
+                            { message = "Using Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13811,8 +13811,8 @@ a = Maybe.withDefault x (Just y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just value will result in the value inside"
-                            , details = [ "You can replace this call by the value inside the just value." ]
+                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13827,8 +13827,8 @@ a = Maybe.withDefault x <| (Just y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just value will result in the value inside"
-                            , details = [ "You can replace this call by the value inside the just value." ]
+                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13843,8 +13843,8 @@ a = (Just y) |> Maybe.withDefault x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just value will result in the value inside"
-                            , details = [ "You can replace this call by the value inside the just value." ]
+                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13859,8 +13859,8 @@ a = y |> Just |> Maybe.withDefault x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just value will result in the value inside"
-                            , details = [ "You can replace this call by the value inside the just value." ]
+                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
