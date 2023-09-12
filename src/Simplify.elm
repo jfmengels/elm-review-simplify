@@ -4675,17 +4675,6 @@ listMemberChecks checkInfo =
         needleArg : Node Expression
         needleArg =
             checkInfo.firstArg
-
-        needleArgNormalized : Node Expression
-        needleArgNormalized =
-            Normalize.normalize checkInfo needleArg
-
-        isNeedle : Node Expression -> Bool
-        isNeedle element =
-            Normalize.compareWithoutNormalization
-                (Normalize.normalize checkInfo element)
-                needleArgNormalized
-                == Normalize.ConfirmedEquality
     in
     case secondArg checkInfo of
         Just listArg ->
@@ -4729,20 +4718,33 @@ listMemberChecks checkInfo =
                     if checkInfo.expectNaN then
                         Nothing
 
-                    else if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
-                                , details = [ "You can replace this call by True." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                                ]
-                            )
-
                     else
-                        Nothing
+                        let
+                            needleArgNormalized : Node Expression
+                            needleArgNormalized =
+                                Normalize.normalize checkInfo needleArg
+
+                            isNeedle : Node Expression -> Bool
+                            isNeedle element =
+                                Normalize.compareWithoutNormalization
+                                    (Normalize.normalize checkInfo element)
+                                    needleArgNormalized
+                                    == Normalize.ConfirmedEquality
+                        in
+                        if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
+                                    , details = [ "You can replace this call by True." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                                    ]
+                                )
+
+                        else
+                            Nothing
                 , \() ->
                     case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                         Just single ->
