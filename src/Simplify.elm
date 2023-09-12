@@ -8456,21 +8456,6 @@ alwaysResultsInConstantError usingSituation config checkInfo =
                 ]
 
 
-alwaysResultsInFix : String -> Maybe a -> QualifyResources { b | parentRange : Range } -> List Fix
-alwaysResultsInFix constantReplacement lastArg checkInfo =
-    [ case lastArg of
-        Just _ ->
-            Fix.replaceRangeBy checkInfo.parentRange constantReplacement
-
-        Nothing ->
-            Fix.replaceRangeBy checkInfo.parentRange
-                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
-                    ++ " "
-                    ++ constantReplacement
-                )
-    ]
-
-
 replaceByBoolWithIrrelevantLastArgFix :
     { replacement : Bool, lastArg : Maybe a, checkInfo : QualifyResources { b | parentRange : Range } }
     -> List Fix
