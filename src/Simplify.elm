@@ -4953,19 +4953,18 @@ listFoldAnyDirectionChecks checkInfo =
                                         Nothing ->
                                             Nothing
                                 , \() ->
-                                    case AstHelpers.getListLiteral listArg of
-                                        Just [] ->
-                                            Just
-                                                (Rule.errorWithFix
-                                                    { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
-                                                    , details = [ "You can replace this call by the initial accumulator." ]
-                                                    }
-                                                    checkInfo.fnRange
-                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
-                                                )
+                                    if listCollection.empty.is checkInfo.lookupTable listArg then
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
+                                                , details = [ "You can replace this call by the initial accumulator." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg })
+                                            )
 
-                                        _ ->
-                                            Nothing
+                                    else
+                                        Nothing
                                 ]
                                 ()
 
