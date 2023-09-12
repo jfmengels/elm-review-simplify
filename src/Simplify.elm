@@ -8359,7 +8359,7 @@ alwaysResultsInUnparenthesizedConstantError :
     -> CheckInfo
     -> Error {}
 alwaysResultsInUnparenthesizedConstantError usingSituation config checkInfo =
-    alwaysResultsInConstantThatCouldNeedParens usingSituation
+    alwaysResultsInConstantError usingSituation
         { replacement = config.replacement
         , replacementNeedsParens = False
         , lastArg = config.lastArg
@@ -8367,7 +8367,7 @@ alwaysResultsInUnparenthesizedConstantError usingSituation config checkInfo =
         checkInfo
 
 
-alwaysResultsInConstantThatCouldNeedParens :
+alwaysResultsInConstantError :
     String
     ->
         { replacement : QualifyResources {} -> String
@@ -8376,7 +8376,7 @@ alwaysResultsInConstantThatCouldNeedParens :
         }
     -> CheckInfo
     -> Error {}
-alwaysResultsInConstantThatCouldNeedParens usingSituation config checkInfo =
+alwaysResultsInConstantError usingSituation config checkInfo =
     let
         addNecessaryParens : String -> String
         addNecessaryParens string =
