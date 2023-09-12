@@ -1958,7 +1958,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- OTHER OPERATION --
         ---------------------
         Expression.OperatorApplication operator _ left right ->
-            case Dict.get operator operatorChecks of
+            case Dict.get operator operatorApplicationChecks of
                 Just checkFn ->
                     { error =
                         let
@@ -2337,8 +2337,8 @@ type alias OperatorCheckInfo =
     }
 
 
-operatorChecks : Dict String (OperatorCheckInfo -> Maybe (Error {}))
-operatorChecks =
+operatorApplicationChecks : Dict String (OperatorCheckInfo -> Maybe (Error {}))
+operatorApplicationChecks =
     Dict.fromList
         [ ( "+", plusChecks )
         , ( "-", minusChecks )
