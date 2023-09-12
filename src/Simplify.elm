@@ -8630,23 +8630,6 @@ constructs getSpecific lookupTable expressionNode =
                     Undetermined
 
 
-sameCallInAllBranches :
-    ( ModuleName, String )
-    -> ModuleNameLookupTable
-    -> Node Expression
-    ->
-        Match
-            (List
-                { argsAfterFirst : List (Node Expression)
-                , firstArg : Node Expression
-                , fnRange : Range
-                , nodeRange : Range
-                }
-            )
-sameCallInAllBranches wrapFullyQualified lookupTable baseExpressionNode =
-    sameInAllBranches (AstHelpers.getSpecificFunctionCall wrapFullyQualified lookupTable) baseExpressionNode
-
-
 sameValueOrFunctionInAllBranches :
     ( ModuleName, String )
     -> ModuleNameLookupTable
