@@ -7265,7 +7265,7 @@ a = List.concatMap (always []) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that will always return [] will result in []"
+                            { message = "Using List.concatMap with a function that will always return [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
@@ -7281,8 +7281,8 @@ a = List.concatMap (always [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that will always return [] will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "Using List.concatMap with a function that will always return [] will always result in []"
+                            , details = [ "You can replace this call by always []." ]
                             , under = "List.concatMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -13629,7 +13629,7 @@ a = Maybe.andThen (always Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that will always return Nothing will result in Nothing"
+                            { message = "Using Maybe.andThen with a function that will always return Nothing will always result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.andThen"
                             }

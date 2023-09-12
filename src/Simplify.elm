@@ -6705,29 +6705,18 @@ emptiableAndThenChecks emptiable checkInfo =
                 (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
                 (secondArg checkInfo)
         , \() ->
-            case emptiable.empty.description of
-                Constant emptyDescription ->
-                    case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
-                        Determined _ ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptyDescription ++ " will result in " ++ emptyDescription
-                                    , details = [ "You can replace this call by " ++ emptyDescription ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (alwaysResultsInFix (emptyAsString checkInfo emptiable)
-                                        (secondArg checkInfo)
-                                        checkInfo
-                                    )
-                                )
+            case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
+                Determined _ ->
+                    Just
+                        (alwaysResultsInConstantError
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.asString defaultQualifyResources)
+                            { replacement = emptiable.empty.asString
+                            , lastArg = secondArg checkInfo
+                            }
+                            checkInfo
+                        )
 
-                        Undetermined ->
-                            Nothing
-
-                A _ ->
-                    Nothing
-
-                An _ ->
+                Undetermined ->
                     Nothing
         ]
         ()
