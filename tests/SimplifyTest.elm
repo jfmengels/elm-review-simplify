@@ -9450,6 +9450,38 @@ a = List.minimum [ a ]
 a = Just a
 """
                         ]
+        , test "should replace List.minimum [ f a ] by Just (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum [ f a ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.minimum on a singleton list will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the singleton list." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (f a)
+"""
+                        ]
+        , test "should replace List.minimum (if c then [ a ] else [ b ]) by Just (if c then a else b)" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (if c then [ a ] else [ b ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using List.minimum on a singleton list will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the singleton list." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (if c then a else b)
+"""
+                        ]
         ]
 
 
