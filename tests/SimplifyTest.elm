@@ -6159,7 +6159,7 @@ a = String.fromList []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Calling String.fromList [] will result in \"\""
+                            { message = "Using String.fromList on [] will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.fromList"
                             }

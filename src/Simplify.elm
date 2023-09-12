@@ -3705,19 +3705,9 @@ stringFromListChecks : CheckInfo -> Maybe (Error {})
 stringFromListChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Calling " ++ qualifiedToString ( [ "String" ], "fromList" ) ++ " [] will result in " ++ emptyStringAsString
-                            , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> emptyStringAsString }
+                listCollection
+                checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->
