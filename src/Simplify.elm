@@ -8408,30 +8408,6 @@ alwaysResultsInConstantError usingSituation config checkInfo =
                 ]
 
 
-replaceByBoolWithIrrelevantLastArgFix :
-    { replacement : Bool, lastArg : Maybe a, checkInfo : QualifyResources { b | parentRange : Range } }
-    -> List Fix
-replaceByBoolWithIrrelevantLastArgFix config =
-    let
-        replacementAsString : String
-        replacementAsString =
-            qualifiedToString (qualify ( [ "Basics" ], AstHelpers.boolToString config.replacement ) config.checkInfo)
-    in
-    case config.lastArg of
-        Just _ ->
-            [ Fix.replaceRangeBy config.checkInfo.parentRange replacementAsString ]
-
-        Nothing ->
-            [ Fix.replaceRangeBy config.checkInfo.parentRange
-                ("("
-                    ++ qualifiedToString (qualify ( [ "Basics" ], "always" ) config.checkInfo)
-                    ++ " "
-                    ++ replacementAsString
-                    ++ ")"
-                )
-            ]
-
-
 replacementWithIrrelevantLastArg : { lastArg : Maybe arg, forNoLastArg : String } -> QualifyResources a -> String
 replacementWithIrrelevantLastArg config resources =
     case config.lastArg of
