@@ -4976,7 +4976,7 @@ listFoldAnyDirectionChecks checkInfo =
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in the initial accumulator"
+                                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
                                         , details = [ "You can replace this call by the initial accumulator." ]
                                         }
                                         checkInfo.fnRange

@@ -194,7 +194,7 @@ a = List.foldl (always identity) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
+                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9541,7 +9541,7 @@ a = List.foldl (always identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
+                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9557,7 +9557,7 @@ a = List.foldl (\\_ -> identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
+                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9573,7 +9573,7 @@ a = List.foldl (\\_ a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
+                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9589,7 +9589,7 @@ a = List.foldl (always <| \\a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
+                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9605,7 +9605,7 @@ a = List.foldl (always identity) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldl will result in the initial accumulator"
+                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -10504,7 +10504,7 @@ a = List.foldr (always identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in the initial accumulator"
+                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10520,7 +10520,7 @@ a = List.foldr (\\_ -> identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in the initial accumulator"
+                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10536,7 +10536,7 @@ a = List.foldr (\\_ a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in the initial accumulator"
+                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10552,7 +10552,7 @@ a = List.foldr (always <| \\a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in the initial accumulator"
+                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10568,7 +10568,7 @@ a = List.foldr (always identity) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The call to List.foldr will result in the initial accumulator"
+                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
