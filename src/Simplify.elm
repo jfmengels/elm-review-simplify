@@ -7449,25 +7449,14 @@ collectionInsertChecks collection checkInfo =
 
 collectionMemberChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection checkInfo =
-    case secondArg checkInfo of
-        Just collectionArg ->
-            if collection.empty.is checkInfo.lookupTable collectionArg then
-                Just
-                    (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in False"
-                        , details = [ "You can replace this call by False." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange
-                            (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
-                        ]
-                    )
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
+    Maybe.andThen
+        (\collectionArg ->
+            callOnEmptyReturnsCheck
+                { on = collectionArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                collection
+                checkInfo
+        )
+        (secondArg checkInfo)
 
 
 collectionIsEmptyChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
