@@ -5180,7 +5180,7 @@ listFilterMapChecks checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case returnsSpecificValueOrFunctionInAllBranches ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (\lookupTable -> sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
