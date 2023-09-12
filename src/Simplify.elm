@@ -4671,14 +4671,13 @@ listMapCompositionChecks checkInfo =
 
 listMemberChecks : CheckInfo -> Maybe (Error {})
 listMemberChecks checkInfo =
-    let
-        needleArg : Node Expression
-        needleArg =
-            checkInfo.firstArg
-    in
     case secondArg checkInfo of
         Just listArg ->
             let
+                needleArg : Node Expression
+                needleArg =
+                    checkInfo.firstArg
+
                 needleRange : Range
                 needleRange =
                     Node.range needleArg
