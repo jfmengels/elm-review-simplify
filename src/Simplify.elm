@@ -5149,7 +5149,7 @@ listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case constructs (\lookupTable -> sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
@@ -5180,7 +5180,7 @@ listFilterMapChecks checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case constructs (\lookupTable -> sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -6662,7 +6662,7 @@ emptiableAndThenChecks emptiable checkInfo =
                 (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
                 (secondArg checkInfo)
         , \() ->
-            case constructs (\_ -> sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -6737,7 +6737,7 @@ wrapperAndThenChecks wrapper checkInfo =
         , \() ->
             case
                 constructs
-                    (\lookupTable -> sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue lookupTable) expr))
+                    (sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable) expr))
                     checkInfo.lookupTable
                     checkInfo.firstArg
             of
@@ -8607,21 +8607,21 @@ needsParens expr =
 
 
 constructs :
-    (ModuleNameLookupTable -> Node Expression -> Match specific)
+    (Node Expression -> Match specific)
     -> ModuleNameLookupTable
     -> Node Expression
     -> Match specific
 constructs getSpecific lookupTable expressionNode =
     case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
         Just alwaysCall ->
-            getSpecific lookupTable alwaysCall.firstArg
+            getSpecific alwaysCall.firstArg
 
         Nothing ->
             case Node.value (AstHelpers.removeParens expressionNode) of
                 Expression.LambdaExpression lambda ->
                     case lambda.args of
                         _ :: [] ->
-                            getSpecific lookupTable lambda.expression
+                            getSpecific lambda.expression
 
                         _ ->
                             Undetermined
