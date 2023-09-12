@@ -8359,6 +8359,33 @@ alwaysResultsInConstantError :
     -> CheckInfo
     -> Error {}
 alwaysResultsInConstantError usingSituation config checkInfo =
+    alwaysResultsInConstantThatCouldNeedParens usingSituation
+        { replacement = config.replacement
+        , replacementNeedsParens = False
+        , lastArg = config.lastArg
+        }
+        checkInfo
+
+
+alwaysResultsInConstantThatCouldNeedParens :
+    String
+    ->
+        { replacement : QualifyResources {} -> String
+        , replacementNeedsParens : Bool
+        , lastArg : Maybe arg
+        }
+    -> CheckInfo
+    -> Error {}
+alwaysResultsInConstantThatCouldNeedParens usingSituation config checkInfo =
+    let
+        addNecessaryParens : String -> String
+        addNecessaryParens string =
+            if config.replacementNeedsParens then
+                "(" ++ string ++ ")"
+
+            else
+                string
+    in
     case config.lastArg of
         Just _ ->
             Rule.errorWithFix
@@ -8371,13 +8398,13 @@ alwaysResultsInConstantError usingSituation config checkInfo =
         Nothing ->
             Rule.errorWithFix
                 { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
-                , details = [ "You can replace this call by always " ++ config.replacement defaultQualifyResources ++ "." ]
+                , details = [ "You can replace this call by always " ++ addNecessaryParens (config.replacement defaultQualifyResources) ++ "." ]
                 }
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy checkInfo.parentRange
                     (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                         ++ " "
-                        ++ config.replacement (extractQualifyResources checkInfo)
+                        ++ addNecessaryParens (config.replacement (extractQualifyResources checkInfo))
                     )
                 ]
 
