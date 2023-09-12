@@ -7200,10 +7200,11 @@ callOnWrapReturnsJustItsValue withWrapArg withWrap checkInfo =
                     , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
-                    (Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
-                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
-                        :: Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
+                    (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
                         :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
+                        ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
+                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
+                           ]
                     )
                 )
 
