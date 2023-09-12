@@ -6228,7 +6228,7 @@ listDetermineLength lookupTable expressionNode =
             Nothing
 
 
-stringCollection : CollectionProperties {}
+stringCollection : CollectionProperties (WrapperProperties {})
 stringCollection =
     { moduleName = [ "String" ]
     , represents = "string"
@@ -6239,6 +6239,13 @@ stringCollection =
         }
     , nameForSize = "length"
     , determineSize = \_ (Node _ expr) -> stringDetermineLength expr
+    , wrap =
+        { description = A "single-char string"
+        , fnName = "fromChar"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromChar" ) lookupTable expr)
+        }
     }
 
 
