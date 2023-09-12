@@ -8619,7 +8619,12 @@ constructs getSpecific lookupTable expressionNode =
         Nothing ->
             case Node.value (AstHelpers.removeParens expressionNode) of
                 Expression.LambdaExpression lambda ->
-                    getSpecific lookupTable lambda.expression
+                    case lambda.args of
+                        _ :: [] ->
+                            getSpecific lookupTable lambda.expression
+
+                        _ ->
+                            Undetermined
 
                 _ ->
                     Undetermined
