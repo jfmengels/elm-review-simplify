@@ -17060,8 +17060,8 @@ a = Cmd.batch [ a, Cmd.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Cmd.none"
-                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            { message = "Using Cmd.batch on a list containing an irrelevant Cmd.none"
+                            , details = [ "Including Cmd.none in the list does not change the result of this call. You can remove the Cmd.none element." ]
                             , under = "Cmd.none"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17108,8 +17108,8 @@ a = Cmd.batch [ b, Cmd.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Cmd.none"
-                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            { message = "Using Cmd.batch on a list containing an irrelevant Cmd.none"
+                            , details = [ "Including Cmd.none in the list does not change the result of this call. You can remove the Cmd.none element." ]
                             , under = "Cmd.none"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17124,8 +17124,8 @@ a = Cmd.batch [ Cmd.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Cmd.none"
-                            , details = [ "Cmd.none will be ignored by Cmd.batch." ]
+                            { message = "Using Cmd.batch on a list containing an irrelevant Cmd.none"
+                            , details = [ "Including Cmd.none in the list does not change the result of this call. You can remove the Cmd.none element." ]
                             , under = "Cmd.none"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17207,8 +17207,8 @@ a = Sub.batch [ a, Sub.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Sub.none"
-                            , details = [ "Sub.none will be ignored by Sub.batch." ]
+                            { message = "Using Sub.batch on a list containing an irrelevant Sub.none"
+                            , details = [ "Including Sub.none in the list does not change the result of this call. You can remove the Sub.none element." ]
                             , under = "Sub.none"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17271,8 +17271,8 @@ a = Sub.batch [ b, Sub.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Sub.none"
-                            , details = [ "Sub.none will be ignored by Sub.batch." ]
+                            { message = "Using Sub.batch on a list containing an irrelevant Sub.none"
+                            , details = [ "Including Sub.none in the list does not change the result of this call. You can remove the Sub.none element." ]
                             , under = "Sub.none"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17287,8 +17287,8 @@ a = Sub.batch [ Sub.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Sub.none"
-                            , details = [ "Sub.none will be ignored by Sub.batch." ]
+                            { message = "Using Sub.batch on a list containing an irrelevant Sub.none"
+                            , details = [ "Including Sub.none in the list does not change the result of this call. You can remove the Sub.none element." ]
                             , under = "Sub.none"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

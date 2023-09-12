@@ -5671,21 +5671,6 @@ subAndCmdBatchChecks batchable checkInfo =
                             ]
                         )
 
-                Just (arg0 :: arg1 :: arg2Up) ->
-                    case findMapNeighboring (getEmpty checkInfo.lookupTable batchable) (arg0 :: arg1 :: arg2Up) of
-                        Just emptyAndNeighboring ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ batchable.empty.asString defaultQualifyResources
-                                    , details = [ batchable.empty.asString defaultQualifyResources ++ " will be ignored by " ++ batchDescription ++ "." ]
-                                    }
-                                    emptyAndNeighboring.found.range
-                                    (listLiteralElementRemoveFix emptyAndNeighboring)
-                                )
-
-                        Nothing ->
-                            Nothing
-
                 _ ->
                     Nothing
         , \() ->
@@ -5702,6 +5687,7 @@ subAndCmdBatchChecks batchable checkInfo =
 
                 Nothing ->
                     Nothing
+        , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg batchable checkInfo
         ]
         ()
 
