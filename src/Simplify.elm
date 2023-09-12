@@ -8397,17 +8397,6 @@ alwaysResultsInConstantError usingSituation config checkInfo =
                 ]
 
 
-replacementWithIrrelevantLastArg : { lastArg : Maybe arg, forNoLastArg : String } -> QualifyResources a -> String
-replacementWithIrrelevantLastArg config resources =
-    case config.lastArg of
-        Just _ ->
-            config.forNoLastArg
-
-        Nothing ->
-            qualifiedToString (qualify ( [ "Basics" ], "always" ) resources)
-                ++ (" (" ++ config.forNoLastArg ++ ")")
-
-
 operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
 operationDoesNotChangeSpecificLastArgErrorInfo config =
     let
