@@ -6810,6 +6810,24 @@ unwrapToMaybeChecks emptiableWrapper checkInfo =
         ()
 
 
+wrapToMaybeCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapToMaybeCompositionChecks wrapper checkInfo =
+    if checkInfo.earlier.fn == ( wrapper.moduleName, wrapper.wrap.fnName ) then
+        Just
+            { info =
+                { message = "Using " ++ qualifiedToString ( wrapper.moduleName, checkInfo.later.fnName ) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
+                , details = [ "You can replace this call by Just." ]
+                }
+            , fix =
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                ]
+            }
+
+    else
+        Nothing
+
+
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultToMaybeCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
