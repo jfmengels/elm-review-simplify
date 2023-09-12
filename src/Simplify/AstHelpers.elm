@@ -95,15 +95,15 @@ Could be a call to `List.singleton` or a list literal with one element: `[ a ]`
 -}
 getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
 getListSingleton lookupTable expressionNode =
-    case expressionNode of
-        Node _ (Expression.ListExpr (element :: [])) ->
+    case getListLiteral expressionNode of
+        Just (element :: []) ->
             Just { element = element }
 
-        Node _ (Expression.ListExpr _) ->
+        Just _ ->
             Nothing
 
-        nonListLiteralNode ->
-            case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable nonListLiteralNode of
+        Nothing ->
+            case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         [] ->
