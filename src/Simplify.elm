@@ -5538,26 +5538,9 @@ setFromListChecks : CheckInfo -> Maybe (Error {})
 setFromListChecks checkInfo =
     firstThatConstructsJust
         [ \() -> collectionFromListChecks setCollection checkInfo
-        , \() -> setFromListSingletonChecks checkInfo
+        , \() -> wrapperFromListSingletonChecks setCollection checkInfo
         ]
         ()
-
-
-setFromListSingletonChecks : CheckInfo -> Maybe (Error {})
-setFromListSingletonChecks checkInfo =
-    case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-        Nothing ->
-            Nothing
-
-        Just listSingleton ->
-            Just
-                (Rule.errorWithFix
-                    setFromListSingletonError
-                    checkInfo.fnRange
-                    (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingleton.element
-                        ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "Set" ], "singleton" ) checkInfo)) ]
-                    )
-                )
 
 
 setFromListSingletonError : { message : String, details : List String }
