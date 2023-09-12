@@ -6489,8 +6489,8 @@ mapWrapChecks :
 mapWrapChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just wrapperArg ->
-            case sameCallInAllBranches ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo.lookupTable wrapperArg of
-                Determined wrapCalls ->
+            case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
+                Determined wraps ->
                     let
                         mappingArgRange : Range
                         mappingArgRange =
@@ -6499,13 +6499,13 @@ mapWrapChecks wrapper checkInfo =
                         removeWrapCalls : List Fix
                         removeWrapCalls =
                             List.concatMap
-                                (\wrapCall ->
+                                (\wrap ->
                                     keepOnlyFix
-                                        { parentRange = wrapCall.nodeRange
-                                        , keep = Node.range wrapCall.firstArg
+                                        { parentRange = wrap.nodeRange
+                                        , keep = Node.range wrap.value
                                         }
                                 )
-                                wrapCalls
+                                wraps
                     in
                     Just
                         (Rule.errorWithFix
