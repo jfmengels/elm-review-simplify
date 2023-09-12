@@ -3879,8 +3879,7 @@ stringLeftChecks checkInfo =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacementDescription = emptyStringAsString
-                        , replacement = emptyStringAsString
+                        , replacement = \_ -> emptyStringAsString
                         , lastArg = secondArg checkInfo
                         }
                         checkInfo
@@ -3894,8 +3893,7 @@ stringLeftChecks checkInfo =
 callWithNonPositiveIntCanBeReplacedByCheck :
     { int : number
     , intDescription : String
-    , replacement : String
-    , replacementDescription : String
+    , replacement : QualifyResources {} -> String
     , lastArg : Maybe a
     }
     -> CheckInfo
@@ -3913,11 +3911,11 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription ++ " will result in " ++ config.replacementDescription
-                , details = [ "You can replace this call by " ++ config.replacementDescription ++ "." ]
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription ++ " will result in " ++ config.replacement defaultQualifyResources
+                , details = [ "You can replace this call by " ++ config.replacement defaultQualifyResources ++ "." ]
                 }
                 checkInfo.fnRange
-                (alwaysResultsInFix config.replacement config.lastArg checkInfo)
+                (alwaysResultsInFix (config.replacement (extractQualifyResources checkInfo)) config.lastArg checkInfo)
             )
 
     else
@@ -3937,8 +3935,7 @@ stringRightChecks checkInfo =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacementDescription = emptyStringAsString
-                        , replacement = emptyStringAsString
+                        , replacement = \_ -> emptyStringAsString
                         , lastArg = secondArg checkInfo
                         }
                         checkInfo
@@ -4017,8 +4014,7 @@ stringRepeatChecks checkInfo =
                             callWithNonPositiveIntCanBeReplacedByCheck
                                 { int = intValue
                                 , intDescription = "length"
-                                , replacementDescription = emptyStringAsString
-                                , replacement = emptyStringAsString
+                                , replacement = \_ -> emptyStringAsString
                                 , lastArg = secondArg checkInfo
                                 }
                                 checkInfo
@@ -5370,8 +5366,7 @@ emptiableRepeatChecks collection checkInfo =
             callWithNonPositiveIntCanBeReplacedByCheck
                 { int = intValue
                 , intDescription = collection.nameForSize
-                , replacementDescription = collection.empty.asString defaultQualifyResources
-                , replacement = emptyAsString checkInfo collection
+                , replacement = collection.empty.asString
                 , lastArg = secondArg checkInfo
                 }
                 checkInfo
@@ -5524,8 +5519,7 @@ listTakeChecks checkInfo =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = "[]"
-                        , replacementDescription = "[]"
+                        , replacement = \_ -> "[]"
                         , lastArg = maybeListArg
                         }
                         checkInfo
