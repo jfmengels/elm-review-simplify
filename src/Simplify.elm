@@ -7324,12 +7324,12 @@ collectionDiffChecks collection checkInfo =
         [ \() ->
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
-                    (Rule.errorWithFix
-                        { message = "Diffing " ++ collectionEmptyAsString ++ " will result in " ++ collectionEmptyAsString
-                        , details = [ "You can replace this call by " ++ collectionEmptyAsString ++ "." ]
+                    (alwaysResultsInConstantError
+                        (qualifiedToString checkInfo.fn ++ " on " ++ collectionEmptyAsString)
+                        { replacement = collection.empty.asString
+                        , lastArg = maybeCollectionArg
                         }
-                        checkInfo.fnRange
-                        (alwaysResultsInFix collectionEmptyAsString maybeCollectionArg checkInfo)
+                        checkInfo
                     )
 
             else

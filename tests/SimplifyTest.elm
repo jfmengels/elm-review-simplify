@@ -16240,7 +16240,7 @@ a = Set.diff Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Diffing Set.empty will result in Set.empty"
+                            { message = "Using Set.diff on Set.empty will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.diff"
                             }
