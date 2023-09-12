@@ -13669,6 +13669,29 @@ a = Maybe.andThen (always Nothing) x
 a = Nothing
 """
                         ]
+        , test "should replace Maybe.andThen (\\a -> Nothing) x by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (\\a -> Nothing) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Using Maybe.andThen with a function that will always return Nothing will always result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should not replace Maybe.andThen (\\a b -> Nothing) x" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (\\a b -> Nothing) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace Maybe.andThen (\\b -> Just c) x by Maybe.map (\\b -> c) x" <|
             \() ->
                 """module A exposing (..)
