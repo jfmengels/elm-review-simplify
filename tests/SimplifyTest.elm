@@ -9743,9 +9743,9 @@ a = List.foldl (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9760,9 +9760,9 @@ a = List.foldl (||) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9777,9 +9777,9 @@ a = List.foldl (||) False <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9794,9 +9794,9 @@ a = list |> List.foldl (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9811,9 +9811,9 @@ a = List.foldl (\\x -> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9828,9 +9828,9 @@ a = List.foldl (\\x y -> x || y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9845,9 +9845,9 @@ a = List.foldl (\\x y -> y || x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9862,9 +9862,9 @@ a = List.foldl (\\x y -> x |> (||) y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9879,9 +9879,9 @@ a = List.foldl (\\x y -> y |> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldl (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldl (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9934,9 +9934,9 @@ a = List.foldl (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9951,9 +9951,9 @@ a = List.foldl (&&) True <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9968,9 +9968,9 @@ a = list |> List.foldl (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9985,9 +9985,9 @@ a = List.foldl (&&) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10002,9 +10002,9 @@ a = List.foldl (\\x -> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10019,9 +10019,9 @@ a = List.foldl (\\x y -> x && y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10036,9 +10036,9 @@ a = List.foldl (\\x y -> y && x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10053,9 +10053,9 @@ a = List.foldl (\\x y -> x |> (&&) y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10070,9 +10070,9 @@ a = List.foldl (\\x y -> y |> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldl (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10706,9 +10706,9 @@ a = List.foldr (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10723,9 +10723,9 @@ a = List.foldr (||) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10740,9 +10740,9 @@ a = List.foldr (||) False <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10757,9 +10757,9 @@ a = list |> List.foldr (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10774,9 +10774,9 @@ a = List.foldr (\\x -> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10791,9 +10791,9 @@ a = List.foldr (\\x y -> x || y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10808,9 +10808,9 @@ a = List.foldr (\\x y -> y || x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10825,9 +10825,9 @@ a = List.foldr (\\x y -> x |> (||) y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10842,9 +10842,9 @@ a = List.foldr (\\x y -> y |> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.any identity instead"
+                            { message = "Using List.foldr (||) False is the same as using List.any identity"
                             , details =
-                                [ "Using List.foldr (||) False is the same as using List.any identity." ]
+                                [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10897,9 +10897,9 @@ a = List.foldr (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10914,9 +10914,9 @@ a = List.foldr (&&) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10931,9 +10931,9 @@ a = List.foldr (&&) True <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10948,9 +10948,9 @@ a = list |> List.foldr (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10965,9 +10965,9 @@ a = List.foldr (\\x -> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10982,9 +10982,9 @@ a = List.foldr (\\x y -> x && y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10999,9 +10999,9 @@ a = List.foldr (\\x y -> y && x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11016,9 +11016,9 @@ a = List.foldr (\\x y -> x |> (&&) y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11033,9 +11033,9 @@ a = List.foldr (\\x y -> y |> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use List.all identity instead"
+                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
                             , details =
-                                [ "Using List.foldr (&&) True is the same as using List.all identity." ]
+                                [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
