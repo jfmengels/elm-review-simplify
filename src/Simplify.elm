@@ -4096,9 +4096,9 @@ resultMapErrorCompositionChecks checkInfo =
         [ \() -> wrapToMapCompositionChecks resultWithErrAsWrap checkInfo
         , \() ->
             case checkInfo.later.args of
-                (Node errorMappingArgRange _) :: _ ->
-                    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                        ( ( [ "Result" ], "Ok" ), [] ) ->
+                _ :: [] ->
+                    case checkInfo.earlier.fn of
+                        ( [ "Result" ], "Ok" ) ->
                             Just
                                 { info =
                                     operationDoesNotChangeSpecificLastArgErrorInfo
@@ -4112,7 +4112,7 @@ resultMapErrorCompositionChecks checkInfo =
                         _ ->
                             Nothing
 
-                [] ->
+                _ ->
                     Nothing
         ]
         ()
@@ -5013,8 +5013,8 @@ listFoldrCompositionChecks checkInfo =
 
 foldAndSetToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 foldAndSetToListCompositionChecks checkInfo =
-    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-        ( ( [ "Set" ], "toList" ), [] ) ->
+    case checkInfo.earlier.fn of
+        ( [ "Set" ], "toList" ) ->
             Just
                 { info =
                     { message = "To fold a set, you don't need to convert to a List"
@@ -6833,8 +6833,8 @@ resultToMaybeCompositionChecks checkInfo =
     firstThatConstructsJust
         [ \() -> wrapToMaybeCompositionChecks resultWithOkAsWrap checkInfo
         , \() ->
-            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                ( ( [ "Result" ], "Err" ), [] ) ->
+            case checkInfo.earlier.fn of
+                ( [ "Result" ], "Err" ) ->
                     Just
                         { info =
                             { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
