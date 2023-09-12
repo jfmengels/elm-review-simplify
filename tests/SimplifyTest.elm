@@ -9488,7 +9488,7 @@ a = List.maximum []
 a = Nothing
 """
                         ]
-        , test "should replace List.maximum [ a ] by a" <|
+        , test "should replace List.maximum [ a ] by Just a" <|
             \() ->
                 """module A exposing (..)
 a = List.maximum [ a ]
@@ -9496,8 +9496,8 @@ a = List.maximum [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.maximum on a list with a single element will result in Just the element itself"
-                            , details = [ "You can replace this call by Just the single element itself." ]
+                            { message = "Using List.maximum on a singleton list will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside the singleton list." ]
                             , under = "List.maximum"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

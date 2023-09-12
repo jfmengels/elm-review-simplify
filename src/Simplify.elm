@@ -4816,23 +4816,7 @@ listMaximumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just listSingletonArg ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString ( [ "List" ], "maximum" ) ++ " on a list with a single element will result in Just the element itself"
-                            , details = [ "You can replace this call by Just the single element itself." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                                :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingletonArg.element
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg listCollection checkInfo
         ]
         ()
 
