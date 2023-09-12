@@ -7101,8 +7101,8 @@ a = List.concat [ a, [] ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Found empty list in the list given List.concat"
-                            , details = [ "This element is unnecessary and can be removed." ]
+                            { message = "Using List.concat on a list containing an irrelevant []"
+                            , details = [ "Including [] in the list does not change the result of this call. You can remove the [] element." ]
                             , under = "[]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7117,8 +7117,8 @@ a = List.concat [ [], b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Found empty list in the list given List.concat"
-                            , details = [ "This element is unnecessary and can be removed." ]
+                            { message = "Using List.concat on a list containing an irrelevant []"
+                            , details = [ "Including [] in the list does not change the result of this call. You can remove the [] element." ]
                             , under = "[]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

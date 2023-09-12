@@ -4193,6 +4193,7 @@ listConcatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
+        , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
@@ -4200,20 +4201,6 @@ listConcatChecks checkInfo =
                         firstListElement :: restOfListElements ->
                             firstThatConstructsJust
                                 [ \() ->
-                                    case findMapNeighboring (getEmpty checkInfo.lookupTable listCollection) list of
-                                        Just emptyLiteralAndNeighbors ->
-                                            Just
-                                                (Rule.errorWithFix
-                                                    { message = "Found empty list in the list given " ++ qualifiedToString ( [ "List" ], "concat" )
-                                                    , details = [ "This element is unnecessary and can be removed." ]
-                                                    }
-                                                    emptyLiteralAndNeighbors.found.range
-                                                    (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
-                                                )
-
-                                        Nothing ->
-                                            Nothing
-                                , \() ->
                                     case traverse AstHelpers.getListLiteral list of
                                         Just _ ->
                                             Just
