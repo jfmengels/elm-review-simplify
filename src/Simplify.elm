@@ -7253,6 +7253,33 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
                 )
 
 
+callOnWrapReturnsJustItsValue :
+    Node Expression
+    ->
+        { otherProperties
+            | wrap : ConstructWithOneArgProperties
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+callOnWrapReturnsJustItsValue withWrapArg withWrap checkInfo =
+    case withWrap.wrap.getValue checkInfo.lookupTable withWrapArg of
+        Just valueInside ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
+                    , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    (Fix.replaceRangeBy checkInfo.fnRange
+                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) valueInside
+                    )
+                )
+
+        _ ->
+            Nothing
+
+
 emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable checkInfo =
     let
