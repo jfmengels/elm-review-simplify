@@ -15441,7 +15441,7 @@ a = Set.size (Set.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList [] will result in Set.empty"
+                            { message = "Using Set.fromList on [] will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.fromList"
                             }
@@ -15726,7 +15726,7 @@ import Set
 a = True
 """
                         , Review.Test.error
-                            { message = "Using Set.fromList [] will result in Set.empty"
+                            { message = "Using Set.fromList on [] will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.fromList"
                             }
@@ -15797,7 +15797,7 @@ a = Set.fromList []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList [] will result in Set.empty"
+                            { message = "Using Set.fromList on [] will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.fromList"
                             }
@@ -16538,7 +16538,7 @@ import Dict
 a = True
 """
                         , Review.Test.error
-                            { message = "Using Dict.fromList [] will result in Dict.empty"
+                            { message = "Using Dict.fromList on [] will result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.fromList"
                             }
@@ -16609,7 +16609,7 @@ a = Dict.fromList []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.fromList [] will result in Dict.empty"
+                            { message = "Using Dict.fromList on [] will result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.fromList"
                             }
@@ -16739,7 +16739,7 @@ a = Dict.size (Dict.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.fromList [] will result in Dict.empty"
+                            { message = "Using Dict.fromList on [] will result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.fromList"
                             }

@@ -7441,24 +7441,12 @@ collectionSizeChecks collection checkInfo =
 
 collectionFromListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
-    case AstHelpers.getListLiteral checkInfo.firstArg of
-        Just [] ->
-            let
-                replacementDescription : String
-                replacementDescription =
-                    collection.empty.asString defaultQualifyResources
-            in
-            Just
-                (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " [] will result in " ++ replacementDescription
-                    , details = [ "You can replace this call by " ++ replacementDescription ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange (emptyAsString checkInfo collection) ]
-                )
-
-        _ ->
-            Nothing
+    callOnEmptyReturnsCheck
+        { on = checkInfo.firstArg
+        , resultAsString = collection.empty.asString
+        }
+        listCollection
+        checkInfo
 
 
 emptiableToListChecks :
