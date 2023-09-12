@@ -4092,41 +4092,30 @@ resultMapErrorChecks checkInfo =
 
 resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapErrorCompositionChecks checkInfo =
-    case checkInfo.later.args of
-        (Node errorMappingArgRange _) :: _ ->
-            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                ( ( [ "Result" ], "Err" ), [] ) ->
-                    Just
-                        { info = mapWrapErrorInfo "mapError" resultWithErrAsWrap
-                        , fix =
-                            keepOnlyFix { parentRange = checkInfo.parentRange, keep = errorMappingArgRange }
-                                ++ [ case checkInfo.direction of
-                                        LeftToRight ->
-                                            Fix.insertAt checkInfo.parentRange.end
-                                                (" >> " ++ qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo))
-
-                                        RightToLeft ->
-                                            Fix.insertAt checkInfo.parentRange.start
-                                                (qualifiedToString (qualify ( [ "Result" ], "Err" ) checkInfo) ++ " << ")
-                                   ]
-                        }
-
-                ( ( [ "Result" ], "Ok" ), [] ) ->
-                    Just
-                        { info =
-                            operationDoesNotChangeSpecificLastArgErrorInfo
-                                { fn = ( [ "Result" ], "mapError" )
-                                , specific = resultWithErrAsWrap.empty.description
+    firstThatConstructsJust
+        [ \() -> wrapToMapCompositionChecks resultWithErrAsWrap checkInfo
+        , \() ->
+            case checkInfo.later.args of
+                (Node errorMappingArgRange _) :: _ ->
+                    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                        ( ( [ "Result" ], "Ok" ), [] ) ->
+                            Just
+                                { info =
+                                    operationDoesNotChangeSpecificLastArgErrorInfo
+                                        { fn = ( [ "Result" ], "mapError" )
+                                        , specific = resultWithErrAsWrap.empty.description
+                                        }
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange }
                                 }
-                        , fix =
-                            keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.fnRange }
-                        }
 
-                _ ->
+                        _ ->
+                            Nothing
+
+                [] ->
                     Nothing
-
-        [] ->
-            Nothing
+        ]
+        ()
 
 
 
