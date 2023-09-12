@@ -6870,21 +6870,10 @@ resultToMaybeChecks checkInfo =
                 Undetermined ->
                     Nothing
         , \() ->
-            case sameCallInAllBranches ( [ "Result" ], "Err" ) checkInfo.lookupTable checkInfo.firstArg of
-                Determined _ ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
-                            , details = [ "You can replace this call by Nothing." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo))
-                            ]
-                        )
-
-                Undetermined ->
-                    Nothing
+            callOnEmptyReturnsCheck
+                { on = checkInfo.firstArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
+                resultWithOkAsWrap
+                checkInfo
         ]
         ()
 
