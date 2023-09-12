@@ -3734,11 +3734,7 @@ stringLinesChecks checkInfo =
 
 stringReverseChecks : CheckInfo -> Maybe (Error {})
 stringReverseChecks checkInfo =
-    firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg stringCollection checkInfo
-        , \() -> removeAlongWithOtherFunctionCheck checkInfo
-        ]
-        ()
+    emptiableReverseChecks stringCollection checkInfo
 
 
 stringSliceChecks : CheckInfo -> Maybe (Error {})
@@ -5307,13 +5303,18 @@ emptiableRepeatChecks collection checkInfo =
             Nothing
 
 
-listReverseChecks : CheckInfo -> Maybe (Error {})
-listReverseChecks checkInfo =
+emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableReverseChecks emptiable checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
+        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg emptiable checkInfo
         , \() -> removeAlongWithOtherFunctionCheck checkInfo
         ]
         ()
+
+
+listReverseChecks : CheckInfo -> Maybe (Error {})
+listReverseChecks checkInfo =
+    emptiableReverseChecks listCollection checkInfo
 
 
 listSortChecks : CheckInfo -> Maybe (Error {})
