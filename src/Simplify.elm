@@ -5675,7 +5675,7 @@ subAndCmdBatchChecks batchable checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Replace by " ++ batchDescription
-                            , details = [ batchDescription ++ " [] and " ++ descriptionToStringWithoutArticle batchable.empty.description ++ " are equivalent but the latter is more idiomatic in Elm code" ]
+                            , details = [ batchDescription ++ " [] and " ++ batchable.empty.asString defaultQualifyResources ++ " are equivalent but the latter is more idiomatic in Elm code" ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy checkInfo.parentRange
@@ -5688,8 +5688,8 @@ subAndCmdBatchChecks batchable checkInfo =
                         Just emptyAndNeighboring ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ descriptionToStringWithoutArticle batchable.empty.description
-                                    , details = [ descriptionForDefinite "The" batchable.empty.description ++ " will be ignored by " ++ batchDescription ++ "." ]
+                                    { message = "Unnecessary " ++ batchable.empty.asString defaultQualifyResources
+                                    , details = [ batchable.empty.asString defaultQualifyResources ++ " will be ignored by " ++ batchDescription ++ "." ]
                                     }
                                     emptyAndNeighboring.found.range
                                     (listLiteralElementRemoveFix emptyAndNeighboring)
@@ -6142,19 +6142,6 @@ descriptionForDefinite startWithDefiniteArticle referenceArgDescription =
 
         An description ->
             startWithDefiniteArticle ++ " " ++ description
-
-        Constant description ->
-            description
-
-
-descriptionToStringWithoutArticle : Description -> String
-descriptionToStringWithoutArticle referenceArgDescription =
-    case referenceArgDescription of
-        A description ->
-            description
-
-        An description ->
-            description
 
         Constant description ->
             description
@@ -7293,8 +7280,8 @@ emptiableFilterChecks emptiable checkInfo =
                 Determined False ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ descriptionToStringWithoutArticle emptiable.empty.description
-                            , details = [ "You can replace this call by " ++ descriptionForDefinite "the" emptiable.empty.description ++ "." ]
+                            { message = "Using " ++ qualifiedToString ( emptiable.moduleName, "filter" ) ++ " with a function that will always return False will result in " ++ emptiable.empty.asString defaultQualifyResources
+                            , details = [ "You can replace this call by " ++ emptiable.empty.asString defaultQualifyResources ++ "." ]
                             }
                             checkInfo.fnRange
                             (alwaysResultsInFix (emptyAsString checkInfo emptiable) maybeEmptiableArg checkInfo)
@@ -7507,7 +7494,7 @@ collectionFromListChecks collection checkInfo =
             let
                 replacementDescription : String
                 replacementDescription =
-                    descriptionToStringWithoutArticle collection.empty.description
+                    collection.empty.asString defaultQualifyResources
             in
             Just
                 (Rule.errorWithFix
@@ -7553,7 +7540,7 @@ collectionPartitionChecks collection checkInfo =
                         let
                             emptyCollectionInResultAsString : String
                             emptyCollectionInResultAsString =
-                                descriptionToStringWithoutArticle collection.empty.description
+                                collection.empty.asString defaultQualifyResources
 
                             tupleResultAsString : String
                             tupleResultAsString =
@@ -7581,7 +7568,7 @@ collectionPartitionChecks collection checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "All elements will go to the first " ++ collection.represents
-                                    , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ descriptionToStringWithoutArticle collection.empty.description ++ "." ]
+                                    , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.empty.asString defaultQualifyResources ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
@@ -7596,7 +7583,7 @@ collectionPartitionChecks collection checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "All elements will go to the second " ++ collection.represents
-                            , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ descriptionToStringWithoutArticle collection.empty.description ++ "." ]
+                            , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.empty.asString defaultQualifyResources ++ "." ]
                             }
                             checkInfo.fnRange
                             (case secondArg checkInfo of
