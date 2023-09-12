@@ -8451,11 +8451,11 @@ rightBoundaryRange range =
 
 
 alwaysResultsInConstantError : String -> { replacement : String, lastArg : Maybe arg } -> CheckInfo -> Error {}
-alwaysResultsInConstantError situation config checkInfo =
+alwaysResultsInConstantError usingSituation config checkInfo =
     case config.lastArg of
         Just _ ->
             Rule.errorWithFix
-                { message = situation ++ " will always result in " ++ config.replacement
+                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement
                 , details = [ "You can replace this call by " ++ config.replacement ++ "." ]
                 }
                 checkInfo.fnRange
@@ -8463,7 +8463,7 @@ alwaysResultsInConstantError situation config checkInfo =
 
         Nothing ->
             Rule.errorWithFix
-                { message = situation ++ " will always result in " ++ config.replacement
+                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement
                 , details = [ "You can replace this call by always " ++ config.replacement ++ "." ]
                 }
                 checkInfo.fnRange
