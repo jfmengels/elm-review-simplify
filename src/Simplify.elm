@@ -8606,11 +8606,6 @@ needsParens expr =
             False
 
 
-returnsSpecificValueOrFunctionInAllBranches : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Match (List Range)
-returnsSpecificValueOrFunctionInAllBranches specificQualified lookupTable expressionNode =
-    constructs (\lookupTableInner -> sameInAllBranches (AstHelpers.getSpecificValueOrFunction specificQualified lookupTableInner)) lookupTable expressionNode
-
-
 constructs :
     (ModuleNameLookupTable -> Node Expression -> Match specific)
     -> ModuleNameLookupTable
