@@ -4131,7 +4131,7 @@ mapWrapErrorInfo mapFnName wrapper =
         wrapFnInErrorInfo =
             qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, mapFnName ) ++ " on " ++ descriptionAsIncomingToString wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
+    { message = "Using " ++ qualifiedToString ( wrapper.moduleName, mapFnName ) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
     , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ " itself." ]
     }
 
@@ -6170,8 +6170,8 @@ type Description
     | Constant String
 
 
-descriptionAsIncomingToString : Description -> String
-descriptionAsIncomingToString incomingArgDescription =
+descriptionForIndefinite : Description -> String
+descriptionForIndefinite incomingArgDescription =
     case incomingArgDescription of
         A description ->
             "a " ++ description
@@ -6850,7 +6850,7 @@ wrapperAndThenChecks wrapper checkInfo =
                         Determined wrapCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionAsReferenceToString "the" wrapper.wrap.description
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionAsReferenceToString "the" wrapper.wrap.description
                                     , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionAsReferenceToString "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
@@ -7278,7 +7278,7 @@ callOnEmptyReturnsCheck config collection checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString collection.empty.description ++ " will result in " ++ resultDescription
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
                 , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
                 }
                 checkInfo.fnRange
@@ -7307,7 +7307,7 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
         Just wrapArg ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionAsIncomingToString withWrap.wrap.description ++ " will result in the value inside"
+                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
                     , details = [ "You can replace this call by the value inside " ++ descriptionAsReferenceToString "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
@@ -7433,7 +7433,7 @@ collectionUnionChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (identityError
-                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ descriptionAsIncomingToString collection.empty.description
+                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description
                         , lastArg = maybeCollectionArg
                         , lastArgRepresents = collection.represents
                         }
@@ -7448,7 +7448,7 @@ collectionUnionChecks collection checkInfo =
                     if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary union with " ++ descriptionAsIncomingToString collection.empty.description
+                                { message = "Unnecessary union with " ++ descriptionForIndefinite collection.empty.description
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
@@ -7471,7 +7471,7 @@ collectionInsertChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ descriptionAsIncomingToString collection.empty.description
+                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ descriptionForIndefinite collection.empty.description
                         , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
                         }
                         checkInfo.fnRange
@@ -7496,7 +7496,7 @@ collectionMemberChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ descriptionAsIncomingToString collection.empty.description ++ " will result in False"
+                        { message = "Using " ++ qualifiedToString ( collection.moduleName, "member" ) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in False"
                         , details = [ "You can replace this call by False." ]
                         }
                         checkInfo.fnRange
@@ -7621,7 +7621,7 @@ collectionPartitionChecks collection checkInfo =
                         in
                         Just
                             (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ descriptionAsIncomingToString collection.empty.description ++ " will result in " ++ tupleResultAsString
+                                { message = "Using " ++ qualifiedToString ( collection.moduleName, "partition" ) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ tupleResultAsString
                                 , details = [ "You can replace this call by " ++ tupleResultAsString ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -8601,7 +8601,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
         specificLastArgReference =
             descriptionAsReferenceToString "the given" config.specific
     in
-    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionAsIncomingToString config.specific ++ " will result in " ++ specificLastArgReference
+    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionForIndefinite config.specific ++ " will result in " ++ specificLastArgReference
     , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
     }
 
