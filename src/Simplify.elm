@@ -4294,8 +4294,7 @@ listIndexedMapChecks checkInfo =
                     callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
                 )
                 (secondArg checkInfo)
-        , \() ->
-            operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) } listCollection checkInfo
+        , \() -> operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) } checkInfo
         ]
         ()
 
@@ -4308,8 +4307,8 @@ Another example would be [`List.Extra.indexedFoldl`](https://package.elm-lang.or
 Not using the path would be identical to `List.foldl`.
 
 -}
-operationWithExtraArgChecks : { operationWithoutExtraArg : ( ModuleName, String ) } -> EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-operationWithExtraArgChecks config emptiable checkInfo =
+operationWithExtraArgChecks : { operationWithoutExtraArg : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+operationWithExtraArgChecks config checkInfo =
     case getReplaceAlwaysByItsResultFix checkInfo.lookupTable checkInfo.firstArg of
         Just replaceAlwaysByFunctionResult ->
             Just
