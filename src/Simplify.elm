@@ -4413,36 +4413,42 @@ listAppendChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case Maybe.andThen AstHelpers.getListLiteral (secondArg checkInfo) of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with [] to the right will always return the same given left list"
-                            , details = [ "You can remove this call by the left list itself." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
-                        )
+            case secondArg checkInfo of
+                Just listArgToTheRight ->
+                    case AstHelpers.getListLiteral listArgToTheRight of
+                        Just [] ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with [] to the right will always return the same given left list"
+                                    , details = [ "You can remove this call by the left list itself." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                )
 
-                _ ->
-                    Nothing
-        , \() ->
-            case ( checkInfo.firstArg, secondArg checkInfo ) of
-                ( Node firstListRange (Expression.ListExpr (_ :: _)), Just (Node secondListRange (Expression.ListExpr (_ :: _))) ) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Appending literal lists could be simplified to be a single List"
-                            , details = [ "Try moving all the elements into a single list." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.removeRange { start = secondListRange.end, end = checkInfo.parentRange.end }
-                            , Fix.replaceRangeBy
-                                { start = checkInfo.parentRange.start, end = startWithoutBoundary secondListRange }
-                                ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries firstListRange) ++ ",")
-                            ]
-                        )
+                        Just (_ :: _) ->
+                            case AstHelpers.getListLiteral checkInfo.firstArg of
+                                Just (_ :: _) ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Appending literal lists could be simplified to be a single List"
+                                            , details = [ "Try moving all the elements into a single list." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.removeRange { start = (Node.range listArgToTheRight).end, end = checkInfo.parentRange.end }
+                                            , Fix.replaceRangeBy
+                                                { start = checkInfo.parentRange.start, end = startWithoutBoundary (Node.range listArgToTheRight) }
+                                                ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries (Node.range checkInfo.firstArg)) ++ ",")
+                                            ]
+                                        )
 
-                _ ->
+                                _ ->
+                                    Nothing
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
                     Nothing
         ]
         ()
