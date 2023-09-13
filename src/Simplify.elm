@@ -4265,8 +4265,10 @@ listConcatMapChecks checkInfo =
 {-| Turn `yourFn identity` into `replacementFn`. If `replacementFn` should be `identity`, use `identityError` instead
 
 Can be used to for example
-turn `traverse identity` into `sequence`
-or `List.filterMap identity` into `Maybe.Extra.values`.
+
+  - turn `traverse identity` into `sequence`
+  - turn `List.filterMap identity` into `Maybe.Extra.values`
+  - turn `List.Extra.minimumBy identity` into `List.minimum`
 
 -}
 operationWithIdentityCanBeReplacedChecks : { replacementFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
