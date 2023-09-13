@@ -4263,7 +4263,7 @@ listConcatMapChecks checkInfo =
                 in
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString replacementFn
+                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with an identity function is the same as using " ++ qualifiedToString replacementFn
                         , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
                         }
                         checkInfo.fnRange
