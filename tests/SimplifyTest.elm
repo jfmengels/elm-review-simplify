@@ -17131,8 +17131,8 @@ a = Cmd.batch [ Cmd.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Cmd.batch"
-                            , details = [ "Cmd.batch with a single element is equal to that element." ]
+                            { message = "Using Cmd.batch on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17147,8 +17147,8 @@ a = Cmd.batch [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Cmd.batch"
-                            , details = [ "Cmd.batch with a single element is equal to that element." ]
+                            { message = "Using Cmd.batch on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17278,8 +17278,8 @@ a = Sub.batch [ Sub.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Sub.batch"
-                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            { message = "Using Sub.batch on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17294,8 +17294,8 @@ a = Sub.batch [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Sub.batch"
-                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            { message = "Using Sub.batch on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17310,8 +17310,8 @@ a = Sub.batch [ f n ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary Sub.batch"
-                            , details = [ "Sub.batch with a single element is equal to that element." ]
+                            { message = "Using Sub.batch on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

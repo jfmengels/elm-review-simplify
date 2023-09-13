@@ -5567,30 +5567,12 @@ subAndCmdBatchChecks :
     -> CheckInfo
     -> Maybe (Error {})
 subAndCmdBatchChecks batchable checkInfo =
-    let
-        batchDescription : String
-        batchDescription =
-            qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
-    in
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = batchable.empty.asString }
                 listCollection
                 checkInfo
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just listSingletonArg ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Unnecessary " ++ batchDescription
-                            , details = [ batchDescription ++ " with a single element is equal to that element." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
-                        )
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
         , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg batchable checkInfo
         ]
         ()
