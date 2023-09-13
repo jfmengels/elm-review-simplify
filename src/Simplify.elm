@@ -4413,17 +4413,21 @@ listAppendChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case ( checkInfo.firstArg, secondArg checkInfo ) of
-                ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
+            case Maybe.andThen AstHelpers.getListLiteral (secondArg checkInfo) of
+                Just [] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with [] to the right will always return the same given left list"
                             , details = [ "You can remove this call by the left list itself." ]
                             }
                             checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange firstList)
+                            (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
                         )
 
+                _ ->
+                    Nothing
+        , \() ->
+            case ( checkInfo.firstArg, secondArg checkInfo ) of
                 ( Node firstListRange (Expression.ListExpr (_ :: _)), Just (Node secondListRange (Expression.ListExpr (_ :: _))) ) ->
                     Just
                         (Rule.errorWithFix
