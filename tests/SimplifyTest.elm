@@ -7085,7 +7085,7 @@ a = List.concat [ a, [ 0 ], b, [ 1, 2, 3 ], [ 4, 5, 6], [7], c, [8], [9 ] ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Consecutive literal lists should be merged"
+                            { message = "Consecutive literal lists can be merged"
                             , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
                             , under = "List.concat"
                             }
