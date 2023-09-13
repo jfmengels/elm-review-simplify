@@ -5415,7 +5415,7 @@ listSortByChecks checkInfo =
                 Just _ ->
                     Just
                         (identityError
-                            { toFix = qualifiedToString ( [ "List" ], "sortBy" ) ++ " (always a)"
+                            { toFix = qualifiedToString checkInfo.fn ++ " (always a)"
                             , lastArgRepresents = "list"
                             , lastArg = secondArg checkInfo
                             }
@@ -5428,7 +5428,7 @@ listSortByChecks checkInfo =
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( [ "List" ], "sortBy" ) ++ " identity is the same as using " ++ qualifiedToString ( [ "List" ], "sort" )
+                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " identity is the same as using " ++ qualifiedToString ( [ "List" ], "sort" )
                         , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "sort" ) ++ "." ]
                         }
                         checkInfo.fnRange
