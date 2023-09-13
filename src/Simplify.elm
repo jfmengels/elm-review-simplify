@@ -5141,7 +5141,7 @@ listFilterMapChecks checkInfo =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing")
-                            { replacement = \_ -> "[]", lastArg = secondArg checkInfo }
+                            { replacement = listCollection.empty.asString, lastArg = secondArg checkInfo }
                             checkInfo
                         )
 
