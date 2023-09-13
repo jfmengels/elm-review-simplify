@@ -4289,12 +4289,11 @@ listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case secondArg checkInfo of
-                Just listArg ->
+            Maybe.andThen
+                (\listArg ->
                     callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-
-                Nothing ->
-                    Nothing
+                )
+                (secondArg checkInfo)
         , \() ->
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
