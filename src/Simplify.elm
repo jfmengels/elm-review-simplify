@@ -4419,19 +4419,6 @@ listAppendChecks checkInfo =
 listHeadChecks : CheckInfo -> Maybe (Error {})
 listHeadChecks checkInfo =
     let
-        justFirstElementError : Node Expression -> Error {}
-        justFirstElementError keep =
-            Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
-                , details = [ "You can replace this call by Just the first list element." ]
-                }
-                checkInfo.fnRange
-                (replaceBySubExpressionFix (Node.range listArg) keep
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                       ]
-                )
-
         listArg : Node Expression
         listArg =
             checkInfo.firstArg
@@ -4440,7 +4427,19 @@ listHeadChecks checkInfo =
         [ \() ->
             callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() ->
-            Maybe.map justFirstElementError
+            Maybe.map
+                (\listArgHead ->
+                    Rule.errorWithFix
+                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
+                        , details = [ "You can replace this call by Just the first list element." ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix (Node.range listArg) listArgHead
+                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                               ]
+                        )
+                )
                 (getListHead checkInfo.lookupTable listArg)
         ]
         ()
