@@ -5038,7 +5038,7 @@ listAllChecks checkInfo =
                 Determined True ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString ( [ "List" ], "all" ) ++ " with a function that will always return True")
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
                             { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res)
                             , lastArg = maybeListArg
                             }
