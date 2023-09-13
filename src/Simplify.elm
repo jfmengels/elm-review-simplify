@@ -4421,16 +4421,6 @@ listAppendChecks checkInfo =
                     Nothing
         , \() ->
             case ( checkInfo.firstArg, secondArg checkInfo ) of
-                ( Node _ (Expression.ListExpr []), _ ) ->
-                    Just
-                        (identityError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with [] to the left"
-                            , lastArg = secondArg checkInfo
-                            , lastArgRepresents = "right list"
-                            }
-                            checkInfo
-                        )
-
                 ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
                     Just
                         (Rule.errorWithFix
