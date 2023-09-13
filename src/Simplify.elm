@@ -5618,15 +5618,20 @@ htmlAttributesClassListChecks checkInfo =
                             case AstHelpers.getBool checkInfo.lookupTable tuple.second of
                                 Just bool ->
                                     if bool then
+                                        let
+                                            replacementFn : ( ModuleName, String )
+                                            replacementFn =
+                                                ( [ "Html", "Attributes" ], "class" )
+                                        in
                                         Just
                                             (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" )
-                                                , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" ) ++ " with the String from the single tuple list element." ]
+                                                { message = qualifiedToString checkInfo.fn ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString replacementFn
+                                                , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the String from the single tuple list element." ]
                                                 }
                                                 checkInfo.fnRange
                                                 (replaceBySubExpressionFix (Node.range listArg) tuple.first
                                                     ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                            (qualifiedToString (qualify ( [ "Html", "Attributes" ], "class" ) checkInfo))
+                                                            (qualifiedToString (qualify replacementFn checkInfo))
                                                        ]
                                                 )
                                             )
