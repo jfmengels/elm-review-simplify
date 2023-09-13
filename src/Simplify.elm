@@ -5242,43 +5242,46 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                 Undetermined ->
                     Nothing
         , \() ->
+            mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = ( emptiableWrapper.moduleName, "map" ) } checkInfo
+        , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    firstThatConstructsJust
-                        [ \() -> callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo
-                        , \() ->
-                            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                                firstThatConstructsJust
-                                    [ \() ->
-                                        case AstHelpers.getSpecificFunctionCall ( emptiableWrapper.moduleName, "map" ) checkInfo.lookupTable listArg of
-                                            Just listMapCall ->
-                                                Just
-                                                    (Rule.errorWithFix
-                                                        { message = qualifiedToString ( emptiableWrapper.moduleName, "map" ) ++ " and " ++ qualifiedToString checkInfo.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.fn
-                                                        , details = [ qualifiedToString checkInfo.fn ++ " is meant for this exact purpose and will also be faster." ]
-                                                        }
-                                                        checkInfo.fnRange
-                                                        (replaceBySubExpressionFix checkInfo.parentRange listArg
-                                                            ++ [ Fix.replaceRangeBy listMapCall.fnRange
-                                                                    (qualifiedToString (qualify checkInfo.fn checkInfo))
-                                                               ]
-                                                        )
-                                                    )
-
-                                            Nothing ->
-                                                Nothing
-                                    ]
-                                    ()
-
-                            else
-                                Nothing
-                        ]
-                        ()
+                    callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo
 
                 Nothing ->
                     Nothing
         ]
         ()
+
+
+mapToOperationWithIdentityCanBeCombinedToOperationChecks : { mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+mapToOperationWithIdentityCanBeCombinedToOperationChecks config checkInfo =
+    case secondArg checkInfo of
+        Just mappableArg ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                case AstHelpers.getSpecificFunctionCall config.mapFn checkInfo.lookupTable mappableArg of
+                    Just mapCall ->
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString config.mapFn ++ " and " ++ qualifiedToString checkInfo.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.fn
+                                , details = [ qualifiedToString checkInfo.fn ++ " is meant for this exact purpose and will also be faster." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceBySubExpressionFix checkInfo.parentRange mappableArg
+                                    ++ [ Fix.replaceRangeBy mapCall.fnRange
+                                            (qualifiedToString (qualify checkInfo.fn checkInfo))
+                                       ]
+                                )
+                            )
+
+                    Nothing ->
+                        Nothing
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
