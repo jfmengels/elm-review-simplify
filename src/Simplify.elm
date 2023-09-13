@@ -4692,7 +4692,7 @@ listMemberChecks checkInfo =
                             Just
                                 (resultsInConstantError
                                     (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
-                                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res))
                                     checkInfo
                                 )
 
