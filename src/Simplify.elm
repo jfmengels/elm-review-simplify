@@ -4331,7 +4331,7 @@ operationWithExtraArgChecks config emptiable checkInfo =
 getReplaceAlwaysByItsResultFix : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
 getReplaceAlwaysByItsResultFix lookupTable expressionNode =
     case AstHelpers.removeParens expressionNode of
-        Node lambdaRange (Expression.LambdaExpression lambda) ->
+        Node _ (Expression.LambdaExpression lambda) ->
             case List.map AstHelpers.removeParensFromPattern lambda.args of
                 (Node _ Pattern.AllPattern) :: [] ->
                     Just
