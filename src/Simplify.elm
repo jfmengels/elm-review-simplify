@@ -4397,13 +4397,6 @@ listIntersperseChecks checkInfo =
 
 listAppendChecks : CheckInfo -> Maybe (Error {})
 listAppendChecks checkInfo =
-    let
-        listAppendEmptyErrorInfo : { message : String, details : List String }
-        listAppendEmptyErrorInfo =
-            { message = "Appending [] doesn't have any effect"
-            , details = [ "You can remove the " ++ qualifiedToString checkInfo.fn ++ " function and the []." ]
-            }
-    in
     firstThatConstructsJust
         [ \() ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
@@ -4424,7 +4417,9 @@ listAppendChecks checkInfo =
                 ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
                     Just
                         (Rule.errorWithFix
-                            listAppendEmptyErrorInfo
+                            { message = "Appending [] doesn't have any effect"
+                            , details = [ "You can remove the " ++ qualifiedToString checkInfo.fn ++ " function and the []." ]
+                            }
                             checkInfo.fnRange
                             (replaceBySubExpressionFix checkInfo.parentRange firstList)
                         )
