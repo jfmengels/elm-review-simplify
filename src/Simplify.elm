@@ -4422,7 +4422,7 @@ listHeadChecks checkInfo =
         justFirstElementError : Node Expression -> Error {}
         justFirstElementError keep =
             Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on a list with a first element will result in Just that element"
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
                 , details = [ "You can replace this call by Just the first list element." ]
                 }
                 checkInfo.fnRange
@@ -4434,13 +4434,13 @@ listHeadChecks checkInfo =
 
         listArg : Node Expression
         listArg =
-            AstHelpers.removeParens checkInfo.firstArg
+            checkInfo.firstArg
     in
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() ->
-            case Node.value listArg of
+            case Node.value (AstHelpers.removeParens listArg) of
                 Expression.ListExpr (head :: _) ->
                     Just (justFirstElementError head)
 
