@@ -8442,7 +8442,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
 identityError :
     { toFix : String
     , lastArgRepresents : String
-    , lastArg : Maybe (Node lastArgument)
+    , lastArg : Maybe (Node Expression)
     }
     -> QualifyResources { a | fnRange : Range, parentRange : Range }
     -> Error {}
@@ -8460,30 +8460,30 @@ identityError config resources =
                 ]
 
         Just lastArg ->
-            returnsLastArgError config.toFix { lastArg = lastArg, lastArgRepresents = config.lastArgRepresents } resources
+            returnsArgError config.toFix { arg = lastArg, argRepresents = config.lastArgRepresents } resources
 
 
-{-| In your specific situation, the last arg will always be returned unchanged.
+{-| In your specific situation, the given arg will always be returned unchanged.
 
 Use `identityError` when the last arg could be absent and it would still not change, like with `List.map identity`.
 
 -}
-returnsLastArgError :
+returnsArgError :
     String
     ->
-        { lastArgRepresents : String
-        , lastArg : Node lastArgument
+        { argRepresents : String
+        , arg : Node Expression
         }
     -> QualifyResources { a | fnRange : Range, parentRange : Range }
     -> Error {}
-returnsLastArgError usingSituation config checkInfo =
+returnsArgError usingSituation config checkInfo =
     Rule.errorWithFix
-        { message = "Using " ++ usingSituation ++ " will always return the same given " ++ config.lastArgRepresents
+        { message = "Using " ++ usingSituation ++ " will always return the same given " ++ config.argRepresents
         , details =
-            [ "You can replace this call by the " ++ config.lastArgRepresents ++ " itself." ]
+            [ "You can replace this call by the " ++ config.argRepresents ++ " itself." ]
         }
         checkInfo.fnRange
-        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.lastArg })
+        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.arg })
 
 
 multiAlways : Int -> String -> QualifyResources a -> String
