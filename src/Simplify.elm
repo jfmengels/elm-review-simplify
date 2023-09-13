@@ -8459,14 +8459,31 @@ identityError config resources =
                     (qualifiedToString (qualify ( [ "Basics" ], "identity" ) resources))
                 ]
 
-        Just (Node lastArgRange _) ->
-            Rule.errorWithFix
-                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgRepresents
-                , details =
-                    [ "You can replace this call by the " ++ config.lastArgRepresents ++ " itself." ]
-                }
-                resources.fnRange
-                (keepOnlyFix { parentRange = resources.parentRange, keep = lastArgRange })
+        Just lastArg ->
+            returnsLastArgError config.toFix { lastArg = lastArg, lastArgRepresents = config.lastArgRepresents } resources
+
+
+{-| In your specific situation, the last arg will always be returned unchanged.
+
+Use `identityError` when the last arg could be absent and it would still not change, like with `List.map identity`.
+
+-}
+returnsLastArgError :
+    String
+    ->
+        { lastArgRepresents : String
+        , lastArg : Node lastArgument
+        }
+    -> QualifyResources { a | fnRange : Range, parentRange : Range }
+    -> Error {}
+returnsLastArgError usingSituation config checkInfo =
+    Rule.errorWithFix
+        { message = "Using " ++ usingSituation ++ " will always return the same given " ++ config.lastArgRepresents
+        , details =
+            [ "You can replace this call by the " ++ config.lastArgRepresents ++ " itself." ]
+        }
+        checkInfo.fnRange
+        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.lastArg })
 
 
 multiAlways : Int -> String -> QualifyResources a -> String
