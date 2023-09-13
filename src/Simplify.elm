@@ -4470,11 +4470,18 @@ listTailChecks checkInfo =
         listArg =
             checkInfo.firstArg
 
-        listTailExistsError : { message : String, details : List String }
-        listTailExistsError =
-            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
-            , details = [ "You can replace this call by Just the list elements after the first." ]
-            }
+        listTailExistsError : List Fix -> Error {}
+        listTailExistsError replaceListArgByTailFix =
+            Rule.errorWithFix
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
+                , details = [ "You can replace this call by Just the list elements after the first." ]
+                }
+                checkInfo.fnRange
+                (replaceListArgByTailFix
+                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                       ]
+                )
     in
     firstThatConstructsJust
         [ \() ->
@@ -4483,25 +4490,15 @@ listTailChecks checkInfo =
             case Node.value (AstHelpers.removeParens listArg) of
                 Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
                     Just
-                        (Rule.errorWithFix
-                            listTailExistsError
-                            checkInfo.fnRange
+                        (listTailExistsError
                             [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
-                            , Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                             ]
                         )
 
                 Expression.OperatorApplication "::" _ _ tail ->
                     Just
-                        (Rule.errorWithFix
-                            listTailExistsError
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix (Node.range listArg) tail
-                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                                   ]
-                            )
+                        (listTailExistsError
+                            (replaceBySubExpressionFix (Node.range listArg) tail)
                         )
 
                 _ ->
