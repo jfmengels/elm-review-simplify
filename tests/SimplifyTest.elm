@@ -9557,8 +9557,8 @@ a = List.foldl f x []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl on [] will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            { message = "Using List.foldl on [] will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10520,8 +10520,8 @@ a = List.foldr fn x []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr on [] will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            { message = "Using List.foldr on [] will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
