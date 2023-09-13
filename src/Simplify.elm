@@ -4470,13 +4470,6 @@ listTailExistsError =
     }
 
 
-listEmptyTailExistsError : { message : String, details : List String }
-listEmptyTailExistsError =
-    { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with a single element will result in Just []"
-    , details = [ "You can replace this call by Just []." ]
-    }
-
-
 listTailChecks : CheckInfo -> Maybe (Error {})
 listTailChecks checkInfo =
     let
@@ -4519,7 +4512,9 @@ listTailChecks checkInfo =
                 Just _ ->
                     Just
                         (Rule.errorWithFix
-                            listEmptyTailExistsError
+                            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with a single element will result in Just []"
+                            , details = [ "You can replace this call by Just []." ]
+                            }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) "[]"
                             , Fix.replaceRangeBy checkInfo.fnRange
