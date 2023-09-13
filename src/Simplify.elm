@@ -4305,7 +4305,7 @@ listIndexedMapChecks checkInfo =
                                     case lambdaArgsAfterAllPattern of
                                         [] ->
                                             -- Only one argument, remove the entire lambda except the expression
-                                            [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start } ]
+                                            keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = Node.range lambda.expression }
 
                                         (Node secondRange _) :: _ ->
                                             [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]

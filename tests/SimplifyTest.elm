@@ -9144,7 +9144,7 @@ a = List.indexedMap (\\_ -> f) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (f) x
+a = List.map f x
 """
                         ]
         , test "should replace List.indexedMap (always f) x by List.map f x" <|
