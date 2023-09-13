@@ -4283,21 +4283,30 @@ listConcatMapChecks checkInfo =
 
 listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatCompositionChecks checkInfo =
-    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-        ( ( [ "List" ], "map" ), _ :: [] ) ->
-            let
-                combinedFn : ( ModuleName, String )
-                combinedFn =
-                    ( [ "List" ], "concatMap" )
-            in
+    mapToOperationCanBeCombinedCompositionChecks
+        { mapFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+        checkInfo
+
+
+{-| Turn `map f >> yourOperation` into `combinedOperation f`.
+
+Can be used to for example
+turn `map f >> sequence` into `traverse f`
+or `map f >> Maybe.Extra.values` into `List.filterMap f`.
+
+-}
+mapToOperationCanBeCombinedCompositionChecks : { mapFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+mapToOperationCanBeCombinedCompositionChecks config checkInfo =
+    case ( checkInfo.earlier.fn == config.mapFn, checkInfo.earlier.args ) of
+        ( True, _ :: [] ) ->
             Just
                 { info =
-                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " can be combined using " ++ qualifiedToString combinedFn
-                    , details = [ qualifiedToString combinedFn ++ " is meant for this exact purpose and will also be faster." ]
+                    { message = qualifiedToString config.mapFn ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " can be combined using " ++ qualifiedToString config.combinedFn
+                    , details = [ qualifiedToString config.combinedFn ++ " is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
                     Fix.replaceRangeBy checkInfo.earlier.fnRange
-                        (qualifiedToString (qualify combinedFn checkInfo))
+                        (qualifiedToString (qualify config.combinedFn checkInfo))
                         :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
                 }
 
