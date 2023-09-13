@@ -5425,23 +5425,7 @@ listSortByChecks checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                Just
-                    (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " identity is the same as using " ++ qualifiedToString ( [ "List" ], "sort" )
-                        , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "sort" ) ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy
-                            { start = checkInfo.fnRange.start
-                            , end = (Node.range checkInfo.firstArg).end
-                            }
-                            (qualifiedToString (qualify ( [ "List" ], "sort" ) checkInfo))
-                        ]
-                    )
-
-            else
-                Nothing
+            operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "sort" ) } checkInfo
         ]
         ()
 

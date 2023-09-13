@@ -12021,7 +12021,7 @@ a = List.sortBy identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12037,7 +12037,7 @@ a = List.sortBy (\\b -> b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12053,7 +12053,7 @@ a = List.sortBy identity list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12069,7 +12069,7 @@ a = List.sortBy (\\b -> b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy identity is the same as using List.sort"
+                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
