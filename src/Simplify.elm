@@ -4178,7 +4178,7 @@ listConcatChecks checkInfo =
                 Just listMapArg ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
+                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.fn ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
                             , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                             }
                             checkInfo.fnRange
