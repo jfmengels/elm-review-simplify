@@ -4287,6 +4287,19 @@ listConcatCompositionChecks checkInfo =
 
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks checkInfo =
+    let
+        replaceByMapWithFunctionReturnedByAlways : List Fix -> Error {}
+        replaceByMapWithFunctionReturnedByAlways replaceAlwaysByFunctionResult =
+            Rule.errorWithFix
+                { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
+                , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
+                }
+                checkInfo.fnRange
+                (Fix.replaceRangeBy checkInfo.fnRange
+                    (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                    :: replaceAlwaysByFunctionResult
+                )
+    in
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
@@ -4299,26 +4312,15 @@ listIndexedMapChecks checkInfo =
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
                     case List.map AstHelpers.removeParensFromPattern lambda.args of
                         (Node allPatternRange Pattern.AllPattern) :: lambdaArgsAfterAllPattern ->
-                            let
-                                removeLambdaFix : List Fix
-                                removeLambdaFix =
-                                    case lambdaArgsAfterAllPattern of
+                            Just
+                                (replaceByMapWithFunctionReturnedByAlways
+                                    (case lambdaArgsAfterAllPattern of
                                         [] ->
                                             -- Only one argument, remove the entire lambda except the expression
                                             keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = Node.range lambda.expression }
 
                                         (Node secondRange _) :: _ ->
                                             [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
-                            in
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                                    , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                        :: removeLambdaFix
                                     )
                                 )
 
@@ -4331,15 +4333,8 @@ listIndexedMapChecks checkInfo =
             case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just alwaysCall ->
                     Just
-                        (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                :: replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg
-                            )
+                        (replaceByMapWithFunctionReturnedByAlways
+                            (replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg)
                         )
 
                 Nothing ->
