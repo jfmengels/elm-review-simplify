@@ -5252,14 +5252,19 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFilterMapCompositionChecks checkInfo =
+    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) } checkInfo
+
+
+mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks : { mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks config checkInfo =
     case checkInfo.later.args of
         elementToMaybeMappingArg :: [] ->
             if AstHelpers.isIdentity checkInfo.lookupTable elementToMaybeMappingArg then
-                case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                    ( ( [ "List" ], "map" ), _ :: [] ) ->
+                case ( checkInfo.earlier.fn == config.mapFn, checkInfo.earlier.args ) of
+                    ( True, _ :: [] ) ->
                         Just
                             { info =
-                                { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.later.fn
+                                { message = qualifiedToString config.mapFn ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.later.fn
                                 , details = [ qualifiedToString checkInfo.later.fn ++ " is meant for this exact purpose and will also be faster." ]
                                 }
                             , fix =
