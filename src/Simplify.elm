@@ -4292,7 +4292,7 @@ listConcatCompositionChecks checkInfo =
             in
             Just
                 { info =
-                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString combinedFn
+                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " can be combined using " ++ qualifiedToString combinedFn
                     , details = [ qualifiedToString combinedFn ++ " is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
