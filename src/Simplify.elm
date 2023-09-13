@@ -4468,7 +4468,7 @@ listTailChecks checkInfo =
     let
         listArg : Node Expression
         listArg =
-            AstHelpers.removeParens checkInfo.firstArg
+            checkInfo.firstArg
 
         listTailExistsError : { message : String, details : List String }
         listTailExistsError =
@@ -4480,7 +4480,7 @@ listTailChecks checkInfo =
         [ \() ->
             callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() ->
-            case Node.value listArg of
+            case Node.value (AstHelpers.removeParens listArg) of
                 Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
                     Just
                         (Rule.errorWithFix

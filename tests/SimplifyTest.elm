@@ -7793,7 +7793,7 @@ a = List.tail [ b, c, d ]
 a = Just [ c, d ]
 """
                         ]
-        , test "should replace List.tail (a :: bToZ) by Just (bToZ)" <|
+        , test "should replace List.tail (a :: bToZ) by Just bToZ" <|
             \() ->
                 """module A exposing (..)
 a = List.tail (b :: cToZ)
@@ -7806,7 +7806,7 @@ a = List.tail (b :: cToZ)
                             , under = "List.tail"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (cToZ)
+a = Just cToZ
 """
                         ]
         ]
