@@ -7554,7 +7554,7 @@ a = List.head []
 a = Nothing
 """
                         ]
-        , test "should replace List.head (List.singleton a) by Just (a)" <|
+        , test "should replace List.head (List.singleton a) by Just a" <|
             \() ->
                 """module A exposing (..)
 a = List.head (List.singleton b)
@@ -7567,7 +7567,7 @@ a = List.head (List.singleton b)
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (b)
+a = Just b
 """
                         ]
         , test "should replace List.head <| List.singleton a by Just <| a" <|
@@ -7666,7 +7666,7 @@ a = List.head [ f b, c, d ]
 a = Just (f b)
 """
                         ]
-        , test "should replace List.head (a :: bToZ) by Just (a)" <|
+        , test "should replace List.head (a :: bToZ) by Just a" <|
             \() ->
                 """module A exposing (..)
 a = List.head (b :: cToZ)
@@ -7679,7 +7679,7 @@ a = List.head (b :: cToZ)
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (b)
+a = Just b
 """
                         ]
         ]
