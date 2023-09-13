@@ -5104,17 +5104,56 @@ listAnyChecks checkInfo =
 listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks checkInfo =
     firstThatConstructsJust
+        [ \() -> emptiableWrapperFilterMapChecks listCollection checkInfo
+        , \() ->
+            case secondArg checkInfo of
+                Just (Node listRange (Expression.ListExpr list)) ->
+                    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                        case
+                            traverse
+                                (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
+                                list
+                        of
+                            Just justCalls ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
+                                        , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
+                                            ++ List.concatMap
+                                                (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
+                                                justCalls
+                                        )
+                                    )
+
+                            Nothing ->
+                                Nothing
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+        ]
+        ()
+
+
+emptiableWrapperFilterMapChecks : EmptiableProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
+    firstThatConstructsJust
         [ \() ->
             case constructs (sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( [ "List" ], "map" )
-                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" )
+                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                                (qualifiedToString (qualify ( emptiableWrapper.moduleName, "map" ) checkInfo))
                                 :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) justCalls
                             )
                         )
@@ -5128,7 +5167,7 @@ listFilterMapChecks checkInfo =
                         (identityError
                             { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
                             , lastArg = secondArg checkInfo
-                            , lastArgRepresents = "list"
+                            , lastArgRepresents = emptiableWrapper.represents
                             }
                             checkInfo
                         )
@@ -5140,8 +5179,8 @@ listFilterMapChecks checkInfo =
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString ( [ "List" ], "filterMap" ) ++ " with a function that will always return Nothing")
-                            { replacement = listCollection.empty.asString, lastArg = secondArg checkInfo }
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
+                            { replacement = emptiableWrapper.empty.asString, lastArg = secondArg checkInfo }
                             checkInfo
                         )
 
@@ -5151,54 +5190,27 @@ listFilterMapChecks checkInfo =
             case secondArg checkInfo of
                 Just listArg ->
                     firstThatConstructsJust
-                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
+                        [ \() -> callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo
                         , \() ->
                             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                                 firstThatConstructsJust
                                     [ \() ->
-                                        case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable listArg of
+                                        case AstHelpers.getSpecificFunctionCall ( emptiableWrapper.moduleName, "map" ) checkInfo.lookupTable listArg of
                                             Just listMapCall ->
                                                 Just
                                                     (Rule.errorWithFix
-                                                        { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
-                                                        , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
+                                                        { message = qualifiedToString ( emptiableWrapper.moduleName, "map" ) ++ " and " ++ qualifiedToString checkInfo.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.fn
+                                                        , details = [ qualifiedToString checkInfo.fn ++ " is meant for this exact purpose and will also be faster." ]
                                                         }
                                                         checkInfo.fnRange
                                                         (replaceBySubExpressionFix checkInfo.parentRange listArg
                                                             ++ [ Fix.replaceRangeBy listMapCall.fnRange
-                                                                    (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
+                                                                    (qualifiedToString (qualify checkInfo.fn checkInfo))
                                                                ]
                                                         )
                                                     )
 
                                             Nothing ->
-                                                Nothing
-                                    , \() ->
-                                        case listArg of
-                                            Node listRange (Expression.ListExpr list) ->
-                                                case
-                                                    traverse
-                                                        (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
-                                                        list
-                                                of
-                                                    Just justCalls ->
-                                                        Just
-                                                            (Rule.errorWithFix
-                                                                { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
-                                                                , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
-                                                                }
-                                                                checkInfo.fnRange
-                                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
-                                                                    ++ List.concatMap
-                                                                        (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
-                                                                        justCalls
-                                                                )
-                                                            )
-
-                                                    Nothing ->
-                                                        Nothing
-
-                                            _ ->
                                                 Nothing
                                     ]
                                     ()
