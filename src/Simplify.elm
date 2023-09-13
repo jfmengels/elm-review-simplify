@@ -5106,13 +5106,18 @@ listAnyChecks checkInfo =
                     Nothing
 
                 Just equatedTo ->
+                    let
+                        replacementFn : ( ModuleName, String )
+                        replacementFn =
+                            ( [ "List" ], "member" )
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " with that value"
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "member" ) ++ " with the specific value to find which meant for this exact purpose." ]
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by using " ++ qualifiedToString replacementFn ++ " with that value"
+                            , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the specific value to find which meant for this exact purpose." ]
                             }
                             checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( [ "List" ], "member" ) checkInfo))
+                            (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementFn checkInfo))
                                 :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.something
                             )
                         )
