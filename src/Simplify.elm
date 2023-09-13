@@ -4690,14 +4690,10 @@ listMemberChecks checkInfo =
                         in
                         if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
                             Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list which contains the given element will result in True"
-                                    , details = [ "You can replace this call by True." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.parentRange
-                                        (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                                    ]
+                                (resultsInConstantError
+                                    (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
+                                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
+                                    checkInfo
                                 )
 
                         else

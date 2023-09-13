@@ -7849,7 +7849,7 @@ a = List.member b (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "Using List.member on a list which contains the given element will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -7897,7 +7897,7 @@ a = List.member b [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "Using List.member on a list which contains the given element will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -7977,7 +7977,7 @@ a = List.member d [ b, c, d ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "Using List.member on a list which contains the given element will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8000,7 +8000,7 @@ a = List.member b (b :: cToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "Using List.member on a list which contains the given element will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8016,7 +8016,7 @@ a = List.member d (b :: c :: d :: eToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "Using List.member on a list which contains the given element will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
