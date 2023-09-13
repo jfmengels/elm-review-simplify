@@ -4311,17 +4311,16 @@ listIndexedMapChecks checkInfo =
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
                     case List.map AstHelpers.removeParensFromPattern lambda.args of
-                        (Node allPatternRange Pattern.AllPattern) :: lambdaArgsAfterAllPattern ->
+                        (Node _ Pattern.AllPattern) :: [] ->
                             Just
                                 (replaceByMapWithFunctionReturnedByAlways
-                                    (case lambdaArgsAfterAllPattern of
-                                        [] ->
-                                            -- Only one argument, remove the entire lambda except the expression
-                                            keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = Node.range lambda.expression }
+                                    (keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = Node.range lambda.expression })
+                                )
 
-                                        (Node secondRange _) :: _ ->
-                                            [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
-                                    )
+                        (Node allPatternRange Pattern.AllPattern) :: (Node secondRange _) :: _ ->
+                            Just
+                                (replaceByMapWithFunctionReturnedByAlways
+                                    [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
                                 )
 
                         _ ->
