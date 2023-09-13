@@ -4401,7 +4401,7 @@ listAppendChecks checkInfo =
         listAppendEmptyErrorInfo : { message : String, details : List String }
         listAppendEmptyErrorInfo =
             { message = "Appending [] doesn't have any effect"
-            , details = [ "You can remove the " ++ qualifiedToString ( [ "List" ], "append" ) ++ " function and the []." ]
+            , details = [ "You can remove the " ++ qualifiedToString checkInfo.fn ++ " function and the []." ]
             }
     in
     case ( checkInfo.firstArg, secondArg checkInfo ) of
