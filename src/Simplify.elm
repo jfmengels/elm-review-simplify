@@ -4256,15 +4256,20 @@ listConcatMapChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                let
+                    replacementFn : ( ModuleName, String )
+                    replacementFn =
+                        ( [ "List" ], "concat" )
+                in
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString ( [ "List" ], "concat" )
-                        , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "concat" ) ++ "." ]
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString replacementFn
+                        , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
                         }
                         checkInfo.fnRange
                         [ Fix.replaceRangeBy
                             { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                            (qualifiedToString (qualify ( [ "List" ], "concat" ) checkInfo))
+                            (qualifiedToString (qualify replacementFn checkInfo))
                         ]
                     )
 
