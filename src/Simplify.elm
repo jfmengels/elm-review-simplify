@@ -4287,19 +4287,6 @@ listConcatCompositionChecks checkInfo =
 
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks checkInfo =
-    let
-        replaceByMapWithFunctionReturnedByAlways : List Fix -> Error {}
-        replaceByMapWithFunctionReturnedByAlways replaceAlwaysByFunctionResult =
-            Rule.errorWithFix
-                { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
-                }
-                checkInfo.fnRange
-                (Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                    :: replaceAlwaysByFunctionResult
-                )
-    in
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
@@ -4310,7 +4297,17 @@ listIndexedMapChecks checkInfo =
         , \() ->
             case getReplaceAlwaysByItsResultFix checkInfo.lookupTable checkInfo.firstArg of
                 Just replaceAlwaysByFunctionResult ->
-                    Just (replaceByMapWithFunctionReturnedByAlways replaceAlwaysByFunctionResult)
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
+                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
+                                :: replaceAlwaysByFunctionResult
+                            )
+                        )
 
                 Nothing ->
                     Nothing
