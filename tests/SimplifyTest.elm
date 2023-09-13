@@ -5556,8 +5556,8 @@ a = [ b ] ++ c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Should use (::) instead of (++)"
-                            , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                            { message = "Appending a singleton list to the beginning is the same as using (::) with the value inside"
+                            , details = [ "You can replace this (++) operation by using (::) with the value inside the left singleton list on the right list." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5572,8 +5572,8 @@ a = [ f n ] ++ c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Should use (::) instead of (++)"
-                            , details = [ "Concatenating a list with a single value is the same as using (::) on the list with the value." ]
+                            { message = "Appending a singleton list to the beginning is the same as using (::) with the value inside"
+                            , details = [ "You can replace this (++) operation by using (::) with the value inside the left singleton list on the right list." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
