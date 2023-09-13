@@ -5107,26 +5107,31 @@ listFilterMapChecks checkInfo =
         [ \() -> emptiableWrapperFilterMapChecks listCollection checkInfo
         , \() ->
             case secondArg checkInfo of
-                Just (Node listRange (Expression.ListExpr list)) ->
+                Just listArg ->
                     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                        case
-                            traverse
-                                (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
-                                list
-                        of
-                            Just justCalls ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
-                                        , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listRange }
-                                            ++ List.concatMap
-                                                (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
-                                                justCalls
-                                        )
-                                    )
+                        case AstHelpers.getListLiteral listArg of
+                            Just list ->
+                                case
+                                    traverse
+                                        (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
+                                        list
+                                of
+                                    Just justCalls ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
+                                                , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
+                                                    ++ List.concatMap
+                                                        (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
+                                                        justCalls
+                                                )
+                                            )
+
+                                    Nothing ->
+                                        Nothing
 
                             Nothing ->
                                 Nothing
@@ -5134,7 +5139,7 @@ listFilterMapChecks checkInfo =
                     else
                         Nothing
 
-                _ ->
+                Nothing ->
                     Nothing
         ]
         ()
