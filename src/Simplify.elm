@@ -4663,31 +4663,6 @@ listMemberChecks checkInfo =
                 needleRange : Range
                 needleRange =
                     Node.range needleArg
-
-                singleNonNormalizedEqualElementError : Node Expression -> Error {}
-                singleNonNormalizedEqualElementError element =
-                    let
-                        elementRange : Range
-                        elementRange =
-                            Node.range element
-                    in
-                    Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on an list with a single element is equivalent to directly checking for equality"
-                        , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
-                        }
-                        checkInfo.fnRange
-                        (List.concat
-                            [ keepOnlyFix
-                                { parentRange = checkInfo.parentRange
-                                , keep = Range.combine [ needleRange, elementRange ]
-                                }
-                            , [ Fix.replaceRangeBy
-                                    (rangeBetweenExclusive ( needleRange, elementRange ))
-                                    " == "
-                              ]
-                            , parenthesizeIfNeededFix element
-                            ]
-                        )
             in
             firstThatConstructsJust
                 [ \() ->
@@ -4729,7 +4704,30 @@ listMemberChecks checkInfo =
                 , \() ->
                     case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                         Just single ->
-                            Just (singleNonNormalizedEqualElementError single.element)
+                            let
+                                elementRange : Range
+                                elementRange =
+                                    Node.range single.element
+                            in
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on an list with a single element is equivalent to directly checking for equality"
+                                    , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (List.concat
+                                        [ keepOnlyFix
+                                            { parentRange = checkInfo.parentRange
+                                            , keep = Range.combine [ needleRange, elementRange ]
+                                            }
+                                        , [ Fix.replaceRangeBy
+                                                (rangeBetweenExclusive ( needleRange, elementRange ))
+                                                " == "
+                                          ]
+                                        , parenthesizeIfNeededFix single.element
+                                        ]
+                                    )
+                                )
 
                         Nothing ->
                             Nothing
