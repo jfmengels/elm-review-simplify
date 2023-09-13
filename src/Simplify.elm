@@ -4416,20 +4416,15 @@ listAppendChecks checkInfo =
             Nothing
 
 
-listHeadExistsError : { message : String, details : List String }
-listHeadExistsError =
-    { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on a list with a first element will result in Just that element"
-    , details = [ "You can replace this call by Just the first list element." ]
-    }
-
-
 listHeadChecks : CheckInfo -> Maybe (Error {})
 listHeadChecks checkInfo =
     let
         justFirstElementError : Node Expression -> Error {}
         justFirstElementError keep =
             Rule.errorWithFix
-                listHeadExistsError
+                { message = "Using " ++ qualifiedToString ( [ "List" ], "head" ) ++ " on a list with a first element will result in Just that element"
+                , details = [ "You can replace this call by Just the first list element." ]
+                }
                 checkInfo.fnRange
                 (replaceBySubExpressionFix (Node.range listArg) keep
                     ++ [ Fix.replaceRangeBy checkInfo.fnRange
