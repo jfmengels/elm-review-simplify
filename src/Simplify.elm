@@ -4255,30 +4255,37 @@ listConcatMapChecks : CheckInfo -> Maybe (Error {})
 listConcatMapChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                let
-                    replacementFn : ( ModuleName, String )
-                    replacementFn =
-                        ( [ "List" ], "concat" )
-                in
-                Just
-                    (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with an identity function is the same as using " ++ qualifiedToString replacementFn
-                        , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        [ Fix.replaceRangeBy
-                            { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                            (qualifiedToString (qualify replacementFn checkInfo))
-                        ]
-                    )
-
-            else
-                Nothing
+            operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "concat" ) } checkInfo
         , \() -> emptiableAndThenChecks listCollection checkInfo
         , \() -> wrapperAndThenChecks listCollection checkInfo
         ]
         ()
+
+
+{-| Turn `yourFn identity` into `replacementFn`. If `replacementFn` should be `identity`, use `identityError` instead
+
+Can be used to for example
+turn `traverse identity` into `sequence`
+or `List.filterMap identity` into `Maybe.Extra.values`.
+
+-}
+operationWithIdentityCanBeReplacedChecks : { replacementFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+operationWithIdentityCanBeReplacedChecks config checkInfo =
+    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+        Just
+            (Rule.errorWithFix
+                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with an identity function is the same as using " ++ qualifiedToString config.replacementFn
+                , details = [ "You can replace this call by " ++ qualifiedToString config.replacementFn ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy
+                    { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                    (qualifiedToString (qualify config.replacementFn checkInfo))
+                ]
+            )
+
+    else
+        Nothing
 
 
 listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
