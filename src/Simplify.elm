@@ -5244,12 +5244,9 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
         , \() ->
             mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = ( emptiableWrapper.moduleName, "map" ) } checkInfo
         , \() ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo
-
-                Nothing ->
-                    Nothing
+            Maybe.andThen
+                (\listArg -> callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo)
+                (secondArg checkInfo)
         ]
         ()
 
