@@ -5574,21 +5574,9 @@ subAndCmdBatchChecks batchable checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Replace by " ++ batchDescription
-                            , details = [ batchDescription ++ " [] and " ++ batchable.empty.asString defaultQualifyResources ++ " are equivalent but the latter is more idiomatic in Elm code" ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (emptyAsString checkInfo batchable)
-                            ]
-                        )
-
-                _ ->
-                    Nothing
+            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = batchable.empty.asString }
+                listCollection
+                checkInfo
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just listSingletonArg ->

@@ -17099,8 +17099,8 @@ a = Cmd.batch []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Replace by Cmd.batch"
-                            , details = [ "Cmd.batch [] and Cmd.none are equivalent but the latter is more idiomatic in Elm code" ]
+                            { message = "Using Cmd.batch on [] will result in Cmd.none"
+                            , details = [ "You can replace this call by Cmd.none." ]
                             , under = "Cmd.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17246,8 +17246,8 @@ a = Sub.batch []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Replace by Sub.batch"
-                            , details = [ "Sub.batch [] and Sub.none are equivalent but the latter is more idiomatic in Elm code" ]
+                            { message = "Using Sub.batch on [] will result in Sub.none"
+                            , details = [ "You can replace this call by Sub.none." ]
                             , under = "Sub.batch"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
