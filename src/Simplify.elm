@@ -4300,15 +4300,15 @@ listIndexedMapChecks checkInfo =
                     case List.map AstHelpers.removeParensFromPattern lambda.args of
                         (Node allPatternRange Pattern.AllPattern) :: lambdaArgsAfterAllPattern ->
                             let
-                                rangeToRemove : Range
-                                rangeToRemove =
+                                removeLambdaFix : List Fix
+                                removeLambdaFix =
                                     case lambdaArgsAfterAllPattern of
                                         [] ->
                                             -- Only one argument, remove the entire lambda except the expression
-                                            { start = lambdaRange.start, end = (Node.range lambda.expression).start }
+                                            [ Fix.removeRange { start = lambdaRange.start, end = (Node.range lambda.expression).start } ]
 
                                         (Node secondRange _) :: _ ->
-                                            { start = allPatternRange.start, end = secondRange.start }
+                                            [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
                             in
                             Just
                                 (Rule.errorWithFix
@@ -4316,10 +4316,10 @@ listIndexedMapChecks checkInfo =
                                     , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
                                     }
                                     checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange
                                         (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                    , Fix.removeRange rangeToRemove
-                                    ]
+                                        :: removeLambdaFix
+                                    )
                                 )
 
                         _ ->
