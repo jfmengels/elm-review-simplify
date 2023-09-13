@@ -5058,35 +5058,8 @@ emptiableAllChecks emptiable checkInfo =
 
 listAnyChecks : CheckInfo -> Maybe (Error {})
 listAnyChecks checkInfo =
-    let
-        maybeListArg : Maybe (Node Expression)
-        maybeListArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\listArg ->
-                    callOnEmptyReturnsCheck
-                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
-                        listCollection
-                        checkInfo
-                )
-                maybeListArg
-        , \() ->
-            case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
-                Determined False ->
-                    Just
-                        (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res)
-                            , lastArg = maybeListArg
-                            }
-                            checkInfo
-                        )
-
-                _ ->
-                    Nothing
+        [ \() -> emptiableAnyChecks listCollection checkInfo
         , \() ->
             case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
                 Nothing ->
@@ -5103,6 +5076,41 @@ listAnyChecks checkInfo =
                                 :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.something
                             )
                         )
+        ]
+        ()
+
+
+emptiableAnyChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAnyChecks emptiable checkInfo =
+    let
+        maybeEmptiableArg : Maybe (Node Expression)
+        maybeEmptiableArg =
+            secondArg checkInfo
+    in
+    firstThatConstructsJust
+        [ \() ->
+            Maybe.andThen
+                (\listArg ->
+                    callOnEmptyReturnsCheck
+                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                        listCollection
+                        checkInfo
+                )
+                maybeEmptiableArg
+        , \() ->
+            case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
+                Determined False ->
+                    Just
+                        (alwaysResultsInUnparenthesizedConstantError
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
+                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res)
+                            , lastArg = maybeEmptiableArg
+                            }
+                            checkInfo
+                        )
+
+                _ ->
+                    Nothing
         ]
         ()
 
