@@ -5605,7 +5605,7 @@ htmlAttributesClassListChecks checkInfo =
 
         htmlAttributesClassListFalseElementError : { message : String, details : List String }
         htmlAttributesClassListFalseElementError =
-            { message = "In a " ++ qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ ", a tuple paired with False can be removed"
+            { message = "In a " ++ qualifiedToString checkInfo.fn ++ ", a tuple paired with False can be removed"
             , details = [ "You can remove the tuple list element where the second part is False." ]
             }
     in
@@ -5620,7 +5620,7 @@ htmlAttributesClassListChecks checkInfo =
                                     if bool then
                                         Just
                                             (Rule.errorWithFix
-                                                { message = qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" )
+                                                { message = qualifiedToString checkInfo.fn ++ " with a single tuple paired with True can be replaced with " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" )
                                                 , details = [ "You can replace this call by " ++ qualifiedToString ( [ "Html", "Attributes" ], "class" ) ++ " with the String from the single tuple list element." ]
                                                 }
                                                 checkInfo.fnRange
