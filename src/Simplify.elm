@@ -4463,19 +4463,18 @@ getListHead lookupTable expressionNode =
                     Nothing
 
 
-listTailExistsError : { message : String, details : List String }
-listTailExistsError =
-    { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with some elements will result in Just the elements after the first"
-    , details = [ "You can replace this call by Just the list elements after the first." ]
-    }
-
-
 listTailChecks : CheckInfo -> Maybe (Error {})
 listTailChecks checkInfo =
     let
         listArg : Node Expression
         listArg =
             AstHelpers.removeParens checkInfo.firstArg
+
+        listTailExistsError : { message : String, details : List String }
+        listTailExistsError =
+            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with some elements will result in Just the elements after the first"
+            , details = [ "You can replace this call by Just the list elements after the first." ]
+            }
     in
     firstThatConstructsJust
         [ \() ->
