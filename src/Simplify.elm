@@ -7129,7 +7129,7 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
         Determined wraps ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
+                    { message = "Using " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
                     , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
