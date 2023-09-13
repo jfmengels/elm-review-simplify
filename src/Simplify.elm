@@ -5098,7 +5098,7 @@ emptiableAnyChecks emptiable checkInfo =
                 (\listArg ->
                     callOnEmptyReturnsCheck
                         { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
-                        listCollection
+                        emptiable
                         checkInfo
                 )
                 maybeEmptiableArg
