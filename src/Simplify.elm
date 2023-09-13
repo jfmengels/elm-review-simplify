@@ -5106,9 +5106,9 @@ listFilterMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableWrapperFilterMapChecks listCollection checkInfo
         , \() ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                case secondArg checkInfo of
+                    Just listArg ->
                         case AstHelpers.getListLiteral listArg of
                             Just list ->
                                 case
@@ -5136,11 +5136,11 @@ listFilterMapChecks checkInfo =
                             Nothing ->
                                 Nothing
 
-                    else
+                    Nothing ->
                         Nothing
 
-                Nothing ->
-                    Nothing
+            else
+                Nothing
         ]
         ()
 
