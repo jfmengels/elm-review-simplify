@@ -4316,7 +4316,7 @@ listIndexedMapChecks checkInfo =
                             Just
                                 (Rule.errorWithFix
                                     { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                                    , details = [ "Using " ++ qualifiedToString ( [ "List" ], "indexedMap" ) ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
+                                    , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy checkInfo.fnRange
@@ -4336,7 +4336,7 @@ listIndexedMapChecks checkInfo =
                     Just
                         (Rule.errorWithFix
                             { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString ( [ "List" ], "indexedMap" ) ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
+                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
