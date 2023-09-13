@@ -4440,24 +4440,28 @@ listHeadChecks checkInfo =
         [ \() ->
             callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() ->
-            case Node.value (AstHelpers.removeParens listArg) of
-                Expression.ListExpr (head :: _) ->
-                    Just (justFirstElementError head)
+            Maybe.map justFirstElementError
+                (getListHead checkInfo.lookupTable listArg)
+        ]
+        ()
 
-                Expression.OperatorApplication "::" _ head _ ->
-                    Just (justFirstElementError head)
 
-                _ ->
-                    Nothing
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+getListHead lookupTable expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.ListExpr (head :: _) ->
+            Just head
+
+        Expression.OperatorApplication "::" _ head _ ->
+            Just head
+
+        _ ->
+            case AstHelpers.getListSingleton lookupTable expressionNode of
                 Just single ->
-                    Just (justFirstElementError single.element)
+                    Just single.element
 
                 Nothing ->
                     Nothing
-        ]
-        ()
 
 
 listTailExistsError : { message : String, details : List String }
