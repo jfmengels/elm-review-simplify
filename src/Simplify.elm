@@ -4297,21 +4297,18 @@ listIndexedMapChecks checkInfo =
         , \() ->
             case AstHelpers.removeParens checkInfo.firstArg of
                 Node lambdaRange (Expression.LambdaExpression lambda) ->
-                    case Maybe.map AstHelpers.removeParensFromPattern (List.head lambda.args) of
-                        Just (Node _ Pattern.AllPattern) ->
+                    case List.map AstHelpers.removeParensFromPattern lambda.args of
+                        (Node allPatternRange Pattern.AllPattern) :: lambdaArgsAfterAllPattern ->
                             let
                                 rangeToRemove : Range
                                 rangeToRemove =
-                                    case lambda.args of
+                                    case lambdaArgsAfterAllPattern of
                                         [] ->
-                                            Range.emptyRange
-
-                                        _ :: [] ->
                                             -- Only one argument, remove the entire lambda except the expression
                                             { start = lambdaRange.start, end = (Node.range lambda.expression).start }
 
-                                        (Node firstRange _) :: (Node secondRange _) :: _ ->
-                                            { start = firstRange.start, end = secondRange.start }
+                                        (Node secondRange _) :: _ ->
+                                            { start = allPatternRange.start, end = secondRange.start }
                             in
                             Just
                                 (Rule.errorWithFix
