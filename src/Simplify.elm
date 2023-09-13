@@ -5582,13 +5582,6 @@ subAndCmdBatchChecks batchable checkInfo =
 -- HTML.ATTRIBUTES
 
 
-htmlAttributesClassListFalseElementError : { message : String, details : List String }
-htmlAttributesClassListFalseElementError =
-    { message = "In a " ++ qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ ", a tuple paired with False can be removed"
-    , details = [ "You can remove the tuple list element where the second part is False." ]
-    }
-
-
 htmlAttributesClassListChecks : CheckInfo -> Maybe (Error {})
 htmlAttributesClassListChecks checkInfo =
     let
@@ -5609,6 +5602,12 @@ htmlAttributesClassListChecks checkInfo =
 
                 Nothing ->
                     Nothing
+
+        htmlAttributesClassListFalseElementError : { message : String, details : List String }
+        htmlAttributesClassListFalseElementError =
+            { message = "In a " ++ qualifiedToString ( [ "Html", "Attributes" ], "classList" ) ++ ", a tuple paired with False can be removed"
+            , details = [ "You can remove the tuple list element where the second part is False." ]
+            }
     in
     firstThatConstructsJust
         [ \() ->
