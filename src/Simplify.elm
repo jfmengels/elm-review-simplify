@@ -4295,24 +4295,37 @@ listIndexedMapChecks checkInfo =
                 )
                 (secondArg checkInfo)
         , \() ->
-            case getReplaceAlwaysByItsResultFix checkInfo.lookupTable checkInfo.firstArg of
-                Just replaceAlwaysByFunctionResult ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Use " ++ qualifiedToString ( [ "List" ], "map" ) ++ " instead"
-                            , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString ( [ "List" ], "map" ) ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "List" ], "map" ) checkInfo))
-                                :: replaceAlwaysByFunctionResult
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
+            operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) } listCollection checkInfo
         ]
         ()
+
+
+{-| Map where the usual map function has an extra argument with special information.
+
+For example `indexedMap` also supplied an index. Not using the index would be identical to `map`.
+
+Another example would be [`List.Extra.indexedFoldl`](https://package.elm-lang.org/packages/elm-community/list-extra/latest/List-Extra#indexedFoldl) which also supplies the current index.
+Not using the path would be identical to `List.foldl`.
+
+-}
+operationWithExtraArgChecks : { operationWithoutExtraArg : ( ModuleName, String ) } -> EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+operationWithExtraArgChecks config emptiable checkInfo =
+    case getReplaceAlwaysByItsResultFix checkInfo.lookupTable checkInfo.firstArg of
+        Just replaceAlwaysByFunctionResult ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Use " ++ qualifiedToString config.operationWithoutExtraArg ++ " instead"
+                    , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString config.operationWithoutExtraArg ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    (Fix.replaceRangeBy checkInfo.fnRange
+                        (qualifiedToString (qualify config.operationWithoutExtraArg checkInfo))
+                        :: replaceAlwaysByFunctionResult
+                    )
+                )
+
+        Nothing ->
+            Nothing
 
 
 getReplaceAlwaysByItsResultFix : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
