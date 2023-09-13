@@ -4258,7 +4258,7 @@ listConcatMapChecks checkInfo =
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString ( [ "List" ], "concat" ) ++ ""
+                        { message = "Using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ " with an identity function is the same as using " ++ qualifiedToString ( [ "List" ], "concat" )
                         , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "concat" ) ++ "." ]
                         }
                         checkInfo.fnRange
@@ -4282,7 +4282,7 @@ listConcatCompositionChecks checkInfo =
         ( ( [ "List" ], "map" ), _ :: [] ) ->
             Just
                 { info =
-                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" ) ++ ""
+                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
                     , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
