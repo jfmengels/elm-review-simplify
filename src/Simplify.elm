@@ -4672,7 +4672,7 @@ listMemberChecks checkInfo =
                             Node.range element
                     in
                     Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on an list with a single element is equivalent to directly checking for equality"
+                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on an list with a single element is equivalent to directly checking for equality"
                         , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                         }
                         checkInfo.fnRange
@@ -4715,7 +4715,7 @@ listMemberChecks checkInfo =
                         if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString ( [ "List" ], "member" ) ++ " on a list which contains the given element will result in True"
+                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list which contains the given element will result in True"
                                     , details = [ "You can replace this call by True." ]
                                     }
                                     checkInfo.fnRange
