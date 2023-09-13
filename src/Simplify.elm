@@ -5259,12 +5259,12 @@ listFilterMapCompositionChecks checkInfo =
                     ( ( [ "List" ], "map" ), _ :: [] ) ->
                         Just
                             { info =
-                                { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity can be combined using " ++ qualifiedToString ( [ "List" ], "filterMap" )
-                                , details = [ qualifiedToString ( [ "List" ], "filterMap" ) ++ " is meant for this exact purpose and will also be faster." ]
+                                { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.later.fn
+                                , details = [ qualifiedToString checkInfo.later.fn ++ " is meant for this exact purpose and will also be faster." ]
                                 }
                             , fix =
                                 Fix.replaceRangeBy checkInfo.earlier.fnRange
-                                    (qualifiedToString (qualify ( [ "List" ], "filterMap" ) checkInfo))
+                                    (qualifiedToString (qualify checkInfo.later.fn checkInfo))
                                     :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
                             }
 
