@@ -11663,7 +11663,7 @@ a = List.range 10 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            { message = "Using List.range with a start index greater than the end index will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11679,7 +11679,7 @@ a = List.range 0xF 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            { message = "Using List.range with a start index greater than the end index will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11695,7 +11695,7 @@ a = 5 |> List.range 10
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            { message = "Using List.range with a start index greater than the end index will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }

@@ -5332,12 +5332,10 @@ listRangeChecks checkInfo =
                 ( Just rangeStartValue, Just rangeEndValue ) ->
                     if rangeStartValue > rangeEndValue then
                         Just
-                            (Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a start index greater than the end index will result in []"
-                                , details = [ "You can replace this call by []." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange "[]" ]
+                            (resultsInConstantError
+                                (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                (\_ -> "[]")
+                                checkInfo
                             )
 
                     else
