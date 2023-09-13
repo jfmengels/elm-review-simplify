@@ -4176,15 +4176,20 @@ listConcatChecks checkInfo =
         , \() ->
             case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just listMapArg ->
+                    let
+                        combinedFn : ( ModuleName, String )
+                        combinedFn =
+                            ( [ "List" ], "concatMap" )
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.fn ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
-                            , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
+                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.fn ++ " can be combined using " ++ qualifiedToString combinedFn
+                            , details = [ qualifiedToString combinedFn ++ " is meant for this exact purpose and will also be faster." ]
                             }
                             checkInfo.fnRange
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listMapArg.nodeRange }
                                 ++ [ Fix.replaceRangeBy listMapArg.fnRange
-                                        (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
+                                        (qualifiedToString (qualify combinedFn checkInfo))
                                    ]
                             )
                         )
