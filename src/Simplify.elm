@@ -4512,7 +4512,7 @@ listTailChecks checkInfo =
                 Just _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with a single element will result in Just []"
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with a single element will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             }
                             checkInfo.fnRange
