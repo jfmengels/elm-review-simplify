@@ -7112,7 +7112,7 @@ callOnEmptyReturnsCheck config collection checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
+                { message = "Using " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
                 , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
                 }
                 checkInfo.fnRange
