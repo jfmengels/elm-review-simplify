@@ -4397,9 +4397,14 @@ listIntersperseChecks checkInfo =
 
 listAppendChecks : CheckInfo -> Maybe (Error {})
 listAppendChecks checkInfo =
+    let
+        listArgToTheLeft : Node Expression
+        listArgToTheLeft =
+            checkInfo.firstArg
+    in
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
+            case AstHelpers.getListLiteral listArgToTheLeft of
                 Just [] ->
                     Just
                         (identityError
@@ -4423,11 +4428,11 @@ listAppendChecks checkInfo =
                                     , details = [ "You can remove this call by the left list itself." ]
                                     }
                                     checkInfo.fnRange
-                                    (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                    (replaceBySubExpressionFix checkInfo.parentRange listArgToTheLeft)
                                 )
 
                         Just (_ :: _) ->
-                            case AstHelpers.getListLiteral checkInfo.firstArg of
+                            case AstHelpers.getListLiteral listArgToTheLeft of
                                 Just (_ :: _) ->
                                     Just
                                         (Rule.errorWithFix
@@ -4438,7 +4443,7 @@ listAppendChecks checkInfo =
                                             [ Fix.removeRange { start = (Node.range listArgToTheRight).end, end = checkInfo.parentRange.end }
                                             , Fix.replaceRangeBy
                                                 { start = checkInfo.parentRange.start, end = startWithoutBoundary (Node.range listArgToTheRight) }
-                                                ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries (Node.range checkInfo.firstArg)) ++ ",")
+                                                ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries (Node.range listArgToTheLeft)) ++ ",")
                                             ]
                                         )
 
