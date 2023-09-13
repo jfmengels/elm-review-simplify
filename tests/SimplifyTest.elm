@@ -6911,7 +6911,7 @@ a = List.append xs []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.append with [] to the right will always return the same given left list"
-                            , details = [ "You can remove this call by the left list itself." ]
+                            , details = [ "You can replace this call by the left list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6927,7 +6927,7 @@ a = List.append xs <| []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.append with [] to the right will always return the same given left list"
-                            , details = [ "You can remove this call by the left list itself." ]
+                            , details = [ "You can replace this call by the left list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6943,7 +6943,7 @@ a = [] |> List.append xs
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Using List.append with [] to the right will always return the same given left list"
-                            , details = [ "You can remove this call by the left list itself." ]
+                            , details = [ "You can replace this call by the left list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

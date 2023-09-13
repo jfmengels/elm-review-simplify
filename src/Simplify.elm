@@ -4425,12 +4425,11 @@ listAppendChecks checkInfo =
                     case AstHelpers.getListLiteral listArgToTheRight of
                         Just [] ->
                             Just
-                                (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with [] to the right will always return the same given left list"
-                                    , details = [ "You can remove this call by the left list itself." ]
+                                (returnsArgError (qualifiedToString checkInfo.fn ++ " with [] to the right")
+                                    { arg = listArgToTheLeft
+                                    , argRepresents = "left list"
                                     }
-                                    checkInfo.fnRange
-                                    (replaceBySubExpressionFix checkInfo.parentRange listArgToTheLeft)
+                                    checkInfo
                                 )
 
                         Just (_ :: _) ->
