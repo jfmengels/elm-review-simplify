@@ -5018,9 +5018,14 @@ foldAndSetToListCompositionChecks checkInfo =
 
 listAllChecks : CheckInfo -> Maybe (Error {})
 listAllChecks checkInfo =
+    emptiableAllChecks listCollection checkInfo
+
+
+emptiableAllChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAllChecks emptiable checkInfo =
     let
-        maybeListArg : Maybe (Node Expression)
-        maybeListArg =
+        maybeEmptiableArg : Maybe (Node Expression)
+        maybeEmptiableArg =
             secondArg checkInfo
     in
     firstThatConstructsJust
@@ -5029,10 +5034,10 @@ listAllChecks checkInfo =
                 (\listArg ->
                     callOnEmptyReturnsCheck
                         { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
-                        listCollection
+                        emptiable
                         checkInfo
                 )
-                maybeListArg
+                maybeEmptiableArg
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
@@ -5040,7 +5045,7 @@ listAllChecks checkInfo =
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
                             { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res)
-                            , lastArg = maybeListArg
+                            , lastArg = maybeEmptiableArg
                             }
                             checkInfo
                         )
