@@ -4472,7 +4472,7 @@ listTailChecks checkInfo =
 
         listTailExistsError : { message : String, details : List String }
         listTailExistsError =
-            { message = "Using " ++ qualifiedToString ( [ "List" ], "tail" ) ++ " on a list with some elements will result in Just the elements after the first"
+            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
             , details = [ "You can replace this call by Just the list elements after the first." ]
             }
     in
