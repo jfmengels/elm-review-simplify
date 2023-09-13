@@ -4417,8 +4417,8 @@ listAppendChecks checkInfo =
                 ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Appending [] doesn't have any effect"
-                            , details = [ "You can remove the " ++ qualifiedToString checkInfo.fn ++ " function and the []." ]
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with [] to the right will always return the same given left list"
+                            , details = [ "You can remove this call by the left list itself." ]
                             }
                             checkInfo.fnRange
                             (replaceBySubExpressionFix checkInfo.parentRange firstList)
