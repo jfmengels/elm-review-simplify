@@ -4308,38 +4308,40 @@ listIndexedMapChecks checkInfo =
                 )
                 (secondArg checkInfo)
         , \() ->
-            case AstHelpers.removeParens checkInfo.firstArg of
-                Node lambdaRange (Expression.LambdaExpression lambda) ->
-                    case List.map AstHelpers.removeParensFromPattern lambda.args of
-                        (Node _ Pattern.AllPattern) :: [] ->
-                            Just
-                                (replaceByMapWithFunctionReturnedByAlways
-                                    (keepOnlyFix { parentRange = Node.range checkInfo.firstArg, keep = Node.range lambda.expression })
-                                )
-
-                        (Node allPatternRange Pattern.AllPattern) :: (Node secondRange _) :: _ ->
-                            Just
-                                (replaceByMapWithFunctionReturnedByAlways
-                                    [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
-                                )
-
-                        _ ->
-                            Nothing
-
-                _ ->
-                    Nothing
-        , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) checkInfo.lookupTable checkInfo.firstArg of
-                Just alwaysCall ->
-                    Just
-                        (replaceByMapWithFunctionReturnedByAlways
-                            (replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg)
-                        )
+            case getReplaceAlwaysByItsResultFix checkInfo.lookupTable checkInfo.firstArg of
+                Just replaceAlwaysByFunctionResult ->
+                    Just (replaceByMapWithFunctionReturnedByAlways replaceAlwaysByFunctionResult)
 
                 Nothing ->
                     Nothing
         ]
         ()
+
+
+getReplaceAlwaysByItsResultFix : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
+getReplaceAlwaysByItsResultFix lookupTable expressionNode =
+    case AstHelpers.removeParens expressionNode of
+        Node lambdaRange (Expression.LambdaExpression lambda) ->
+            case List.map AstHelpers.removeParensFromPattern lambda.args of
+                (Node _ Pattern.AllPattern) :: [] ->
+                    Just
+                        (keepOnlyFix { parentRange = Node.range expressionNode, keep = Node.range lambda.expression })
+
+                (Node allPatternRange Pattern.AllPattern) :: (Node secondRange _) :: _ ->
+                    Just
+                        [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
+
+                _ ->
+                    Nothing
+
+        _ ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+                Just alwaysCall ->
+                    Just
+                        (replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg)
+
+                Nothing ->
+                    Nothing
 
 
 listIntersperseChecks : CheckInfo -> Maybe (Error {})
