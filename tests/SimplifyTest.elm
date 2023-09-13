@@ -6846,8 +6846,8 @@ a = List.append [] ys
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending [] doesn't have any effect"
-                            , details = [ "You can remove the List.append function and the []." ]
+                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            , details = [ "You can replace this call by the right list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6862,8 +6862,8 @@ a = List.append [] <| ys
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending [] doesn't have any effect"
-                            , details = [ "You can remove the List.append function and the []." ]
+                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            , details = [ "You can replace this call by the right list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6878,8 +6878,8 @@ a = ys |> List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending [] doesn't have any effect"
-                            , details = [ "You can remove the List.append function and the []." ]
+                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            , details = [ "You can replace this call by the right list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6894,7 +6894,7 @@ a = List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending [] doesn't have any effect"
+                            { message = "Using List.append with [] to the left will always return the same given right list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.append"
                             }

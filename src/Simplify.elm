@@ -4404,53 +4404,59 @@ listAppendChecks checkInfo =
             , details = [ "You can remove the " ++ qualifiedToString checkInfo.fn ++ " function and the []." ]
             }
     in
-    case ( checkInfo.firstArg, secondArg checkInfo ) of
-        ( Node _ (Expression.ListExpr []), maybeSecondListArg ) ->
-            case maybeSecondListArg of
-                Nothing ->
+    firstThatConstructsJust
+        [ \() ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just [] ->
                     Just
-                        (Rule.errorWithFix
-                            { listAppendEmptyErrorInfo
-                                | details = [ "You can replace this call by identity." ]
+                        (identityError
+                            { toFix = qualifiedToString checkInfo.fn ++ " with [] to the left"
+                            , lastArg = secondArg checkInfo
+                            , lastArgRepresents = "right list"
                             }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
-                            ]
+                            checkInfo
                         )
 
-                Just secondListArg ->
+                _ ->
+                    Nothing
+        , \() ->
+            case ( checkInfo.firstArg, secondArg checkInfo ) of
+                ( Node _ (Expression.ListExpr []), _ ) ->
+                    Just
+                        (identityError
+                            { toFix = qualifiedToString checkInfo.fn ++ " with [] to the left"
+                            , lastArg = secondArg checkInfo
+                            , lastArgRepresents = "right list"
+                            }
+                            checkInfo
+                        )
+
+                ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
                     Just
                         (Rule.errorWithFix
                             listAppendEmptyErrorInfo
                             checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange secondListArg)
+                            (replaceBySubExpressionFix checkInfo.parentRange firstList)
                         )
 
-        ( firstList, Just (Node _ (Expression.ListExpr [])) ) ->
-            Just
-                (Rule.errorWithFix
-                    listAppendEmptyErrorInfo
-                    checkInfo.fnRange
-                    (replaceBySubExpressionFix checkInfo.parentRange firstList)
-                )
+                ( Node firstListRange (Expression.ListExpr (_ :: _)), Just (Node secondListRange (Expression.ListExpr (_ :: _))) ) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Appending literal lists could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.removeRange { start = secondListRange.end, end = checkInfo.parentRange.end }
+                            , Fix.replaceRangeBy
+                                { start = checkInfo.parentRange.start, end = startWithoutBoundary secondListRange }
+                                ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries firstListRange) ++ ",")
+                            ]
+                        )
 
-        ( Node firstListRange (Expression.ListExpr (_ :: _)), Just (Node secondListRange (Expression.ListExpr (_ :: _))) ) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Appending literal lists could be simplified to be a single List"
-                    , details = [ "Try moving all the elements into a single list." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.removeRange { start = secondListRange.end, end = checkInfo.parentRange.end }
-                    , Fix.replaceRangeBy
-                        { start = checkInfo.parentRange.start, end = startWithoutBoundary secondListRange }
-                        ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries firstListRange) ++ ",")
-                    ]
-                )
-
-        _ ->
-            Nothing
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 listHeadChecks : CheckInfo -> Maybe (Error {})
