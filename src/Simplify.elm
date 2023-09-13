@@ -8405,12 +8405,7 @@ alwaysResultsInConstantError usingSituation config checkInfo =
     in
     case config.lastArg of
         Just _ ->
-            Rule.errorWithFix
-                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
-                , details = [ "You can replace this call by " ++ config.replacement defaultQualifyResources ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange (config.replacement (extractQualifyResources checkInfo)) ]
+            resultsInConstantError usingSituation config.replacement checkInfo
 
         Nothing ->
             Rule.errorWithFix
@@ -8424,6 +8419,16 @@ alwaysResultsInConstantError usingSituation config checkInfo =
                         ++ addNecessaryParens (config.replacement (extractQualifyResources checkInfo))
                     )
                 ]
+
+
+resultsInConstantError : String -> (QualifyResources {} -> String) -> CheckInfo -> Error {}
+resultsInConstantError usingSituation replacement checkInfo =
+    Rule.errorWithFix
+        { message = "Using " ++ usingSituation ++ " will always result in " ++ replacement defaultQualifyResources
+        , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+        }
+        checkInfo.fnRange
+        [ Fix.replaceRangeBy checkInfo.parentRange (replacement (extractQualifyResources checkInfo)) ]
 
 
 operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
