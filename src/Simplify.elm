@@ -4285,14 +4285,19 @@ listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
         ( ( [ "List" ], "map" ), _ :: [] ) ->
+            let
+                combinedFn : ( ModuleName, String )
+                combinedFn =
+                    ( [ "List" ], "concatMap" )
+            in
             Just
                 { info =
-                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString ( [ "List" ], "concatMap" )
-                    , details = [ qualifiedToString ( [ "List" ], "concatMap" ) ++ " is meant for this exact purpose and will also be faster." ]
+                    { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString ( [ "List" ], "concat" ) ++ " can be combined using " ++ qualifiedToString combinedFn
+                    , details = [ qualifiedToString combinedFn ++ " is meant for this exact purpose and will also be faster." ]
                     }
                 , fix =
                     Fix.replaceRangeBy checkInfo.earlier.fnRange
-                        (qualifiedToString (qualify ( [ "List" ], "concatMap" ) checkInfo))
+                        (qualifiedToString (qualify combinedFn checkInfo))
                         :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.earlier.range }
                 }
 
