@@ -3904,14 +3904,19 @@ stringJoinChecks checkInfo =
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.Literal "" ->
+                    let
+                        replacementFn : ( ModuleName, String )
+                        replacementFn =
+                            ( [ "String" ], "concat" )
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = "Use String.concat instead"
-                            , details = [ "Using String.join with an empty separator is the same as using String.concat." ]
+                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with separator \"\" is the same as using " ++ qualifiedToString replacementFn
+                            , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                (qualifiedToString (qualify ( [ "String" ], "concat" ) checkInfo))
+                                (qualifiedToString (qualify replacementFn checkInfo))
                             ]
                         )
 

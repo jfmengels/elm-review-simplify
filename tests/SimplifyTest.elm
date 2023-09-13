@@ -5809,8 +5809,8 @@ a = String.join "" list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use String.concat instead"
-                            , details = [ "Using String.join with an empty separator is the same as using String.concat." ]
+                            { message = "Using String.join with separator \"\" is the same as using String.concat"
+                            , details = [ "You can replace this call by String.concat." ]
                             , under = "String.join"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5825,8 +5825,8 @@ a = String.join ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use String.concat instead"
-                            , details = [ "Using String.join with an empty separator is the same as using String.concat." ]
+                            { message = "Using String.join with separator \"\" is the same as using String.concat"
+                            , details = [ "You can replace this call by String.concat." ]
                             , under = "String.join"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5841,8 +5841,8 @@ a = list |> String.join ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Use String.concat instead"
-                            , details = [ "Using String.join with an empty separator is the same as using String.concat." ]
+                            { message = "Using String.join with separator \"\" is the same as using String.concat"
+                            , details = [ "You can replace this call by String.concat." ]
                             , under = "String.join"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
