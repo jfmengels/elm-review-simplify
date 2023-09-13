@@ -5332,7 +5332,7 @@ listRangeChecks checkInfo =
                     if rangeStartValue > rangeEndValue then
                         Just
                             (Rule.errorWithFix
-                                { message = "Using " ++ (qualifiedToString ( [ "List" ], "range" ) ++ " with a start index greater than the end index will result in []")
+                                { message = "Using " ++ qualifiedToString ( [ "List" ], "range" ) ++ " with a start index greater than the end index will result in []"
                                 , details = [ "You can replace this call by []." ]
                                 }
                                 checkInfo.fnRange
