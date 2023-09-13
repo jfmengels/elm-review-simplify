@@ -5119,7 +5119,7 @@ listFilterMapChecks checkInfo =
                                     Just justCalls ->
                                         Just
                                             (Rule.errorWithFix
-                                                { message = "Unnecessary use of " ++ qualifiedToString ( [ "List" ], "filterMap" ) ++ " identity"
+                                                { message = "Unnecessary use of " ++ qualifiedToString checkInfo.fn ++ " identity"
                                                 , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
                                                 }
                                                 checkInfo.fnRange
