@@ -4395,15 +4395,15 @@ listIntersperseChecks checkInfo =
         (secondArg checkInfo)
 
 
-listAppendEmptyErrorInfo : { message : String, details : List String }
-listAppendEmptyErrorInfo =
-    { message = "Appending [] doesn't have any effect"
-    , details = [ "You can remove the " ++ qualifiedToString ( [ "List" ], "append" ) ++ " function and the []." ]
-    }
-
-
 listAppendChecks : CheckInfo -> Maybe (Error {})
 listAppendChecks checkInfo =
+    let
+        listAppendEmptyErrorInfo : { message : String, details : List String }
+        listAppendEmptyErrorInfo =
+            { message = "Appending [] doesn't have any effect"
+            , details = [ "You can remove the " ++ qualifiedToString ( [ "List" ], "append" ) ++ " function and the []." ]
+            }
+    in
     case ( checkInfo.firstArg, secondArg checkInfo ) of
         ( Node _ (Expression.ListExpr []), maybeSecondListArg ) ->
             case maybeSecondListArg of
