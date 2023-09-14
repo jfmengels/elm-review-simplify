@@ -7609,38 +7609,46 @@ removeRecordFields recordUpdateRange variable fields =
                 Nothing
 
         (Node firstRange _) :: (Node secondRange _) :: _ ->
-            withBeforeMap
-                (\field ->
-                    let
-                        (Node currentFieldRange ( currentFieldName, valueWithParens )) =
-                            field.current
+            let
+                maybeUnnecessarySetterAndNeighbors =
+                    findMapNeighboring
+                        (\field ->
+                            let
+                                (Node currentFieldRange ( currentFieldName, valueWithParens )) =
+                                    field
 
-                        value : Node Expression
-                        value =
-                            AstHelpers.removeParens valueWithParens
-                    in
-                    if isUnnecessaryRecordUpdateSetter variable currentFieldName value then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Unnecessary field assignment"
-                                , details = [ "The field is being set to its own value." ]
-                                }
-                                (Node.range value)
-                                (case field.before of
-                                    Just (Node prevRange _) ->
-                                        [ Fix.removeRange { start = prevRange.end, end = currentFieldRange.end } ]
+                                value : Node Expression
+                                value =
+                                    AstHelpers.removeParens valueWithParens
+                            in
+                            if isUnnecessaryRecordUpdateSetter variable currentFieldName value then
+                                Just { range = currentFieldRange, valueWithParens = valueWithParens }
 
-                                    Nothing ->
-                                        -- It's the first element, so we can remove until the second element
-                                        [ Fix.removeRange { start = firstRange.start, end = secondRange.start } ]
-                                )
+                            else
+                                Nothing
+                        )
+                        fields
+            in
+            case maybeUnnecessarySetterAndNeighbors of
+                Just unnecessarySetterAndNeighbors ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Unnecessary field assignment"
+                            , details = [ "The field is being set to its own value." ]
+                            }
+                            (Node.range (AstHelpers.removeParens unnecessarySetterAndNeighbors.found.valueWithParens))
+                            (case unnecessarySetterAndNeighbors.before of
+                                Just (Node prevRange _) ->
+                                    [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.range.end } ]
+
+                                Nothing ->
+                                    -- It's the first element, so we can remove until the second element
+                                    [ Fix.removeRange { start = firstRange.start, end = secondRange.start } ]
                             )
+                        )
 
-                    else
-                        Nothing
-                )
-                fields
-                |> findMap identity
+                Nothing ->
+                    Nothing
 
 
 isUnnecessaryRecordUpdateSetter : Node String -> Node String -> Node Expression -> Bool
