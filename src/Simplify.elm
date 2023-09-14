@@ -8674,6 +8674,8 @@ needsParens expr =
             False
 
 
+{-| Take one argument and return a value that matches a given parser.
+-}
 constructs :
     (Node Expression -> Match specific)
     -> ModuleNameLookupTable
