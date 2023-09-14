@@ -7584,12 +7584,7 @@ combineSingleElementFixes lookupTable nodes soFar =
 
 removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
 removeRecordFields recordUpdateRange recordVariable fields =
-    let
-        maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { setterRange : Range, valueAccessRange : Range }, after : Maybe (Node ( Node String, Node Expression )) }
-        maybeUnnecessarySetterAndNeighbors =
-            findMapNeighboring (getUnnecessaryRecordUpdateSetter (Node.value recordVariable)) fields
-    in
-    case maybeUnnecessarySetterAndNeighbors of
+    case findMapNeighboring (getUnnecessaryRecordUpdateSetter (Node.value recordVariable)) fields of
         Just unnecessarySetterAndNeighbors ->
             Just
                 (Rule.errorWithFix
