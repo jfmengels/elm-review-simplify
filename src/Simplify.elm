@@ -8391,7 +8391,12 @@ alwaysResultsInConstantError usingSituation config checkInfo =
     in
     case config.lastArg of
         Just _ ->
-            resultsInConstantError usingSituation config.replacement checkInfo
+            Rule.errorWithFix
+                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
+                , details = [ "You can replace this call by " ++ config.replacement defaultQualifyResources ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy checkInfo.parentRange (config.replacement (extractQualifyResources checkInfo)) ]
 
         Nothing ->
             Rule.errorWithFix
