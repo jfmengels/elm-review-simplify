@@ -7381,14 +7381,10 @@ collectionIsEmptyChecks collection checkInfo =
 
         Just _ ->
             Just
-                (Rule.errorWithFix
-                    { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in False"
-                    , details = [ "You can replace this call by False." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Basics" ], "False" ) checkInfo))
-                    ]
+                (resultsInConstantError
+                    (qualifiedToString checkInfo.fn ++ " on this " ++ collection.represents)
+                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res))
+                    checkInfo
                 )
 
         Nothing ->
