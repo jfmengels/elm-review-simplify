@@ -7583,13 +7583,13 @@ combineSingleElementFixes lookupTable nodes soFar =
 
 
 removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
-removeRecordFields recordUpdateRange variable fields =
+removeRecordFields recordUpdateRange recordVariable fields =
     let
         maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, value : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
         maybeUnnecessarySetterAndNeighbors =
             findMapNeighboring
                 (\((Node range ( currentFieldName, value )) as field) ->
-                    if isUnnecessaryRecordUpdateSetter (Node.value variable) field then
+                    if isUnnecessaryRecordUpdateSetter (Node.value recordVariable) field then
                         Just { range = range, value = value }
 
                     else
@@ -7613,7 +7613,7 @@ removeRecordFields recordUpdateRange variable fields =
                             case unnecessarySetterAndNeighbors.after of
                                 Nothing ->
                                     -- it's the only setter
-                                    keepOnlyFix { parentRange = recordUpdateRange, keep = Node.range variable }
+                                    keepOnlyFix { parentRange = recordUpdateRange, keep = Node.range recordVariable }
 
                                 Just (Node afterRange _) ->
                                     -- It's the first setter, so we can remove until the second setter
@@ -7626,10 +7626,10 @@ removeRecordFields recordUpdateRange variable fields =
 
 
 isUnnecessaryRecordUpdateSetter : String -> Node ( Node String, Node Expression ) -> Bool
-isUnnecessaryRecordUpdateSetter variable (Node _ ( Node _ field, valueNode )) =
+isUnnecessaryRecordUpdateSetter recordVariableName (Node _ ( Node _ field, valueNode )) =
     case AstHelpers.removeParens valueNode of
         Node _ (Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) (Node _ fieldName)) ->
-            field == fieldName && variable == valueHolder
+            field == fieldName && recordVariableName == valueHolder
 
         _ ->
             False
