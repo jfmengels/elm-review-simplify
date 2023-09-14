@@ -3951,9 +3951,8 @@ stringRepeatChecks checkInfo =
                             case intValue of
                                 1 ->
                                     Just
-                                        (alwaysReturnsLastArgError
-                                            { toFix = "String.repeat 1"
-                                            , lastArg = secondArg checkInfo
+                                        (alwaysReturnsLastArgError "String.repeat 1"
+                                            { lastArg = secondArg checkInfo
                                             , lastArgRepresents = "string to repeat"
                                             }
                                             checkInfo
@@ -4015,8 +4014,8 @@ stringReplaceChecks checkInfo =
                         Normalize.ConfirmedEquality ->
                             Just
                                 (alwaysReturnsLastArgError
-                                    { toFix = qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal"
-                                    , lastArg = thirdArg checkInfo
+                                    (qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal")
+                                    { lastArg = thirdArg checkInfo
                                     , lastArgRepresents = "string"
                                     }
                                     checkInfo
@@ -4410,8 +4409,8 @@ listAppendChecks checkInfo =
                 Just [] ->
                     Just
                         (alwaysReturnsLastArgError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with [] to the left"
-                            , lastArg = secondArg checkInfo
+                            (qualifiedToString checkInfo.fn ++ " with [] to the left")
+                            { lastArg = secondArg checkInfo
                             , lastArgRepresents = "right list"
                             }
                             checkInfo
@@ -5226,8 +5225,8 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
-                            , lastArg = secondArg checkInfo
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return Just")
+                            { lastArg = secondArg checkInfo
                             , lastArgRepresents = emptiableWrapper.represents
                             }
                             checkInfo
@@ -5410,8 +5409,8 @@ listSortByChecks checkInfo =
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
-                            { toFix = qualifiedToString checkInfo.fn ++ " (always a)"
-                            , lastArgRepresents = "list"
+                            (qualifiedToString checkInfo.fn ++ " (always a)")
+                            { lastArgRepresents = "list"
                             , lastArg = secondArg checkInfo
                             }
                             checkInfo
@@ -5453,8 +5452,8 @@ listSortWithChecks checkInfo =
                         fixToIdentity : Error {}
                         fixToIdentity =
                             alwaysReturnsLastArgError
-                                { toFix = qualifiedToString checkInfo.fn ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
-                                , lastArgRepresents = "list"
+                                (qualifiedToString checkInfo.fn ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")")
+                                { lastArgRepresents = "list"
                                 , lastArg = secondArg checkInfo
                                 }
                                 checkInfo
@@ -5529,8 +5528,8 @@ listDropChecks checkInfo =
                 Just 0 ->
                     Just
                         (alwaysReturnsLastArgError
-                            { toFix = qualifiedToString checkInfo.fn ++ " 0"
-                            , lastArg = maybeListArg
+                            (qualifiedToString checkInfo.fn ++ " 0")
+                            { lastArg = maybeListArg
                             , lastArgRepresents = "list"
                             }
                             checkInfo
@@ -6424,8 +6423,8 @@ mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (alwaysReturnsLastArgError
-                { toFix = qualifiedToString checkInfo.fn ++ " with an identity function"
-                , lastArg = secondArg checkInfo
+                (qualifiedToString checkInfo.fn ++ " with an identity function")
+                { lastArg = secondArg checkInfo
                 , lastArgRepresents = mappable.represents
                 }
                 checkInfo
@@ -6699,8 +6698,8 @@ wrapperAndThenChecks wrapper checkInfo =
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
-                            , lastArg = maybeWrapperArg
+                            (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources))
+                            { lastArg = maybeWrapperArg
                             , lastArgRepresents = wrapper.represents
                             }
                             checkInfo
@@ -7195,8 +7194,8 @@ emptiableFilterChecks emptiable checkInfo =
                 Determined True ->
                     Just
                         (alwaysReturnsLastArgError
-                            { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return True"
-                            , lastArg = maybeEmptiableArg
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
+                            { lastArg = maybeEmptiableArg
                             , lastArgRepresents = emptiable.represents
                             }
                             checkInfo
@@ -7296,8 +7295,8 @@ collectionUnionChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysReturnsLastArgError
-                        { toFix = qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description
-                        , lastArg = maybeCollectionArg
+                        (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
+                        { lastArg = maybeCollectionArg
                         , lastArgRepresents = collection.represents
                         }
                         checkInfo
@@ -8461,17 +8460,18 @@ Use `returnsArgError` with the given last arg as `arg` when the last arg is alre
 
 -}
 alwaysReturnsLastArgError :
-    { toFix : String
-    , lastArgRepresents : String
-    , lastArg : Maybe (Node Expression)
-    }
+    String
+    ->
+        { lastArgRepresents : String
+        , lastArg : Maybe (Node Expression)
+        }
     -> QualifyResources { a | fnRange : Range, parentRange : Range }
     -> Error {}
-alwaysReturnsLastArgError config resources =
+alwaysReturnsLastArgError usingSpecificSituation config resources =
     case config.lastArg of
         Nothing ->
             Rule.errorWithFix
-                { message = "Using " ++ config.toFix ++ " will always return the same given " ++ config.lastArgRepresents
+                { message = "Using " ++ usingSpecificSituation ++ " will always return the same given " ++ config.lastArgRepresents
                 , details =
                     [ "You can replace this call by identity." ]
                 }
@@ -8481,7 +8481,7 @@ alwaysReturnsLastArgError config resources =
                 ]
 
         Just lastArg ->
-            returnsArgError config.toFix { arg = lastArg, argRepresents = config.lastArgRepresents } resources
+            returnsArgError usingSpecificSituation { arg = lastArg, argRepresents = config.lastArgRepresents } resources
 
 
 {-| In your specific situation, the given arg will always be returned unchanged.
