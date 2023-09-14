@@ -3951,7 +3951,7 @@ stringRepeatChecks checkInfo =
                             case intValue of
                                 1 ->
                                     Just
-                                        (identityError
+                                        (alwaysReturnsLastArgError
                                             { toFix = "String.repeat 1"
                                             , lastArg = secondArg checkInfo
                                             , lastArgRepresents = "string to repeat"
@@ -4014,7 +4014,7 @@ stringReplaceChecks checkInfo =
                     case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
                         Normalize.ConfirmedEquality ->
                             Just
-                                (identityError
+                                (alwaysReturnsLastArgError
                                     { toFix = qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal"
                                     , lastArg = thirdArg checkInfo
                                     , lastArgRepresents = "string"
@@ -4262,7 +4262,7 @@ listConcatMapChecks checkInfo =
         ()
 
 
-{-| Turn `yourFn identity` into `replacementFn`. If `replacementFn` should be `identity`, use `identityError` instead
+{-| Turn `yourFn identity` into `replacementFn`. If `replacementFn` should be `identity`, use `alwaysReturnsLastArgError` instead
 
 Can be used to for example
 
@@ -4409,7 +4409,7 @@ listAppendChecks checkInfo =
             case AstHelpers.getListLiteral listArgToTheLeft of
                 Just [] ->
                     Just
-                        (identityError
+                        (alwaysReturnsLastArgError
                             { toFix = qualifiedToString checkInfo.fn ++ " with [] to the left"
                             , lastArg = secondArg checkInfo
                             , lastArgRepresents = "right list"
@@ -5225,7 +5225,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
             case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
-                        (identityError
+                        (alwaysReturnsLastArgError
                             { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return Just"
                             , lastArg = secondArg checkInfo
                             , lastArgRepresents = emptiableWrapper.represents
@@ -5409,7 +5409,7 @@ listSortByChecks checkInfo =
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
-                        (identityError
+                        (alwaysReturnsLastArgError
                             { toFix = qualifiedToString checkInfo.fn ++ " (always a)"
                             , lastArgRepresents = "list"
                             , lastArg = secondArg checkInfo
@@ -5452,7 +5452,7 @@ listSortWithChecks checkInfo =
                     let
                         fixToIdentity : Error {}
                         fixToIdentity =
-                            identityError
+                            alwaysReturnsLastArgError
                                 { toFix = qualifiedToString checkInfo.fn ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")"
                                 , lastArgRepresents = "list"
                                 , lastArg = secondArg checkInfo
@@ -5528,7 +5528,7 @@ listDropChecks checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 0 ->
                     Just
-                        (identityError
+                        (alwaysReturnsLastArgError
                             { toFix = qualifiedToString checkInfo.fn ++ " 0"
                             , lastArg = maybeListArg
                             , lastArgRepresents = "list"
@@ -6423,7 +6423,7 @@ mapIdentityChecks :
 mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
-            (identityError
+            (alwaysReturnsLastArgError
                 { toFix = qualifiedToString checkInfo.fn ++ " with an identity function"
                 , lastArg = secondArg checkInfo
                 , lastArgRepresents = mappable.represents
@@ -6698,7 +6698,7 @@ wrapperAndThenChecks wrapper checkInfo =
             case AstHelpers.getSpecificValueOrFunction ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
-                        (identityError
+                        (alwaysReturnsLastArgError
                             { toFix = qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
                             , lastArg = maybeWrapperArg
                             , lastArgRepresents = wrapper.represents
@@ -7194,7 +7194,7 @@ emptiableFilterChecks emptiable checkInfo =
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     Just
-                        (identityError
+                        (alwaysReturnsLastArgError
                             { toFix = qualifiedToString checkInfo.fn ++ " with a function that will always return True"
                             , lastArg = maybeEmptiableArg
                             , lastArgRepresents = emptiable.represents
@@ -7295,7 +7295,7 @@ collectionUnionChecks collection checkInfo =
         [ \() ->
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
-                    (identityError
+                    (alwaysReturnsLastArgError
                         { toFix = qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description
                         , lastArg = maybeCollectionArg
                         , lastArgRepresents = collection.represents
@@ -8453,14 +8453,14 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     }
 
 
-identityError :
+alwaysReturnsLastArgError :
     { toFix : String
     , lastArgRepresents : String
     , lastArg : Maybe (Node Expression)
     }
     -> QualifyResources { a | fnRange : Range, parentRange : Range }
     -> Error {}
-identityError config resources =
+alwaysReturnsLastArgError config resources =
     case config.lastArg of
         Nothing ->
             Rule.errorWithFix
@@ -8479,7 +8479,7 @@ identityError config resources =
 
 {-| In your specific situation, the given arg will always be returned unchanged.
 
-Use `identityError` when the last arg could be absent and it would still not change, like with `List.map identity`.
+Use `alwaysReturnsLastArgError` when the last arg could be absent and it would still not change, like with `List.map identity`.
 
 -}
 returnsArgError :
