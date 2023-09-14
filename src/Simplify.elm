@@ -7588,8 +7588,8 @@ removeRecordFields recordUpdateRange recordVariable fields =
         maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, valueAccessRange : Range }, after : Maybe (Node ( Node String, Node Expression )) }
         maybeUnnecessarySetterAndNeighbors =
             findMapNeighboring
-                (\field ->
-                    Maybe.map (\unnecessarySetter -> { range = Node.range field, valueAccessRange = unnecessarySetter.valueAccessRange })
+                (\(Node fieldRange field) ->
+                    Maybe.map (\unnecessarySetter -> { range = fieldRange, valueAccessRange = unnecessarySetter.valueAccessRange })
                         (getUnnecessaryRecordUpdateSetter (Node.value recordVariable) field)
                 )
                 fields
@@ -7622,8 +7622,8 @@ removeRecordFields recordUpdateRange recordVariable fields =
             Nothing
 
 
-getUnnecessaryRecordUpdateSetter : String -> Node ( Node String, Node Expression ) -> Maybe { valueAccessRange : Range }
-getUnnecessaryRecordUpdateSetter recordVariableName (Node _ ( Node _ field, valueNode )) =
+getUnnecessaryRecordUpdateSetter : String -> ( Node String, Node Expression ) -> Maybe { valueAccessRange : Range }
+getUnnecessaryRecordUpdateSetter recordVariableName ( Node _ field, valueNode ) =
     case AstHelpers.removeParens valueNode of
         Node valueAccessRange (Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) (Node _ fieldName)) ->
             if field == fieldName && recordVariableName == valueHolder then
