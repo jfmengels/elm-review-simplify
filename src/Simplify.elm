@@ -8370,6 +8370,14 @@ alwaysResultsInUnparenthesizedConstantError usingSituation config checkInfo =
         checkInfo
 
 
+{-| Regardless of what the next incoming value will be, the result is already determined to be a given constant.
+
+For example, `List.repeat 0` will always return [], whatever the argument will be.
+
+If your function also always returns a constant but it does not have an irrelevant next argument,
+like `List.range 1 0`, use `resultsInConstantError`
+
+-}
 alwaysResultsInConstantError :
     String
     ->
