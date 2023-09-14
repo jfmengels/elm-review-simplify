@@ -8415,7 +8415,7 @@ alwaysResultsInConstantError usingSituation config checkInfo =
 resultsInConstantError : String -> (QualifyResources {} -> String) -> CheckInfo -> Error {}
 resultsInConstantError usingSituation replacement checkInfo =
     Rule.errorWithFix
-        { message = "Using " ++ usingSituation ++ " will always result in " ++ replacement defaultQualifyResources
+        { message = "Using " ++ usingSituation ++ " will result in " ++ replacement defaultQualifyResources
         , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
         }
         checkInfo.fnRange

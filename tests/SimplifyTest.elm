@@ -5639,7 +5639,7 @@ a = String.isEmpty ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.isEmpty on \"\" will always result in True"
+                            { message = "Using String.isEmpty on \"\" will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "String.isEmpty"
                             }
@@ -5655,7 +5655,7 @@ a = String.isEmpty "a"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.isEmpty on this string will always result in False"
+                            { message = "Using String.isEmpty on this string will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "String.isEmpty"
                             }
@@ -7849,7 +7849,7 @@ a = List.member b (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will always result in True"
+                            { message = "Using List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -7897,7 +7897,7 @@ a = List.member b [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will always result in True"
+                            { message = "Using List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -7977,7 +7977,7 @@ a = List.member d [ b, c, d ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will always result in True"
+                            { message = "Using List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8000,7 +8000,7 @@ a = List.member b (b :: cToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will always result in True"
+                            { message = "Using List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8016,7 +8016,7 @@ a = List.member d (b :: c :: d :: eToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will always result in True"
+                            { message = "Using List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -9216,7 +9216,7 @@ a = List.isEmpty []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on [] will always result in True"
+                            { message = "Using List.isEmpty on [] will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.isEmpty"
                             }
@@ -9232,7 +9232,7 @@ a = List.isEmpty [x]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will always result in False"
+                            { message = "Using List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9248,7 +9248,7 @@ a = List.isEmpty (x :: xs)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will always result in False"
+                            { message = "Using List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9264,7 +9264,7 @@ a = x :: xs |> List.isEmpty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will always result in False"
+                            { message = "Using List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9280,7 +9280,7 @@ a = List.isEmpty (List.singleton x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will always result in False"
+                            { message = "Using List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -11663,7 +11663,7 @@ a = List.range 10 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will always result in []"
+                            { message = "Using List.range with a start index greater than the end index will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11679,7 +11679,7 @@ a = List.range 0xF 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will always result in []"
+                            { message = "Using List.range with a start index greater than the end index will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11695,7 +11695,7 @@ a = 5 |> List.range 10
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will always result in []"
+                            { message = "Using List.range with a start index greater than the end index will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -15695,7 +15695,7 @@ a = Set.isEmpty Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on Set.empty will always result in True"
+                            { message = "Using Set.isEmpty on Set.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Set.isEmpty"
                             }
@@ -15713,7 +15713,7 @@ a = Set.isEmpty (Set.fromList [x])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on this set will always result in False"
+                            { message = "Using Set.isEmpty on this set will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.isEmpty"
                             }
@@ -15740,7 +15740,7 @@ a = Set.isEmpty (Set.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on Set.empty will always result in True"
+                            { message = "Using Set.isEmpty on Set.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Set.isEmpty"
                             }
@@ -15767,7 +15767,7 @@ a = Set.isEmpty (Set.singleton x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on this set will always result in False"
+                            { message = "Using Set.isEmpty on this set will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.isEmpty"
                             }
@@ -15785,7 +15785,7 @@ a = Set.singleton x |> Set.isEmpty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on this set will always result in False"
+                            { message = "Using Set.isEmpty on this set will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.isEmpty"
                             }
@@ -16516,7 +16516,7 @@ a = Dict.isEmpty Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on Dict.empty will always result in True"
+                            { message = "Using Dict.isEmpty on Dict.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16534,7 +16534,7 @@ a = Dict.isEmpty (Dict.fromList [x])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on this dict will always result in False"
+                            { message = "Using Dict.isEmpty on this dict will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16552,7 +16552,7 @@ a = Dict.isEmpty (Dict.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on Dict.empty will always result in True"
+                            { message = "Using Dict.isEmpty on Dict.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16579,7 +16579,7 @@ a = Dict.isEmpty (Dict.singleton x y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on this dict will always result in False"
+                            { message = "Using Dict.isEmpty on this dict will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16597,7 +16597,7 @@ a = Dict.singleton x y |> Dict.isEmpty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on this dict will always result in False"
+                            { message = "Using Dict.isEmpty on this dict will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.isEmpty"
                             }
