@@ -7585,15 +7585,12 @@ combineSingleElementFixes lookupTable nodes soFar =
 removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
 removeRecordFields recordUpdateRange recordVariable fields =
     let
-        maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, value : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
+        maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, valueAccessRange : Range }, after : Maybe (Node ( Node String, Node Expression )) }
         maybeUnnecessarySetterAndNeighbors =
             findMapNeighboring
-                (\((Node range ( currentFieldName, value )) as field) ->
-                    if isUnnecessaryRecordUpdateSetter (Node.value recordVariable) field then
-                        Just { range = range, value = value }
-
-                    else
-                        Nothing
+                (\field ->
+                    Maybe.map (\unnecessarySetter -> { range = Node.range field, valueAccessRange = unnecessarySetter.valueAccessRange })
+                        (getUnnecessaryRecordUpdateSetter (Node.value recordVariable) field)
                 )
                 fields
     in
@@ -7604,7 +7601,7 @@ removeRecordFields recordUpdateRange recordVariable fields =
                     { message = "Unnecessary field assignment"
                     , details = [ "The field is being set to its own value." ]
                     }
-                    (Node.range (AstHelpers.removeParens unnecessarySetterAndNeighbors.found.value))
+                    unnecessarySetterAndNeighbors.found.valueAccessRange
                     (case unnecessarySetterAndNeighbors.before of
                         Just (Node prevRange _) ->
                             [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.range.end } ]
@@ -7625,14 +7622,18 @@ removeRecordFields recordUpdateRange recordVariable fields =
             Nothing
 
 
-isUnnecessaryRecordUpdateSetter : String -> Node ( Node String, Node Expression ) -> Bool
-isUnnecessaryRecordUpdateSetter recordVariableName (Node _ ( Node _ field, valueNode )) =
+getUnnecessaryRecordUpdateSetter : String -> Node ( Node String, Node Expression ) -> Maybe { valueAccessRange : Range }
+getUnnecessaryRecordUpdateSetter recordVariableName (Node _ ( Node _ field, valueNode )) =
     case AstHelpers.removeParens valueNode of
-        Node _ (Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) (Node _ fieldName)) ->
-            field == fieldName && recordVariableName == valueHolder
+        Node valueAccessRange (Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) (Node _ fieldName)) ->
+            if field == fieldName && recordVariableName == valueHolder then
+                Just { valueAccessRange = valueAccessRange }
+
+            else
+                Nothing
 
         _ ->
-            False
+            Nothing
 
 
 
