@@ -8353,6 +8353,12 @@ rightBoundaryRange range =
     }
 
 
+{-| Shortcut for `alwaysResultsInConstantError` with `replacementNeedsParens = False`.
+
+If you want to replace to something like `Just []`,
+use `alwaysResultsInConstantError` with `replacementNeedsParens = True`.
+
+-}
 alwaysResultsInUnparenthesizedConstantError :
     String
     ->
