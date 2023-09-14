@@ -8388,28 +8388,25 @@ alwaysResultsInConstantError usingSituation config checkInfo =
 
             else
                 string
-    in
-    case config.lastArg of
-        Just _ ->
-            Rule.errorWithFix
-                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
-                , details = [ "You can replace this call by " ++ config.replacement defaultQualifyResources ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange (config.replacement (extractQualifyResources checkInfo)) ]
 
-        Nothing ->
-            Rule.errorWithFix
-                { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
-                , details = [ "You can replace this call by always " ++ addNecessaryParens (config.replacement defaultQualifyResources) ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
-                        ++ " "
-                        ++ addNecessaryParens (config.replacement (extractQualifyResources checkInfo))
-                    )
-                ]
+        replacement : QualifyResources {} -> String
+        replacement =
+            case config.lastArg of
+                Just _ ->
+                    config.replacement
+
+                Nothing ->
+                    \resources ->
+                        qualifiedToString (qualify ( [ "Basics" ], "always" ) resources)
+                            ++ " "
+                            ++ addNecessaryParens (config.replacement resources)
+    in
+    Rule.errorWithFix
+        { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
+        , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+        }
+        checkInfo.fnRange
+        [ Fix.replaceRangeBy checkInfo.parentRange (replacement (extractQualifyResources checkInfo)) ]
 
 
 resultsInConstantError : String -> (QualifyResources {} -> String) -> CheckInfo -> Error {}
