@@ -2119,7 +2119,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- RECORD UPDATE --
         -------------------
         Expression.RecordUpdateExpression variable fields ->
-            onlyMaybeError (removeRecordFields expressionRange variable fields)
+            onlyMaybeError (recordUpdateChecks expressionRange variable fields)
 
         --------------------
         -- NOT SIMPLIFIED --
@@ -7582,8 +7582,8 @@ combineSingleElementFixes lookupTable nodes soFar =
 -- RECORD UPDATE
 
 
-removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
-removeRecordFields recordUpdateRange recordVariable fields =
+recordUpdateChecks : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
+recordUpdateChecks recordUpdateRange recordVariable fields =
     case findMapNeighboring (getUnnecessaryRecordUpdateSetter (Node.value recordVariable)) fields of
         Just unnecessarySetterAndNeighbors ->
             Just
