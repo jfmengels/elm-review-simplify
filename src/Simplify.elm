@@ -7610,20 +7610,12 @@ removeRecordFields recordUpdateRange variable fields =
 
         (Node firstRange _) :: (Node secondRange _) :: _ ->
             let
-                maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, valueWithParens : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
+                maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, value : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
                 maybeUnnecessarySetterAndNeighbors =
                     findMapNeighboring
-                        (\field ->
-                            let
-                                (Node currentFieldRange ( currentFieldName, valueWithParens )) =
-                                    field
-
-                                value : Node Expression
-                                value =
-                                    AstHelpers.removeParens valueWithParens
-                            in
-                            if isUnnecessaryRecordUpdateSetter variable currentFieldName value then
-                                Just { range = currentFieldRange, valueWithParens = valueWithParens }
+                        (\(Node range ( currentFieldName, value )) ->
+                            if isUnnecessaryRecordUpdateSetter variable currentFieldName (AstHelpers.removeParens value) then
+                                Just { range = range, value = value }
 
                             else
                                 Nothing
@@ -7637,7 +7629,7 @@ removeRecordFields recordUpdateRange variable fields =
                             { message = "Unnecessary field assignment"
                             , details = [ "The field is being set to its own value." ]
                             }
-                            (Node.range (AstHelpers.removeParens unnecessarySetterAndNeighbors.found.valueWithParens))
+                            (Node.range (AstHelpers.removeParens unnecessarySetterAndNeighbors.found.value))
                             (case unnecessarySetterAndNeighbors.before of
                                 Just (Node prevRange _) ->
                                     [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.range.end } ]
