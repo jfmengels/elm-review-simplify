@@ -8855,16 +8855,6 @@ findMapNeighboring tryMap list =
     findMapNeighboringAfter Nothing tryMap list
 
 
-withBeforeMap : ({ before : Maybe a, current : a } -> b) -> List a -> List b
-withBeforeMap changeWithBefore list =
-    List.map2
-        (\before current ->
-            changeWithBefore { before = before, current = current }
-        )
-        (Nothing :: List.map Just list)
-        list
-
-
 traverse : (a -> Maybe b) -> List a -> Maybe (List b)
 traverse f list =
     traverseHelp f list []
