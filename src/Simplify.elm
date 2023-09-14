@@ -7589,7 +7589,7 @@ removeRecordFields recordUpdateRange variable fields =
         maybeUnnecessarySetterAndNeighbors =
             findMapNeighboring
                 (\(Node range ( currentFieldName, value )) ->
-                    if isUnnecessaryRecordUpdateSetter variable currentFieldName (AstHelpers.removeParens value) then
+                    if isUnnecessaryRecordUpdateSetter variable currentFieldName value then
                         Just { range = range, value = value }
 
                     else
@@ -7626,9 +7626,9 @@ removeRecordFields recordUpdateRange variable fields =
 
 
 isUnnecessaryRecordUpdateSetter : Node String -> Node String -> Node Expression -> Bool
-isUnnecessaryRecordUpdateSetter (Node _ variable) (Node _ field) (Node _ value) =
-    case value of
-        Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) (Node _ fieldName) ->
+isUnnecessaryRecordUpdateSetter (Node _ variable) (Node _ field) valueNode =
+    case AstHelpers.removeParens valueNode of
+        Node _ (Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] valueHolder)) (Node _ fieldName)) ->
             field == fieldName && variable == valueHolder
 
         _ ->
