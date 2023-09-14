@@ -16708,8 +16708,8 @@ a = Dict.size Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 0"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 0"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16726,8 +16726,8 @@ a = Dict.empty |> Dict.size
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 0"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 0"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16744,8 +16744,8 @@ a = Dict.singleton x y |> Dict.size
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 1"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 1"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16771,8 +16771,8 @@ import Dict
 a = Dict.size (Dict.empty)
 """
                         , Review.Test.error
-                            { message = "The size of the Dict is 0"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 0"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16789,8 +16789,8 @@ a = Dict.size (Dict.fromList [a])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 1"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 1"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16807,8 +16807,8 @@ a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1)])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 3"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 3"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16825,8 +16825,8 @@ a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 3"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 3"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16843,8 +16843,8 @@ a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The size of the Dict is 3"
-                            , details = [ "The size of the Dict can be determined by looking at the code." ]
+                            { message = "The size of the dict is 3"
+                            , details = [ "The size of the dict can be determined by looking at the code." ]
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16962,8 +16962,8 @@ a = Dict.partition (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "All elements will go to the first Dict"
-                            , details = [ "Since the predicate function always returns True, the second Dict will always be Dict.empty." ]
+                            { message = "All elements will go to the first dict"
+                            , details = [ "Since the predicate function always returns True, the second dict will always be Dict.empty." ]
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16980,8 +16980,8 @@ a = Dict.partition (\\_ -> True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "All elements will go to the first Dict"
-                            , details = [ "Since the predicate function always returns True, the second Dict will always be Dict.empty." ]
+                            { message = "All elements will go to the first dict"
+                            , details = [ "Since the predicate function always returns True, the second dict will always be Dict.empty." ]
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17009,8 +17009,8 @@ a = Dict.partition (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "All elements will go to the second Dict"
-                            , details = [ "Since the predicate function always returns False, the first Dict will always be Dict.empty." ]
+                            { message = "All elements will go to the second dict"
+                            , details = [ "Since the predicate function always returns False, the first dict will always be Dict.empty." ]
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17027,8 +17027,8 @@ a = Dict.partition (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "All elements will go to the second Dict"
-                            , details = [ "Since the predicate function always returns False, the first Dict will always be Dict.empty." ]
+                            { message = "All elements will go to the second dict"
+                            , details = [ "Since the predicate function always returns False, the first dict will always be Dict.empty." ]
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17045,8 +17045,8 @@ a = Dict.partition <| (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "All elements will go to the second Dict"
-                            , details = [ "Since the predicate function always returns False, the first Dict will always be Dict.empty." ]
+                            { message = "All elements will go to the second dict"
+                            , details = [ "Since the predicate function always returns False, the first dict will always be Dict.empty." ]
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17063,8 +17063,8 @@ a = always False |> Dict.partition
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "All elements will go to the second Dict"
-                            , details = [ "Since the predicate function always returns False, the first Dict will always be Dict.empty." ]
+                            { message = "All elements will go to the second dict"
+                            , details = [ "Since the predicate function always returns False, the first dict will always be Dict.empty." ]
                             , under = "Dict.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
