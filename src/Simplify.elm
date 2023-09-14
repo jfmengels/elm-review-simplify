@@ -8453,6 +8453,13 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     }
 
 
+{-| In your specific situation, the next (and last) incoming argument will always be returned unchanged.
+
+For example, `List.map identity` will not change whatever list comes next. It is equivalent to `identity`
+
+Use `returnsArgError` with the given last arg as `arg` when the last arg is already present.
+
+-}
 alwaysReturnsLastArgError :
     { toFix : String
     , lastArgRepresents : String
