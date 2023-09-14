@@ -8423,6 +8423,14 @@ alwaysResultsInConstantError usingSituation config checkInfo =
         [ Fix.replaceRangeBy checkInfo.parentRange (replacement (extractQualifyResources checkInfo)) ]
 
 
+{-| The result in the given situation is determined to be a given constant.
+
+For example, `List.range 1 0` will return [].
+
+If your function also always returns a constant but has an irrelevant next argument,
+like `List.repeat 0`, use `alwaysResultsInConstantError`
+
+-}
 resultsInConstantError : String -> (QualifyResources {} -> String) -> CheckInfo -> Error {}
 resultsInConstantError usingSituation replacement checkInfo =
     Rule.errorWithFix
