@@ -7369,14 +7369,10 @@ collectionIsEmptyChecks collection checkInfo =
     case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
-                (Rule.errorWithFix
-                    { message = "The call to " ++ qualifiedToString checkInfo.fn ++ " will result in True"
-                    , details = [ "You can replace this call by True." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify ( [ "Basics" ], "True" ) checkInfo))
-                    ]
+                (resultsInConstantError
+                    (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite collection.empty.description)
+                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res))
+                    checkInfo
                 )
 
         Just _ ->
