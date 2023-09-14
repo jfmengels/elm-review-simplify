@@ -7585,12 +7585,12 @@ combineSingleElementFixes lookupTable nodes soFar =
 removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
 removeRecordFields recordUpdateRange recordVariable fields =
     let
-        maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, valueAccessRange : Range }, after : Maybe (Node ( Node String, Node Expression )) }
+        maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { setterRange : Range, valueAccessRange : Range }, after : Maybe (Node ( Node String, Node Expression )) }
         maybeUnnecessarySetterAndNeighbors =
             findMapNeighboring
-                (\(Node fieldRange field) ->
-                    Maybe.map (\unnecessarySetter -> { range = fieldRange, valueAccessRange = unnecessarySetter.valueAccessRange })
-                        (getUnnecessaryRecordUpdateSetter (Node.value recordVariable) field)
+                (\(Node setterRange setter) ->
+                    Maybe.map (\unnecessarySetter -> { setterRange = setterRange, valueAccessRange = unnecessarySetter.valueAccessRange })
+                        (getUnnecessaryRecordUpdateSetter (Node.value recordVariable) setter)
                 )
                 fields
     in
@@ -7604,7 +7604,7 @@ removeRecordFields recordUpdateRange recordVariable fields =
                     unnecessarySetterAndNeighbors.found.valueAccessRange
                     (case unnecessarySetterAndNeighbors.before of
                         Just (Node prevRange _) ->
-                            [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.range.end } ]
+                            [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.setterRange.end } ]
 
                         Nothing ->
                             case unnecessarySetterAndNeighbors.after of
@@ -7614,7 +7614,7 @@ removeRecordFields recordUpdateRange recordVariable fields =
 
                                 Just (Node afterRange _) ->
                                     -- It's the first setter, so we can remove until the second setter
-                                    [ Fix.removeRange { start = unnecessarySetterAndNeighbors.found.range.start, end = afterRange.start } ]
+                                    [ Fix.removeRange { start = unnecessarySetterAndNeighbors.found.setterRange.start, end = afterRange.start } ]
                     )
                 )
 
