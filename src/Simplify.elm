@@ -7584,64 +7584,45 @@ combineSingleElementFixes lookupTable nodes soFar =
 
 removeRecordFields : Range -> Node String -> List (Node Expression.RecordSetter) -> Maybe (Error {})
 removeRecordFields recordUpdateRange variable fields =
-    case fields of
-        [] ->
-            -- Not possible
-            Nothing
+    let
+        maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, value : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
+        maybeUnnecessarySetterAndNeighbors =
+            findMapNeighboring
+                (\(Node range ( currentFieldName, value )) ->
+                    if isUnnecessaryRecordUpdateSetter variable currentFieldName (AstHelpers.removeParens value) then
+                        Just { range = range, value = value }
 
-        (Node _ ( field, valueWithParens )) :: [] ->
-            let
-                value : Node Expression
-                value =
-                    AstHelpers.removeParens valueWithParens
-            in
-            if isUnnecessaryRecordUpdateSetter variable field value then
-                Just
-                    (Rule.errorWithFix
-                        { message = "Unnecessary field assignment"
-                        , details = [ "The field is being set to its own value." ]
-                        }
-                        (Node.range value)
-                        (keepOnlyFix { parentRange = recordUpdateRange, keep = Node.range variable })
-                    )
+                    else
+                        Nothing
+                )
+                fields
+    in
+    case maybeUnnecessarySetterAndNeighbors of
+        Just unnecessarySetterAndNeighbors ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Unnecessary field assignment"
+                    , details = [ "The field is being set to its own value." ]
+                    }
+                    (Node.range (AstHelpers.removeParens unnecessarySetterAndNeighbors.found.value))
+                    (case unnecessarySetterAndNeighbors.before of
+                        Just (Node prevRange _) ->
+                            [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.range.end } ]
 
-            else
-                Nothing
-
-        (Node firstRange _) :: (Node secondRange _) :: _ ->
-            let
-                maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, value : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
-                maybeUnnecessarySetterAndNeighbors =
-                    findMapNeighboring
-                        (\(Node range ( currentFieldName, value )) ->
-                            if isUnnecessaryRecordUpdateSetter variable currentFieldName (AstHelpers.removeParens value) then
-                                Just { range = range, value = value }
-
-                            else
-                                Nothing
-                        )
-                        fields
-            in
-            case maybeUnnecessarySetterAndNeighbors of
-                Just unnecessarySetterAndNeighbors ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Unnecessary field assignment"
-                            , details = [ "The field is being set to its own value." ]
-                            }
-                            (Node.range (AstHelpers.removeParens unnecessarySetterAndNeighbors.found.value))
-                            (case unnecessarySetterAndNeighbors.before of
-                                Just (Node prevRange _) ->
-                                    [ Fix.removeRange { start = prevRange.end, end = unnecessarySetterAndNeighbors.found.range.end } ]
-
+                        Nothing ->
+                            case unnecessarySetterAndNeighbors.after of
                                 Nothing ->
-                                    -- It's the first element, so we can remove until the second element
-                                    [ Fix.removeRange { start = firstRange.start, end = secondRange.start } ]
-                            )
-                        )
+                                    -- it's the only setter
+                                    keepOnlyFix { parentRange = recordUpdateRange, keep = Node.range variable }
 
-                Nothing ->
-                    Nothing
+                                Just (Node afterRange _) ->
+                                    -- It's the first setter, so we can remove until the second setter
+                                    [ Fix.removeRange { start = unnecessarySetterAndNeighbors.found.range.start, end = afterRange.start } ]
+                    )
+                )
+
+        Nothing ->
+            Nothing
 
 
 isUnnecessaryRecordUpdateSetter : Node String -> Node String -> Node Expression -> Bool
