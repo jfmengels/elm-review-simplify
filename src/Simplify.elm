@@ -7610,6 +7610,7 @@ removeRecordFields recordUpdateRange variable fields =
 
         (Node firstRange _) :: (Node secondRange _) :: _ ->
             let
+                maybeUnnecessarySetterAndNeighbors : Maybe { before : Maybe (Node ( Node String, Node Expression )), found : { range : Range, valueWithParens : Node Expression }, after : Maybe (Node ( Node String, Node Expression )) }
                 maybeUnnecessarySetterAndNeighbors =
                     findMapNeighboring
                         (\field ->
