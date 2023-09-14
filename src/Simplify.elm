@@ -6294,7 +6294,7 @@ setDetermineSize lookupTable expressionNode =
 dictCollection : CollectionProperties {}
 dictCollection =
     { moduleName = [ "Dict" ]
-    , represents = "Dict"
+    , represents = "dict"
     , empty =
         { description = Constant (qualifiedToString ( [ "Dict" ], "empty" ))
         , is =
