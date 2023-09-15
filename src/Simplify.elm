@@ -5942,6 +5942,21 @@ type alias ConstantProperties =
     }
 
 
+{-| `TypeProperties` of a structure that will always have data inside, for example a non-empty list, a `Test`, a `Benchmark` or a tree (but not a forest).
+
+This can be really valuable, for example when you want to know whether the function of a map or andThen will always be called.
+
+The way this type is defined,
+it is impossible to have one type that has both `EmptiableProperties` and `NonEmptiableProperties`
+
+-}
+type alias NonEmptiableProperties otherProperties =
+    TypeProperties
+        { otherProperties
+            | empty : { invalid : () }
+        }
+
+
 {-| Properties of a type that has a construction function that takes one value.
 
 Example "wrap" construction functions: `Just`, `Err`, `List.singleton` and `[ a ]`
@@ -6049,7 +6064,7 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-randomGeneratorWrapper : WrapperProperties {}
+randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties {})
 randomGeneratorWrapper =
     { moduleName = [ "Random" ]
     , represents = "random generator"
@@ -6060,6 +6075,7 @@ randomGeneratorWrapper =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) lookupTable expr)
         }
+    , empty = { invalid = () }
     }
 
 
@@ -6536,7 +6552,7 @@ wrapToMapCompositionChecks wrapper checkInfo =
 
 
 nonEmptiableWrapperMapAlwaysChecks :
-    WrapperProperties otherProperties
+    NonEmptiableProperties (WrapperProperties otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
