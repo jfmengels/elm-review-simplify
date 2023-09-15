@@ -6562,13 +6562,13 @@ mapAlwaysChecks wrapper checkInfo =
                         ( "", "" )
             in
             Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
-                    }
-                    checkInfo.fnRange
-                    (case secondArg checkInfo of
-                        Nothing ->
+                (case secondArg checkInfo of
+                    Nothing ->
+                        Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value will always result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
+                            , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
+                            }
+                            checkInfo.fnRange
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
                                 (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
@@ -6582,7 +6582,12 @@ mapAlwaysChecks wrapper checkInfo =
                                 (rightParenIfRequired ++ ")")
                             ]
 
-                        Just _ ->
+                    Just _ ->
+                        Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
+                            , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
+                            }
+                            checkInfo.fnRange
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
                                 (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
@@ -6593,7 +6598,6 @@ mapAlwaysChecks wrapper checkInfo =
                                 { start = alwaysMapResultRange.end, end = checkInfo.parentRange.end }
                                 rightParenIfRequired
                             ]
-                    )
                 )
 
         Nothing ->
