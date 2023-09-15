@@ -5904,7 +5904,8 @@ randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks randomGeneratorWrapper checkInfo
-        , \() -> wrapperMapChecks randomGeneratorWrapper checkInfo
+        , \() -> mapWrapChecks randomGeneratorWrapper checkInfo
+        , \() -> mapAlwaysChecks randomGeneratorWrapper checkInfo
         ]
         ()
 
@@ -6432,18 +6433,6 @@ mapIdentityChecks mappable checkInfo =
 
     else
         Nothing
-
-
-wrapperMapChecks :
-    WrapperProperties otherProperties
-    -> CheckInfo
-    -> Maybe (Error {})
-wrapperMapChecks wrapper checkInfo =
-    firstThatConstructsJust
-        [ \() -> mapWrapChecks wrapper checkInfo
-        , \() -> mapAlwaysChecks wrapper checkInfo
-        ]
-        ()
 
 
 wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
