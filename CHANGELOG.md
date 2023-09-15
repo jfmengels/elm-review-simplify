@@ -19,13 +19,13 @@
 - `Random.list -1/-2/-3/... generator` to `Random.constant []`
 - `Random.list 1 generator` to `Random.map List.singleton generator`
 - `Random.list n (Random.constant el)` to `Random.constant (List.repeat n el)`
-- `Random.uniform a []` `Random.constant a`
-- `Random.weighted ( weight, a ) []` `Random.constant a`
-- `Random.weighted tuple []` `Random.constant (Tuple.first tuple)`
-- `not (a > b)` `a <= b`
-- `not (a < b)` `a >= b`
-- `not (a >= b)` `a < b`
-- `not (a <= b)` `a > b`
+- `Random.uniform a []` to `Random.constant a`
+- `Random.weighted ( weight, a ) []` to `Random.constant a`
+- `Random.weighted tuple []` to `Random.constant (Tuple.first tuple)`
+- `not (a > b)` to `a <= b`
+- `not (a < b)` to `a >= b`
+- `not (a >= b)` to `a < b`
+- `not (a <= b)` to `a > b`
 - with expectNaN disabled: `0 / n --> 0`
 
 ## [2.1.0] - 2023-08-15
