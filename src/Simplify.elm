@@ -4350,8 +4350,8 @@ operationWithExtraArgChecks config checkInfo =
         Just replaceAlwaysByFunctionResult ->
             Just
                 (Rule.errorWithFix
-                    { message = "Use " ++ qualifiedToString config.operationWithoutExtraArg ++ " instead"
-                    , details = [ "Using " ++ qualifiedToString checkInfo.fn ++ " while ignoring the first argument is the same thing as calling " ++ qualifiedToString config.operationWithoutExtraArg ++ "." ]
+                    { message = qualifiedToString checkInfo.fn ++ " with a function that ignores the first argument is the same as " ++ qualifiedToString config.operationWithoutExtraArg
+                    , details = [ "You can replace this call by " ++ qualifiedToString config.operationWithoutExtraArg ++ "." ]
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy checkInfo.fnRange
