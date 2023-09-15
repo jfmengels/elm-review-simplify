@@ -5905,7 +5905,7 @@ randomMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks randomGeneratorWrapper checkInfo
         , \() -> mapWrapChecks randomGeneratorWrapper checkInfo
-        , \() -> mapAlwaysChecks randomGeneratorWrapper checkInfo
+        , \() -> nonEmptiableWrapperMapAlwaysChecks randomGeneratorWrapper checkInfo
         ]
         ()
 
@@ -6535,11 +6535,11 @@ wrapToMapCompositionChecks wrapper checkInfo =
             Nothing
 
 
-mapAlwaysChecks :
+nonEmptiableWrapperMapAlwaysChecks :
     WrapperProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
-mapAlwaysChecks wrapper checkInfo =
+nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
     case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
         Just (Node alwaysMapResultRange alwaysMapResult) ->
             let
