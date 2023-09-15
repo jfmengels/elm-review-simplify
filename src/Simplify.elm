@@ -4368,16 +4368,22 @@ getReplaceAlwaysByItsResultFix : ModuleNameLookupTable -> Node Expression -> May
 getReplaceAlwaysByItsResultFix lookupTable expressionNode =
     case AstHelpers.removeParens expressionNode of
         Node _ (Expression.LambdaExpression lambda) ->
-            case List.map AstHelpers.removeParensFromPattern lambda.args of
-                (Node _ Pattern.AllPattern) :: [] ->
-                    Just
-                        (keepOnlyFix { parentRange = Node.range expressionNode, keep = Node.range lambda.expression })
+            case lambda.args of
+                firstArg :: argsAfterFirst ->
+                    case AstHelpers.removeParensFromPattern firstArg of
+                        Node allPatternRange Pattern.AllPattern ->
+                            case argsAfterFirst of
+                                [] ->
+                                    Just (keepOnlyFix { parentRange = Node.range expressionNode, keep = Node.range lambda.expression })
 
-                (Node allPatternRange Pattern.AllPattern) :: (Node secondRange _) :: _ ->
-                    Just
-                        [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
+                                (Node secondRange _) :: _ ->
+                                    Just
+                                        [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
 
-                _ ->
+                        _ ->
+                            Nothing
+
+                [] ->
                     Nothing
 
         _ ->
