@@ -3128,7 +3128,7 @@ notOnKnownBoolCheck checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Using not on a bool known to be " ++ AstHelpers.boolToString bool ++ " can be replaced by " ++ notBoolAsString
+                    { message = "not on a bool known to be " ++ AstHelpers.boolToString bool ++ " can be replaced by " ++ notBoolAsString
                     , details = [ "You can replace this call by " ++ notBoolAsString ++ "." ]
                     }
                     checkInfo.fnRange
@@ -3911,7 +3911,7 @@ stringJoinChecks checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with separator \"\" is the same as using " ++ qualifiedToString replacementFn
+                            { message = qualifiedToString checkInfo.fn ++ " with separator \"\" is the same as " ++ qualifiedToString replacementFn
                             , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
                             }
                             checkInfo.fnRange
@@ -3934,7 +3934,7 @@ stringRepeatChecks checkInfo =
                 Just (Node _ (Expression.Literal "")) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
+                            { message = "String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
                             , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
                             }
                             checkInfo.fnRange
@@ -3993,7 +3993,7 @@ stringReplaceChecks checkInfo =
                                             if not (String.contains "\u{000D}" toReplace) && not (String.contains toReplace third) then
                                                 Just
                                                     (Rule.errorWithFix
-                                                        { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                                                        { message = "String.replace with a pattern not present in the given string will result in the given string"
                                                         , details = [ "You can replace this call by the given string itself." ]
                                                         }
                                                         checkInfo.fnRange
@@ -4076,7 +4076,7 @@ mapWrapErrorInfo mapFn wrapper =
         wrapFnInErrorInfo =
             qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
     in
-    { message = "Using " ++ qualifiedToString mapFn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
+    { message = qualifiedToString mapFn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
     , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " itself." ]
     }
 
@@ -4218,7 +4218,7 @@ irrelevantEmptyElementInGivenListArgCheck listArg emptiableElement checkInfo =
                 Just emptyLiteralAndNeighbors ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
+                            { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
                             , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the list does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
                             }
                             emptyLiteralAndNeighbors.found.range
@@ -4275,7 +4275,7 @@ operationWithIdentityCanBeReplacedChecks config checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with an identity function is the same as using " ++ qualifiedToString config.replacementFn
+                { message = qualifiedToString checkInfo.fn ++ " with an identity function is the same as " ++ qualifiedToString config.replacementFn
                 , details = [ "You can replace this call by " ++ qualifiedToString config.replacementFn ++ "." ]
                 }
                 checkInfo.fnRange
@@ -4473,7 +4473,7 @@ listHeadChecks checkInfo =
             Maybe.map
                 (\listArgHead ->
                     Rule.errorWithFix
-                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
+                        { message = qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
                         , details = [ "You can replace this call by Just the first list element." ]
                         }
                         checkInfo.fnRange
@@ -4516,7 +4516,7 @@ listTailChecks checkInfo =
         listTailExistsError : List Fix -> Error {}
         listTailExistsError replaceListArgByTailFix =
             Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
+                { message = qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
                 , details = [ "You can replace this call by Just the list elements after the first." ]
                 }
                 checkInfo.fnRange
@@ -4551,7 +4551,7 @@ listTailChecks checkInfo =
                 Just _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a list with a single element will result in Just []"
+                            { message = qualifiedToString checkInfo.fn ++ " on a list with a single element will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             }
                             checkInfo.fnRange
@@ -4583,7 +4583,7 @@ dictToListMapErrorInfo info =
         toEntryAspectListAsQualifiedString =
             qualifiedToString ( [ "Dict" ], info.toEntryAspectList )
     in
-    { message = "Using " ++ qualifiedToString ( [ "Dict" ], "toList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], info.tuplePart ) ++ " is the same as using " ++ toEntryAspectListAsQualifiedString
+    { message = qualifiedToString ( [ "Dict" ], "toList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], info.tuplePart ) ++ " is the same as " ++ toEntryAspectListAsQualifiedString
     , details = [ "Using " ++ toEntryAspectListAsQualifiedString ++ " directly is meant for this exact purpose and will also be faster." ]
     }
 
@@ -4707,7 +4707,7 @@ listMemberChecks checkInfo =
                             in
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on an list with a single element is equivalent to directly checking for equality"
+                                    { message = qualifiedToString checkInfo.fn ++ " on an list with a single element is equivalent to directly checking for equality"
                                     , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                                     }
                                     checkInfo.fnRange
@@ -4830,7 +4830,7 @@ listFoldAnyDirectionChecks checkInfo =
                                     qualifiedToString ( [ "List" ], operation.list )
                             in
                             Rule.errorWithFix
-                                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as using " ++ replacementOperationAsString
+                                { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as " ++ replacementOperationAsString
                                 , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
                                 }
                                 checkInfo.fnRange
@@ -4910,7 +4910,7 @@ listFoldAnyDirectionChecks checkInfo =
                                 qualifiedToString ( [ "List" ], operation.list ) ++ " identity"
                         in
                         Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as using " ++ replacementOperationAsString
+                            { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as " ++ replacementOperationAsString
                             , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
                             }
                             checkInfo.fnRange
@@ -4969,7 +4969,7 @@ listFoldAnyDirectionChecks checkInfo =
                             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                                 Just
                                     (Rule.errorWithFix
-                                        { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
                                         , details = [ "You can replace this call by the initial accumulator." ]
                                         }
                                         checkInfo.fnRange
@@ -5109,7 +5109,7 @@ listAnyChecks checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by using " ++ qualifiedToString replacementFn ++ " with that value"
+                            { message = qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by " ++ qualifiedToString replacementFn ++ " with that value"
                             , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the specific value to find which meant for this exact purpose." ]
                             }
                             checkInfo.fnRange
@@ -5208,7 +5208,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as using " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" )
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" )
                             , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" ) ++ "." ]
                             }
                             checkInfo.fnRange
@@ -5462,7 +5462,7 @@ listSortWithChecks checkInfo =
                         LT ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " (\\_ _ -> LT) is the same as using " ++ qualifiedToString ( [ "List" ], "reverse" )
+                                    { message = qualifiedToString checkInfo.fn ++ " (\\_ _ -> LT) is the same as " ++ qualifiedToString ( [ "List" ], "reverse" )
                                     , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ "." ]
                                     }
                                     checkInfo.fnRange
@@ -5555,7 +5555,7 @@ emptiableMapNChecks { n } emptiable checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with any list being [] will result in []"
+                { message = qualifiedToString checkInfo.fn ++ " with any list being [] will result in []"
                 , details = [ "You can replace this call by " ++ callReplacement ++ "." ]
                 }
                 checkInfo.fnRange
@@ -6563,7 +6563,7 @@ mapAlwaysChecks wrapper checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
+                    { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
                     , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
                     }
                     checkInfo.fnRange
@@ -6609,7 +6609,7 @@ mapAlwaysCompositionChecks wrapper checkInfo =
         ( ( [ "Basics" ], "always" ), [] ) ->
             Just
                 { info =
-                    { message = "Using " ++ qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
+                    { message = qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
                     , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
                     }
                 , fix =
@@ -6679,7 +6679,7 @@ wrapperAndThenChecks wrapper checkInfo =
                         Determined wrapCalls ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
                                     , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
@@ -6717,7 +6717,7 @@ wrapperAndThenChecks wrapper checkInfo =
                 Determined wrapCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as using " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside"
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside"
                             , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                             }
                             checkInfo.fnRange
@@ -6795,7 +6795,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in the default value"
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in the default value"
                             , details = [ "You can replace this call by the default value." ]
                             }
                             checkInfo.fnRange
@@ -6837,7 +6837,7 @@ wrapToMaybeCompositionChecks wrapper checkInfo =
     if checkInfo.earlier.fn == ( wrapper.moduleName, wrapper.wrap.fnName ) then
         Just
             { info =
-                { message = "Using " ++ qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
                 , details = [ "You can replace this call by Just." ]
                 }
             , fix =
@@ -6859,7 +6859,7 @@ resultToMaybeCompositionChecks checkInfo =
                 ( [ "Result" ], "Err" ) ->
                     Just
                         { info =
-                            { message = "Using " ++ qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
+                            { message = qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
                             , details = [ "You can replace this call by always Nothing." ]
                             }
                         , fix =
@@ -7109,7 +7109,7 @@ callOnEmptyReturnsCheck config collection checkInfo =
         in
         Just
             (Rule.errorWithFix
-                { message = "Using " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
+                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
                 , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
                 }
                 checkInfo.fnRange
@@ -7138,7 +7138,7 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
         Determined wraps ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
+                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
                     , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
@@ -7161,7 +7161,7 @@ callOnWrapReturnsJustItsValue withWrapArg withWrap checkInfo =
         Determined wraps ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
+                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
                     , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
                     }
                     checkInfo.fnRange
@@ -7422,7 +7422,7 @@ wrapperFromListSingletonChecks wrapper checkInfo =
         Just listSingleton ->
             Just
                 (Rule.errorWithFix
-                    { message = "Using " ++ qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
+                    { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
                     , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside the singleton list." ]
                     }
                     checkInfo.fnRange
@@ -7438,7 +7438,7 @@ wrapperFromListSingletonCompositionChecks wrapper checkInfo =
         ( [ "List" ], "singleton" ) ->
             Just
                 { info =
-                    { message = "Using " ++ qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
+                    { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
                     , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
                     }
                 , fix =
@@ -8388,7 +8388,7 @@ alwaysResultsInConstantError usingSituation config checkInfo =
                             ++ addNecessaryParens (config.replacement resources)
     in
     Rule.errorWithFix
-        { message = "Using " ++ usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
+        { message = usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
         , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
         }
         checkInfo.fnRange
@@ -8406,7 +8406,7 @@ like `List.repeat 0`, use `alwaysResultsInConstantError`
 resultsInConstantError : String -> (QualifyResources {} -> String) -> CheckInfo -> Error {}
 resultsInConstantError usingSituation replacement checkInfo =
     Rule.errorWithFix
-        { message = "Using " ++ usingSituation ++ " will result in " ++ replacement defaultQualifyResources
+        { message = usingSituation ++ " will result in " ++ replacement defaultQualifyResources
         , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
         }
         checkInfo.fnRange
@@ -8420,7 +8420,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
         specificLastArgReference =
             descriptionForDefinite "the given" config.specific
     in
-    { message = "Using " ++ qualifiedToString config.fn ++ " on " ++ descriptionForIndefinite config.specific ++ " will result in " ++ specificLastArgReference
+    { message = qualifiedToString config.fn ++ " on " ++ descriptionForIndefinite config.specific ++ " will result in " ++ specificLastArgReference
     , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
     }
 
@@ -8444,7 +8444,7 @@ alwaysReturnsLastArgError usingSpecificSituation config resources =
     case config.lastArg of
         Nothing ->
             Rule.errorWithFix
-                { message = "Using " ++ usingSpecificSituation ++ " will always return the same given " ++ config.lastArgRepresents
+                { message = usingSpecificSituation ++ " will always return the same given " ++ config.lastArgRepresents
                 , details =
                     [ "You can replace this call by identity." ]
                 }
@@ -8472,7 +8472,7 @@ returnsArgError :
     -> Error {}
 returnsArgError usingSituation config checkInfo =
     Rule.errorWithFix
-        { message = "Using " ++ usingSituation ++ " will always return the same given " ++ config.argRepresents
+        { message = usingSituation ++ " will always return the same given " ++ config.argRepresents
         , details =
             [ "You can replace this call by the " ++ config.argRepresents ++ " itself." ]
         }

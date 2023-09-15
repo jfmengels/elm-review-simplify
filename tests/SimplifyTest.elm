@@ -194,7 +194,7 @@ a = List.foldl (always identity) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -364,7 +364,7 @@ type MaybeExists
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on [] will result in Nothing"
+                            { message = "List.head on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.head"
                             }
@@ -695,7 +695,7 @@ a = Result.mapError f << (\\error -> Err error)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -712,7 +712,7 @@ a = Result.mapError f << (\\error -> error |> Err)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -729,7 +729,7 @@ a = Result.mapError f << (\\error -> Err <| error)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -746,7 +746,7 @@ a = Result.mapError f << (\\error -> \\sorry -> (error |> Err) <| sorry)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -763,7 +763,7 @@ a = Result.mapError f << (\\error -> \\sorry -> (error |> Err) <| sorry)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -779,7 +779,7 @@ a = (\\result -> Result.mapError f result) << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -795,7 +795,7 @@ a = (\\result -> \\sorry -> (result |> Result.mapError f) <| sorry) << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -1416,7 +1416,7 @@ a = not True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be True can be replaced by False"
+                            { message = "not on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -1432,7 +1432,7 @@ a = not False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be False can be replaced by True"
+                            { message = "not on a bool known to be False can be replaced by True"
                             , details = [ "You can replace this call by True." ]
                             , under = "not"
                             }
@@ -1448,7 +1448,7 @@ a = not (True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be True can be replaced by False"
+                            { message = "not on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -1464,7 +1464,7 @@ a = not <| True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be True can be replaced by False"
+                            { message = "not on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -1480,7 +1480,7 @@ a = True |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be True can be replaced by False"
+                            { message = "not on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -4142,7 +4142,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be True can be replaced by False"
+                            { message = "not on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -4200,7 +4200,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be False can be replaced by True"
+                            { message = "not on a bool known to be False can be replaced by True"
                             , details = [ "You can replace this call by True." ]
                             , under = "not"
                             }
@@ -4880,7 +4880,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using not on a bool known to be False can be replaced by True"
+                            { message = "not on a bool known to be False can be replaced by True"
                             , details = [ "You can replace this call by True." ]
                             , under = "not"
                             }
@@ -5639,7 +5639,7 @@ a = String.isEmpty ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.isEmpty on \"\" will result in True"
+                            { message = "String.isEmpty on \"\" will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "String.isEmpty"
                             }
@@ -5655,7 +5655,7 @@ a = String.isEmpty "a"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.isEmpty on this string will result in False"
+                            { message = "String.isEmpty on this string will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "String.isEmpty"
                             }
@@ -5764,7 +5764,7 @@ a = String.concat []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.concat on [] will result in \"\""
+                            { message = "String.concat on [] will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.concat"
                             }
@@ -5793,7 +5793,7 @@ a = String.join b []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.join on [] will result in \"\""
+                            { message = "String.join on [] will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.join"
                             }
@@ -5809,7 +5809,7 @@ a = String.join "" list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.join with separator \"\" is the same as using String.concat"
+                            { message = "String.join with separator \"\" is the same as String.concat"
                             , details = [ "You can replace this call by String.concat." ]
                             , under = "String.join"
                             }
@@ -5825,7 +5825,7 @@ a = String.join ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.join with separator \"\" is the same as using String.concat"
+                            { message = "String.join with separator \"\" is the same as String.concat"
                             , details = [ "You can replace this call by String.concat." ]
                             , under = "String.join"
                             }
@@ -5841,7 +5841,7 @@ a = list |> String.join ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.join with separator \"\" is the same as using String.concat"
+                            { message = "String.join with separator \"\" is the same as String.concat"
                             , details = [ "You can replace this call by String.concat." ]
                             , under = "String.join"
                             }
@@ -5871,7 +5871,7 @@ a = String.repeat n ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with \"\" will result in \"\""
+                            { message = "String.repeat with \"\" will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
@@ -5887,7 +5887,7 @@ a = String.repeat 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with length 0 will always result in \"\""
+                            { message = "String.repeat with length 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
@@ -5903,7 +5903,7 @@ a = String.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with length 0 will always result in \"\""
+                            { message = "String.repeat with length 0 will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.repeat"
                             }
@@ -5919,7 +5919,7 @@ a = String.repeat -5 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat with negative length will always result in \"\""
+                            { message = "String.repeat with negative length will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.repeat"
                             }
@@ -5935,7 +5935,7 @@ a = String.repeat 1 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat 1 will always return the same given string to repeat"
+                            { message = "String.repeat 1 will always return the same given string to repeat"
                             , details = [ "You can replace this call by the string to repeat itself." ]
                             , under = "String.repeat"
                             }
@@ -5951,7 +5951,7 @@ a = String.repeat 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.repeat 1 will always return the same given string to repeat"
+                            { message = "String.repeat 1 will always return the same given string to repeat"
                             , details = [ "You can replace this call by identity." ]
                             , under = "String.repeat"
                             }
@@ -5981,7 +5981,7 @@ a = String.replace n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.replace where the pattern to replace and the replacement are equal will always return the same given string"
+                            { message = "String.replace where the pattern to replace and the replacement are equal will always return the same given string"
                             , details = [ "You can replace this call by identity." ]
                             , under = "String.replace"
                             }
@@ -5997,7 +5997,7 @@ a = String.replace n n x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.replace where the pattern to replace and the replacement are equal will always return the same given string"
+                            { message = "String.replace where the pattern to replace and the replacement are equal will always return the same given string"
                             , details = [ "You can replace this call by the string itself." ]
                             , under = "String.replace"
                             }
@@ -6013,7 +6013,7 @@ a = String.replace x y ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.replace on \"\" will result in \"\""
+                            { message = "String.replace on \"\" will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.replace"
                             }
@@ -6029,7 +6029,7 @@ a = String.replace "x" "y" "z"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                            { message = "String.replace with a pattern not present in the given string will result in the given string"
                             , details = [ "You can replace this call by the given string itself." ]
                             , under = "String.replace"
                             }
@@ -6045,7 +6045,7 @@ a = "z" |> String.replace "x" "y"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.replace with a pattern not present in the given string will result in the given string"
+                            { message = "String.replace with a pattern not present in the given string will result in the given string"
                             , details = [ "You can replace this call by the given string itself." ]
                             , under = "String.replace"
                             }
@@ -6099,7 +6099,7 @@ a = String.words ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.words on \"\" will result in []"
+                            { message = "String.words on \"\" will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "String.words"
                             }
@@ -6129,7 +6129,7 @@ a = String.lines ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.lines on \"\" will result in []"
+                            { message = "String.lines on \"\" will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "String.lines"
                             }
@@ -6159,7 +6159,7 @@ a = String.fromList []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.fromList on [] will result in \"\""
+                            { message = "String.fromList on [] will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.fromList"
                             }
@@ -6175,7 +6175,7 @@ a = String.fromList [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.fromList on a singleton list will result in String.fromChar with the value inside"
+                            { message = "String.fromList on a singleton list will result in String.fromChar with the value inside"
                             , details = [ "You can replace this call by String.fromChar with the value inside the singleton list." ]
                             , under = "String.fromList"
                             }
@@ -6191,7 +6191,7 @@ a = String.fromList [ f b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.fromList on a singleton list will result in String.fromChar with the value inside"
+                            { message = "String.fromList on a singleton list will result in String.fromChar with the value inside"
                             , details = [ "You can replace this call by String.fromChar with the value inside the singleton list." ]
                             , under = "String.fromList"
                             }
@@ -6221,7 +6221,7 @@ a = String.reverse ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.reverse on \"\" will result in \"\""
+                            { message = "String.reverse on \"\" will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.reverse"
                             }
@@ -6274,7 +6274,7 @@ a = String.slice b 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will always result in \"\""
+                            { message = "String.slice with end index 0 will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
@@ -6290,7 +6290,7 @@ a = String.slice b 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with end index 0 will always result in \"\""
+                            { message = "String.slice with end index 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
@@ -6306,7 +6306,7 @@ a = String.slice n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with equal start and end index will always result in \"\""
+                            { message = "String.slice with equal start and end index will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
@@ -6322,7 +6322,7 @@ a = String.slice n n str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with equal start and end index will always result in \"\""
+                            { message = "String.slice with equal start and end index will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
@@ -6338,7 +6338,7 @@ a = String.slice a z ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice on \"\" will result in \"\""
+                            { message = "String.slice on \"\" will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.slice"
                             }
@@ -6354,7 +6354,7 @@ a = String.slice 2 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with a start index greater than the end index will always result in \"\""
+                            { message = "String.slice with a start index greater than the end index will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
@@ -6370,7 +6370,7 @@ a = String.slice -1 -2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.slice with a negative start index closer to the right than the negative end index will always result in \"\""
+                            { message = "String.slice with a negative start index closer to the right than the negative end index will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.slice"
                             }
@@ -6415,7 +6415,7 @@ a = String.left 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with length 0 will always result in \"\""
+                            { message = "String.left with length 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
@@ -6431,7 +6431,7 @@ a = String.left 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with length 0 will always result in \"\""
+                            { message = "String.left with length 0 will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.left"
                             }
@@ -6447,7 +6447,7 @@ a = String.left -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left with negative length will always result in \"\""
+                            { message = "String.left with negative length will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.left"
                             }
@@ -6463,7 +6463,7 @@ a = String.left n ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.left on \"\" will result in \"\""
+                            { message = "String.left on \"\" will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.left"
                             }
@@ -6492,7 +6492,7 @@ a = String.right 0 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with length 0 will always result in \"\""
+                            { message = "String.right with length 0 will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
@@ -6508,7 +6508,7 @@ a = String.right 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with length 0 will always result in \"\""
+                            { message = "String.right with length 0 will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.right"
                             }
@@ -6524,7 +6524,7 @@ a = String.right -1 str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with negative length will always result in \"\""
+                            { message = "String.right with negative length will always result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
@@ -6540,7 +6540,7 @@ a = String.right -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right with negative length will always result in \"\""
+                            { message = "String.right with negative length will always result in \"\""
                             , details = [ "You can replace this call by always \"\"." ]
                             , under = "String.right"
                             }
@@ -6556,7 +6556,7 @@ a = String.right n ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using String.right on \"\" will result in \"\""
+                            { message = "String.right on \"\" will result in \"\""
                             , details = [ "You can replace this call by \"\"." ]
                             , under = "String.right"
                             }
@@ -6846,7 +6846,7 @@ a = List.append [] ys
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            { message = "List.append with [] to the left will always return the same given right list"
                             , details = [ "You can replace this call by the right list itself." ]
                             , under = "List.append"
                             }
@@ -6862,7 +6862,7 @@ a = List.append [] <| ys
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            { message = "List.append with [] to the left will always return the same given right list"
                             , details = [ "You can replace this call by the right list itself." ]
                             , under = "List.append"
                             }
@@ -6878,7 +6878,7 @@ a = ys |> List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            { message = "List.append with [] to the left will always return the same given right list"
                             , details = [ "You can replace this call by the right list itself." ]
                             , under = "List.append"
                             }
@@ -6894,7 +6894,7 @@ a = List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the left will always return the same given right list"
+                            { message = "List.append with [] to the left will always return the same given right list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.append"
                             }
@@ -6910,7 +6910,7 @@ a = List.append xs []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the right will always return the same given left list"
+                            { message = "List.append with [] to the right will always return the same given left list"
                             , details = [ "You can replace this call by the left list itself." ]
                             , under = "List.append"
                             }
@@ -6926,7 +6926,7 @@ a = List.append xs <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the right will always return the same given left list"
+                            { message = "List.append with [] to the right will always return the same given left list"
                             , details = [ "You can replace this call by the left list itself." ]
                             , under = "List.append"
                             }
@@ -6942,7 +6942,7 @@ a = [] |> List.append xs
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.append with [] to the right will always return the same given left list"
+                            { message = "List.append with [] to the right will always return the same given left list"
                             , details = [ "You can replace this call by the left list itself." ]
                             , under = "List.append"
                             }
@@ -6973,7 +6973,7 @@ a = List.concat []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on [] will result in []"
+                            { message = "List.concat on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.concat"
                             }
@@ -6989,7 +6989,7 @@ a = List.concat [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on a singleton list will result in the value inside"
+                            { message = "List.concat on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.concat"
                             }
@@ -7005,7 +7005,7 @@ a = List.concat <| [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on a singleton list will result in the value inside"
+                            { message = "List.concat on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.concat"
                             }
@@ -7021,7 +7021,7 @@ a = [ b ] |> List.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on a singleton list will result in the value inside"
+                            { message = "List.concat on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.concat"
                             }
@@ -7101,7 +7101,7 @@ a = List.concat [ a, [] ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on a list containing an irrelevant []"
+                            { message = "List.concat on a list containing an irrelevant []"
                             , details = [ "Including [] in the list does not change the result of this call. You can remove the [] element." ]
                             , under = "[]"
                             }
@@ -7117,7 +7117,7 @@ a = List.concat [ [], b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concat on a list containing an irrelevant []"
+                            { message = "List.concat on a list containing an irrelevant []"
                             , details = [ "Including [] in the list does not change the result of this call. You can remove the [] element." ]
                             , under = "[]"
                             }
@@ -7187,7 +7187,7 @@ a = List.concatMap identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            { message = "List.concatMap with an identity function is the same as List.concat"
                             , details = [ "You can replace this call by List.concat." ]
                             , under = "List.concatMap"
                             }
@@ -7203,7 +7203,7 @@ a = List.concatMap identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            { message = "List.concatMap with an identity function is the same as List.concat"
                             , details = [ "You can replace this call by List.concat." ]
                             , under = "List.concatMap"
                             }
@@ -7219,7 +7219,7 @@ a = List.concatMap (\\x->x) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with an identity function is the same as using List.concat"
+                            { message = "List.concatMap with an identity function is the same as List.concat"
                             , details = [ "You can replace this call by List.concat." ]
                             , under = "List.concatMap"
                             }
@@ -7249,7 +7249,7 @@ a = List.concatMap f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on [] will result in []"
+                            { message = "List.concatMap on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
@@ -7265,7 +7265,7 @@ a = List.concatMap (always []) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that will always return [] will always result in []"
+                            { message = "List.concatMap with a function that will always return [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.concatMap"
                             }
@@ -7281,7 +7281,7 @@ a = List.concatMap (always [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that will always return [] will always result in []"
+                            { message = "List.concatMap with a function that will always return [] will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.concatMap"
                             }
@@ -7297,7 +7297,7 @@ a = List.concatMap List.singleton x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function equivalent to List.singleton will always return the same given list"
+                            { message = "List.concatMap with a function equivalent to List.singleton will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.concatMap"
                             }
@@ -7313,7 +7313,7 @@ a = List.concatMap List.singleton
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function equivalent to List.singleton will always return the same given list"
+                            { message = "List.concatMap with a function equivalent to List.singleton will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.concatMap"
                             }
@@ -7329,7 +7329,7 @@ a = List.concatMap (\\_ -> ([a])) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            { message = "List.concatMap with a function that always returns a singleton list is the same as List.map with the function returning the value inside"
                             , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7345,7 +7345,7 @@ a = List.concatMap (\\_ -> List.singleton a) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            { message = "List.concatMap with a function that always returns a singleton list is the same as List.map with the function returning the value inside"
                             , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7361,7 +7361,7 @@ a = List.concatMap (\\_ -> if cond then [a] else [b]) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            { message = "List.concatMap with a function that always returns a singleton list is the same as List.map with the function returning the value inside"
                             , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7382,7 +7382,7 @@ a = List.concatMap
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap with a function that always returns a singleton list is the same as using List.map with the function returning the value inside"
+                            { message = "List.concatMap with a function that always returns a singleton list is the same as List.map with the function returning the value inside"
                             , details = [ "You can replace this call by List.map with the function returning the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7403,7 +7403,7 @@ a = List.concatMap f [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
                             , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7419,7 +7419,7 @@ a = List.concatMap f [ b c ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
                             , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7435,7 +7435,7 @@ a = List.concatMap f <| [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
                             , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7451,7 +7451,7 @@ a = List.concatMap f <| [ b c ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
                             , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7467,7 +7467,7 @@ a = [ c ] |> List.concatMap f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
                             , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7483,7 +7483,7 @@ a = [ b c ] |> List.concatMap f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
                             , details = [ "You can replace this call by the function directly applied to the value inside the singleton list." ]
                             , under = "List.concatMap"
                             }
@@ -7546,7 +7546,7 @@ a = List.head []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on [] will result in Nothing"
+                            { message = "List.head on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.head"
                             }
@@ -7562,7 +7562,7 @@ a = List.head (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7578,7 +7578,7 @@ a = List.head <| List.singleton b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7594,7 +7594,7 @@ a = List.singleton b |> List.head
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7610,7 +7610,7 @@ a = List.head [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7626,7 +7626,7 @@ a = List.head [ f b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7642,7 +7642,7 @@ a = List.head [ b, c, d ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7658,7 +7658,7 @@ a = List.head [ f b, c, d ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7674,7 +7674,7 @@ a = List.head (b :: cToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.head on a list with a first element will result in Just that element"
+                            { message = "List.head on a list with a first element will result in Just that element"
                             , details = [ "You can replace this call by Just the first list element." ]
                             , under = "List.head"
                             }
@@ -7705,7 +7705,7 @@ a = List.tail []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on [] will result in Nothing"
+                            { message = "List.tail on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.tail"
                             }
@@ -7721,7 +7721,7 @@ a = List.tail (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a list with a single element will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -7737,7 +7737,7 @@ a = List.tail <| List.singleton b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a list with a single element will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -7753,7 +7753,7 @@ a = List.singleton b |> List.tail
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a list with a single element will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -7769,7 +7769,7 @@ a = List.tail [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a list with a single element will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -7785,7 +7785,7 @@ a = List.tail [ b, c, d ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+                            { message = "List.tail on a list with some elements will result in Just the elements after the first"
                             , details = [ "You can replace this call by Just the list elements after the first." ]
                             , under = "List.tail"
                             }
@@ -7801,7 +7801,7 @@ a = List.tail (b :: cToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.tail on a list with some elements will result in Just the elements after the first"
+                            { message = "List.tail on a list with some elements will result in Just the elements after the first"
                             , details = [ "You can replace this call by Just the list elements after the first." ]
                             , under = "List.tail"
                             }
@@ -7833,7 +7833,7 @@ a = List.member a []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on [] will result in False"
+                            { message = "List.member on [] will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.member"
                             }
@@ -7849,7 +7849,7 @@ a = List.member b (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -7865,7 +7865,7 @@ a = List.member c (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7881,7 +7881,7 @@ a = List.member b (List.singleton b)
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7897,7 +7897,7 @@ a = List.member b [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -7913,7 +7913,7 @@ a = List.member c [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7929,7 +7929,7 @@ a = List.member c <| [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7945,7 +7945,7 @@ a = List.member c [ f b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7961,7 +7961,7 @@ a = [ b ] |> List.member c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7977,7 +7977,7 @@ a = List.member d [ b, c, d ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8000,7 +8000,7 @@ a = List.member b (b :: cToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8016,7 +8016,7 @@ a = List.member d (b :: c :: d :: eToZ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.member on a list which contains the given element will result in True"
+                            { message = "List.member on a list which contains the given element will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.member"
                             }
@@ -8060,7 +8060,7 @@ a = List.map f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on [] will result in []"
+                            { message = "List.map on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map"
                             }
@@ -8076,7 +8076,7 @@ a = List.map f <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on [] will result in []"
+                            { message = "List.map on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map"
                             }
@@ -8092,7 +8092,7 @@ a = [] |> List.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map on [] will result in []"
+                            { message = "List.map on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map"
                             }
@@ -8108,7 +8108,7 @@ a = List.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function will always return the same given list"
+                            { message = "List.map with an identity function will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.map"
                             }
@@ -8124,7 +8124,7 @@ a = List.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function will always return the same given list"
+                            { message = "List.map with an identity function will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.map"
                             }
@@ -8140,7 +8140,7 @@ a = x |> List.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function will always return the same given list"
+                            { message = "List.map with an identity function will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.map"
                             }
@@ -8156,7 +8156,7 @@ a = List.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function will always return the same given list"
+                            { message = "List.map with an identity function will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.map"
                             }
@@ -8172,7 +8172,7 @@ a = List.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function will always return the same given list"
+                            { message = "List.map with an identity function will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.map"
                             }
@@ -8188,7 +8188,7 @@ a = identity |> List.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map with an identity function will always return the same given list"
+                            { message = "List.map with an identity function will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.map"
                             }
@@ -8205,7 +8205,7 @@ a = Dict.toList >> List.map Tuple.first
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8223,7 +8223,7 @@ a = Dict.toList >> List.map (\\( part0, _ ) -> part0)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8241,7 +8241,7 @@ a = List.map Tuple.first << Dict.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8259,7 +8259,7 @@ a = Dict.toList >> List.map Tuple.second
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.second is the same as using Dict.values"
+                            { message = "Dict.toList, then List.map Tuple.second is the same as Dict.values"
                             , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8277,7 +8277,7 @@ a = Dict.toList >> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.second is the same as using Dict.values"
+                            { message = "Dict.toList, then List.map Tuple.second is the same as Dict.values"
                             , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8295,7 +8295,7 @@ a = List.map Tuple.second << Dict.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.second is the same as using Dict.values"
+                            { message = "Dict.toList, then List.map Tuple.second is the same as Dict.values"
                             , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8313,7 +8313,7 @@ a = List.map Tuple.first (Dict.toList dict)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8331,7 +8331,7 @@ a = List.map Tuple.first (Dict.toList <| dict)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8349,7 +8349,7 @@ a = List.map Tuple.first (dict |> Dict.toList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8367,7 +8367,7 @@ a = List.map Tuple.first <| Dict.toList dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8385,7 +8385,7 @@ a = List.map Tuple.first <| (Dict.toList <| dict)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8403,7 +8403,7 @@ a = List.map Tuple.first <| (dict |> Dict.toList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8421,7 +8421,7 @@ a = Dict.toList dict |> List.map Tuple.first
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList, then List.map Tuple.first is the same as using Dict.keys"
+                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
                             , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.map"
                             }
@@ -8451,7 +8451,7 @@ a = List.filter f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on [] will result in []"
+                            { message = "List.filter on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8467,7 +8467,7 @@ a = List.filter f <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on [] will result in []"
+                            { message = "List.filter on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8483,7 +8483,7 @@ a = [] |> List.filter f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter on [] will result in []"
+                            { message = "List.filter on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8499,7 +8499,7 @@ a = List.filter (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            { message = "List.filter with a function that will always return True will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filter"
                             }
@@ -8515,7 +8515,7 @@ a = List.filter (\\x -> True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            { message = "List.filter with a function that will always return True will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filter"
                             }
@@ -8531,7 +8531,7 @@ a = List.filter (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            { message = "List.filter with a function that will always return True will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.filter"
                             }
@@ -8547,7 +8547,7 @@ a = List.filter <| (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            { message = "List.filter with a function that will always return True will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.filter"
                             }
@@ -8563,7 +8563,7 @@ a = always True |> List.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return True will always return the same given list"
+                            { message = "List.filter with a function that will always return True will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.filter"
                             }
@@ -8579,7 +8579,7 @@ a = List.filter (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8595,7 +8595,7 @@ a = List.filter (\\x -> False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8611,7 +8611,7 @@ a = List.filter (always False) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8627,7 +8627,7 @@ a = x |> List.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filter"
                             }
@@ -8643,7 +8643,7 @@ a = List.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.filter"
                             }
@@ -8659,7 +8659,7 @@ a = List.filter <| (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.filter"
                             }
@@ -8675,7 +8675,7 @@ a = always False |> List.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filter with a function that will always return False will always result in []"
+                            { message = "List.filter with a function that will always return False will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.filter"
                             }
@@ -8704,7 +8704,7 @@ a = List.filterMap f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on [] will result in []"
+                            { message = "List.filterMap on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8720,7 +8720,7 @@ a = List.filterMap f <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on [] will result in []"
+                            { message = "List.filterMap on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8736,7 +8736,7 @@ a = [] |> List.filterMap f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap on [] will result in []"
+                            { message = "List.filterMap on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8752,7 +8752,7 @@ a = List.filterMap (always Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8768,7 +8768,7 @@ a = List.filterMap (always Nothing) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8784,7 +8784,7 @@ a = x |> List.filterMap (always Nothing)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8800,7 +8800,7 @@ a = List.filterMap (always Nothing)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.filterMap"
                             }
@@ -8816,7 +8816,7 @@ a = List.filterMap <| always Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.filterMap"
                             }
@@ -8832,7 +8832,7 @@ a = always Nothing |> List.filterMap
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.filterMap"
                             }
@@ -8848,7 +8848,7 @@ a = List.filterMap Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            { message = "List.filterMap with a function that will always return Just will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -8864,7 +8864,7 @@ a = List.filterMap Just <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            { message = "List.filterMap with a function that will always return Just will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -8880,7 +8880,7 @@ a = x |> List.filterMap Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            { message = "List.filterMap with a function that will always return Just will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.filterMap"
                             }
@@ -8896,7 +8896,7 @@ a = List.filterMap Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just will always return the same given list"
+                            { message = "List.filterMap with a function that will always return Just will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.filterMap"
                             }
@@ -8912,7 +8912,7 @@ a = List.filterMap (\\a -> Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Nothing will always result in []"
+                            { message = "List.filterMap with a function that will always return Nothing will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.filterMap"
                             }
@@ -8928,7 +8928,7 @@ a = List.filterMap (\\a -> Just b) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            { message = "List.filterMap with a function that will always return Just is the same as List.map"
                             , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                             , under = "List.filterMap"
                             }
@@ -8944,7 +8944,7 @@ a = List.filterMap (\\a -> Just b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            { message = "List.filterMap with a function that will always return Just is the same as List.map"
                             , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                             , under = "List.filterMap"
                             }
@@ -8960,7 +8960,7 @@ a = List.filterMap (\\a -> Just b) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.filterMap with a function that will always return Just is the same as using List.map"
+                            { message = "List.filterMap with a function that will always return Just is the same as List.map"
                             , details = [ "You can remove the `Just`s and replace the call by List.map." ]
                             , under = "List.filterMap"
                             }
@@ -9107,7 +9107,7 @@ a = List.indexedMap f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.indexedMap on [] will result in []"
+                            { message = "List.indexedMap on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.indexedMap"
                             }
@@ -9216,7 +9216,7 @@ a = List.isEmpty []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on [] will result in True"
+                            { message = "List.isEmpty on [] will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.isEmpty"
                             }
@@ -9232,7 +9232,7 @@ a = List.isEmpty [x]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will result in False"
+                            { message = "List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9248,7 +9248,7 @@ a = List.isEmpty (x :: xs)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will result in False"
+                            { message = "List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9264,7 +9264,7 @@ a = x :: xs |> List.isEmpty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will result in False"
+                            { message = "List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9280,7 +9280,7 @@ a = List.isEmpty (List.singleton x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.isEmpty on this list will result in False"
+                            { message = "List.isEmpty on this list will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.isEmpty"
                             }
@@ -9318,7 +9318,7 @@ a = List.sum []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sum on [] will result in 0"
+                            { message = "List.sum on [] will result in 0"
                             , details = [ "You can replace this call by 0." ]
                             , under = "List.sum"
                             }
@@ -9334,7 +9334,7 @@ a = List.sum [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sum on a singleton list will result in the value inside"
+                            { message = "List.sum on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.sum"
                             }
@@ -9372,7 +9372,7 @@ a = List.product []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.product on [] will result in 1"
+                            { message = "List.product on [] will result in 1"
                             , details = [ "You can replace this call by 1." ]
                             , under = "List.product"
                             }
@@ -9388,7 +9388,7 @@ a = List.product [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.product on a singleton list will result in the value inside"
+                            { message = "List.product on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "List.product"
                             }
@@ -9426,7 +9426,7 @@ a = List.minimum []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.minimum on [] will result in Nothing"
+                            { message = "List.minimum on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.minimum"
                             }
@@ -9442,7 +9442,7 @@ a = List.minimum [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.minimum on a singleton list will result in Just the value inside"
+                            { message = "List.minimum on a singleton list will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the singleton list." ]
                             , under = "List.minimum"
                             }
@@ -9458,7 +9458,7 @@ a = List.minimum [ f a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.minimum on a singleton list will result in Just the value inside"
+                            { message = "List.minimum on a singleton list will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the singleton list." ]
                             , under = "List.minimum"
                             }
@@ -9474,7 +9474,7 @@ a = List.minimum (if c then [ a ] else [ b ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.minimum on a singleton list will result in Just the value inside"
+                            { message = "List.minimum on a singleton list will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the singleton list." ]
                             , under = "List.minimum"
                             }
@@ -9512,7 +9512,7 @@ a = List.maximum []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.maximum on [] will result in Nothing"
+                            { message = "List.maximum on [] will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "List.maximum"
                             }
@@ -9528,7 +9528,7 @@ a = List.maximum [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.maximum on a singleton list will result in Just the value inside"
+                            { message = "List.maximum on a singleton list will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the singleton list." ]
                             , under = "List.maximum"
                             }
@@ -9557,7 +9557,7 @@ a = List.foldl f x []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl on [] will always return the same given initial accumulator"
+                            { message = "List.foldl on [] will always return the same given initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator itself." ]
                             , under = "List.foldl"
                             }
@@ -9573,7 +9573,7 @@ a = List.foldl (always identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9589,7 +9589,7 @@ a = List.foldl (\\_ -> identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9605,7 +9605,7 @@ a = List.foldl (\\_ a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9621,7 +9621,7 @@ a = List.foldl (always <| \\a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9637,7 +9637,7 @@ a = List.foldl (always identity) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldl"
                             }
@@ -9711,7 +9711,7 @@ a = List.foldl (||) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with (||) and the initial accumulator True will always result in True"
+                            { message = "List.foldl with (||) and the initial accumulator True will always result in True"
                             , details = [ "You can replace this call by always True." ]
                             , under = "List.foldl"
                             }
@@ -9727,7 +9727,7 @@ a = List.foldl (||) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with (||) and the initial accumulator True will always result in True"
+                            { message = "List.foldl with (||) and the initial accumulator True will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.foldl"
                             }
@@ -9743,7 +9743,7 @@ a = List.foldl (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9760,7 +9760,7 @@ a = List.foldl (||) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9777,7 +9777,7 @@ a = List.foldl (||) False <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9794,7 +9794,7 @@ a = list |> List.foldl (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9811,7 +9811,7 @@ a = List.foldl (\\x -> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9828,7 +9828,7 @@ a = List.foldl (\\x y -> x || y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9845,7 +9845,7 @@ a = List.foldl (\\x y -> y || x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9862,7 +9862,7 @@ a = List.foldl (\\x y -> x |> (||) y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9879,7 +9879,7 @@ a = List.foldl (\\x y -> y |> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (||) False is the same as using List.any identity"
+                            { message = "List.foldl (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9902,7 +9902,7 @@ a = List.foldl (&&) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with (&&) and the initial accumulator False will always result in False"
+                            { message = "List.foldl with (&&) and the initial accumulator False will always result in False"
                             , details = [ "You can replace this call by always False." ]
                             , under = "List.foldl"
                             }
@@ -9918,7 +9918,7 @@ a = List.foldl (&&) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl with (&&) and the initial accumulator False will always result in False"
+                            { message = "List.foldl with (&&) and the initial accumulator False will always result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.foldl"
                             }
@@ -9934,7 +9934,7 @@ a = List.foldl (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9951,7 +9951,7 @@ a = List.foldl (&&) True <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9968,7 +9968,7 @@ a = list |> List.foldl (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -9985,7 +9985,7 @@ a = List.foldl (&&) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10002,7 +10002,7 @@ a = List.foldl (\\x -> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10019,7 +10019,7 @@ a = List.foldl (\\x y -> x && y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10036,7 +10036,7 @@ a = List.foldl (\\x y -> y && x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10053,7 +10053,7 @@ a = List.foldl (\\x y -> x |> (&&) y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10070,7 +10070,7 @@ a = List.foldl (\\x y -> y |> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (&&) True is the same as using List.all identity"
+                            { message = "List.foldl (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10093,7 +10093,7 @@ a = List.foldl (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10110,7 +10110,7 @@ a = List.foldl (+) 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10127,7 +10127,7 @@ a = List.foldl (+) 0 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10144,7 +10144,7 @@ a = list |> List.foldl (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10161,7 +10161,7 @@ a = List.foldl (\\x -> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10178,7 +10178,7 @@ a = List.foldl (\\x y -> x + y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10195,7 +10195,7 @@ a = List.foldl (\\x y -> y + x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10212,7 +10212,7 @@ a = List.foldl (\\x y -> x |> (+) y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10229,7 +10229,7 @@ a = List.foldl (\\x y -> y |> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10246,7 +10246,7 @@ a = List.foldl (+) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10263,7 +10263,7 @@ a = List.foldl (+) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10280,7 +10280,7 @@ a = list |> List.foldl (+) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (+) 0 is the same as using List.sum"
+                            { message = "List.foldl (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10303,7 +10303,7 @@ a = List.foldl (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10320,7 +10320,7 @@ a = List.foldl (*) 1 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10337,7 +10337,7 @@ a = List.foldl (*) 1 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10354,7 +10354,7 @@ a = list |> List.foldl (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10371,7 +10371,7 @@ a = List.foldl (\\x -> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10388,7 +10388,7 @@ a = List.foldl (\\x y -> x * y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10405,7 +10405,7 @@ a = List.foldl (\\x y -> y * x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10422,7 +10422,7 @@ a = List.foldl (\\x y -> x |> (*) y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10439,7 +10439,7 @@ a = List.foldl (\\x y -> y |> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10456,7 +10456,7 @@ a = List.foldl (*) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10473,7 +10473,7 @@ a = List.foldl (*) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10490,7 +10490,7 @@ a = list |> List.foldl (*) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldl (*) 1 is the same as using List.product"
+                            { message = "List.foldl (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldl"
@@ -10520,7 +10520,7 @@ a = List.foldr fn x []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr on [] will always return the same given initial accumulator"
+                            { message = "List.foldr on [] will always return the same given initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator itself." ]
                             , under = "List.foldr"
                             }
@@ -10536,7 +10536,7 @@ a = List.foldr (always identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10552,7 +10552,7 @@ a = List.foldr (\\_ -> identity) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10568,7 +10568,7 @@ a = List.foldr (\\_ a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10584,7 +10584,7 @@ a = List.foldr (always <| \\a -> a) x list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10600,7 +10600,7 @@ a = List.foldr (always identity) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
                             , details = [ "You can replace this call by the initial accumulator." ]
                             , under = "List.foldr"
                             }
@@ -10674,7 +10674,7 @@ a = List.foldr (||) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with (||) and the initial accumulator True will always result in True"
+                            { message = "List.foldr with (||) and the initial accumulator True will always result in True"
                             , details = [ "You can replace this call by always True." ]
                             , under = "List.foldr"
                             }
@@ -10690,7 +10690,7 @@ a = List.foldr (||) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with (||) and the initial accumulator True will always result in True"
+                            { message = "List.foldr with (||) and the initial accumulator True will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.foldr"
                             }
@@ -10706,7 +10706,7 @@ a = List.foldr (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10723,7 +10723,7 @@ a = List.foldr (||) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10740,7 +10740,7 @@ a = List.foldr (||) False <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10757,7 +10757,7 @@ a = list |> List.foldr (||) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10774,7 +10774,7 @@ a = List.foldr (\\x -> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10791,7 +10791,7 @@ a = List.foldr (\\x y -> x || y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10808,7 +10808,7 @@ a = List.foldr (\\x y -> y || x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10825,7 +10825,7 @@ a = List.foldr (\\x y -> x |> (||) y) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10842,7 +10842,7 @@ a = List.foldr (\\x y -> y |> (||) x) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (||) False is the same as using List.any identity"
+                            { message = "List.foldr (||) False is the same as List.any identity"
                             , details =
                                 [ "You can replace this call by List.any identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10865,7 +10865,7 @@ a = List.foldr (&&) False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with (&&) and the initial accumulator False will always result in False"
+                            { message = "List.foldr with (&&) and the initial accumulator False will always result in False"
                             , details = [ "You can replace this call by always False." ]
                             , under = "List.foldr"
                             }
@@ -10881,7 +10881,7 @@ a = List.foldr (&&) False list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr with (&&) and the initial accumulator False will always result in False"
+                            { message = "List.foldr with (&&) and the initial accumulator False will always result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.foldr"
                             }
@@ -10897,7 +10897,7 @@ a = List.foldr (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10914,7 +10914,7 @@ a = List.foldr (&&) True list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10931,7 +10931,7 @@ a = List.foldr (&&) True <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10948,7 +10948,7 @@ a = list |> List.foldr (&&) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10965,7 +10965,7 @@ a = List.foldr (\\x -> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10982,7 +10982,7 @@ a = List.foldr (\\x y -> x && y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -10999,7 +10999,7 @@ a = List.foldr (\\x y -> y && x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11016,7 +11016,7 @@ a = List.foldr (\\x y -> x |> (&&) y) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11033,7 +11033,7 @@ a = List.foldr (\\x y -> y |> (&&) x) True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (&&) True is the same as using List.all identity"
+                            { message = "List.foldr (&&) True is the same as List.all identity"
                             , details =
                                 [ "You can replace this call by List.all identity which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11056,7 +11056,7 @@ a = List.foldr (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11073,7 +11073,7 @@ a = List.foldr (+) 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11090,7 +11090,7 @@ a = List.foldr (+) 0 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11107,7 +11107,7 @@ a = list |> List.foldr (+) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11124,7 +11124,7 @@ a = List.foldr (\\x -> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11141,7 +11141,7 @@ a = List.foldr (\\x y -> x + y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11158,7 +11158,7 @@ a = List.foldr (\\x y -> y + x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11175,7 +11175,7 @@ a = List.foldr (\\x y -> x |> (+) y) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11192,7 +11192,7 @@ a = List.foldr (\\x y -> y |> (+) x) 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11209,7 +11209,7 @@ a = List.foldr (+) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11226,7 +11226,7 @@ a = List.foldr (+) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11243,7 +11243,7 @@ a = list |> List.foldr (+) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (+) 0 is the same as using List.sum"
+                            { message = "List.foldr (+) 0 is the same as List.sum"
                             , details =
                                 [ "You can replace this call by List.sum which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11266,7 +11266,7 @@ a = List.foldr (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11283,7 +11283,7 @@ a = List.foldr (*) 1 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11300,7 +11300,7 @@ a = List.foldr (*) 1 <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11317,7 +11317,7 @@ a = list |> List.foldr (*) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11334,7 +11334,7 @@ a = List.foldr (\\x -> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11351,7 +11351,7 @@ a = List.foldr (\\x y -> x * y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11368,7 +11368,7 @@ a = List.foldr (\\x y -> y * x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11385,7 +11385,7 @@ a = List.foldr (\\x y -> x |> (*) y) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11402,7 +11402,7 @@ a = List.foldr (\\x y -> y |> (*) x) 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11419,7 +11419,7 @@ a = List.foldr (*) initial list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11436,7 +11436,7 @@ a = List.foldr (*) initial <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11453,7 +11453,7 @@ a = list |> List.foldr (*) initial
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.foldr (*) 1 is the same as using List.product"
+                            { message = "List.foldr (*) 1 is the same as List.product"
                             , details =
                                 [ "You can replace this call by List.product which is meant for this exact purpose." ]
                             , under = "List.foldr"
@@ -11483,7 +11483,7 @@ a = List.all f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.all on [] will result in True"
+                            { message = "List.all on [] will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.all"
                             }
@@ -11499,7 +11499,7 @@ a = List.all (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.all with a function that will always return True will always result in True"
+                            { message = "List.all with a function that will always return True will always result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.all"
                             }
@@ -11515,7 +11515,7 @@ a = List.all (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.all with a function that will always return True will always result in True"
+                            { message = "List.all with a function that will always return True will always result in True"
                             , details = [ "You can replace this call by always True." ]
                             , under = "List.all"
                             }
@@ -11544,7 +11544,7 @@ a = List.any f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.any on [] will result in False"
+                            { message = "List.any on [] will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.any"
                             }
@@ -11560,7 +11560,7 @@ a = List.any (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.any with a function that will always return False will always result in False"
+                            { message = "List.any with a function that will always return False will always result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.any"
                             }
@@ -11576,7 +11576,7 @@ a = List.any (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.any with a function that will always return False will always result in False"
+                            { message = "List.any with a function that will always return False will always result in False"
                             , details = [ "You can replace this call by always False." ]
                             , under = "List.any"
                             }
@@ -11592,7 +11592,7 @@ a = List.any ((==) x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.any with a check for equality with a specific value can be replaced by using List.member with that value"
+                            { message = "List.any with a check for equality with a specific value can be replaced by List.member with that value"
                             , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
                             , under = "List.any"
                             }
@@ -11608,7 +11608,7 @@ a = List.any (\\y -> y == x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.any with a check for equality with a specific value can be replaced by using List.member with that value"
+                            { message = "List.any with a check for equality with a specific value can be replaced by List.member with that value"
                             , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
                             , under = "List.any"
                             }
@@ -11624,7 +11624,7 @@ a = List.any (\\y -> x == y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.any with a check for equality with a specific value can be replaced by using List.member with that value"
+                            { message = "List.any with a check for equality with a specific value can be replaced by List.member with that value"
                             , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
                             , under = "List.any"
                             }
@@ -11663,7 +11663,7 @@ a = List.range 10 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            { message = "List.range with a start index greater than the end index will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11679,7 +11679,7 @@ a = List.range 0xF 5
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            { message = "List.range with a start index greater than the end index will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11695,7 +11695,7 @@ a = 5 |> List.range 10
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.range with a start index greater than the end index will result in []"
+                            { message = "List.range with a start index greater than the end index will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.range"
                             }
@@ -11794,7 +11794,7 @@ a = List.repeat 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.repeat with length 0 will always result in []"
+                            { message = "List.repeat with length 0 will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
@@ -11810,7 +11810,7 @@ a = List.repeat 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.repeat with length 0 will always result in []"
+                            { message = "List.repeat with length 0 will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.repeat"
                             }
@@ -11826,7 +11826,7 @@ a = List.repeat -5 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.repeat with negative length will always result in []"
+                            { message = "List.repeat with negative length will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.repeat"
                             }
@@ -11871,7 +11871,7 @@ a = List.sort []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sort on [] will result in []"
+                            { message = "List.sort on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.sort"
                             }
@@ -11887,7 +11887,7 @@ a = List.sort [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sort on a singleton list will result in the given singleton list"
+                            { message = "List.sort on a singleton list will result in the given singleton list"
                             , details = [ "You can replace this call by the given singleton list." ]
                             , under = "List.sort"
                             }
@@ -11925,7 +11925,7 @@ a = List.sortBy fn []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy on [] will result in []"
+                            { message = "List.sortBy on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.sortBy"
                             }
@@ -11941,7 +11941,7 @@ b = List.sortBy fn [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy on a singleton list will result in the given singleton list"
+                            { message = "List.sortBy on a singleton list will result in the given singleton list"
                             , details = [ "You can replace this call by the given singleton list." ]
                             , under = "List.sortBy"
                             }
@@ -11957,7 +11957,7 @@ a = List.sortBy (always b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
@@ -11973,7 +11973,7 @@ a = List.sortBy (always b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
@@ -11989,7 +11989,7 @@ a = List.sortBy (\\_ -> b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
@@ -12005,7 +12005,7 @@ a = List.sortBy (\\_ -> b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy (always a) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
@@ -12021,7 +12021,7 @@ a = List.sortBy identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
+                            { message = "List.sortBy with an identity function is the same as List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12037,7 +12037,7 @@ a = List.sortBy (\\b -> b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
+                            { message = "List.sortBy with an identity function is the same as List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12053,7 +12053,7 @@ a = List.sortBy identity list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
+                            { message = "List.sortBy with an identity function is the same as List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12069,7 +12069,7 @@ a = List.sortBy (\\b -> b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortBy with an identity function is the same as using List.sort"
+                            { message = "List.sortBy with an identity function is the same as List.sort"
                             , details = [ "You can replace this call by List.sort." ]
                             , under = "List.sortBy"
                             }
@@ -12109,7 +12109,7 @@ a = List.sortWith fn []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith on [] will result in []"
+                            { message = "List.sortWith on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.sortWith"
                             }
@@ -12125,7 +12125,7 @@ b = List.sortWith fn [ a ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith on a singleton list will result in the given singleton list"
+                            { message = "List.sortWith on a singleton list will result in the given singleton list"
                             , details = [ "You can replace this call by the given singleton list." ]
                             , under = "List.sortWith"
                             }
@@ -12141,7 +12141,7 @@ a = List.sortWith (always (always GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12157,7 +12157,7 @@ a = List.sortWith (always (always GT)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
@@ -12173,7 +12173,7 @@ a = List.sortWith (\\_ -> (always GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12189,7 +12189,7 @@ a = List.sortWith (\\_ _ -> GT)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12205,7 +12205,7 @@ a = List.sortWith (always (\\_ -> GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12221,7 +12221,7 @@ a = List.sortWith (always (always EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12237,7 +12237,7 @@ a = List.sortWith (always (always EQ)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
@@ -12253,7 +12253,7 @@ a = List.sortWith (\\_ -> (always EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12269,7 +12269,7 @@ a = List.sortWith (\\_ _ -> EQ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12285,7 +12285,7 @@ a = List.sortWith (always (\\_ -> EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -12301,7 +12301,7 @@ a = List.sortWith (always (always LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12317,7 +12317,7 @@ a = List.sortWith (always (always LT)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12333,7 +12333,7 @@ a = List.sortWith (always (always LT)) <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12349,7 +12349,7 @@ a = list |> List.sortWith (always (always LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12365,7 +12365,7 @@ a = List.sortWith (\\_ -> (always LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12381,7 +12381,7 @@ a = List.sortWith (\\_ _ -> LT)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12397,7 +12397,7 @@ a = List.sortWith (always (\\_ -> LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.sortWith (\\_ _ -> LT) is the same as using List.reverse"
+                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -12427,7 +12427,7 @@ a = List.reverse []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.reverse on [] will result in []"
+                            { message = "List.reverse on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.reverse"
                             }
@@ -12473,7 +12473,7 @@ a = List.take n []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take on [] will result in []"
+                            { message = "List.take on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.take"
                             }
@@ -12489,7 +12489,7 @@ a = List.take 0 x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with length 0 will always result in []"
+                            { message = "List.take with length 0 will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.take"
                             }
@@ -12505,7 +12505,7 @@ a = List.take 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with length 0 will always result in []"
+                            { message = "List.take with length 0 will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.take"
                             }
@@ -12521,7 +12521,7 @@ a = List.take -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.take with negative length will always result in []"
+                            { message = "List.take with negative length will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.take"
                             }
@@ -12551,7 +12551,7 @@ a = List.drop n []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.drop on [] will result in []"
+                            { message = "List.drop on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.drop"
                             }
@@ -12567,7 +12567,7 @@ a = List.drop 0 x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.drop 0 will always return the same given list"
+                            { message = "List.drop 0 will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.drop"
                             }
@@ -12583,7 +12583,7 @@ a = x |> List.drop 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.drop 0 will always return the same given list"
+                            { message = "List.drop 0 will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.drop"
                             }
@@ -12599,7 +12599,7 @@ a = List.drop 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.drop 0 will always return the same given list"
+                            { message = "List.drop 0 will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.drop"
                             }
@@ -12628,7 +12628,7 @@ a = List.partition f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition on [] will result in ( [], [] )"
+                            { message = "List.partition on [] will result in ( [], [] )"
                             , details = [ "You can replace this call by ( [], [] )." ]
                             , under = "List.partition"
                             }
@@ -12644,7 +12644,7 @@ a = List.partition f <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition on [] will result in ( [], [] )"
+                            { message = "List.partition on [] will result in ( [], [] )"
                             , details = [ "You can replace this call by ( [], [] )." ]
                             , under = "List.partition"
                             }
@@ -12660,7 +12660,7 @@ a = [] |> List.partition f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.partition on [] will result in ( [], [] )"
+                            { message = "List.partition on [] will result in ( [], [] )"
                             , details = [ "You can replace this call by ( [], [] )." ]
                             , under = "List.partition"
                             }
@@ -12780,7 +12780,7 @@ a = List.intersperse x []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.intersperse on [] will result in []"
+                            { message = "List.intersperse on [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.intersperse"
                             }
@@ -12812,7 +12812,7 @@ a = List.unzip []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.unzip on [] will result in ( [], [] )"
+                            { message = "List.unzip on [] will result in ( [], [] )"
                             , details = [ "You can replace this call by ( [], [] )." ]
                             , under = "List.unzip"
                             }
@@ -12845,7 +12845,7 @@ a = List.map2 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map2 with any list being [] will result in []"
+                            { message = "List.map2 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map2"
                             }
@@ -12861,7 +12861,7 @@ a = List.map2 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map2 with any list being [] will result in []"
+                            { message = "List.map2 with any list being [] will result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map2"
                             }
@@ -12877,7 +12877,7 @@ a = List.map2 f list0 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map2 with any list being [] will result in []"
+                            { message = "List.map2 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map2"
                             }
@@ -12911,7 +12911,7 @@ a = List.map3 f [] list1 list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map3"
                             }
@@ -12927,7 +12927,7 @@ a = List.map3 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map3"
                             }
@@ -12943,7 +12943,7 @@ a = List.map3 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will result in []"
                             , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map3"
                             }
@@ -12959,7 +12959,7 @@ a = List.map3 f list0 [] list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map3"
                             }
@@ -12975,7 +12975,7 @@ a = List.map3 f list0 list1 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map3"
                             }
@@ -13010,7 +13010,7 @@ a = List.map4 f [] list1 list2 list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -13026,7 +13026,7 @@ a = List.map4 f [] list1 list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map4"
                             }
@@ -13042,7 +13042,7 @@ a = List.map4 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map4"
                             }
@@ -13058,7 +13058,7 @@ a = List.map4 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by (\\_ _ _ -> [])." ]
                             , under = "List.map4"
                             }
@@ -13074,7 +13074,7 @@ a = List.map4 f list0 [] list2 list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -13090,7 +13090,7 @@ a = List.map4 f list0 list1 [] list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -13106,7 +13106,7 @@ a = List.map4 f list0 list1 list2 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -13142,7 +13142,7 @@ a = List.map5 f [] list1 list2 list3 list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -13158,7 +13158,7 @@ a = List.map5 f [] list1 list2 list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map5"
                             }
@@ -13174,7 +13174,7 @@ a = List.map5 f [] list1 list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map5"
                             }
@@ -13190,7 +13190,7 @@ a = List.map5 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by (\\_ _ _ -> [])." ]
                             , under = "List.map5"
                             }
@@ -13206,7 +13206,7 @@ a = List.map5 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by (\\_ _ _ _ -> [])." ]
                             , under = "List.map5"
                             }
@@ -13222,7 +13222,7 @@ a = List.map5 f list0 [] list2 list3 list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -13238,7 +13238,7 @@ a = List.map5 f list0 list1 [] list3 list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -13254,7 +13254,7 @@ a = List.map5 f list0 list1 list2 [] list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -13270,7 +13270,7 @@ a = List.map5 f list0 list1 list2 list3 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -13312,7 +13312,7 @@ a = Maybe.map f Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on Nothing will result in Nothing"
+                            { message = "Maybe.map on Nothing will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.map"
                             }
@@ -13328,7 +13328,7 @@ a = Maybe.map f <| Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on Nothing will result in Nothing"
+                            { message = "Maybe.map on Nothing will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.map"
                             }
@@ -13344,7 +13344,7 @@ a = Nothing |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on Nothing will result in Nothing"
+                            { message = "Maybe.map on Nothing will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.map"
                             }
@@ -13360,7 +13360,7 @@ a = Maybe.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            { message = "Maybe.map with an identity function will always return the same given maybe"
                             , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13376,7 +13376,7 @@ a = Maybe.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            { message = "Maybe.map with an identity function will always return the same given maybe"
                             , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13392,7 +13392,7 @@ a = x |> Maybe.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            { message = "Maybe.map with an identity function will always return the same given maybe"
                             , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13408,7 +13408,7 @@ a = Maybe.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            { message = "Maybe.map with an identity function will always return the same given maybe"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Maybe.map"
                             }
@@ -13424,7 +13424,7 @@ a = Maybe.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            { message = "Maybe.map with an identity function will always return the same given maybe"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Maybe.map"
                             }
@@ -13440,7 +13440,7 @@ a = identity |> Maybe.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map with an identity function will always return the same given maybe"
+                            { message = "Maybe.map with an identity function will always return the same given maybe"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Maybe.map"
                             }
@@ -13456,7 +13456,7 @@ a = Maybe.map f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13472,7 +13472,7 @@ a = Maybe.map f <| Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13488,7 +13488,7 @@ a = Just x |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13504,7 +13504,7 @@ a = x |> Just |> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13520,7 +13520,7 @@ a = Maybe.map f <| Just <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13536,7 +13536,7 @@ a = Maybe.map f << Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13552,7 +13552,7 @@ a = Just >> Maybe.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13568,7 +13568,7 @@ a = Maybe.map f << Just << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13584,7 +13584,7 @@ a = g << Maybe.map f << Just
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13600,7 +13600,7 @@ a = Just >> Maybe.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.map on a just maybe will result in Just with the function applied to the value inside"
+                            { message = "Maybe.map on a just maybe will result in Just with the function applied to the value inside"
                             , details = [ "You can replace this call by Just with the function directly applied to the value inside the just maybe itself." ]
                             , under = "Maybe.map"
                             }
@@ -13629,7 +13629,7 @@ a = Maybe.andThen f Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen on Nothing will result in Nothing"
+                            { message = "Maybe.andThen on Nothing will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.andThen"
                             }
@@ -13645,7 +13645,7 @@ a = Maybe.andThen Just x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function equivalent to Just will always return the same given maybe"
+                            { message = "Maybe.andThen with a function equivalent to Just will always return the same given maybe"
                             , details = [ "You can replace this call by the maybe itself." ]
                             , under = "Maybe.andThen"
                             }
@@ -13661,7 +13661,7 @@ a = Maybe.andThen (always Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that will always return Nothing will always result in Nothing"
+                            { message = "Maybe.andThen with a function that will always return Nothing will always result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.andThen"
                             }
@@ -13677,7 +13677,7 @@ a = Maybe.andThen (\\a -> Nothing) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that will always return Nothing will always result in Nothing"
+                            { message = "Maybe.andThen with a function that will always return Nothing will always result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.andThen"
                             }
@@ -13700,7 +13700,7 @@ a = Maybe.andThen (\\b -> Just c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            { message = "Maybe.andThen with a function that always returns a just maybe is the same as Maybe.map with the function returning the value inside"
                             , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
@@ -13716,7 +13716,7 @@ a = Maybe.andThen (\\b -> if cond then Just b else Just c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            { message = "Maybe.andThen with a function that always returns a just maybe is the same as Maybe.map with the function returning the value inside"
                             , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
@@ -13744,7 +13744,7 @@ a = Maybe.andThen (
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            { message = "Maybe.andThen with a function that always returns a just maybe is the same as Maybe.map with the function returning the value inside"
                             , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
@@ -13771,7 +13771,7 @@ a = Maybe.andThen (
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen with a function that always returns a just maybe is the same as using Maybe.map with the function returning the value inside"
+                            { message = "Maybe.andThen with a function that always returns a just maybe is the same as Maybe.map with the function returning the value inside"
                             , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
@@ -13805,7 +13805,7 @@ a = Maybe.andThen f (Just x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
+                            { message = "Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
                             , details = [ "You can replace this call by the function directly applied to the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
@@ -13821,7 +13821,7 @@ a = Just x |> Maybe.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
+                            { message = "Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
                             , details = [ "You can replace this call by the function directly applied to the value inside the just maybe." ]
                             , under = "Maybe.andThen"
                             }
@@ -13850,7 +13850,7 @@ a = Maybe.withDefault x Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on Nothing will result in the default value"
+                            { message = "Maybe.withDefault on Nothing will result in the default value"
                             , details = [ "You can replace this call by the default value." ]
                             , under = "Maybe.withDefault"
                             }
@@ -13866,7 +13866,7 @@ a = Maybe.withDefault x (Just y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            { message = "Maybe.withDefault on a just maybe will result in the value inside"
                             , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
@@ -13882,7 +13882,7 @@ a = Maybe.withDefault x <| (Just y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            { message = "Maybe.withDefault on a just maybe will result in the value inside"
                             , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
@@ -13898,7 +13898,7 @@ a = (Just y) |> Maybe.withDefault x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            { message = "Maybe.withDefault on a just maybe will result in the value inside"
                             , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
@@ -13914,7 +13914,7 @@ a = y |> Just |> Maybe.withDefault x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Maybe.withDefault on a just maybe will result in the value inside"
+                            { message = "Maybe.withDefault on a just maybe will result in the value inside"
                             , details = [ "You can replace this call by the value inside the just maybe." ]
                             , under = "Maybe.withDefault"
                             }
@@ -13958,7 +13958,7 @@ a = Result.map f (Err z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an error will result in the given error"
+                            { message = "Result.map on an error will result in the given error"
                             , details = [ "You can replace this call by the given error." ]
                             , under = "Result.map"
                             }
@@ -13974,7 +13974,7 @@ a = Result.map f <| Err z
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an error will result in the given error"
+                            { message = "Result.map on an error will result in the given error"
                             , details = [ "You can replace this call by the given error." ]
                             , under = "Result.map"
                             }
@@ -13990,7 +13990,7 @@ a = Err z |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an error will result in the given error"
+                            { message = "Result.map on an error will result in the given error"
                             , details = [ "You can replace this call by the given error." ]
                             , under = "Result.map"
                             }
@@ -14006,7 +14006,7 @@ a = Result.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function will always return the same given result"
+                            { message = "Result.map with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.map"
                             }
@@ -14022,7 +14022,7 @@ a = Result.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function will always return the same given result"
+                            { message = "Result.map with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.map"
                             }
@@ -14038,7 +14038,7 @@ a = x |> Result.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function will always return the same given result"
+                            { message = "Result.map with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.map"
                             }
@@ -14054,7 +14054,7 @@ a = Result.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function will always return the same given result"
+                            { message = "Result.map with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.map"
                             }
@@ -14070,7 +14070,7 @@ a = Result.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function will always return the same given result"
+                            { message = "Result.map with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.map"
                             }
@@ -14086,7 +14086,7 @@ a = identity |> Result.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map with an identity function will always return the same given result"
+                            { message = "Result.map with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.map"
                             }
@@ -14102,7 +14102,7 @@ a = Result.map f (Ok x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14118,7 +14118,7 @@ a = Result.map f <| Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14134,7 +14134,7 @@ a = Ok x |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14150,7 +14150,7 @@ a = x |> Ok |> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14166,7 +14166,7 @@ a = Result.map f <| Ok <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14182,7 +14182,7 @@ a = Result.map f << Ok
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14198,7 +14198,7 @@ a = Ok >> Result.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14214,7 +14214,7 @@ a = Result.map f << Ok << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14230,7 +14230,7 @@ a = g << Result.map f << Ok
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14246,7 +14246,7 @@ a = Ok >> Result.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.map on an okay result will result in Ok with the function applied to the value inside"
+                            { message = "Result.map on an okay result will result in Ok with the function applied to the value inside"
                             , details = [ "You can replace this call by Ok with the function directly applied to the value inside the okay result itself." ]
                             , under = "Result.map"
                             }
@@ -14277,7 +14277,7 @@ a = Result.mapError f (Ok z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an okay result will result in the given okay result"
+                            { message = "Result.mapError on an okay result will result in the given okay result"
                             , details = [ "You can replace this call by the given okay result." ]
                             , under = "Result.mapError"
                             }
@@ -14293,7 +14293,7 @@ a = Result.mapError f <| Ok z
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an okay result will result in the given okay result"
+                            { message = "Result.mapError on an okay result will result in the given okay result"
                             , details = [ "You can replace this call by the given okay result." ]
                             , under = "Result.mapError"
                             }
@@ -14309,7 +14309,7 @@ a = Ok z |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an okay result will result in the given okay result"
+                            { message = "Result.mapError on an okay result will result in the given okay result"
                             , details = [ "You can replace this call by the given okay result." ]
                             , under = "Result.mapError"
                             }
@@ -14325,7 +14325,7 @@ a = Result.mapError identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError with an identity function will always return the same given result"
+                            { message = "Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -14341,7 +14341,7 @@ a = Result.mapError identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError with an identity function will always return the same given result"
+                            { message = "Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -14357,7 +14357,7 @@ a = x |> Result.mapError identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError with an identity function will always return the same given result"
+                            { message = "Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.mapError"
                             }
@@ -14373,7 +14373,7 @@ a = Result.mapError identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError with an identity function will always return the same given result"
+                            { message = "Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -14389,7 +14389,7 @@ a = Result.mapError <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError with an identity function will always return the same given result"
+                            { message = "Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -14405,7 +14405,7 @@ a = identity |> Result.mapError
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError with an identity function will always return the same given result"
+                            { message = "Result.mapError with an identity function will always return the same given result"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Result.mapError"
                             }
@@ -14421,7 +14421,7 @@ a = Result.mapError f (Err x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14437,7 +14437,7 @@ a = Result.mapError f <| Err x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14453,7 +14453,7 @@ a = Err x |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14469,7 +14469,7 @@ a = x |> Err |> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14485,7 +14485,7 @@ a = Result.mapError f <| Err <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14501,7 +14501,7 @@ a = Result.mapError f << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14517,7 +14517,7 @@ a = Err >> Result.mapError f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14533,7 +14533,7 @@ a = Result.mapError f << Err << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14549,7 +14549,7 @@ a = g << Result.mapError f << Err
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14565,7 +14565,7 @@ a = Err >> Result.mapError f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.mapError on an error will result in Err with the function applied to the value inside"
+                            { message = "Result.mapError on an error will result in Err with the function applied to the value inside"
                             , details = [ "You can replace this call by Err with the function directly applied to the value inside the error itself." ]
                             , under = "Result.mapError"
                             }
@@ -14594,7 +14594,7 @@ a = Result.andThen f (Err z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen on an error will result in the given error"
+                            { message = "Result.andThen on an error will result in the given error"
                             , details = [ "You can replace this call by the given error." ]
                             , under = "Result.andThen"
                             }
@@ -14617,7 +14617,7 @@ a = Result.andThen Ok x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function equivalent to Ok will always return the same given result"
+                            { message = "Result.andThen with a function equivalent to Ok will always return the same given result"
                             , details = [ "You can replace this call by the result itself." ]
                             , under = "Result.andThen"
                             }
@@ -14633,7 +14633,7 @@ a = Result.andThen (\\b -> Ok c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function that always returns an okay result is the same as using Result.map with the function returning the value inside"
+                            { message = "Result.andThen with a function that always returns an okay result is the same as Result.map with the function returning the value inside"
                             , details = [ "You can replace this call by Result.map with the function returning the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
@@ -14649,7 +14649,7 @@ a = Result.andThen (\\b -> let y = 1 in Ok y) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function that always returns an okay result is the same as using Result.map with the function returning the value inside"
+                            { message = "Result.andThen with a function that always returns an okay result is the same as Result.map with the function returning the value inside"
                             , details = [ "You can replace this call by Result.map with the function returning the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
@@ -14665,7 +14665,7 @@ a = Result.andThen (\\b -> if cond then Ok b else Ok c) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen with a function that always returns an okay result is the same as using Result.map with the function returning the value inside"
+                            { message = "Result.andThen with a function that always returns an okay result is the same as Result.map with the function returning the value inside"
                             , details = [ "You can replace this call by Result.map with the function returning the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
@@ -14688,7 +14688,7 @@ a = Result.andThen f (Ok x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen on an okay result is the same as applying the function to the value from the okay result"
+                            { message = "Result.andThen on an okay result is the same as applying the function to the value from the okay result"
                             , details = [ "You can replace this call by the function directly applied to the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
@@ -14704,7 +14704,7 @@ a = Ok x |> Result.andThen f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.andThen on an okay result is the same as applying the function to the value from the okay result"
+                            { message = "Result.andThen on an okay result is the same as applying the function to the value from the okay result"
                             , details = [ "You can replace this call by the function directly applied to the value inside the okay result." ]
                             , under = "Result.andThen"
                             }
@@ -14733,7 +14733,7 @@ a = Result.withDefault x (Err z)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.withDefault on an error will result in the default value"
+                            { message = "Result.withDefault on an error will result in the default value"
                             , details = [ "You can replace this call by the default value." ]
                             , under = "Result.withDefault"
                             }
@@ -14749,7 +14749,7 @@ a = Result.withDefault x (Ok y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.withDefault on an okay result will result in the value inside"
+                            { message = "Result.withDefault on an okay result will result in the value inside"
                             , details = [ "You can replace this call by the value inside the okay result." ]
                             , under = "Result.withDefault"
                             }
@@ -14765,7 +14765,7 @@ a = Result.withDefault x <| (Ok y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.withDefault on an okay result will result in the value inside"
+                            { message = "Result.withDefault on an okay result will result in the value inside"
                             , details = [ "You can replace this call by the value inside the okay result." ]
                             , under = "Result.withDefault"
                             }
@@ -14781,7 +14781,7 @@ a = (Ok y) |> Result.withDefault x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.withDefault on an okay result will result in the value inside"
+                            { message = "Result.withDefault on an okay result will result in the value inside"
                             , details = [ "You can replace this call by the value inside the okay result." ]
                             , under = "Result.withDefault"
                             }
@@ -14797,7 +14797,7 @@ a = y |> Ok |> Result.withDefault x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.withDefault on an okay result will result in the value inside"
+                            { message = "Result.withDefault on an okay result will result in the value inside"
                             , details = [ "You can replace this call by the value inside the okay result." ]
                             , under = "Result.withDefault"
                             }
@@ -14827,7 +14827,7 @@ a = Result.toMaybe (Err b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an error will result in Nothing"
+                            { message = "Result.toMaybe on an error will result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Result.toMaybe"
                             }
@@ -14843,7 +14843,7 @@ a = Result.toMaybe (Ok b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            { message = "Result.toMaybe on an okay result will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
@@ -14859,7 +14859,7 @@ a = Result.toMaybe <| Ok b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            { message = "Result.toMaybe on an okay result will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
@@ -14875,7 +14875,7 @@ a = Ok b |> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            { message = "Result.toMaybe on an okay result will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
@@ -14891,7 +14891,7 @@ a = b |> Ok |> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            { message = "Result.toMaybe on an okay result will result in Just the value inside"
                             , details = [ "You can replace this call by Just the value inside the okay result." ]
                             , under = "Result.toMaybe"
                             }
@@ -14907,7 +14907,7 @@ a = Ok >> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an okay result will result in Just the value inside"
+                            { message = "Result.toMaybe on an okay result will result in Just the value inside"
                             , details = [ "You can replace this call by Just." ]
                             , under = "Result.toMaybe"
                             }
@@ -14923,7 +14923,7 @@ a = Err >> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Result.toMaybe on an error will result in Nothing"
+                            { message = "Result.toMaybe on an error will result in Nothing"
                             , details = [ "You can replace this call by always Nothing." ]
                             , under = "Result.toMaybe"
                             }
@@ -14977,7 +14977,7 @@ a = Set.map f Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map on Set.empty will result in Set.empty"
+                            { message = "Set.map on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.map"
                             }
@@ -14995,7 +14995,7 @@ a = Set.map f <| Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map on Set.empty will result in Set.empty"
+                            { message = "Set.map on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.map"
                             }
@@ -15013,7 +15013,7 @@ a = Set.empty |> Set.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map on Set.empty will result in Set.empty"
+                            { message = "Set.map on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.map"
                             }
@@ -15031,7 +15031,7 @@ a = Set.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function will always return the same given set"
+                            { message = "Set.map with an identity function will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.map"
                             }
@@ -15049,7 +15049,7 @@ a = Set.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function will always return the same given set"
+                            { message = "Set.map with an identity function will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.map"
                             }
@@ -15067,7 +15067,7 @@ a = x |> Set.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function will always return the same given set"
+                            { message = "Set.map with an identity function will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.map"
                             }
@@ -15085,7 +15085,7 @@ a = Set.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function will always return the same given set"
+                            { message = "Set.map with an identity function will always return the same given set"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Set.map"
                             }
@@ -15103,7 +15103,7 @@ a = Set.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function will always return the same given set"
+                            { message = "Set.map with an identity function will always return the same given set"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Set.map"
                             }
@@ -15121,7 +15121,7 @@ a = identity |> Set.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.map with an identity function will always return the same given set"
+                            { message = "Set.map with an identity function will always return the same given set"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Set.map"
                             }
@@ -15153,7 +15153,7 @@ a = Set.filter f Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter on Set.empty will result in Set.empty"
+                            { message = "Set.filter on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15171,7 +15171,7 @@ a = Set.filter f <| Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter on Set.empty will result in Set.empty"
+                            { message = "Set.filter on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15189,7 +15189,7 @@ a = Set.empty |> Set.filter f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter on Set.empty will result in Set.empty"
+                            { message = "Set.filter on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15207,7 +15207,7 @@ a = Set.filter (always True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            { message = "Set.filter with a function that will always return True will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.filter"
                             }
@@ -15225,7 +15225,7 @@ a = Set.filter (\\x -> True) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            { message = "Set.filter with a function that will always return True will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.filter"
                             }
@@ -15243,7 +15243,7 @@ a = Set.filter (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            { message = "Set.filter with a function that will always return True will always return the same given set"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Set.filter"
                             }
@@ -15261,7 +15261,7 @@ a = Set.filter <| (always True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            { message = "Set.filter with a function that will always return True will always return the same given set"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Set.filter"
                             }
@@ -15279,7 +15279,7 @@ a = always True |> Set.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return True will always return the same given set"
+                            { message = "Set.filter with a function that will always return True will always return the same given set"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Set.filter"
                             }
@@ -15297,7 +15297,7 @@ a = Set.filter (always False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15315,7 +15315,7 @@ a = Set.filter (\\x -> False) x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15333,7 +15333,7 @@ a = Set.filter (always False) <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15351,7 +15351,7 @@ a = x |> Set.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15369,7 +15369,7 @@ a = Set.filter (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by always Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15387,7 +15387,7 @@ a = Set.filter <| (always False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by always Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15405,7 +15405,7 @@ a = always False |> Set.filter
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.filter with a function that will always return False will always result in Set.empty"
+                            { message = "Set.filter with a function that will always return False will always result in Set.empty"
                             , details = [ "You can replace this call by always Set.empty." ]
                             , under = "Set.filter"
                             }
@@ -15464,7 +15464,7 @@ a = Set.size (Set.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on [] will result in Set.empty"
+                            { message = "Set.fromList on [] will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.fromList"
                             }
@@ -15500,7 +15500,7 @@ import Set
 a = 1
 """
                         , Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15695,7 +15695,7 @@ a = Set.isEmpty Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on Set.empty will result in True"
+                            { message = "Set.isEmpty on Set.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Set.isEmpty"
                             }
@@ -15713,7 +15713,7 @@ a = Set.isEmpty (Set.fromList [x])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on this set will result in False"
+                            { message = "Set.isEmpty on this set will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.isEmpty"
                             }
@@ -15722,7 +15722,7 @@ import Set
 a = False
 """
                         , Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15740,7 +15740,7 @@ a = Set.isEmpty (Set.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on Set.empty will result in True"
+                            { message = "Set.isEmpty on Set.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Set.isEmpty"
                             }
@@ -15749,7 +15749,7 @@ import Set
 a = True
 """
                         , Review.Test.error
-                            { message = "Using Set.fromList on [] will result in Set.empty"
+                            { message = "Set.fromList on [] will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.fromList"
                             }
@@ -15767,7 +15767,7 @@ a = Set.isEmpty (Set.singleton x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on this set will result in False"
+                            { message = "Set.isEmpty on this set will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.isEmpty"
                             }
@@ -15785,7 +15785,7 @@ a = Set.singleton x |> Set.isEmpty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.isEmpty on this set will result in False"
+                            { message = "Set.isEmpty on this set will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.isEmpty"
                             }
@@ -15820,7 +15820,7 @@ a = Set.fromList []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on [] will result in Set.empty"
+                            { message = "Set.fromList on [] will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.fromList"
                             }
@@ -15838,7 +15838,7 @@ a = Set.fromList [ b ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15856,7 +15856,7 @@ a = Set.fromList [ f b ]
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15874,7 +15874,7 @@ a = Set.fromList (List.singleton b)
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15892,7 +15892,7 @@ a = Set.fromList <| List.singleton b
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15910,7 +15910,7 @@ a = List.singleton b |> Set.fromList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton with the value inside the singleton list." ]
                             , under = "Set.fromList"
                             }
@@ -15928,7 +15928,7 @@ a = List.singleton >> Set.fromList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton." ]
                             , under = "Set.fromList"
                             }
@@ -15946,7 +15946,7 @@ a = Set.fromList << List.singleton
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.fromList on a singleton list will result in Set.singleton with the value inside"
+                            { message = "Set.fromList on a singleton list will result in Set.singleton with the value inside"
                             , details = [ "You can replace this call by Set.singleton." ]
                             , under = "Set.fromList"
                             }
@@ -15980,7 +15980,7 @@ a = Set.toList Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.toList on Set.empty will result in []"
+                            { message = "Set.toList on Set.empty will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "Set.toList"
                             }
@@ -16012,7 +16012,7 @@ a = Set.partition f Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
+                            { message = "Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
                             , details = [ "You can replace this call by ( Set.empty, Set.empty )." ]
                             , under = "Set.partition"
                             }
@@ -16030,7 +16030,7 @@ a = Set.partition f <| Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
+                            { message = "Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
                             , details = [ "You can replace this call by ( Set.empty, Set.empty )." ]
                             , under = "Set.partition"
                             }
@@ -16048,7 +16048,7 @@ a = Set.empty |> Set.partition f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
+                            { message = "Set.partition on Set.empty will result in ( Set.empty, Set.empty )"
                             , details = [ "You can replace this call by ( Set.empty, Set.empty )." ]
                             , under = "Set.partition"
                             }
@@ -16181,7 +16181,7 @@ a = Set.remove x Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.remove on Set.empty will result in Set.empty"
+                            { message = "Set.remove on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.remove"
                             }
@@ -16213,7 +16213,7 @@ a = Set.member x Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.member on Set.empty will result in False"
+                            { message = "Set.member on Set.empty will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.member"
                             }
@@ -16245,7 +16245,7 @@ a = Set.intersect Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.intersect on Set.empty will result in Set.empty"
+                            { message = "Set.intersect on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.intersect"
                             }
@@ -16263,7 +16263,7 @@ a = Set.intersect set Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.intersect on Set.empty will result in Set.empty"
+                            { message = "Set.intersect on Set.empty will result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.intersect"
                             }
@@ -16295,7 +16295,7 @@ a = Set.diff Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.diff on Set.empty will always result in Set.empty"
+                            { message = "Set.diff on Set.empty will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.diff"
                             }
@@ -16363,7 +16363,7 @@ a = Set.union Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Set.union Set.empty will always return the same given set"
+                            { message = "Set.union Set.empty will always return the same given set"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.union"
                             }
@@ -16516,7 +16516,7 @@ a = Dict.isEmpty Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on Dict.empty will result in True"
+                            { message = "Dict.isEmpty on Dict.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16534,7 +16534,7 @@ a = Dict.isEmpty (Dict.fromList [x])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on this dict will result in False"
+                            { message = "Dict.isEmpty on this dict will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16552,7 +16552,7 @@ a = Dict.isEmpty (Dict.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on Dict.empty will result in True"
+                            { message = "Dict.isEmpty on Dict.empty will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16561,7 +16561,7 @@ import Dict
 a = True
 """
                         , Review.Test.error
-                            { message = "Using Dict.fromList on [] will result in Dict.empty"
+                            { message = "Dict.fromList on [] will result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.fromList"
                             }
@@ -16579,7 +16579,7 @@ a = Dict.isEmpty (Dict.singleton x y)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on this dict will result in False"
+                            { message = "Dict.isEmpty on this dict will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16597,7 +16597,7 @@ a = Dict.singleton x y |> Dict.isEmpty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.isEmpty on this dict will result in False"
+                            { message = "Dict.isEmpty on this dict will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.isEmpty"
                             }
@@ -16632,7 +16632,7 @@ a = Dict.fromList []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.fromList on [] will result in Dict.empty"
+                            { message = "Dict.fromList on [] will result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.fromList"
                             }
@@ -16666,7 +16666,7 @@ a = Dict.toList Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.toList on Dict.empty will result in []"
+                            { message = "Dict.toList on Dict.empty will result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "Dict.toList"
                             }
@@ -16762,7 +16762,7 @@ a = Dict.size (Dict.fromList [])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.fromList on [] will result in Dict.empty"
+                            { message = "Dict.fromList on [] will result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.fromList"
                             }
@@ -16875,7 +16875,7 @@ a = Dict.member x Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.member on Dict.empty will result in False"
+                            { message = "Dict.member on Dict.empty will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Dict.member"
                             }
@@ -16908,7 +16908,7 @@ a = Dict.partition f Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.partition on Dict.empty will result in ( Dict.empty, Dict.empty )"
+                            { message = "Dict.partition on Dict.empty will result in ( Dict.empty, Dict.empty )"
                             , details = [ "You can replace this call by ( Dict.empty, Dict.empty )." ]
                             , under = "Dict.partition"
                             }
@@ -16926,7 +16926,7 @@ a = Dict.partition f <| Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.partition on Dict.empty will result in ( Dict.empty, Dict.empty )"
+                            { message = "Dict.partition on Dict.empty will result in ( Dict.empty, Dict.empty )"
                             , details = [ "You can replace this call by ( Dict.empty, Dict.empty )." ]
                             , under = "Dict.partition"
                             }
@@ -16944,7 +16944,7 @@ a = Dict.empty |> Dict.partition f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Dict.partition on Dict.empty will result in ( Dict.empty, Dict.empty )"
+                            { message = "Dict.partition on Dict.empty will result in ( Dict.empty, Dict.empty )"
                             , details = [ "You can replace this call by ( Dict.empty, Dict.empty )." ]
                             , under = "Dict.partition"
                             }
@@ -17099,7 +17099,7 @@ a = Cmd.batch []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.batch on [] will result in Cmd.none"
+                            { message = "Cmd.batch on [] will result in Cmd.none"
                             , details = [ "You can replace this call by Cmd.none." ]
                             , under = "Cmd.batch"
                             }
@@ -17115,7 +17115,7 @@ a = Cmd.batch [ a, Cmd.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.batch on a list containing an irrelevant Cmd.none"
+                            { message = "Cmd.batch on a list containing an irrelevant Cmd.none"
                             , details = [ "Including Cmd.none in the list does not change the result of this call. You can remove the Cmd.none element." ]
                             , under = "Cmd.none"
                             }
@@ -17131,7 +17131,7 @@ a = Cmd.batch [ Cmd.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.batch on a singleton list will result in the value inside"
+                            { message = "Cmd.batch on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Cmd.batch"
                             }
@@ -17147,7 +17147,7 @@ a = Cmd.batch [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.batch on a singleton list will result in the value inside"
+                            { message = "Cmd.batch on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Cmd.batch"
                             }
@@ -17163,7 +17163,7 @@ a = Cmd.batch [ b, Cmd.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.batch on a list containing an irrelevant Cmd.none"
+                            { message = "Cmd.batch on a list containing an irrelevant Cmd.none"
                             , details = [ "Including Cmd.none in the list does not change the result of this call. You can remove the Cmd.none element." ]
                             , under = "Cmd.none"
                             }
@@ -17179,7 +17179,7 @@ a = Cmd.batch [ Cmd.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Cmd.batch on a list containing an irrelevant Cmd.none"
+                            { message = "Cmd.batch on a list containing an irrelevant Cmd.none"
                             , details = [ "Including Cmd.none in the list does not change the result of this call. You can remove the Cmd.none element." ]
                             , under = "Cmd.none"
                             }
@@ -17195,7 +17195,7 @@ a = Cmd.map identity cmd
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Platform.Cmd.map with an identity function will always return the same given command"
+                            { message = "Platform.Cmd.map with an identity function will always return the same given command"
                             , details = [ "You can replace this call by the command itself." ]
                             , under = "Cmd.map"
                             }
@@ -17211,7 +17211,7 @@ a = Cmd.map f Cmd.none
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Platform.Cmd.map on Cmd.none will result in Cmd.none"
+                            { message = "Platform.Cmd.map on Cmd.none will result in Cmd.none"
                             , details = [ "You can replace this call by Cmd.none." ]
                             , under = "Cmd.map"
                             }
@@ -17246,7 +17246,7 @@ a = Sub.batch []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on [] will result in Sub.none"
+                            { message = "Sub.batch on [] will result in Sub.none"
                             , details = [ "You can replace this call by Sub.none." ]
                             , under = "Sub.batch"
                             }
@@ -17262,7 +17262,7 @@ a = Sub.batch [ a, Sub.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on a list containing an irrelevant Sub.none"
+                            { message = "Sub.batch on a list containing an irrelevant Sub.none"
                             , details = [ "Including Sub.none in the list does not change the result of this call. You can remove the Sub.none element." ]
                             , under = "Sub.none"
                             }
@@ -17278,7 +17278,7 @@ a = Sub.batch [ Sub.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on a singleton list will result in the value inside"
+                            { message = "Sub.batch on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Sub.batch"
                             }
@@ -17294,7 +17294,7 @@ a = Sub.batch [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on a singleton list will result in the value inside"
+                            { message = "Sub.batch on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Sub.batch"
                             }
@@ -17310,7 +17310,7 @@ a = Sub.batch [ f n ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on a singleton list will result in the value inside"
+                            { message = "Sub.batch on a singleton list will result in the value inside"
                             , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Sub.batch"
                             }
@@ -17326,7 +17326,7 @@ a = Sub.batch [ b, Sub.none ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on a list containing an irrelevant Sub.none"
+                            { message = "Sub.batch on a list containing an irrelevant Sub.none"
                             , details = [ "Including Sub.none in the list does not change the result of this call. You can remove the Sub.none element." ]
                             , under = "Sub.none"
                             }
@@ -17342,7 +17342,7 @@ a = Sub.batch [ Sub.none, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Sub.batch on a list containing an irrelevant Sub.none"
+                            { message = "Sub.batch on a list containing an irrelevant Sub.none"
                             , details = [ "Including Sub.none in the list does not change the result of this call. You can remove the Sub.none element." ]
                             , under = "Sub.none"
                             }
@@ -17358,7 +17358,7 @@ a = Sub.map identity sub
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Platform.Sub.map with an identity function will always return the same given subscription"
+                            { message = "Platform.Sub.map with an identity function will always return the same given subscription"
                             , details = [ "You can replace this call by the subscription itself." ]
                             , under = "Sub.map"
                             }
@@ -17374,7 +17374,7 @@ a = Sub.map f Sub.none
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Platform.Sub.map on Sub.none will result in Sub.none"
+                            { message = "Platform.Sub.map on Sub.none will result in Sub.none"
                             , details = [ "You can replace this call by Sub.none." ]
                             , under = "Sub.map"
                             }
@@ -18083,7 +18083,7 @@ a = Random.list 0 generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with length 0 will always result in Random.constant []"
+                            { message = "Random.list with length 0 will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -18101,7 +18101,7 @@ a = Random.list 0 <| generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with length 0 will always result in Random.constant []"
+                            { message = "Random.list with length 0 will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -18119,7 +18119,7 @@ a = generator |> Random.list 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with length 0 will always result in Random.constant []"
+                            { message = "Random.list with length 0 will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -18137,7 +18137,7 @@ a = Random.list 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with length 0 will always result in Random.constant []"
+                            { message = "Random.list with length 0 will always result in Random.constant []"
                             , details = [ "You can replace this call by always (Random.constant [])." ]
                             , under = "Random.list"
                             }
@@ -18155,7 +18155,7 @@ a = Random.list -1 generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with a negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -18173,7 +18173,7 @@ a = Random.list -1 <| generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with a negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -18191,7 +18191,7 @@ a = generator |> Random.list -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with a negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -18209,7 +18209,7 @@ a = Random.list -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with a negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by always (Random.constant [])." ]
                             , under = "Random.list"
                             }
@@ -18405,7 +18405,7 @@ a = Random.map identity x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            { message = "Random.map with an identity function will always return the same given random generator"
                             , details = [ "You can replace this call by the random generator itself." ]
                             , under = "Random.map"
                             }
@@ -18423,7 +18423,7 @@ a = Random.map identity <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            { message = "Random.map with an identity function will always return the same given random generator"
                             , details = [ "You can replace this call by the random generator itself." ]
                             , under = "Random.map"
                             }
@@ -18441,7 +18441,7 @@ a = x |> Random.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            { message = "Random.map with an identity function will always return the same given random generator"
                             , details = [ "You can replace this call by the random generator itself." ]
                             , under = "Random.map"
                             }
@@ -18459,7 +18459,7 @@ a = Random.map identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            { message = "Random.map with an identity function will always return the same given random generator"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Random.map"
                             }
@@ -18477,7 +18477,7 @@ a = Random.map <| identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            { message = "Random.map with an identity function will always return the same given random generator"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Random.map"
                             }
@@ -18495,7 +18495,7 @@ a = identity |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with an identity function will always return the same given random generator"
+                            { message = "Random.map with an identity function will always return the same given random generator"
                             , details = [ "You can replace this call by identity." ]
                             , under = "Random.map"
                             }
@@ -18513,7 +18513,7 @@ a = Random.map (\\_ -> x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18531,7 +18531,7 @@ a = Random.map (always x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18549,7 +18549,7 @@ a = Random.map (always <| x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18567,7 +18567,7 @@ a = Random.map (x |> always) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18585,7 +18585,7 @@ a = Random.map (always x) <| generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18603,7 +18603,7 @@ a = generator |> Random.map (always x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18621,7 +18621,7 @@ a = Random.map (\\_ -> f x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18639,7 +18639,7 @@ a = Random.map (always <| f x) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18657,7 +18657,7 @@ a = Random.map (f x |> always) generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18675,7 +18675,7 @@ a = Random.map (\\_ -> x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18693,7 +18693,7 @@ a = Random.map <| \\_ -> x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18711,7 +18711,7 @@ a = (\\_ -> x) |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18729,7 +18729,7 @@ a = Random.map (always x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18747,7 +18747,7 @@ a = Random.map (always <| x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18765,7 +18765,7 @@ a = Random.map (x |> always)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18783,7 +18783,7 @@ a = Random.map (\\_ -> f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18801,7 +18801,7 @@ a = Random.map <| \\_ -> f x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18819,7 +18819,7 @@ a = (\\_ -> f x) |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18837,7 +18837,7 @@ a = Random.map (always <| f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18855,7 +18855,7 @@ a = Random.map <| always <| f x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18873,7 +18873,7 @@ a = (always <| f x) |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18891,7 +18891,7 @@ a = Random.map (f x |> always)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18909,7 +18909,7 @@ a = Random.map <| (f x |> always)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18927,7 +18927,7 @@ a = f x |> always |> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant with that value"
                             , details = [ "You can replace this call by Random.constant with the value produced by the mapper function." ]
                             , under = "Random.map"
                             }
@@ -18945,7 +18945,7 @@ a = always >> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant"
                             , details = [ "You can replace this call by Random.constant." ]
                             , under = "Random.map"
                             }
@@ -18963,7 +18963,7 @@ a = Random.map << always
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map with a function that always maps to the same value is equivalent to Random.constant"
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant"
                             , details = [ "You can replace this call by Random.constant." ]
                             , under = "Random.map"
                             }
@@ -18981,7 +18981,7 @@ a = Random.map f (Random.constant x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -18999,7 +18999,7 @@ a = Random.map f <| Random.constant x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19017,7 +19017,7 @@ a = Random.constant x |> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19035,7 +19035,7 @@ a = x |> Random.constant |> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19053,7 +19053,7 @@ a = Random.map f <| Random.constant <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19071,7 +19071,7 @@ a = Random.map f << Random.constant
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19089,7 +19089,7 @@ a = Random.constant >> Random.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19107,7 +19107,7 @@ a = Random.map f << Random.constant << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19125,7 +19125,7 @@ a = g << Random.map f << Random.constant
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
@@ -19143,7 +19143,7 @@ a = Random.constant >> Random.map f >> g
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Using Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
+                            { message = "Random.map on a constant generator will result in Random.constant with the function applied to the value inside"
                             , details = [ "You can replace this call by Random.constant with the function directly applied to the value inside the constant generator itself." ]
                             , under = "Random.map"
                             }
