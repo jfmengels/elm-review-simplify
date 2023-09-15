@@ -7865,7 +7865,7 @@ a = List.member c (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is the same as directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7881,7 +7881,7 @@ a = List.member b (List.singleton b)
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is the same as directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7913,7 +7913,7 @@ a = List.member c [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is the same as directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7929,7 +7929,7 @@ a = List.member c <| [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is the same as directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7945,7 +7945,7 @@ a = List.member c [ f b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is the same as directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }
@@ -7961,7 +7961,7 @@ a = [ b ] |> List.member c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is equivalent to directly checking for equality"
+                            { message = "List.member on an list with a single element is the same as directly checking for equality"
                             , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                             , under = "List.member"
                             }

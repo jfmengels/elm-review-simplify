@@ -4707,7 +4707,7 @@ listMemberChecks checkInfo =
                             in
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on an list with a single element is equivalent to directly checking for equality"
+                                    { message = qualifiedToString checkInfo.fn ++ " on an list with a single element is the same as directly checking for equality"
                                     , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                                     }
                                     checkInfo.fnRange
