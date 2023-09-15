@@ -9131,6 +9131,22 @@ a = List.indexedMap (\\_ y -> y) x
 a = List.map (\\y -> y) x
 """
                         ]
+        , test "should replace List.indexedMap (\\(_) (y) -> y) x by List.map (\\(y) -> y) x" <|
+            \() ->
+                """module A exposing (..)
+a = List.indexedMap (\\(_) (y) -> y) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.indexedMap with a function that ignores the first argument is the same as List.map"
+                            , details = [ "You can replace this call by List.map." ]
+                            , under = "List.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.map (\\(y) -> y) x
+"""
+                        ]
         , test "should replace List.indexedMap (\\_ -> f) x by List.map f x" <|
             \() ->
                 """module A exposing (..)

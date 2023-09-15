@@ -4371,14 +4371,14 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
             case lambda.args of
                 firstArg :: argsAfterFirst ->
                     case AstHelpers.removeParensFromPattern firstArg of
-                        Node allPatternRange Pattern.AllPattern ->
+                        Node _ Pattern.AllPattern ->
                             case argsAfterFirst of
                                 [] ->
                                     Just (keepOnlyFix { parentRange = Node.range expressionNode, keep = Node.range lambda.expression })
 
                                 (Node secondRange _) :: _ ->
                                     Just
-                                        [ Fix.removeRange { start = allPatternRange.start, end = secondRange.start } ]
+                                        [ Fix.removeRange { start = (Node.range firstArg).start, end = secondRange.start } ]
 
                         _ ->
                             Nothing
