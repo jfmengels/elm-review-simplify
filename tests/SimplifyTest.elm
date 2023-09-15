@@ -1416,7 +1416,7 @@ a = not True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be True can be replaced by False"
+                            { message = "`not` on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -1432,7 +1432,7 @@ a = not False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be False can be replaced by True"
+                            { message = "`not` on a bool known to be False can be replaced by True"
                             , details = [ "You can replace this call by True." ]
                             , under = "not"
                             }
@@ -1448,7 +1448,7 @@ a = not (True)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be True can be replaced by False"
+                            { message = "`not` on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -1464,7 +1464,7 @@ a = not <| True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be True can be replaced by False"
+                            { message = "`not` on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -1480,7 +1480,7 @@ a = True |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be True can be replaced by False"
+                            { message = "`not` on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -4142,7 +4142,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be True can be replaced by False"
+                            { message = "`not` on a bool known to be True can be replaced by False"
                             , details = [ "You can replace this call by False." ]
                             , under = "not"
                             }
@@ -4200,7 +4200,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be False can be replaced by True"
+                            { message = "`not` on a bool known to be False can be replaced by True"
                             , details = [ "You can replace this call by True." ]
                             , under = "not"
                             }
@@ -4880,7 +4880,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "not on a bool known to be False can be replaced by True"
+                            { message = "`not` on a bool known to be False can be replaced by True"
                             , details = [ "You can replace this call by True." ]
                             , under = "not"
                             }

@@ -3128,7 +3128,7 @@ notOnKnownBoolCheck checkInfo =
             in
             Just
                 (Rule.errorWithFix
-                    { message = "not on a bool known to be " ++ AstHelpers.boolToString bool ++ " can be replaced by " ++ notBoolAsString
+                    { message = wrapInBackticks "not" ++ " on a bool known to be " ++ AstHelpers.boolToString bool ++ " can be replaced by " ++ notBoolAsString
                     , details = [ "You can replace this call by " ++ notBoolAsString ++ "." ]
                     }
                     checkInfo.fnRange
