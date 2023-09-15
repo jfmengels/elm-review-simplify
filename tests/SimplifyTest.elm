@@ -6846,8 +6846,8 @@ a = List.append [] ys
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the left will always return the same given right list"
-                            , details = [ "You can replace this call by the right list itself." ]
+                            { message = "List.append with [] as the first argument will always return the same given second list argument"
+                            , details = [ "You can replace this call by the second list argument itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6862,8 +6862,8 @@ a = List.append [] <| ys
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the left will always return the same given right list"
-                            , details = [ "You can replace this call by the right list itself." ]
+                            { message = "List.append with [] as the first argument will always return the same given second list argument"
+                            , details = [ "You can replace this call by the second list argument itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6878,8 +6878,8 @@ a = ys |> List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the left will always return the same given right list"
-                            , details = [ "You can replace this call by the right list itself." ]
+                            { message = "List.append with [] as the first argument will always return the same given second list argument"
+                            , details = [ "You can replace this call by the second list argument itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6894,7 +6894,7 @@ a = List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the left will always return the same given right list"
+                            { message = "List.append with [] as the first argument will always return the same given second list argument"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.append"
                             }
@@ -6910,8 +6910,8 @@ a = List.append xs []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the right will always return the same given left list"
-                            , details = [ "You can replace this call by the left list itself." ]
+                            { message = "List.append with [] as the second argument will always return the same given first list argument"
+                            , details = [ "You can replace this call by the first list argument itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6926,8 +6926,8 @@ a = List.append xs <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the right will always return the same given left list"
-                            , details = [ "You can replace this call by the left list itself." ]
+                            { message = "List.append with [] as the second argument will always return the same given first list argument"
+                            , details = [ "You can replace this call by the first list argument itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6942,8 +6942,8 @@ a = [] |> List.append xs
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] to the right will always return the same given left list"
-                            , details = [ "You can replace this call by the left list itself." ]
+                            { message = "List.append with [] as the second argument will always return the same given first list argument"
+                            , details = [ "You can replace this call by the first list argument itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

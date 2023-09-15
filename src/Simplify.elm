@@ -4415,9 +4415,9 @@ listAppendChecks checkInfo =
                 Just [] ->
                     Just
                         (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with [] to the left")
+                            (qualifiedToString checkInfo.fn ++ " with [] as the first argument")
                             { lastArg = secondArg checkInfo
-                            , lastArgRepresents = "right list"
+                            , lastArgRepresents = "second list argument"
                             }
                             checkInfo
                         )
@@ -4430,9 +4430,9 @@ listAppendChecks checkInfo =
                     case AstHelpers.getListLiteral listArgToTheRight of
                         Just [] ->
                             Just
-                                (returnsArgError (qualifiedToString checkInfo.fn ++ " with [] to the right")
+                                (returnsArgError (qualifiedToString checkInfo.fn ++ " with [] as the second argument")
                                     { arg = listArgToTheLeft
-                                    , argRepresents = "left list"
+                                    , argRepresents = "first list argument"
                                     }
                                     checkInfo
                                 )
