@@ -2,14 +2,15 @@
 
 ## [Unreleased]
 
-- Errors are more consistent, precise and descriptive
-- Fixed a bug with `Dict.size (Dict.fromList [...])` assuming elements with different keys
-- Fixed a bug with `Result.toMaybe (if c then Err a else Ok b)` being fixed to `Nothing`
-- Fixed a bug with `Maybe.andThen (always (Just a)) maybe` being fixed to `maybe`
-- Checks that previously only reported `[ a ]` now also report `List.singleton a`
-- `List.member (List.singleton b) b` with `expectNaN` enabled will now provide a fix: `b == b`
+- A large number of error messages were reworded to be more consistent, precise and descriptive.
+- Checks that applied on `[ a ]` now also report for `List.singleton a` (ex: `List.concatMap f (List.singleton 1)` gets simplified to `f 1`)
+
+The rule now simplifies:
+- `0 // n` to `0`
+- `n // 0` to `0`
+- `n // 1` to `n`
 - `List.concatMap List.singleton x` to `x`
-- `mapError f (if x then Err a else Err b)` to `f (if x then a else b)`
+- `Result.mapError f (if x then Err a else Err b)` to `f (if x then a else b)`
 - `Random.map identity generator` to `generator`
 - `Random.map (always a) generator` to `Random.constant a`
 - `Random.map f (Random.constant x)` to `Random.constant (f x)`
@@ -20,11 +21,12 @@
 - `Random.uniform a []` to `Random.constant a`
 - `Random.weighted ( weight, a ) []` to `Random.constant a`
 - `Random.weighted tuple []` to `Random.constant (Tuple.first tuple)`
-- `not (a > b)` to `a <= b`
-- `not (a < b)` to `a >= b`
-- `not (a >= b)` to `a < b`
-- `not (a <= b)` to `a > b`
-- with expectNaN disabled: `0 / n --> 0`
+- `List.member (List.singleton b) b` to `b == b` when [`expectNaN`] is enabled (and to `True` otherwise)
+
+Bug fixes:
+- Fixed an issue where `Dict.size (Dict.fromList [...])` would be fixed to an incorrect value
+- Fixed an issue where `Result.toMaybe (if c then Err a else Ok b)` would be fixed to `Nothing`
+- Fixed an issue where `Maybe.andThen (always (Just a)) maybe` would be fixed to `maybe`
 
 ## [2.1.0] - 2023-08-15
 
