@@ -636,6 +636,9 @@ Destructuring using case expressions
     List.drop 0 list
     --> list
 
+    List.reverse []
+    --> []
+
     List.reverse [ a ]
     --> [ a ]
 
