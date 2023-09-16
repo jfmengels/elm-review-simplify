@@ -2479,6 +2479,7 @@ compositionIntoChecks =
         , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
         , ( ( [ "List" ], "map" ), listMapCompositionChecks )
         , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
+        , ( ( [ "List" ], "intersperse" ), listIntersperseCompositionChecks )
         , ( ( [ "List" ], "concat" ), listConcatCompositionChecks )
         , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
@@ -4509,8 +4510,21 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
 
 listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks checkInfo =
-    Maybe.andThen (\listArg -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo)
-        (secondArg checkInfo)
+    case secondArg checkInfo of
+        Just listArg ->
+            firstThatConstructsJust
+                [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
+                , \() -> callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
+                ]
+                ()
+
+        Nothing ->
+            Nothing
+
+
+listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listIntersperseCompositionChecks checkInfo =
+    compositionAfterWrapIsUnnecessaryCheck listCollection checkInfo
 
 
 listAppendChecks : CheckInfo -> Maybe (Error {})
