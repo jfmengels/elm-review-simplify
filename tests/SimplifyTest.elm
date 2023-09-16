@@ -16870,6 +16870,9 @@ dictSimplificationTests =
         , dictSizeTests
         , dictMemberTests
         , dictPartitionTests
+        , dictUnionTests
+        , dictIntersectTests
+        , dictDiffTests
         ]
 
 
@@ -17448,6 +17451,212 @@ a = always False |> Dict.partition
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = (Tuple.pair Dict.empty)
+"""
+                        ]
+        ]
+
+
+dictIntersectTests : Test
+dictIntersectTests =
+    describe "Dict.intersect"
+        [ test "should not report Dict.intersect used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.intersect
+b = Dict.intersect x
+c = Dict.intersect x y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.intersect Dict.empty dict by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.intersect Dict.empty dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.intersect on Dict.empty will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.intersect dict Dict.empty by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.intersect dict Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.intersect on Dict.empty will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
+"""
+                        ]
+        ]
+
+
+dictDiffTests : Test
+dictDiffTests =
+    describe "Dict.diff"
+        [ test "should not report Dict.diff used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.diff x y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.diff Dict.empty dict by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.diff Dict.empty dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.diff on Dict.empty will always result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.diff dict Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.diff dict Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Diffing a dict with Dict.empty will result in the dict itself"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.empty |> Dict.diff dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.empty |> Dict.diff dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Diffing a dict with Dict.empty will result in the dict itself"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        ]
+
+
+dictUnionTests : Test
+dictUnionTests =
+    describe "Dict.union"
+        [ test "should not report Dict.union used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union x y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.union Dict.empty dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union Dict.empty dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.union dict Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union dict Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Dict.empty"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.empty |> Dict.union dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.empty |> Dict.union dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Dict.empty"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace dict |> Dict.union Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.empty |> Dict.union dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary union with Dict.empty"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
 """
                         ]
         ]

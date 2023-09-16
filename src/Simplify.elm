@@ -753,6 +753,18 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
+    Dict.intersect Dict.empty dict
+    --> Dict.empty
+
+    Dict.diff Dict.empty dict
+    --> Dict.empty
+
+    Dict.diff dict Dict.empty
+    --> dict
+
+    Dict.union dict Dict.empty
+    --> dict
+
     Dict.partition f Dict.empty
     --> ( Dict.empty, Dict.empty )
 
@@ -2310,6 +2322,9 @@ functionCallChecks =
         , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
         , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
         , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
+        , ( ( [ "Dict" ], "intersect" ), collectionIntersectChecks dictCollection )
+        , ( ( [ "Dict" ], "diff" ), collectionDiffChecks dictCollection )
+        , ( ( [ "Dict" ], "union" ), collectionUnionChecks dictCollection )
         , ( ( [ "String" ], "fromList" ), stringFromListChecks )
         , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
