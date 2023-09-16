@@ -6277,6 +6277,70 @@ a = String.reverse ""
 a = ""
 """
                         ]
+        , test "should replace String.reverse (String.fromChar a) by (String.fromChar a)" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse (String.fromChar b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.reverse on a single-char string will result in the given single-char string"
+                            , details = [ "You can replace this call by the given single-char string." ]
+                            , under = "String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.fromChar b)
+"""
+                        ]
+        , test "should replace a |> String.fromChar |> String.reverse by a |> String.fromChar" <|
+            \() ->
+                """module A exposing (..)
+a = b |> String.fromChar |> String.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.reverse on a single-char string will result in the given single-char string"
+                            , details = [ "You can replace this call by the given single-char string." ]
+                            , under = "String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> String.fromChar
+"""
+                        ]
+        , test "should replace String.reverse << String.fromChar by String.fromChar" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse << String.fromChar
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.reverse on a single-char string will result in the given string"
+                            , details = [ "You can replace this call by String.fromChar." ]
+                            , under = "String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromChar
+"""
+                        ]
+        , test "should replace String.fromChar >> String.reverse by String.fromChar" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromChar >> String.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.reverse on a single-char string will result in the given string"
+                            , details = [ "You can replace this call by String.fromChar." ]
+                            , under = "String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromChar
+"""
+                        ]
         , test "should replace String.reverse <| String.reverse <| x by x" <|
             \() ->
                 """module A exposing (..)
