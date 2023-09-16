@@ -621,6 +621,9 @@ Destructuring using case expressions
     List.repeat 0 x
     --> []
 
+    List.repeat 1 x
+    --> List.singleton x
+
     List.partition f []
     --> ( [], [] )
 
