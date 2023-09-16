@@ -13086,6 +13086,86 @@ a = List.intersperse x []
 a = []
 """
                         ]
+        , test "should replace List.intersperse s [ a ] by [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.intersperse s [ b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.intersperse on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
+                            , under = "List.intersperse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ b ]
+"""
+                        ]
+        , test "should replace List.intersperse s (List.singleton a) by (List.singleton a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.intersperse s (List.singleton b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.intersperse on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
+                            , under = "List.intersperse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.singleton b)
+"""
+                        ]
+        , test "should replace a |> List.singleton |> List.intersperse s by a |> List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = b |> List.singleton |> List.intersperse s
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.intersperse on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
+                            , under = "List.intersperse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> List.singleton
+"""
+                        ]
+        , test "should replace List.intersperse s << List.singleton by List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = List.intersperse s << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.intersperse on a singleton list will result in the given list"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.intersperse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton
+"""
+                        ]
+        , test "should replace List.singleton >> List.intersperse s by List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton >> List.intersperse s
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.intersperse on a singleton list will result in the given list"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.intersperse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton
+"""
+                        ]
         ]
 
 
