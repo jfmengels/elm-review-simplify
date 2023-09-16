@@ -5418,7 +5418,11 @@ listRangeChecks checkInfo =
 
 listRepeatChecks : CheckInfo -> Maybe (Error {})
 listRepeatChecks checkInfo =
-    emptiableRepeatChecks listCollection checkInfo
+    firstThatConstructsJust
+        [ \() -> emptiableRepeatChecks listCollection checkInfo
+        , \() -> wrapperRepeatChecks listCollection checkInfo
+        ]
+        ()
 
 
 emptiableRepeatChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -5432,6 +5436,34 @@ emptiableRepeatChecks collection checkInfo =
                 , lastArg = secondArg checkInfo
                 }
                 checkInfo
+
+        Nothing ->
+            Nothing
+
+
+wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperRepeatChecks wrapper checkInfo =
+    case Evaluate.getInt checkInfo checkInfo.firstArg of
+        Just 1 ->
+            let
+                wrapFn : ( ModuleName, String )
+                wrapFn =
+                    ( wrapper.moduleName, wrapper.wrap.fnName )
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.nameForSize ++ " 1 will result in " ++ qualifiedToString wrapFn
+                    , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    [ Fix.replaceRangeBy
+                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                        (qualifiedToString (qualify wrapFn checkInfo))
+                    ]
+                )
+
+        Just _ ->
+            Nothing
 
         Nothing ->
             Nothing

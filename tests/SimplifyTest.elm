@@ -11937,13 +11937,86 @@ a = List.repeat -5 list
 a = []
 """
                         ]
-        , test "should not replace List.repeat 1" <|
+        , test "should replace List.repeat 1 by List.singleton" <|
             \() ->
                 """module A exposing (..)
-a = List.repeat 1 x
+a = List.repeat 1
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat with length 1 will result in List.singleton"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton
+"""
+                        ]
+        , test "should replace 1 |> List.repeat by List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = 1 |> List.repeat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat with length 1 will result in List.singleton"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton
+"""
+                        ]
+        , test "should replace List.repeat 1 element by List.singleton element" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat 1 element
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat with length 1 will result in List.singleton"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton element
+"""
+                        ]
+        , test "should replace List.repeat 1 <| element by List.singleton <| element" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat 1 <| element
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat with length 1 will result in List.singleton"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton <| element
+"""
+                        ]
+        , test "should replace element |> List.repeat 1 by element |> List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = element |> List.repeat 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat with length 1 will result in List.singleton"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = element |> List.singleton
+"""
+                        ]
         ]
 
 
