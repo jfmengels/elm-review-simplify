@@ -3007,38 +3007,67 @@ concatenateEmptyErrorInfo config =
 
 consChecks : OperatorCheckInfo -> Maybe (Error {})
 consChecks checkInfo =
-    case Node.value checkInfo.right of
-        Expression.ListExpr tailElements ->
-            let
-                fix : List Fix
-                fix =
-                    case tailElements of
-                        [] ->
+    firstThatConstructsJust
+        [ \() ->
+            case Node.value checkInfo.right of
+                Expression.ListExpr tailElements ->
+                    let
+                        fix : List Fix
+                        fix =
+                            case tailElements of
+                                [] ->
+                                    [ Fix.insertAt checkInfo.leftRange.start "[ "
+                                    , Fix.replaceRangeBy
+                                        { start = checkInfo.leftRange.end
+                                        , end = checkInfo.rightRange.end
+                                        }
+                                        " ]"
+                                    ]
+
+                                _ :: _ ->
+                                    [ Fix.insertAt checkInfo.leftRange.start "[ "
+                                    , Fix.replaceRangeBy checkInfo.operatorRange ","
+                                    , Fix.removeRange (leftBoundaryRange checkInfo.rightRange)
+                                    ]
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "Try moving the element inside the list it is being added to." ]
+                            }
+                            checkInfo.operatorRange
+                            fix
+                        )
+
+                _ ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.right of
+                Just tailSingleton ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "You can replace this operation by a list that contains both the added element and the value inside the singleton list." ]
+                            }
+                            checkInfo.operatorRange
                             [ Fix.insertAt checkInfo.leftRange.start "[ "
                             , Fix.replaceRangeBy
                                 { start = checkInfo.leftRange.end
-                                , end = checkInfo.rightRange.end
+                                , end = (Node.range tailSingleton.element).start
+                                }
+                                ", "
+                            , Fix.replaceRangeBy
+                                { start = (Node.range tailSingleton.element).end
+                                , end = checkInfo.parentRange.end
                                 }
                                 " ]"
                             ]
+                        )
 
-                        _ :: _ ->
-                            [ Fix.insertAt checkInfo.leftRange.start "[ "
-                            , Fix.replaceRangeBy checkInfo.operatorRange ","
-                            , Fix.removeRange (leftBoundaryRange checkInfo.rightRange)
-                            ]
-            in
-            Just
-                (Rule.errorWithFix
-                    { message = "Element added to the beginning of the list could be included in the list"
-                    , details = [ "Try moving the element inside the list it is being added to." ]
-                    }
-                    checkInfo.operatorRange
-                    fix
-                )
-
-        _ ->
-            Nothing
+                Nothing ->
+                    Nothing
+        ]
+        ()
 
 
 toggleCompositionChecks : ( ModuleName, String ) -> CompositionCheckInfo -> Maybe (Error {})

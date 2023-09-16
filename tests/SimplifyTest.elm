@@ -6829,6 +6829,23 @@ a = 1 :: []
 a = [ 1 ]
 """
                         ]
+        , test "should replace a :: (List.singleton <| b + c) by [ a, b + c ]" <|
+            \() ->
+                """module A exposing (..)
+a = a
+    :: (List.singleton <| b + c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Element added to the beginning of the list could be included in the list"
+                            , details = [ "You can replace this operation by a list that contains both the added element and the value inside the singleton list." ]
+                            , under = "::"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ a, b + c ]
+"""
+                        ]
         ]
 
 
