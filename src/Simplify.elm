@@ -209,9 +209,6 @@ Destructuring using case expressions
     (\_ y -> x) data
     --> (\y -> x)
 
-    (\x y -> x + y) n m
-    -- Reported because simplifiable but not autofixed
-
 
 ### Operators
 
@@ -1763,13 +1760,11 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                 Nothing
 
                     Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))) ->
-                        Just
-                            (appliedLambdaError
-                                { nodeRange = expressionRange
-                                , lambdaRange = lambdaRange
-                                , lambda = lambda
-                                }
-                            )
+                        appliedLambdaError
+                            { nodeRange = expressionRange
+                            , lambdaRange = lambdaRange
+                            , lambda = lambda
+                            }
 
                     Node operatorRange (Expression.PrefixOperator operator) ->
                         case argsAfterFirst of
@@ -7049,13 +7044,11 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
                     Nothing
 
                 _ ->
-                    Just
-                        (appliedLambdaError
-                            { nodeRange = checkInfo.nodeRange
-                            , lambdaRange = lambdaRange
-                            , lambda = lambda
-                            }
-                        )
+                    appliedLambdaError
+                        { nodeRange = checkInfo.nodeRange
+                        , lambdaRange = lambdaRange
+                        , lambda = lambda
+                        }
 
         _ ->
             Nothing
@@ -8151,58 +8144,51 @@ fullyAppliedPrefixOperatorError checkInfo =
 -- APPLIED LAMBDA
 
 
-appliedLambdaError : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> Error {}
+appliedLambdaError : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> Maybe (Error {})
 appliedLambdaError checkInfo =
     case checkInfo.lambda.args of
         (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
-            Rule.errorWithFix
-                { message = "Unnecessary unit argument"
-                , details =
-                    [ "This function is expecting a unit, but also passing it directly."
-                    , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
-                    ]
-                }
-                unitRange
-                (case otherPatterns of
-                    [] ->
-                        replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
+            Just
+                (Rule.errorWithFix
+                    { message = "Unnecessary unit argument"
+                    , details =
+                        [ "This function is expecting a unit, but also passing it directly."
+                        , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                        ]
+                    }
+                    unitRange
+                    (case otherPatterns of
+                        [] ->
+                            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
 
-                    secondPattern :: _ ->
-                        Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
-                            :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
+                        secondPattern :: _ ->
+                            Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
+                                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
+                    )
                 )
 
         (Node allRange Pattern.AllPattern) :: otherPatterns ->
-            Rule.errorWithFix
-                { message = "Unnecessary wildcard argument argument"
-                , details =
-                    [ "This function is being passed an argument that is directly ignored."
-                    , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
-                    ]
-                }
-                allRange
-                (case otherPatterns of
-                    [] ->
-                        replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
+            Just
+                (Rule.errorWithFix
+                    { message = "Unnecessary wildcard argument argument"
+                    , details =
+                        [ "This function is being passed an argument that is directly ignored."
+                        , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                        ]
+                    }
+                    allRange
+                    (case otherPatterns of
+                        [] ->
+                            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
 
-                    secondPattern :: _ ->
-                        Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
-                            :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
+                        secondPattern :: _ ->
+                            Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
+                                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
+                    )
                 )
 
         _ ->
-            Rule.error
-                { message = "Anonymous function is immediately invoked"
-                , details =
-                    [ "This expression defines a function which then gets called directly afterwards, which overly complexifies the intended computation."
-                    , "While there are reasonable uses for this in languages like JavaScript, the same benefits aren't there in Elm because of not allowing name shadowing."
-                    , "Here are a few ways you can simplify this:"
-                    , """- Remove the lambda and reference the arguments directly instead of giving them new names
-- Remove the lambda and use let variables to give names to the current arguments
-- Extract the lambda to a named function (at the top-level or defined in a let expression)"""
-                    ]
-                }
-                checkInfo.lambdaRange
+            Nothing
 
 
 
