@@ -314,6 +314,9 @@ Destructuring using case expressions
     String.reverse ""
     --> ""
 
+    String.reverse (String.fromChar a)
+    --> String.fromChar a
+
     String.reverse (String.reverse str)
     --> str
 
@@ -2468,6 +2471,7 @@ compositionIntoChecks : Dict ( ModuleName, String ) (CompositionIntoCheckInfo ->
 compositionIntoChecks =
     Dict.fromList
         [ ( ( [ "Basics" ], "always" ), basicsAlwaysCompositionChecks )
+        , ( ( [ "String" ], "reverse" ), stringReverseCompositionChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
         , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
@@ -3832,7 +3836,16 @@ stringLinesChecks checkInfo =
 
 stringReverseChecks : CheckInfo -> Maybe (Error {})
 stringReverseChecks checkInfo =
-    emptiableReverseChecks stringCollection checkInfo
+    firstThatConstructsJust
+        [ \() -> emptiableReverseChecks stringCollection checkInfo
+        , \() -> callOnWrappedDoesNotChangeItCheck checkInfo.firstArg stringCollection checkInfo
+        ]
+        ()
+
+
+stringReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+stringReverseCompositionChecks checkInfo =
+    compositionAfterWrapIsUnnecessaryCheck stringCollection checkInfo
 
 
 stringSliceChecks : CheckInfo -> Maybe (Error {})
@@ -7203,11 +7216,16 @@ compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
 
 callOnSingletonListDoesNotChangeItCheck : Node Expression -> CheckInfo -> Maybe (Error {})
 callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
+    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
+
+
+callOnWrappedDoesNotChangeItCheck : Node Expression -> WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+callOnWrappedDoesNotChangeItCheck wrapperArg wrapper checkInfo =
     callOnDoesNotChangeItCheck
-        { description = A "singleton list"
-        , is = \lookupTable expr -> isJust (AstHelpers.getListSingleton lookupTable expr)
+        { description = wrapper.wrap.description
+        , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
         }
-        listArg
+        wrapperArg
         checkInfo
 
 
