@@ -2181,6 +2181,7 @@ numberTests =
         , minusTests
         , multiplyTests
         , divisionTests
+        , intDivideTests
         , negationTest
         , basicsNegateTests
         , comparisonTests
@@ -2662,6 +2663,92 @@ a = 0.0 / n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0.0
+"""
+                        ]
+        ]
+
+
+intDivideTests : Test
+intDivideTests =
+    describe "(//)"
+        [ test "should not simplify (//) used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = 1 // 2
+b = 2 // 3
+c = n // n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify n // 1 to n" <|
+            \() ->
+                """module A exposing (..)
+a = n // 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary division by 1"
+                            , details = [ "Dividing by 1 using (//) does not change the value of the number." ]
+                            , under = "//"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify n // m // 1 to n // m" <|
+            \() ->
+                """module A exposing (..)
+a = n // m // 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary division by 1"
+                            , details = [ "Dividing by 1 using (//) does not change the value of the number." ]
+                            , under = "//"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n // m
+"""
+                        ]
+        , test "should simplify 0 // n to 0" <|
+            \() ->
+                """module A exposing (..)
+a = 0 // n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dividing 0 always returns 0"
+                            , details =
+                                [ "Dividing 0 by anything using (//), even 0, gives 0 which means you can replace the whole division operation by 0."
+                                , "Most likely, dividing 0 was unintentional and you had a different number in mind."
+                                ]
+                            , under = "//"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should simplify n // 0 to 0" <|
+            \() ->
+                """module A exposing (..)
+a = n // 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dividing by 0 always returns 0"
+                            , details =
+                                [ "Dividing anything by 0 using (//) gives 0 which means you can replace the whole division operation by 0."
+                                , "Most likely, dividing by 0 was unintentional and you had a different number in mind."
+                                ]
+                            , under = "//"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
 """
                         ]
         ]

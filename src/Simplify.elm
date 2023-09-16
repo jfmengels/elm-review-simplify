@@ -236,6 +236,15 @@ Destructuring using case expressions
     n * 1
     --> n
 
+    0 // n
+    --> 0
+
+    n // 0
+    --> 0
+
+    n // 1
+    --> n
+
     n / 1
     --> n
 
@@ -2344,6 +2353,7 @@ operatorApplicationChecks =
         , ( "-", minusChecks )
         , ( "*", multiplyChecks )
         , ( "/", divisionChecks )
+        , ( "//", intDivideChecks )
         , ( "++", plusplusChecks )
         , ( "::", consChecks )
         , ( "||", orChecks )
@@ -2822,6 +2832,60 @@ divisionChecks checkInfo =
 
     else
         Nothing
+
+
+intDivideChecks : OperatorCheckInfo -> Maybe (Error {})
+intDivideChecks checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            case AstHelpers.getUncomputedNumberValue checkInfo.right of
+                Just rightNumber ->
+                    if rightNumber == 1 then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Unnecessary division by 1"
+                                , details = [ "Dividing by 1 using (//) does not change the value of the number." ]
+                                }
+                                checkInfo.operatorRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
+                            )
+
+                    else if rightNumber == 0 then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Dividing by 0 always returns 0"
+                                , details =
+                                    [ "Dividing anything by 0 using (//) gives 0 which means you can replace the whole division operation by 0."
+                                    , "Most likely, dividing by 0 was unintentional and you had a different number in mind."
+                                    ]
+                                }
+                                checkInfo.operatorRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.rightRange })
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
+                Just
+                    (Rule.errorWithFix
+                        { message = "Dividing 0 always returns 0"
+                        , details =
+                            [ "Dividing 0 by anything using (//), even 0, gives 0 which means you can replace the whole division operation by 0."
+                            , "Most likely, dividing 0 was unintentional and you had a different number in mind."
+                            ]
+                        }
+                        checkInfo.operatorRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
+                    )
+
+            else
+                Nothing
+        ]
+        ()
 
 
 plusplusChecks : OperatorCheckInfo -> Maybe (Error {})
