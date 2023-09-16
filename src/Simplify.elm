@@ -530,6 +530,9 @@ Destructuring using case expressions
     List.intersperse a []
     --> []
 
+    List.intersperse s [ a ]
+    --> [ a ]
+
     List.isEmpty []
     --> True
 
