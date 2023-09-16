@@ -12589,6 +12589,86 @@ a = List.reverse []
 a = []
 """
                         ]
+        , test "should replace List.reverse [ a ] by [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse [ b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.reverse on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ b ]
+"""
+                        ]
+        , test "should replace List.reverse (List.singleton a) by (List.singleton a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse (List.singleton b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.reverse on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.singleton b)
+"""
+                        ]
+        , test "should replace a |> List.singleton |> List.reverse by a |> List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = b |> List.singleton |> List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.reverse on a singleton list will result in the given singleton list"
+                            , details = [ "You can replace this call by the given singleton list." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> List.singleton
+"""
+                        ]
+        , test "should replace List.reverse << List.singleton by List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.reverse on a singleton list will result in the given list"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton
+"""
+                        ]
+        , test "should replace List.singleton >> List.reverse by List.singleton" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton >> List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.reverse on a singleton list will result in the given list"
+                            , details = [ "You can replace this call by List.singleton." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton
+"""
+                        ]
         , test "should replace List.reverse <| List.reverse <| x by x" <|
             \() ->
                 """module A exposing (..)

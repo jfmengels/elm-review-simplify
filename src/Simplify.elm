@@ -636,6 +636,9 @@ Destructuring using case expressions
     List.drop 0 list
     --> list
 
+    List.reverse [ a ]
+    --> [ a ]
+
     List.reverse (List.reverse list)
     --> list
 
@@ -2466,6 +2469,7 @@ compositionIntoChecks =
         , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
         , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
+        , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
         , ( ( [ "List" ], "map" ), listMapCompositionChecks )
         , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
         , ( ( [ "List" ], "concat" ), listConcatCompositionChecks )
@@ -5507,7 +5511,16 @@ emptiableReverseChecks emptiable checkInfo =
 
 listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
-    emptiableReverseChecks listCollection checkInfo
+    firstThatConstructsJust
+        [ \() -> emptiableReverseChecks listCollection checkInfo
+        , \() -> callOnSingletonListDoesNotChangeItCheck checkInfo.firstArg checkInfo
+        ]
+        ()
+
+
+listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listReverseCompositionChecks checkInfo =
+    compositionAfterWrapIsUnnecessaryCheck listCollection checkInfo
 
 
 listSortChecks : CheckInfo -> Maybe (Error {})
@@ -7159,6 +7172,30 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
+    let
+        wrapFn : ( ModuleName, String )
+        wrapFn =
+            ( wrapper.moduleName, wrapper.wrap.fnName )
+    in
+    if checkInfo.earlier.fn == wrapFn then
+        Just
+            { info =
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the given " ++ wrapper.represents
+                , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapFn defaultQualifyResources) ++ "." ]
+                }
+            , fix =
+                keepOnlyFix
+                    { parentRange = checkInfo.parentRange
+                    , keep = checkInfo.earlier.range
+                    }
+            }
+
+    else
+        Nothing
 
 
 callOnSingletonListDoesNotChangeItCheck : Node Expression -> CheckInfo -> Maybe (Error {})
