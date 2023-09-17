@@ -2,14 +2,30 @@
 
 ## [Unreleased]
 
-- A large number of error messages were reworded to be more consistent, precise and descriptive.
+- A very large number of error messages were reworded to be more consistent, precise and descriptive.
 - Checks that applied on `[ a ]` now also report for `List.singleton a` (ex: `List.concatMap f (List.singleton 1)` gets simplified to `f 1`)
+
+The simplification `(\x y -> x + y) n m` introduced in [2.1.0] was removed ([#147](https://github.com/jfmengels/elm-review-simplify/pull/147)).
 
 The rule now simplifies:
 - `0 // n` to `0`
 - `n // 0` to `0`
 - `n // 1` to `n`
+- `Tuple.first ( a, b )` to `a`
+- `Tuple.second ( a, b )` to `b`
+- `List.repeat 1 x` to `List.singleton x`
+- `List.reverse [ x ]` to `[ x ]`
+- `List.intersperse s [ x ]` to `[ x ]`
 - `List.concatMap List.singleton x` to `x`
+- `String.reverse (String.fromChar a)` to `String.fromChar a`
+- `Dict.intersect Dict.empty dict` to `Dict.empty`
+- `Dict.diff Dict.empty dict` to `Dict.empty`
+- `Dict.diff dict Dict.empty` to `dict`
+- `Dict.union dict Dict.empty` to `dict`
+- `Random.andThen f (Random.constant x)` to `f x`
+- `Random.andThen Random.constant generator` to `generator`
+- `Random.andThen (\a -> Random.constant b) generator` to `Random.map (\a -> b) generator`
+- `Random.andThen (always thenGenerator) generator` to `thenGenerator`
 - `Result.mapError f (if x then Err a else Err b)` to `f (if x then a else b)`
 - `Random.map identity generator` to `generator`
 - `Random.map (always a) generator` to `Random.constant a`
@@ -47,6 +63,7 @@ The rule now simplifies:
 
 The rule now reports:
 - Immediately invoked anonymous functions `(\x y -> x + y) 1 2`. This is very simplifiable but there is no autofix because there are varied ways to simplify it.
+  - EDIT: This was removed in [2.1.1].
 
 Bug fixes:
 - Fixed an issue where `[ [ 1 ], [ 2 ] ] |> List.concat` would be incorrectly fixed and cause a compiler error
