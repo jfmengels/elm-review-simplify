@@ -3913,27 +3913,7 @@ tuplePartChecks partConfig checkInfo =
                 checkInfo.fnRange
                 (replaceBySubExpressionFix checkInfo.parentRange (tuple |> partConfig.access))
         )
-        (getTuple2 checkInfo.firstArg checkInfo.lookupTable)
-
-
-getTuple2 : Node Expression -> ModuleNameLookupTable -> Maybe { first : Node Expression, second : Node Expression }
-getTuple2 expressionNode lookupTable =
-    case AstHelpers.removeParens expressionNode of
-        Node _ (Expression.TupledExpression (first :: second :: [])) ->
-            Just { first = first, second = second }
-
-        _ ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Tuple" ], "pair" ) lookupTable expressionNode of
-                Just tuplePairCall ->
-                    case tuplePairCall.argsAfterFirst of
-                        second :: _ ->
-                            Just { first = tuplePairCall.firstArg, second = second }
-
-                        [] ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+        (AstHelpers.getTuple2 checkInfo.firstArg checkInfo.lookupTable)
 
 
 
