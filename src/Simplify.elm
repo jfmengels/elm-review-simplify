@@ -5922,7 +5922,7 @@ htmlAttributesClassListChecks checkInfo =
 
         getTupleWithSpecificSecond : Bool -> Node Expression -> Maybe { range : Range, first : Node Expression }
         getTupleWithSpecificSecond specificBool expressionNode =
-            case AstHelpers.getTuple expressionNode of
+            case AstHelpers.getTuple2Literal expressionNode of
                 Just tuple ->
                     case AstHelpers.getSpecificBool specificBool checkInfo.lookupTable tuple.second of
                         Just _ ->
@@ -5944,7 +5944,7 @@ htmlAttributesClassListChecks checkInfo =
         [ \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
                 Just single ->
-                    case AstHelpers.getTuple single.element of
+                    case AstHelpers.getTuple2Literal single.element of
                         Just tuple ->
                             case AstHelpers.getBool checkInfo.lookupTable tuple.second of
                                 Just bool ->
@@ -9085,7 +9085,7 @@ sameInAllBranches getSpecific baseExpressionNode =
 
 getComparableExpressionInTupleFirst : Node Expression -> Maybe (List Expression)
 getComparableExpressionInTupleFirst expressionNode =
-    case AstHelpers.getTuple expressionNode of
+    case AstHelpers.getTuple2Literal expressionNode of
         Just tuple ->
             getComparableExpression tuple.first
 

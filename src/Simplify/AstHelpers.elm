@@ -6,7 +6,7 @@ module Simplify.AstHelpers exposing
     , isTupleFirstAccess, isTupleSecondAccess
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, getListSingleton
-    , getTuple
+    , getTuple2Literal
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
@@ -33,7 +33,7 @@ module Simplify.AstHelpers exposing
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, getListSingleton
-@docs getTuple
+@docs getTuple2Literal
 
 
 ### literal as string
@@ -733,8 +733,8 @@ getSpecificBool specificBool lookupTable expressionNode =
     getSpecificValueOrFunction ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
 
 
-getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
-getTuple expressionNode =
+getTuple2Literal : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
+getTuple2Literal expressionNode =
     case Node.value expressionNode of
         Expression.TupledExpression (first :: second :: []) ->
             Just { range = Node.range expressionNode, first = first, second = second }
