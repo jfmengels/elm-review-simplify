@@ -860,8 +860,8 @@ All of these also apply for `Sub`.
     Random.andThen (\a -> Random.constant b) generator
     --> Random.map (\a -> b) generator
 
-    Random.andThen (always generator)
-    --> generator
+    Random.andThen (always thenGenerator) generator
+    --> thenGenerator
 
 -}
 
