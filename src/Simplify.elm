@@ -2848,7 +2848,12 @@ errorToRightRange checkInfo =
 
 divisionChecks : OperatorCheckInfo -> Maybe (Error {})
 divisionChecks checkInfo =
-    if AstHelpers.getUncomputedNumberValue checkInfo.right == Just 1 then
+    let
+        maybeDivisorNumber : Maybe Float
+        maybeDivisorNumber =
+            AstHelpers.getUncomputedNumberValue checkInfo.right
+    in
+    if maybeDivisorNumber == Just 1 then
         Just
             (Rule.errorWithFix
                 { message = "Unnecessary division by 1"
@@ -2859,17 +2864,32 @@ divisionChecks checkInfo =
             )
 
     else if not checkInfo.expectNaN && (AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0) then
-        Just
-            (Rule.errorWithFix
-                { message = "Dividing 0 always returns 0"
-                , details =
-                    [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
-                    , "Most likely, dividing 0 was unintentional and you had a different number in mind."
-                    ]
-                }
-                (errorToLeftRange checkInfo)
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
-            )
+        if maybeDivisorNumber == Just 0 then
+            Just
+                (Rule.error
+                    { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
+                    , details =
+                        [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
+                        , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
+                        , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
+                        , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
+                        ]
+                    }
+                    checkInfo.operatorRange
+                )
+
+        else
+            Just
+                (Rule.errorWithFix
+                    { message = "Dividing 0 always returns 0"
+                    , details =
+                        [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
+                        , "Most likely, dividing 0 was unintentional and you had a different number in mind."
+                        ]
+                    }
+                    (errorToLeftRange checkInfo)
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
+                )
 
     else
         Nothing

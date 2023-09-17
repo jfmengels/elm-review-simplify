@@ -2665,6 +2665,78 @@ a = 0.0 / n
 a = 0.0
 """
                         ]
+        , test "should report but not fix 0 / 0" <|
+            \() ->
+                """module A exposing (..)
+a = 0 / 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
+                            , details =
+                                [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
+                                , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
+                                , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
+                                , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
+                                ]
+                            , under = "/"
+                            }
+                        ]
+        , test "should report but not fix 0 / 0.0" <|
+            \() ->
+                """module A exposing (..)
+a = 0 / 0.0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
+                            , details =
+                                [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
+                                , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
+                                , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
+                                , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
+                                ]
+                            , under = "/"
+                            }
+                        ]
+        , test "should report but not fix 0.0 / 0" <|
+            \() ->
+                """module A exposing (..)
+a = 0.0 / 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
+                            , details =
+                                [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
+                                , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
+                                , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
+                                , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
+                                ]
+                            , under = "/"
+                            }
+                        ]
+        , test "should report but not fix 0.0 / 0.0" <|
+            \() ->
+                """module A exposing (..)
+a = 0.0 / 0.0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
+                            , details =
+                                [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
+                                , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
+                                , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
+                                , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
+                                ]
+                            , under = "/"
+                            }
+                        ]
         ]
 
 
