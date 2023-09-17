@@ -6,7 +6,7 @@ module Simplify.AstHelpers exposing
     , isTupleFirstAccess, isTupleSecondAccess
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, getListSingleton
-    , getTuple
+    , getTuple2, getTuple2Literal
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
@@ -33,7 +33,7 @@ module Simplify.AstHelpers exposing
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, getListSingleton
-@docs getTuple
+@docs getTuple2, getTuple2Literal
 
 
 ### literal as string
@@ -733,14 +733,34 @@ getSpecificBool specificBool lookupTable expressionNode =
     getSpecificValueOrFunction ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
 
 
-getTuple : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
-getTuple expressionNode =
+getTuple2Literal : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
+getTuple2Literal expressionNode =
     case Node.value expressionNode of
         Expression.TupledExpression (first :: second :: []) ->
             Just { range = Node.range expressionNode, first = first, second = second }
 
         _ ->
             Nothing
+
+
+getTuple2 : Node Expression -> ModuleNameLookupTable -> Maybe { first : Node Expression, second : Node Expression }
+getTuple2 expressionNode lookupTable =
+    case removeParens expressionNode of
+        Node _ (Expression.TupledExpression (first :: second :: [])) ->
+            Just { first = first, second = second }
+
+        _ ->
+            case getSpecificFunctionCall ( [ "Tuple" ], "pair" ) lookupTable expressionNode of
+                Just tuplePairCall ->
+                    case tuplePairCall.argsAfterFirst of
+                        second :: _ ->
+                            Just { first = tuplePairCall.firstArg, second = second }
+
+                        [] ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
 
 
 getBoolPattern : ModuleNameLookupTable -> Node Pattern -> Maybe Bool

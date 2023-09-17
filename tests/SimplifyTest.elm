@@ -24,6 +24,7 @@ all =
         , fullyAppliedPrefixOperatorTests
         , appliedLambdaTests
         , usingPlusPlusTests
+        , tupleTests
         , stringSimplificationTests
         , listSimplificationTests
         , maybeTests
@@ -13726,6 +13727,142 @@ a = List.map5 f list0 list1 list2 list3 []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        ]
+
+
+
+-- Tuple
+
+
+tupleTests : Test
+tupleTests =
+    describe "Tuple"
+        [ tupleFirstTests
+        , tupleSecondTests
+        ]
+
+
+tupleFirstTests : Test
+tupleFirstTests =
+    describe "Tuple.first"
+        [ test "should not report Tuple.first used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first
+b = Tuple.first tuple
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Tuple.first ( first |> f, second ) by (first |> f)" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first ( first |> f, second )
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.first on a known tuple will result in the tuple's first part"
+                            , details = [ "You can replace this call by the tuple's first part." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (first |> f)
+"""
+                        ]
+        , test "should replace Tuple.first (second |> Tuple.pair first) by first" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first (second |> Tuple.pair first)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.first on a known tuple will result in the tuple's first part"
+                            , details = [ "You can replace this call by the tuple's first part." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = first
+"""
+                        ]
+        , test "should replace Tuple.first << (first |> f |> Tuple.pair) by always (first |> f)" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first << (first |> f |> Tuple.pair)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.pair with a first part, then Tuple.first will always result in that first part"
+                            , details = [ "You can replace this call by always with the first argument given to Tuple.pair." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always (first |> f)
+"""
+                        ]
+        ]
+
+
+tupleSecondTests : Test
+tupleSecondTests =
+    describe "Tuple.second"
+        [ test "should not report Tuple.second used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.second
+b = Tuple.second tuple
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Tuple.second ( first, second |> f ) by (second |> f)" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.second ( first, second |> f )
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.second on a known tuple will result in the tuple's second part"
+                            , details = [ "You can replace this call by the tuple's second part." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (second |> f)
+"""
+                        ]
+        , test "should replace Tuple.second (second |> Tuple.pair first) by second" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.second (second |> Tuple.pair first)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.second on a known tuple will result in the tuple's second part"
+                            , details = [ "You can replace this call by the tuple's second part." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = second
+"""
+                        ]
+        , test "should replace Tuple.second << Tuple.pair first by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.second << (second |> f |> Tuple.pair)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.pair with a first part, then Tuple.second will always result in the incoming second part"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
