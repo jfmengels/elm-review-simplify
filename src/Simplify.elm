@@ -6141,9 +6141,7 @@ nonEmptiableWrapperAndThenAlwaysChecks wrapper checkInfo =
                         case secondArg checkInfo of
                             Nothing ->
                                 { replacementDescription = "always with the " ++ wrapper.represents ++ " produced by the function"
-                                , fix =
-                                    -- maybe a bit too clever?
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                , fix = keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
                                 }
 
                             Just _ ->
