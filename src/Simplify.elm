@@ -3881,7 +3881,7 @@ tupleSecondChecks checkInfo =
 tupleSecondCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 tupleSecondCompositionChecks checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-        ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
+        ( ( [ "Tuple" ], "pair" ), _ :: [] ) ->
             Just
                 { info =
                     { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in the incoming second part"
