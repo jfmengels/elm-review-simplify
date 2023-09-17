@@ -851,6 +851,18 @@ All of these also apply for `Sub`.
     Random.map f (Random.constant x)
     --> Random.constant (f x)
 
+    Random.andThen f (Random.constant x)
+    --> f x
+
+    Random.andThen Random.constant generator
+    --> generator
+
+    Random.andThen (\a -> Random.constant b) generator
+    --> Random.map (\a -> b) generator
+
+    Random.andThen (always generator)
+    --> generator
+
 -}
 
 import Dict exposing (Dict)
@@ -2350,6 +2362,7 @@ functionCallChecks =
         , ( ( [ "Random" ], "weighted" ), randomWeightedChecks )
         , ( ( [ "Random" ], "list" ), randomListChecks )
         , ( ( [ "Random" ], "map" ), randomMapChecks )
+        , ( ( [ "Random" ], "andThen" ), randomAndThenChecks )
         ]
 
 
@@ -6103,6 +6116,51 @@ randomMapChecks checkInfo =
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks checkInfo =
     wrapperMapCompositionChecks randomGeneratorWrapper checkInfo
+
+
+randomAndThenChecks : CheckInfo -> Maybe (Error {})
+randomAndThenChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperAndThenChecks randomGeneratorWrapper checkInfo
+        , \() -> nonEmptiableWrapperAndThenAlwaysChecks randomGeneratorWrapper checkInfo
+        ]
+        ()
+
+
+nonEmptiableWrapperAndThenAlwaysChecks :
+    NonEmptiableProperties (WrapperProperties otherProperties)
+    -> CheckInfo
+    -> Maybe (Error {})
+nonEmptiableWrapperAndThenAlwaysChecks wrapper checkInfo =
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+        Just alwaysResult ->
+            Just
+                (let
+                    replacementAndFix : { replacementDescription : String, fix : List Fix }
+                    replacementAndFix =
+                        case secondArg checkInfo of
+                            Nothing ->
+                                { replacementDescription = "always with the " ++ wrapper.represents ++ " produced by the function"
+                                , fix =
+                                    -- maybe a bit too clever?
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                }
+
+                            Just _ ->
+                                { replacementDescription = "the " ++ wrapper.represents ++ " produced by the function"
+                                , fix = replaceBySubExpressionFix checkInfo.parentRange alwaysResult
+                                }
+                 in
+                 Rule.errorWithFix
+                    { message = qualifiedToString checkInfo.fn ++ " with a function that always returns to the same " ++ wrapper.represents ++ " will result in that " ++ wrapper.represents
+                    , details = [ "You can replace this call by " ++ replacementAndFix.replacementDescription ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    replacementAndFix.fix
+                )
+
+        Nothing ->
+            Nothing
 
 
 

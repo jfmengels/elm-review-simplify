@@ -18359,6 +18359,7 @@ randomTests =
         , randomWeightedChecks
         , randomListTests
         , randomMapTests
+        , randomAndThenTests
         ]
 
 
@@ -19737,6 +19738,166 @@ a = Random.constant >> Random.map f >> g
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
 a = f >> Random.constant >> g
+"""
+                        ]
+        ]
+
+
+randomAndThenTests : Test
+randomAndThenTests =
+    describe "Random.andThen"
+        [ test "should not report Random.andThen used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen
+b = Random.andThen f
+c = Random.andThen f generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Random.andThen Random.constant x by x" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen Random.constant x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen with a function equivalent to Random.constant will always return the same given random generator"
+                            , details = [ "You can replace this call by the random generator itself." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = x
+"""
+                        ]
+        , test "should replace Random.andThen (\\b -> Random.constant c) x by Random.map (\\b -> c) x" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen (\\b -> Random.constant c) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen with a function that always returns a constant generator is the same as Random.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Random.map with the function returning the value inside the constant generator." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.map (\\b -> c) x
+"""
+                        ]
+        , test "should replace Random.andThen (\\b -> if cond then Random.constant b else Random.constant c) x by Random.map (\\b -> if cond then b else c) x" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen (\\b -> if cond then Random.constant b else Random.constant c) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen with a function that always returns a constant generator is the same as Random.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Random.map with the function returning the value inside the constant generator." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = Random.map (\\b -> if cond then b else c) x
+"""
+                        ]
+        , test "should replace Random.andThen f (Random.constant x) by f x" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen f (Random.constant x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen on a constant generator is the same as applying the function to the value from the constant generator"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the constant generator." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = f x
+"""
+                        ]
+        , test "should replace Random.constant x |> Random.andThen f by f (x)" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.constant x |> Random.andThen f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen on a constant generator is the same as applying the function to the value from the constant generator"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the constant generator." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = x |> f
+"""
+                        ]
+        , test "should replace Random.andThen (\\_ -> x) generator by x" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen (\\_ -> x) generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen with a function that always returns to the same random generator will result in that random generator"
+                            , details = [ "You can replace this call by the random generator produced by the function." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = x
+"""
+                        ]
+        , test "should replace Random.andThen (always x) generator by x" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen (always x) generator
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen with a function that always returns to the same random generator will result in that random generator"
+                            , details = [ "You can replace this call by the random generator produced by the function." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = x
+"""
+                        ]
+        , test "should replace Random.andThen (always (f x)) by (always (f x))" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen (always (f x))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen with a function that always returns to the same random generator will result in that random generator"
+                            , details = [ "You can replace this call by always with the random generator produced by the function." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = (always (f x))
 """
                         ]
         ]
