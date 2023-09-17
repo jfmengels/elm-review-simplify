@@ -260,6 +260,9 @@ Destructuring using case expressions
 
 ### Tuples
 
+    Tuple.pair a b
+    --> ( a, b )
+
     Tuple.first ( a, b )
     --> a
 
@@ -2283,6 +2286,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "negate" ), basicsNegateChecks )
         , ( ( [ "Tuple" ], "first" ), tupleFirstChecks )
         , ( ( [ "Tuple" ], "second" ), tupleSecondChecks )
+        , ( ( [ "Tuple" ], "pair" ), tuplePairChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), withDefaultChecks maybeWithJustAsWrap )
@@ -3866,6 +3870,55 @@ basicsAlwaysCompositionChecks checkInfo =
 
 
 -- TUPLE
+
+
+tuplePairChecks : CheckInfo -> Maybe (Error {})
+tuplePairChecks checkInfo =
+    case checkInfo.argsAfterFirst of
+        tuplePairCallSecondArg :: _ ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Fully constructed " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " can be replaced by tuple literal"
+                    , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
+                    }
+                    checkInfo.fnRange
+                    (let
+                        firstSourceCode : String
+                        firstSourceCode =
+                            checkInfo.extractSourceCode (Node.range checkInfo.firstArg)
+
+                        secondSourceCode : String
+                        secondSourceCode =
+                            checkInfo.extractSourceCode (Node.range tuplePairCallSecondArg)
+
+                        replacement : String
+                        replacement =
+                            if checkInfo.parentRange.start.row /= checkInfo.parentRange.end.row then
+                                "(\n"
+                                    ++ String.repeat ((Node.range checkInfo.firstArg).start.column - 1) " "
+                                    ++ firstSourceCode
+                                    ++ "\n"
+                                    ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                    ++ ",\n"
+                                    ++ String.repeat ((Node.range tuplePairCallSecondArg).start.column - 1) " "
+                                    ++ secondSourceCode
+                                    ++ "\n"
+                                    ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                    ++ ")"
+
+                            else
+                                "( "
+                                    ++ firstSourceCode
+                                    ++ ", "
+                                    ++ secondSourceCode
+                                    ++ " )"
+                     in
+                     [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
+                    )
+                )
+
+        [] ->
+            Nothing
 
 
 tupleFirstChecks : CheckInfo -> Maybe (Error {})
