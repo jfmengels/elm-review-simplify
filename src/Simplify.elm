@@ -258,6 +258,15 @@ Destructuring using case expressions
     --> 0
 
 
+### Tuples
+
+    Tuple.first ( a, b )
+    --> a
+
+    Tuple.second ( a, b )
+    --> b
+
+
 ### Strings
 
     "a" ++ ""
@@ -2272,6 +2281,8 @@ functionCallChecks =
         , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
         , ( ( [ "Basics" ], "not" ), basicsNotChecks )
         , ( ( [ "Basics" ], "negate" ), basicsNegateChecks )
+        , ( ( [ "Tuple" ], "first" ), tupleFirstChecks )
+        , ( ( [ "Tuple" ], "second" ), tupleSecondChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), withDefaultChecks maybeWithJustAsWrap )
@@ -2503,6 +2514,8 @@ compositionIntoChecks =
     Dict.fromList
         [ ( ( [ "Basics" ], "always" ), basicsAlwaysCompositionChecks )
         , ( ( [ "String" ], "reverse" ), stringReverseCompositionChecks )
+        , ( ( [ "Tuple" ], "first" ), tupleFirstCompositionChecks )
+        , ( ( [ "Tuple" ], "second" ), tupleSecondCompositionChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
         , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
@@ -3829,6 +3842,98 @@ basicsAlwaysCompositionChecks checkInfo =
 
         _ ->
             Nothing
+
+
+
+-- TUPLE
+
+
+tupleFirstChecks : CheckInfo -> Maybe (Error {})
+tupleFirstChecks checkInfo =
+    tuplePartChecks { access = .first, description = "first" } checkInfo
+
+
+tupleFirstCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+tupleFirstCompositionChecks checkInfo =
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
+            Just
+                { info =
+                    { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in that first part"
+                    , details = [ "You can replace this call by always with the first argument given to " ++ qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ "." ]
+                    }
+                , fix =
+                    replaceBySubExpressionFix checkInfo.parentRange first
+                        ++ [ Fix.insertAt checkInfo.parentRange.start
+                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " ")
+                           ]
+                }
+
+        _ ->
+            Nothing
+
+
+tupleSecondChecks : CheckInfo -> Maybe (Error {})
+tupleSecondChecks checkInfo =
+    tuplePartChecks { access = .second, description = "second" } checkInfo
+
+
+tupleSecondCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+tupleSecondCompositionChecks checkInfo =
+    case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+        ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
+            Just
+                { info =
+                    { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in the incoming second part"
+                    , details = [ "You can replace this call by identity." ]
+                    }
+                , fix =
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                    ]
+                }
+
+        _ ->
+            Nothing
+
+
+tuplePartChecks :
+    { access : { first : Node Expression, second : Node Expression } -> Node Expression
+    , description : String
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+tuplePartChecks partConfig checkInfo =
+    Maybe.map
+        (\tuple ->
+            Rule.errorWithFix
+                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a known tuple will result in the tuple's " ++ partConfig.description ++ " part"
+                , details = [ "You can replace this call by the tuple's " ++ partConfig.description ++ " part." ]
+                }
+                checkInfo.fnRange
+                (replaceBySubExpressionFix checkInfo.parentRange (tuple |> partConfig.access))
+        )
+        (getTuple2 checkInfo.firstArg checkInfo.lookupTable)
+
+
+getTuple2 : Node Expression -> ModuleNameLookupTable -> Maybe { first : Node Expression, second : Node Expression }
+getTuple2 expressionNode lookupTable =
+    case AstHelpers.removeParens expressionNode of
+        Node _ (Expression.TupledExpression (first :: second :: [])) ->
+            Just { first = first, second = second }
+
+        _ ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Tuple" ], "pair" ) lookupTable expressionNode of
+                Just tuplePairCall ->
+                    case tuplePairCall.argsAfterFirst of
+                        second :: _ ->
+                            Just { first = tuplePairCall.firstArg, second = second }
+
+                        [] ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
 
 
 
