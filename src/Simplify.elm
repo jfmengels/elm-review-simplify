@@ -2859,7 +2859,7 @@ divisionChecks checkInfo =
                         [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. However, expectNaN is not added to your elm-review configuration for Simplify."
                         , "If using NaN here was not your intention, replace this division by a more fitting number like 0."
                         , "If you want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
-                        , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify"
+                        , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
                         ]
                     }
                     checkInfo.operatorRange
