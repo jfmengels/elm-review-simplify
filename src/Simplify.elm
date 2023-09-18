@@ -260,6 +260,9 @@ Destructuring using case expressions
 
 ### Tuples
 
+    Tuple.pair a b
+    --> ( a, b )
+
     Tuple.first ( a, b )
     --> a
 
@@ -2283,6 +2286,7 @@ functionCallChecks =
         , ( ( [ "Basics" ], "negate" ), basicsNegateChecks )
         , ( ( [ "Tuple" ], "first" ), tupleFirstChecks )
         , ( ( [ "Tuple" ], "second" ), tupleSecondChecks )
+        , ( ( [ "Tuple" ], "pair" ), tuplePairChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), withDefaultChecks maybeWithJustAsWrap )
@@ -3866,6 +3870,61 @@ basicsAlwaysCompositionChecks checkInfo =
 
 
 -- TUPLE
+
+
+tuplePairChecks : CheckInfo -> Maybe (Error {})
+tuplePairChecks checkInfo =
+    case checkInfo.argsAfterFirst of
+        tuplePairCallSecondArg :: _ ->
+            let
+                firstRange : Range
+                firstRange =
+                    Node.range checkInfo.firstArg
+
+                secondRange : Range
+                secondRange =
+                    Node.range tuplePairCallSecondArg
+            in
+            case Range.compareLocations firstRange.end secondRange.start of
+                LT ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Fully constructed " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " can be replaced by tuple literal"
+                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
+                            }
+                            checkInfo.fnRange
+                            (if checkInfo.parentRange.start.row /= checkInfo.parentRange.end.row then
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = firstRange.start }
+                                    ("(\n" ++ String.repeat (firstRange.start.column - 1) " ")
+                                , Fix.replaceRangeBy { start = firstRange.end, end = secondRange.start }
+                                    ("\n"
+                                        ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                        ++ ",\n"
+                                        ++ String.repeat (secondRange.start.column - 1) " "
+                                    )
+                                , Fix.replaceRangeBy { start = secondRange.end, end = checkInfo.parentRange.end }
+                                    ("\n"
+                                        ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                        ++ ")"
+                                    )
+                                ]
+
+                             else
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = firstRange.start } "( "
+                                , Fix.replaceRangeBy { start = firstRange.end, end = secondRange.start } ", "
+                                , Fix.replaceRangeBy { start = secondRange.end, end = checkInfo.parentRange.end } " )"
+                                ]
+                            )
+                        )
+
+                EQ ->
+                    Nothing
+
+                GT ->
+                    Nothing
+
+        [] ->
+            Nothing
 
 
 tupleFirstChecks : CheckInfo -> Maybe (Error {})

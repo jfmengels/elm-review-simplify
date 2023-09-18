@@ -13739,8 +13739,82 @@ a = []
 tupleTests : Test
 tupleTests =
     describe "Tuple"
-        [ tupleFirstTests
+        [ tuplePairTests
+        , tupleFirstTests
         , tupleSecondTests
+        ]
+
+
+tuplePairTests : Test
+tuplePairTests =
+    describe "Tuple.pair"
+        [ test "should not report Tuple.pair used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.pair
+b = Tuple.pair first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Tuple.pair first second by ( first, second )" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.pair first second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Fully constructed Tuple.pair can be replaced by tuple literal"
+                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
+                            , under = "Tuple.pair"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ( first, second )
+"""
+                        ]
+        , test "should replace multiline Tuple.pair (let x = y in first) <| let x = y in second by ( (let x = y in first), let x = y in second )" <|
+            \() ->
+                """module A exposing (..)
+a =
+    Tuple.pair
+        (let
+            x =
+                y
+         in
+         first
+        )
+    <|
+        let
+            x =
+                y
+        in
+        second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Fully constructed Tuple.pair can be replaced by tuple literal"
+                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
+                            , under = "Tuple.pair"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    (
+        (let
+            x =
+                y
+         in
+         first
+        )
+    ,
+        let
+            x =
+                y
+        in
+        second
+    )
+"""
+                        ]
         ]
 
 
