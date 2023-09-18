@@ -845,6 +845,9 @@ All of these also apply for `Sub`.
     Task.sequence [ Task.succeed a, Task.fail x ]
     --> Task.fail x
 
+    Task.sequence [ a, Task.fail x, b ]
+    --> Task.sequence [ a, Task.fail x ]
+
     Task.sequence [ task ]
     --> Task.map List.singleton task
 
@@ -6064,23 +6067,50 @@ sequenceOrFirstEmptyChecks :
 sequenceOrFirstEmptyChecks emptiable checkInfo =
     case AstHelpers.getListLiteral checkInfo.firstArg of
         Just list ->
-            case List.filter (\el -> isNothing (emptiable.wrap.getValue checkInfo.lookupTable el)) list of
-                firstNonWrappedElement :: _ ->
-                    if emptiable.empty.is checkInfo.lookupTable firstNonWrappedElement then
-                        Just
-                            (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" emptiable.empty.description
-                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" emptiable.empty.description ++ " in the list." ]
-                                }
-                                checkInfo.fnRange
-                                (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
-                            )
+            firstThatConstructsJust
+                [ \() ->
+                    case List.filter (\el -> isNothing (emptiable.wrap.getValue checkInfo.lookupTable el)) list of
+                        firstNonWrappedElement :: _ ->
+                            if emptiable.empty.is checkInfo.lookupTable firstNonWrappedElement then
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" emptiable.empty.description ++ " in the list." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
+                                    )
 
-                    else
-                        Nothing
+                            else
+                                Nothing
 
-                [] ->
-                    Nothing
+                        [] ->
+                            Nothing
+                , \() ->
+                    case findMapNeighboring (\el -> getEmpty checkInfo.lookupTable emptiable el) list of
+                        Just emptyAndNeighbors ->
+                            case emptyAndNeighbors.after of
+                                Just _ ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " early will ignore later elements"
+                                            , details = [ "You can remove all list elements after " ++ descriptionForDefinite "the first" emptiable.empty.description ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.removeRange
+                                                { start = emptyAndNeighbors.found.range.end
+                                                , end = endWithoutBoundary (Node.range checkInfo.firstArg)
+                                                }
+                                            ]
+                                        )
+
+                                Nothing ->
+                                    Nothing
+
+                        Nothing ->
+                            Nothing
+                ]
+                ()
 
         Nothing ->
             Nothing

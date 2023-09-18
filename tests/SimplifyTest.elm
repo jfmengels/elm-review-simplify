@@ -18645,7 +18645,7 @@ import Task
 a = Task.succeed [ a, b ]
 """
                         ]
-        , test "should replace Task.sequence [ Task.succeed a, Task.fail x, Task.fail y ] by (x |> Task.fail)" <|
+        , test "should replace Task.sequence [ Task.succeed a, x |> Task.fail, Task.fail y ] by (x |> Task.fail)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -18661,6 +18661,24 @@ a = Task.sequence [ Task.succeed a, x |> Task.fail, Task.fail y ]
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
 a = (x |> Task.fail)
+"""
+                        ]
+        , test "should replace Task.sequence [ a, Task.fail x, b ] by Task.sequence [ a, Task.fail x]" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence [ a, Task.fail x, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.sequence on a list containing a failing task early will ignore later elements"
+                            , details = [ "You can remove all list elements after the first failing task." ]
+                            , under = "Task.sequence"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.sequence [ a, Task.fail x]
 """
                         ]
         ]
