@@ -18275,15 +18275,17 @@ taskAndThenTests =
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen f x
+a = Task.andThen
+b = Task.andThen f
+c = Task.andThen f x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Task.andThen f (Task.fail z) by (Task.fail z)" <|
+        , test "should replace Task.andThen f (Task.fail x) by (Task.fail x)" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen f (Task.fail z)
+a = Task.andThen f (Task.fail x)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18294,22 +18296,22 @@ a = Task.andThen f (Task.fail z)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.fail z)
+a = (Task.fail x)
 """
                         ]
-        , test "should not report Task.andThen (always (Task.fail z)) x" <|
+        , test "should not report Task.andThen (always (Task.fail x)) task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen (always (Task.fail z)) x
+a = Task.andThen (always (Task.fail x)) task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Task.andThen Task.succeed x by Task.map identity x" <|
+        , test "should replace Task.andThen Task.succeed task by task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen Task.succeed x
+a = Task.andThen Task.succeed task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18320,14 +18322,14 @@ a = Task.andThen Task.succeed x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x
+a = task
 """
                         ]
-        , test "should replace Task.andThen (\\b -> Task.succeed c) x by Task.map (\\b -> c) x" <|
+        , test "should replace Task.andThen (\\b -> Task.succeed c) task by Task.map (\\b -> c) task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen (\\b -> Task.succeed c) x
+a = Task.andThen (\\b -> Task.succeed c) task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18338,14 +18340,14 @@ a = Task.andThen (\\b -> Task.succeed c) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.map (\\b -> c) x
+a = Task.map (\\b -> c) task
 """
                         ]
-        , test "should replace Task.andThen (\\b -> let y = 1 in Task.succeed y) x by Task.map (\\b -> let y = 1 in y) x" <|
+        , test "should replace Task.andThen (\\b -> let y = 1 in Task.succeed y) task by Task.map (\\b -> let y = 1 in y) task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen (\\b -> let y = 1 in Task.succeed y) x
+a = Task.andThen (\\b -> let y = 1 in Task.succeed y) task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18356,14 +18358,14 @@ a = Task.andThen (\\b -> let y = 1 in Task.succeed y) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.map (\\b -> let y = 1 in y) x
+a = Task.map (\\b -> let y = 1 in y) task
 """
                         ]
-        , test "should replace Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x by Task.map (\\b -> if cond then b else c) x" <|
+        , test "should replace Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) task by Task.map (\\b -> if cond then b else c) task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x
+a = Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18374,22 +18376,22 @@ a = Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.map (\\b -> if cond then b else c) x
+a = Task.map (\\b -> if cond then b else c) task
 """
                         ]
-        , test "should not report Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x" <|
+        , test "should not report Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x
+a = Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Task.andThen f (Task.succeed x) by f (x)" <|
+        , test "should replace Task.andThen f (Task.succeed a) by f a" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.andThen f (Task.succeed x)
+a = Task.andThen f (Task.succeed a)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18400,14 +18402,14 @@ a = Task.andThen f (Task.succeed x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = f x
+a = f a
 """
                         ]
-        , test "should replace Task.succeed x |> Task.andThen f by f (x)" <|
+        , test "should replace Task.succeed a |> Task.andThen f by a |> f" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.succeed x |> Task.andThen f
+a = Task.succeed a |> Task.andThen f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18418,7 +18420,7 @@ a = Task.succeed x |> Task.andThen f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x |> f
+a = a |> f
 """
                         ]
         ]
