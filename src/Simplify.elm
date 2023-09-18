@@ -3876,46 +3876,52 @@ tuplePairChecks : CheckInfo -> Maybe (Error {})
 tuplePairChecks checkInfo =
     case checkInfo.argsAfterFirst of
         tuplePairCallSecondArg :: _ ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Fully constructed " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " can be replaced by tuple literal"
-                    , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
-                    }
-                    checkInfo.fnRange
-                    (let
-                        firstSourceCode : String
-                        firstSourceCode =
-                            checkInfo.extractSourceCode (Node.range checkInfo.firstArg)
+            let
+                firstRange : Range
+                firstRange =
+                    Node.range checkInfo.firstArg
 
-                        secondSourceCode : String
-                        secondSourceCode =
-                            checkInfo.extractSourceCode (Node.range tuplePairCallSecondArg)
+                secondRange : Range
+                secondRange =
+                    Node.range tuplePairCallSecondArg
+            in
+            case Range.compareLocations firstRange.end secondRange.start of
+                LT ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Fully constructed " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " can be replaced by tuple literal"
+                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
+                            }
+                            checkInfo.fnRange
+                            (if checkInfo.parentRange.start.row /= checkInfo.parentRange.end.row then
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = firstRange.start }
+                                    ("(\n" ++ String.repeat (firstRange.start.column - 1) " ")
+                                , Fix.replaceRangeBy { start = firstRange.end, end = secondRange.start }
+                                    ("\n"
+                                        ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                        ++ ",\n"
+                                        ++ String.repeat (secondRange.start.column - 1) " "
+                                    )
+                                , Fix.replaceRangeBy { start = secondRange.end, end = checkInfo.parentRange.end }
+                                    ("\n"
+                                        ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                        ++ ")"
+                                    )
+                                ]
 
-                        replacement : String
-                        replacement =
-                            if checkInfo.parentRange.start.row /= checkInfo.parentRange.end.row then
-                                "(\n"
-                                    ++ String.repeat ((Node.range checkInfo.firstArg).start.column - 1) " "
-                                    ++ firstSourceCode
-                                    ++ "\n"
-                                    ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
-                                    ++ ",\n"
-                                    ++ String.repeat ((Node.range tuplePairCallSecondArg).start.column - 1) " "
-                                    ++ secondSourceCode
-                                    ++ "\n"
-                                    ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
-                                    ++ ")"
+                             else
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = firstRange.start } "( "
+                                , Fix.replaceRangeBy { start = firstRange.end, end = secondRange.start } ", "
+                                , Fix.replaceRangeBy { start = secondRange.end, end = checkInfo.parentRange.end } " )"
+                                ]
+                            )
+                        )
 
-                            else
-                                "( "
-                                    ++ firstSourceCode
-                                    ++ ", "
-                                    ++ secondSourceCode
-                                    ++ " )"
-                     in
-                     [ Fix.replaceRangeBy checkInfo.parentRange replacement ]
-                    )
-                )
+                EQ ->
+                    Nothing
+
+                GT ->
+                    Nothing
 
         [] ->
             Nothing

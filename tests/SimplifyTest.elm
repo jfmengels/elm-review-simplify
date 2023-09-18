@@ -13772,23 +13772,23 @@ a = Tuple.pair first second
 a = ( first, second )
 """
                         ]
-        , test "should replace multiline (let x = y in second) |> Tuple.pair (let x = y in first) by ( (let x = y in first), (let x = y in second) )" <|
+        , test "should replace multiline Tuple.pair (let x = y in first) <| let x = y in second by ( (let x = y in first), let x = y in second )" <|
             \() ->
                 """module A exposing (..)
 a =
-    (let
-         x =
-             y
-     in
-     second
-    )
-        |> Tuple.pair
-            (let
-                 x =
-                     y
-             in
-             first
-            )
+    Tuple.pair
+        (let
+            x =
+                y
+         in
+         first
+        )
+    <|
+        let
+            x =
+                y
+        in
+        second
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13800,19 +13800,18 @@ a =
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
     (
-            (let
-                 x =
-                     y
-             in
-             first
-            )
+        (let
+            x =
+                y
+         in
+         first
+        )
     ,
-    (let
-         x =
-             y
-     in
-     second
-    )
+        let
+            x =
+                y
+        in
+        second
     )
 """
                         ]
@@ -13860,14 +13859,6 @@ a = Tuple.first (second |> Tuple.pair first)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = first
-"""
-                        , Review.Test.error
-                            { message = "Fully constructed Tuple.pair can be replaced by tuple literal"
-                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
-                            , under = "Tuple.pair"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = Tuple.first (( first, second ))
 """
                         ]
         , test "should replace Tuple.first << (first |> f |> Tuple.pair) by always (first |> f)" <|
@@ -13930,14 +13921,6 @@ a = Tuple.second (second |> Tuple.pair first)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = second
-"""
-                        , Review.Test.error
-                            { message = "Fully constructed Tuple.pair can be replaced by tuple literal"
-                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
-                            , under = "Tuple.pair"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = Tuple.second (( first, second ))
 """
                         ]
         , test "should replace Tuple.second << Tuple.pair first by identity" <|
