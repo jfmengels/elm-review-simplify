@@ -6112,6 +6112,7 @@ wrapperSequenceChecks wrapper checkInfo =
                         mapFn =
                             ( wrapper.moduleName, wrapper.mapFnName )
 
+                        replacement : QualifyResources a -> String
                         replacement qualifyResources =
                             qualifiedToString (qualify mapFn qualifyResources)
                                 ++ " "
@@ -6169,6 +6170,7 @@ mappableSequenceCompositionChecks mappable checkInfo =
                 mapFn =
                     ( mappable.moduleName, mappable.mapFnName )
 
+                replacement : QualifyResources a -> String
                 replacement qualifyResources =
                     qualifiedToString (qualify mapFn qualifyResources)
                         ++ " "
