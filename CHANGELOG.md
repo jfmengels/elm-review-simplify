@@ -13,6 +13,7 @@ The rule now simplifies:
 - `n // 1` to `n`
 - `Tuple.first ( a, b )` to `a`
 - `Tuple.second ( a, b )` to `b`
+- `Tuple.pair a b` to `( a, b )`
 - `List.repeat 1 x` to `List.singleton x`
 - `List.reverse [ x ]` to `[ x ]`
 - `List.intersperse s [ x ]` to `[ x ]`
