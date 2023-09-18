@@ -813,6 +813,21 @@ All of these also apply for `Sub`.
     --> Cmd.none
 
 
+### Task
+
+    Task.andThen f (Task.fail x)
+    --> Task.fail x
+
+    Task.andThen f (Task.succeed a)
+    --> f a
+
+    Task.andThen Task.succeed task
+    --> task
+
+    Task.andThen (\a -> Task.succeed b) task
+    --> Task.map (\a -> b) x
+
+
 ### Html.Attributes
 
     Html.Attributes.classList [ x, y, ( z, False ) ]
@@ -2369,6 +2384,7 @@ functionCallChecks =
         , ( ( [ "Platform", "Cmd" ], "map" ), emptiableMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
         , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
+        , ( ( [ "Task" ], "andThen" ), taskAndThenChecks )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
@@ -5969,6 +5985,22 @@ subAndCmdBatchChecks batchable checkInfo =
 
 
 
+-- TASK
+
+
+taskAndThenChecks : CheckInfo -> Maybe (Error {})
+taskAndThenChecks checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            Maybe.andThen
+                (\taskArg -> callOnEmptyReturnsEmptyCheck taskArg taskWithSucceedAsWrap checkInfo)
+                (secondArg checkInfo)
+        , \() -> wrapperAndThenChecks taskWithSucceedAsWrap checkInfo
+        ]
+        ()
+
+
+
 -- HTML.ATTRIBUTES
 
 
@@ -6562,6 +6594,32 @@ resultWithErrAsWrap =
         , is =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+        }
+    }
+
+
+taskWithSucceedAsWrap :
+    WrapperProperties
+        { empty :
+            { description : Description
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
+        }
+taskWithSucceedAsWrap =
+    { moduleName = [ "Task" ]
+    , represents = "task"
+    , wrap =
+        { description = A "succeeding task"
+        , fnName = "succeed"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "succeed" ) lookupTable expr)
+        }
+    , empty =
+        { description = A "failing task"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "fail" ) lookupTable expr)
         }
     }
 
