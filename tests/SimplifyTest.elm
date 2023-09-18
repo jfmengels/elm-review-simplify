@@ -18265,6 +18265,7 @@ taskTests =
     Test.describe "Task"
         [ taskAndThenTests
         , taskOnErrorTests
+        , taskSequenceTests
         ]
 
 
@@ -18553,6 +18554,113 @@ a = Task.fail x |> Task.onError f
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
 a = x |> f
+"""
+                        ]
+        ]
+
+
+taskSequenceTests : Test
+taskSequenceTests =
+    describe "Task.sequence"
+        [ test "should not report Task.sequence used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence
+b = Task.sequence list
+c = Task.sequence [ Task.succeed d, e ]
+c = Task.sequence [ d, Task.fail x ] -- because d could be a failing task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.sequence [] by Task.succeed []" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.sequence on [] will result in Task.succeed []"
+                            , details = [ "You can replace this call by Task.succeed []." ]
+                            , under = "Task.sequence"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed []
+"""
+                        ]
+        , test "should replace Task.sequence [ f a ] by Task.map List.singleton (f a)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence [ f a ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.sequence on a singleton list is the same as Task.map List.singleton on the value inside"
+                            , details = [ "You can replace this call by Task.map List.singleton on the value inside the singleton list." ]
+                            , under = "Task.sequence"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.map List.singleton (f a)
+"""
+                        ]
+        , test "should replace Task.sequence << List.singleton by Task.map List.singleton" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.sequence on a singleton list is the same as Task.map List.singleton on the value inside"
+                            , details = [ "You can replace this call by Task.map List.singleton." ]
+                            , under = "Task.sequence"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.map List.singleton
+"""
+                        ]
+        , test "should replace Task.sequence [ Task.succeed a, Task.succeed b ] by Task.succeed [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence [ Task.succeed a, Task.succeed b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.sequence on a list where each element is a succeeding task will result in Task.succeed on the values inside"
+                            , details = [ "You can replace this call by Task.succeed on a list where each element is replaced by its value inside the succeeding task." ]
+                            , under = "Task.sequence"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed [ a, b ]
+"""
+                        ]
+        , test "should replace Task.sequence [ Task.succeed a, Task.fail x, Task.fail y ] by (x |> Task.fail)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.sequence [ Task.succeed a, x |> Task.fail, Task.fail y ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.sequence on a list containing a failing task will result in the first failing task"
+                            , details = [ "You can replace this call by the first failing task in the list." ]
+                            , under = "Task.sequence"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (x |> Task.fail)
 """
                         ]
         ]

@@ -839,6 +839,15 @@ All of these also apply for `Sub`.
     Task.onError (\x -> Task.fail y) task
     --> Task.mapError (\x -> y) x
 
+    Task.sequence [ Task.succeed a, Task.succeed b ]
+    --> Task.succeed [ a, b ]
+
+    Task.sequence [ Task.succeed a, Task.fail x ]
+    --> Task.fail x
+
+    Task.sequence [ task ]
+    --> Task.map List.singleton task
+
 
 ### Html.Attributes
 
@@ -2398,6 +2407,7 @@ functionCallChecks =
         , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
         , ( ( [ "Task" ], "andThen" ), taskAndThenChecks )
         , ( ( [ "Task" ], "onError" ), taskOnErrorChecks )
+        , ( ( [ "Task" ], "sequence" ), taskSequenceChecks )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
         , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
         , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
@@ -2561,6 +2571,7 @@ compositionIntoChecks =
         , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
         , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
+        , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
         , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
         ]
 
@@ -6025,6 +6036,156 @@ taskOnErrorChecks checkInfo =
         ()
 
 
+taskSequenceChecks : CheckInfo -> Maybe (Error {})
+taskSequenceChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperSequenceChecks taskWithSucceedAsWrap checkInfo
+        , \() -> sequenceOrFirstEmptyChecks taskWithSucceedAsWrap checkInfo
+        ]
+        ()
+
+
+taskSequenceCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+taskSequenceCompositionChecks checkInfo =
+    mappableSequenceCompositionChecks taskWithSucceedAsWrap checkInfo
+
+
+sequenceOrFirstEmptyChecks :
+    WrapperProperties
+        { otherProperties
+            | empty :
+                { empty
+                    | is : ModuleNameLookupTable -> Node Expression -> Bool
+                    , description : Description
+                }
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOrFirstEmptyChecks emptiable checkInfo =
+    case AstHelpers.getListLiteral checkInfo.firstArg of
+        Just list ->
+            case List.filter (\el -> isNothing (emptiable.wrap.getValue checkInfo.lookupTable el)) list of
+                firstNonWrappedElement :: _ ->
+                    if emptiable.empty.is checkInfo.lookupTable firstNonWrappedElement then
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" emptiable.empty.description ++ " in the list." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
+                            )
+
+                    else
+                        Nothing
+
+                [] ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+wrapperSequenceChecks : WrapperProperties { otherProperties | mapFnName : String } -> CheckInfo -> Maybe (Error {})
+wrapperSequenceChecks wrapper checkInfo =
+    let
+        wrapFn : ( ModuleName, String )
+        wrapFn =
+            ( wrapper.moduleName, wrapper.wrap.fnName )
+    in
+    firstThatConstructsJust
+        [ \() ->
+            callOnEmptyReturnsCheck
+                { on = checkInfo.firstArg
+                , resultAsString =
+                    \res ->
+                        qualifiedToString (qualify wrapFn res)
+                            ++ " []"
+                }
+                listCollection
+                checkInfo
+        , \() ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
+                Just singletonList ->
+                    let
+                        mapFn : ( ModuleName, String )
+                        mapFn =
+                            ( wrapper.moduleName, wrapper.mapFnName )
+
+                        replacement qualifyResources =
+                            qualifiedToString (qualify mapFn qualifyResources)
+                                ++ " "
+                                ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) qualifyResources)
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (replacement checkInfo)
+                                :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) singletonList.element
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just list ->
+                    case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) list of
+                        Just wraps ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on a list where each element is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " on the values inside"
+                                    , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy
+                                        checkInfo.fnRange
+                                        (qualifiedToString (qualify wrapFn checkInfo))
+                                        :: List.concatMap
+                                            (\wrap -> keepOnlyFix { parentRange = wrap.nodeRange, keep = Node.range wrap.value })
+                                            wraps
+                                    )
+                                )
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        ]
+        ()
+
+
+mappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFnName : String } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+mappableSequenceCompositionChecks mappable checkInfo =
+    case checkInfo.earlier.fn of
+        ( [ "List" ], "singleton" ) ->
+            let
+                mapFn : ( ModuleName, String )
+                mapFn =
+                    ( mappable.moduleName, mappable.mapFnName )
+
+                replacement qualifyResources =
+                    qualifiedToString (qualify mapFn qualifyResources)
+                        ++ " "
+                        ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) qualifyResources)
+            in
+            Just
+                { info =
+                    { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                    , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+                    }
+                , fix = [ Fix.replaceRangeBy checkInfo.parentRange (replacement checkInfo) ]
+                }
+
+        _ ->
+            Nothing
+
+
 
 -- HTML.ATTRIBUTES
 
@@ -9432,6 +9593,16 @@ isJust maybe =
             True
 
         Nothing ->
+            False
+
+
+isNothing : Maybe a -> Bool
+isNothing maybe =
+    case maybe of
+        Nothing ->
+            True
+
+        Just _ ->
             False
 
 
