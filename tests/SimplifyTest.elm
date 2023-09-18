@@ -18264,6 +18264,7 @@ taskTests : Test
 taskTests =
     Test.describe "Task"
         [ taskAndThenTests
+        , taskOnErrorTests
         ]
 
 
@@ -18414,6 +18415,138 @@ a = Task.succeed x |> Task.andThen f
                             { message = "Task.andThen on a succeeding task is the same as applying the function to the value from the succeeding task"
                             , details = [ "You can replace this call by the function directly applied to the value inside the succeeding task." ]
                             , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x |> f
+"""
+                        ]
+        ]
+
+
+taskOnErrorTests : Test
+taskOnErrorTests =
+    describe "Task.onError"
+        [ test "should not report Task.onError used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError
+b = Task.onError f
+c = Task.onError f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.onError f (Task.succeed a) by (Task.succeed a)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError f (Task.succeed a)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError on a succeeding task will result in the given succeeding task"
+                            , details = [ "You can replace this call by the given succeeding task." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (Task.succeed a)
+"""
+                        ]
+        , test "should not report Task.onError (always (Task.succeed a)) task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError (always (Task.succeed a)) task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.onError Task.fail task by task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError Task.fail task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError with a function equivalent to Task.fail will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = task
+"""
+                        ]
+        , test "should replace Task.onError (\\x -> Task.fail y) x by Task.mapError (\\x -> y) task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError (\\x -> Task.fail y) task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError with a function that always returns a failing task is the same as Task.mapError with the function returning the value inside"
+                            , details = [ "You can replace this call by Task.mapError with the function returning the value inside the failing task." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.mapError (\\x -> y) task
+"""
+                        ]
+        , test "should replace Task.onError (\\x -> if cond then Task.fail x else Task.fail y) task by Task.mapError (\\x -> if cond then x else y) task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError (\\x -> if cond then Task.fail x else Task.fail y) task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError with a function that always returns a failing task is the same as Task.mapError with the function returning the value inside"
+                            , details = [ "You can replace this call by Task.mapError with the function returning the value inside the failing task." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.mapError (\\x -> if cond then x else y) task
+"""
+                        ]
+        , test "should replace Task.onError f (Task.fail x) by f x" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError f (Task.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError on a failing task is the same as applying the function to the value from the failing task"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the failing task." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = f x
+"""
+                        ]
+        , test "should replace Task.fail x |> Task.onError f by x |> f" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.fail x |> Task.onError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError on a failing task is the same as applying the function to the value from the failing task"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the failing task." ]
+                            , under = "Task.onError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
