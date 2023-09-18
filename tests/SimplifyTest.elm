@@ -15271,7 +15271,7 @@ a = Result.andThen (always (Err z)) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Result.andThen Ok x by Result.map identity x" <|
+        , test "should replace Result.andThen Ok x by x" <|
             \() ->
                 """module A exposing (..)
 a = Result.andThen Ok x
@@ -15342,7 +15342,7 @@ a = Result.andThen (\\b -> if cond then Ok b else Err c) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Result.andThen f (Ok x) by f (x)" <|
+        , test "should replace Result.andThen f (Ok x) by f x" <|
             \() ->
                 """module A exposing (..)
 a = Result.andThen f (Ok x)
@@ -15358,7 +15358,7 @@ a = Result.andThen f (Ok x)
 a = f x
 """
                         ]
-        , test "should replace Ok x |> Result.andThen f by f (x)" <|
+        , test "should replace Ok x |> Result.andThen f by x |> f" <|
             \() ->
                 """module A exposing (..)
 a = Ok x |> Result.andThen f
