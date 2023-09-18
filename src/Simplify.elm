@@ -7192,14 +7192,19 @@ wrapperAndThenChecks wrapper checkInfo =
                     checkInfo.firstArg
             of
                 Determined wrapCalls ->
+                    let
+                        mapFn : ( ModuleName, String )
+                        mapFn =
+                            ( wrapper.moduleName, "map" )
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside"
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, "map" ) ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString mapFn ++ " with the function returning the value inside"
+                            , details = [ "You can replace this call by " ++ qualifiedToString mapFn ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( wrapper.moduleName, "map" ) checkInfo))
+                                (qualifiedToString (qualify mapFn checkInfo))
                                 :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
                             )
                         )
