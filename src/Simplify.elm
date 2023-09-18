@@ -6506,7 +6506,7 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties {})
+randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties { mapFnName : String })
 randomGeneratorWrapper =
     { moduleName = [ "Random" ]
     , represents = "random generator"
@@ -6518,12 +6518,13 @@ randomGeneratorWrapper =
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) lookupTable expr)
         }
     , empty = { invalid = () }
+    , mapFnName = "map"
     }
 
 
 maybeWithJustAsWrap :
     EmptiableProperties
-        (WrapperProperties {})
+        (WrapperProperties { mapFnName : String })
 maybeWithJustAsWrap =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -6543,6 +6544,7 @@ maybeWithJustAsWrap =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
         }
+    , mapFnName = "map"
     }
 
 
@@ -6552,6 +6554,7 @@ resultWithOkAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
+        , mapFnName : String
         }
 resultWithOkAsWrap =
     { moduleName = [ "Result" ]
@@ -6569,6 +6572,7 @@ resultWithOkAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
         }
+    , mapFnName = "map"
     }
 
 
@@ -6604,6 +6608,7 @@ taskWithSucceedAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
+        , mapFnName : String
         }
 taskWithSucceedAsWrap =
     { moduleName = [ "Task" ]
@@ -6621,12 +6626,13 @@ taskWithSucceedAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "fail" ) lookupTable expr)
         }
+    , mapFnName = "map"
     }
 
 
 listCollection :
     CollectionProperties
-        (WrapperProperties {})
+        (WrapperProperties { mapFnName : String })
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -6644,6 +6650,7 @@ listCollection =
             \lookupTable expr ->
                 Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
         }
+    , mapFnName = "map"
     }
 
 
@@ -7139,7 +7146,7 @@ getValueWithNodeRange getValue expressionNode =
 
 
 wrapperAndThenChecks :
-    WrapperProperties otherProperties
+    WrapperProperties { otherProperties | mapFnName : String }
     -> CheckInfo
     -> Maybe (Error {})
 wrapperAndThenChecks wrapper checkInfo =
@@ -7195,7 +7202,7 @@ wrapperAndThenChecks wrapper checkInfo =
                     let
                         mapFn : ( ModuleName, String )
                         mapFn =
-                            ( wrapper.moduleName, "map" )
+                            ( wrapper.moduleName, wrapper.mapFnName )
                     in
                     Just
                         (Rule.errorWithFix
