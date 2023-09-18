@@ -33,6 +33,7 @@ all =
         , dictSimplificationTests
         , cmdTests
         , subTests
+        , taskTests
         , parserTests
         , jsonDecodeTests
         , htmlAttributesTests
@@ -18250,6 +18251,156 @@ a = Sub.map f Sub.none
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Sub.none
+"""
+                        ]
+        ]
+
+
+
+-- Task
+
+
+taskTests : Test
+taskTests =
+    Test.describe "Task"
+        [ taskAndThenTests
+        ]
+
+
+taskAndThenTests : Test
+taskAndThenTests =
+    describe "Task.andThen"
+        [ test "should not report Task.andThen used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.andThen f (Task.fail z) by (Task.fail z)" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen f (Task.fail z)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen on a failing task will result in the given failing task"
+                            , details = [ "You can replace this call by the given failing task." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Task.fail z)
+"""
+                        ]
+        , test "should not report Task.andThen (always (Task.fail z)) x" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen (always (Task.fail z)) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.andThen Task.succeed x by Task.map identity x" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen Task.succeed x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen with a function equivalent to Task.succeed will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace Task.andThen (\\b -> Task.succeed c) x by Task.map (\\b -> c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen (\\b -> Task.succeed c) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen with a function that always returns a succeeding task is the same as Task.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Task.map with the function returning the value inside the succeeding task." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Task.map (\\b -> c) x
+"""
+                        ]
+        , test "should replace Task.andThen (\\b -> let y = 1 in Task.succeed y) x by Task.map (\\b -> let y = 1 in y) x" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen (\\b -> let y = 1 in Task.succeed y) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen with a function that always returns a succeeding task is the same as Task.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Task.map with the function returning the value inside the succeeding task." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Task.map (\\b -> let y = 1 in y) x
+"""
+                        ]
+        , test "should replace Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x by Task.map (\\b -> if cond then b else c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen with a function that always returns a succeeding task is the same as Task.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Task.map with the function returning the value inside the succeeding task." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Task.map (\\b -> if cond then b else c) x
+"""
+                        ]
+        , test "should not report Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.andThen f (Task.succeed x) by f (x)" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen f (Task.succeed x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen on a succeeding task is the same as applying the function to the value from the succeeding task"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the succeeding task." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f x
+"""
+                        ]
+        , test "should replace Task.succeed x |> Task.andThen f by f (x)" <|
+            \() ->
+                """module A exposing (..)
+a = Task.succeed x |> Task.andThen f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen on a succeeding task is the same as applying the function to the value from the succeeding task"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the succeeding task." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f
 """
                         ]
         ]
