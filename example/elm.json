@@ -10,8 +10,8 @@
             "elm/project-metadata-utils": "1.0.2",
             "jfmengels/elm-review": "2.13.1",
             "pzp1997/assoc-list": "1.0.0",
-            "stil4m/elm-syntax": "7.2.9",
-            "jfmengels/elm-review-simplify": "2.1.0"
+            "stil4m/elm-syntax": "7.3.1",
+            "jfmengels/elm-review-simplify": "2.1.1"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

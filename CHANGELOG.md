@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.1] - 2023-09-18
+
 - A very large number of error messages were reworded to be more consistent, precise and descriptive.
 - Checks that applied on `[ a ]` now also report for `List.singleton a` (ex: `List.concatMap f (List.singleton 1)` gets simplified to `f 1`)
 
@@ -395,7 +397,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.1
 [2.1.0]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.0
 [2.0.33]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.33
 [2.0.32]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.32
