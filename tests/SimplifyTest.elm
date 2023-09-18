@@ -18273,6 +18273,7 @@ taskAndThenTests =
         [ test "should not report Task.andThen used with okay arguments" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18280,6 +18281,7 @@ a = Task.andThen f x
         , test "should replace Task.andThen f (Task.fail z) by (Task.fail z)" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen f (Task.fail z)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18290,12 +18292,14 @@ a = Task.andThen f (Task.fail z)
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = (Task.fail z)
 """
                         ]
         , test "should not report Task.andThen (always (Task.fail z)) x" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen (always (Task.fail z)) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18303,6 +18307,7 @@ a = Task.andThen (always (Task.fail z)) x
         , test "should replace Task.andThen Task.succeed x by Task.map identity x" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen Task.succeed x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18313,12 +18318,14 @@ a = Task.andThen Task.succeed x
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = x
 """
                         ]
         , test "should replace Task.andThen (\\b -> Task.succeed c) x by Task.map (\\b -> c) x" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen (\\b -> Task.succeed c) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18329,12 +18336,14 @@ a = Task.andThen (\\b -> Task.succeed c) x
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = Task.map (\\b -> c) x
 """
                         ]
         , test "should replace Task.andThen (\\b -> let y = 1 in Task.succeed y) x by Task.map (\\b -> let y = 1 in y) x" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen (\\b -> let y = 1 in Task.succeed y) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18345,12 +18354,14 @@ a = Task.andThen (\\b -> let y = 1 in Task.succeed y) x
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = Task.map (\\b -> let y = 1 in y) x
 """
                         ]
         , test "should replace Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x by Task.map (\\b -> if cond then b else c) x" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18361,12 +18372,14 @@ a = Task.andThen (\\b -> if cond then Task.succeed b else Task.succeed c) x
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = Task.map (\\b -> if cond then b else c) x
 """
                         ]
         , test "should not report Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18374,6 +18387,7 @@ a = Task.andThen (\\b -> if cond then Task.succeed b else Task.fail c) x
         , test "should replace Task.andThen f (Task.succeed x) by f (x)" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen f (Task.succeed x)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18384,12 +18398,14 @@ a = Task.andThen f (Task.succeed x)
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = f x
 """
                         ]
         , test "should replace Task.succeed x |> Task.andThen f by f (x)" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.succeed x |> Task.andThen f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18400,6 +18416,7 @@ a = Task.succeed x |> Task.andThen f
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = x |> f
 """
                         ]
