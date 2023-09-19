@@ -18263,9 +18263,258 @@ a = Sub.none
 taskTests : Test
 taskTests =
     Test.describe "Task"
-        [ taskAndThenTests
+        [ taskMapTests
+        , taskAndThenTests
         , taskOnErrorTests
         , taskSequenceTests
+        ]
+
+
+taskMapTests : Test
+taskMapTests =
+    describe "Task.map"
+        [ test "should not report Task.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.map f (Task.fail z) by (Task.fail z)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f (Task.fail z)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a failing task will result in the given failing task"
+                            , details = [ "You can replace this call by the given failing task." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (Task.fail z)
+"""
+                        ]
+        , test "should replace Task.map f <| Task.fail z by Task.fail z" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f <| Task.fail z
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a failing task will result in the given failing task"
+                            , details = [ "You can replace this call by the given failing task." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail z
+"""
+                        ]
+        , test "should replace Task.fail z |> Task.map f by Task.fail z" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.fail z |> Task.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a failing task will result in the given failing task"
+                            , details = [ "You can replace this call by the given failing task." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail z
+"""
+                        ]
+        , test "should replace Task.map identity x by x" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map identity x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x
+"""
+                        ]
+        , test "should replace Task.map identity <| x by x" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map identity <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x
+"""
+                        ]
+        , test "should replace x |> Task.map identity by x" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = x |> Task.map identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x
+"""
+                        ]
+        , test "should replace Task.map identity by identity" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = identity
+"""
+                        ]
+        , test "should replace Task.map f (Task.succeed x) by Task.succeed (f x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f (Task.succeed x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a succeeding task will result in Task.succeed with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.succeed with the function directly applied to the value inside the succeeding task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed (f x)
+"""
+                        ]
+        , test "should replace Task.map f <| Task.succeed x by Task.succeed (f x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f <| Task.succeed x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a succeeding task will result in Task.succeed with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.succeed with the function directly applied to the value inside the succeeding task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed (f <| x)
+"""
+                        ]
+        , test "should replace Task.succeed x |> Task.map f by x |> f |> Task.succeed" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.succeed x |> Task.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a succeeding task will result in Task.succeed with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.succeed with the function directly applied to the value inside the succeeding task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x |> f |> Task.succeed
+"""
+                        ]
+        , test "should replace x |> Task.succeed |> Task.map f by x |> f |> Task.succeed" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = x |> Task.succeed |> Task.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a succeeding task will result in Task.succeed with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.succeed with the function directly applied to the value inside the succeeding task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x |> f |> Task.succeed
+"""
+                        ]
+        , test "should replace Task.map f <| Task.succeed <| x by Task.succeed <| f <| x" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f <| Task.succeed <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a succeeding task will result in Task.succeed with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.succeed with the function directly applied to the value inside the succeeding task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed (f <| x)
+"""
+                        ]
+        , test "should replace Task.map f << Task.succeed by Task.succeed << f" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f << Task.succeed
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a succeeding task will result in Task.succeed with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.succeed with the function directly applied to the value inside the succeeding task itself." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed << f
+"""
+                        ]
         ]
 
 

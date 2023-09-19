@@ -815,6 +815,15 @@ All of these also apply for `Sub`.
 
 ### Task
 
+    Task.map identity task
+    --> task
+
+    Task.map f (Task.fail x)
+    --> Task.fail x
+
+    Task.map f (Task.succeed a)
+    --> Task.succeed (f a)
+
     Task.andThen f (Task.fail x)
     --> Task.fail x
 
@@ -2408,6 +2417,7 @@ functionCallChecks =
         , ( ( [ "Platform", "Cmd" ], "map" ), emptiableMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
         , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
+        , ( ( [ "Task" ], "map" ), taskMapChecks )
         , ( ( [ "Task" ], "andThen" ), taskAndThenChecks )
         , ( ( [ "Task" ], "onError" ), taskOnErrorChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceChecks )
@@ -2574,6 +2584,7 @@ compositionIntoChecks =
         , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
         , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
+        , ( ( [ "Task" ], "map" ), taskMapCompositionChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
         , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
         ]
@@ -6013,6 +6024,20 @@ subAndCmdBatchChecks batchable checkInfo =
 
 
 -- TASK
+
+
+taskMapChecks : CheckInfo -> Maybe (Error {})
+taskMapChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> emptiableMapChecks taskWithSucceedAsWrap checkInfo
+        , \() -> mapWrapChecks taskWithSucceedAsWrap checkInfo
+        ]
+        ()
+
+
+taskMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+taskMapCompositionChecks checkInfo =
+    wrapToMapCompositionChecks taskWithSucceedAsWrap checkInfo
 
 
 taskAndThenChecks : CheckInfo -> Maybe (Error {})
