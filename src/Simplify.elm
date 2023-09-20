@@ -7025,25 +7025,9 @@ arrayDetermineSize lookupTable expressionNode =
         , \() ->
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expressionNode of
                 Just fromListCall ->
-                    case AstHelpers.getListLiteral fromListCall.firstArg of
-                        Just [] ->
-                            Just (Exactly 0)
+                    listDetermineLength lookupTable fromListCall.firstArg
 
-                        Just (_ :: []) ->
-                            Just (Exactly 1)
-
-                        Just (el0 :: el1 :: el2Up) ->
-                            case traverse getComparableExpression (el0 :: el1 :: el2Up) of
-                                Nothing ->
-                                    Just NotEmpty
-
-                                Just comparableExpressions ->
-                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
-
-                        Nothing ->
-                            Nothing
-
-                _ ->
+                Nothing ->
                     Nothing
         ]
         ()
