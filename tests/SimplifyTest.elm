@@ -13986,6 +13986,7 @@ arrayTests =
         [ arrayFromListTests
         , arrayMapTests
         , arrayFilterTests
+        , arrayIsEmptyTests
         ]
 
 
@@ -14481,6 +14482,84 @@ a = always False |> Array.filter
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = always Array.empty
+"""
+                        ]
+        ]
+
+
+arrayIsEmptyTests : Test
+arrayIsEmptyTests =
+    describe "Array.isEmpty"
+        [ test "should not report Array.isEmpty with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty
+b = Array.isEmpty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.isEmpty Array.empty by True" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.isEmpty on Array.empty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = True
+"""
+                        ]
+        , test "should replace Array.isEmpty (Array.fromList [x]) by False" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.fromList [x])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.isEmpty on this array will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = False
+"""
+                        ]
+        , test "should replace Array.isEmpty (Array.fromList []) by True" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.fromList [])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.isEmpty on Array.empty will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = True
+"""
+                        , Review.Test.error
+                            { message = "Array.fromList on [] will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.empty)
 """
                         ]
         ]
