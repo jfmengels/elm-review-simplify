@@ -15626,7 +15626,7 @@ setMapTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.map f x
+a = Set.map f set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -15684,11 +15684,11 @@ import Set
 a = Set.empty
 """
                         ]
-        , test "should replace Set.map identity x by x" <|
+        , test "should replace Set.map identity set by set" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.map identity x
+a = Set.map identity set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15699,14 +15699,14 @@ a = Set.map identity x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = x
+a = set
 """
                         ]
-        , test "should replace Set.map identity <| x by x" <|
+        , test "should replace Set.map identity <| set by set" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.map identity <| x
+a = Set.map identity <| set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15717,14 +15717,14 @@ a = Set.map identity <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = x
+a = set
 """
                         ]
-        , test "should replace x |> Set.map identity by x" <|
+        , test "should replace set |> Set.map identity by set" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = x |> Set.map identity
+a = set |> Set.map identity
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15735,7 +15735,7 @@ a = x |> Set.map identity
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = x
+a = set
 """
                         ]
         , test "should replace Set.map identity by identity" <|
@@ -15802,7 +15802,7 @@ setFilterTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter f x
+a = Set.filter f set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -15860,11 +15860,11 @@ import Set
 a = Set.empty
 """
                         ]
-        , test "should replace Set.filter (always True) x by x" <|
+        , test "should replace Set.filter (always True) set by set" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (always True) x
+a = Set.filter (always True) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15875,14 +15875,14 @@ a = Set.filter (always True) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = x
+a = set
 """
                         ]
-        , test "should replace Set.filter (\\x -> True) x by x" <|
+        , test "should replace Set.filter (\\x -> True) set by set" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (\\x -> True) x
+a = Set.filter (\\x -> True) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15893,7 +15893,7 @@ a = Set.filter (\\x -> True) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = x
+a = set
 """
                         ]
         , test "should replace Set.filter (always True) by identity" <|
@@ -15950,11 +15950,11 @@ import Set
 a = identity
 """
                         ]
-        , test "should replace Set.filter (always False) x by Set.empty" <|
+        , test "should replace Set.filter (always False) set by Set.empty" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (always False) x
+a = Set.filter (always False) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15968,11 +15968,11 @@ import Set
 a = Set.empty
 """
                         ]
-        , test "should replace Set.filter (\\x -> False) x by Set.empty" <|
+        , test "should replace Set.filter (\\x -> False) set by Set.empty" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (\\x -> False) x
+a = Set.filter (\\x -> False) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -15986,11 +15986,11 @@ import Set
 a = Set.empty
 """
                         ]
-        , test "should replace Set.filter (always False) <| x by Set.empty" <|
+        , test "should replace Set.filter (always False) <| set by Set.empty" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (always False) <| x
+a = Set.filter (always False) <| set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16004,11 +16004,11 @@ import Set
 a = Set.empty
 """
                         ]
-        , test "should replace x |> Set.filter (always False) by Set.empty" <|
+        , test "should replace set |> Set.filter (always False) by Set.empty" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = x |> Set.filter (always False)
+a = set |> Set.filter (always False)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16315,11 +16315,11 @@ import Set
 a = 0
 """
                         ]
-        , test "should replace Set.singleton x |> Set.size by 1" <|
+        , test "should replace Set.singleton set |> Set.size by 1" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.singleton x |> Set.size
+a = Set.singleton set |> Set.size
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16661,7 +16661,7 @@ setPartitionTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.partition f x
+a = Set.partition f set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16719,11 +16719,11 @@ import Set
 a = ( Set.empty, Set.empty )
 """
                         ]
-        , test "should replace Set.partition (always True) x by ( x, Set.empty )" <|
+        , test "should replace Set.partition (always True) set by ( set, Set.empty )" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.partition (always True) x
+a = Set.partition (always True) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16734,7 +16734,7 @@ a = Set.partition (always True) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = ( x, Set.empty )
+a = ( set, Set.empty )
 """
                         ]
         , test "should not replace Set.partition (always True)" <|
@@ -16748,11 +16748,11 @@ a = Set.partition (always True)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Set.partition (always False) x by ( Set.empty, x )" <|
+        , test "should replace Set.partition (always False) set by ( Set.empty, set )" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.partition (always False) x
+a = Set.partition (always False) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16763,7 +16763,7 @@ a = Set.partition (always False) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = ( Set.empty, x )
+a = ( Set.empty, set )
 """
                         ]
         , test "should replace Set.partition (always False) by (Tuple.pair Set.empty)" <|
@@ -16830,7 +16830,7 @@ setRemoveTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.remove x x
+a = Set.remove x set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16862,7 +16862,7 @@ setMemberTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.member x y
+a = Set.member x set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16894,7 +16894,7 @@ setIntersectTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.intersect x x
+a = Set.intersect set set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16944,7 +16944,7 @@ setDiffTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.diff x y
+a = Set.diff set1 set2
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17012,7 +17012,7 @@ setUnionTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.union x y
+a = Set.union set1 set2
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17098,7 +17098,7 @@ setInsertTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.insert x y
+a = Set.insert x set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
