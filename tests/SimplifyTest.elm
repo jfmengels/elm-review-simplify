@@ -16898,7 +16898,7 @@ import Set
 a = Set.isEmpty (Set.singleton x)
 """
                         ]
-        , test "should replace Set.isEmpty (Set.fromList []) by False" <|
+        , test "should replace Set.isEmpty (Set.fromList []) by True" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -17712,7 +17712,7 @@ import Dict
 a = False
 """
                         ]
-        , test "should replace Dict.isEmpty (Dict.fromList []) by False" <|
+        , test "should replace Dict.isEmpty (Dict.fromList []) by True" <|
             \() ->
                 """module A exposing (..)
 import Dict
