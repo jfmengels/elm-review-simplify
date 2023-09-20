@@ -842,8 +842,8 @@ All of these also apply for `Sub`.
     Task.mapError f (Task.succeed a)
     --> Task.succeed a
 
-    Task.mapError f (Task.fail a)
-    --> Task.fail (f a)
+    Task.mapError f (Task.fail x)
+    --> Task.fail (f x)
 
     Task.onError f (Task.succeed a)
     --> Task.succeed a
