@@ -14296,6 +14296,7 @@ arrayTests =
         , arrayMapTests
         , arrayFilterTests
         , arrayIsEmptyTests
+        , arrayRepeatTests
         ]
 
 
@@ -14923,6 +14924,85 @@ a = Array.isEmpty (Array.initialize n f)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        ]
+
+
+arrayRepeatTests : Test
+arrayRepeatTests =
+    describe "Array.repeat"
+        [ test "should not report Array.repeat used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat n
+b = Array.repeat 2
+c = Array.repeat n x
+d = Array.repeat 5 x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not replace Array.repeat n x by x" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat n x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.repeat 0 x by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat 0 x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.repeat with length 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.repeat 0 by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.repeat with length 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace Array.repeat -5 x by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat -5 x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.repeat with negative length will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
         ]
 
 

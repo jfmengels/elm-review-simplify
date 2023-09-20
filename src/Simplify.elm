@@ -726,6 +726,9 @@ Destructuring using case expressions
     Array.isEmpty Array.empty
     --> True
 
+    Array.repeat 0 x
+    --> Array.empty
+
 
 ### Sets
 
@@ -2453,6 +2456,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "map" ), emptiableMapChecks arrayCollection )
         , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
+        , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -6060,6 +6064,11 @@ listRepeatChecks checkInfo =
         , \() -> wrapperRepeatChecks listCollection checkInfo
         ]
         ()
+
+
+arrayRepeatChecks : CheckInfo -> Maybe (Error {})
+arrayRepeatChecks checkInfo =
+    emptiableRepeatChecks arrayCollection checkInfo
 
 
 emptiableRepeatChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
