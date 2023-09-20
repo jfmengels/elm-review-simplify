@@ -16438,11 +16438,11 @@ import Set
 a = False
 """
                         ]
-        , test "should replace x :: xs |> Set.isEmpty by False" <|
+        , test "should replace Set.singleton set |> Set.isEmpty by False" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.singleton x |> Set.isEmpty
+a = Set.singleton set |> Set.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
