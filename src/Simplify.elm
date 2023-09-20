@@ -5771,7 +5771,7 @@ listRepeatChecks checkInfo =
         ()
 
 
-emptiableRepeatChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableRepeatChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableRepeatChecks collection checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
@@ -5787,7 +5787,7 @@ emptiableRepeatChecks collection checkInfo =
             Nothing
 
 
-wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperRepeatChecks : CollectionProperties a (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 wrapperRepeatChecks wrapper checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just 1 ->
@@ -6714,11 +6714,11 @@ type alias ConstructWithOneArgProperties =
 
 {-| Properties of a type with with multiple elements. Includes `EmptiableProperties`.
 -}
-type alias CollectionProperties otherProperties =
+type alias CollectionProperties a otherProperties =
     EmptiableProperties
         { otherProperties
             | nameForSize : String
-            , determineSize : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
+            , determineSize : Infer.Resources a -> Node Expression -> Maybe CollectionSize
         }
 
 
@@ -6953,6 +6953,7 @@ taskWithFailAsWrap =
 
 listCollection :
     CollectionProperties
+        a
         (WrapperProperties { mapFnName : String })
 listCollection =
     { moduleName = [ "List" ]
@@ -6975,14 +6976,14 @@ listCollection =
     }
 
 
-listDetermineLength : ModuleNameLookupTable -> Node Expression -> Maybe CollectionSize
-listDetermineLength lookupTable expressionNode =
+listDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
+listDetermineLength resources expressionNode =
     case Node.value (AstHelpers.removeParens expressionNode) of
         Expression.ListExpr list ->
             Just (Exactly (List.length list))
 
         Expression.OperatorApplication "::" _ _ right ->
-            case listDetermineLength lookupTable right of
+            case listDetermineLength resources right of
                 Just (Exactly n) ->
                     Just (Exactly (n + 1))
 
@@ -6990,7 +6991,7 @@ listDetermineLength lookupTable expressionNode =
                     Just NotEmpty
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
+            if ModuleNameLookupTable.moduleNameAt resources.lookupTable fnRange == Just [ "List" ] then
                 Just (Exactly 1)
 
             else
@@ -7000,7 +7001,7 @@ listDetermineLength lookupTable expressionNode =
             Nothing
 
 
-stringCollection : CollectionProperties (WrapperProperties {})
+stringCollection : CollectionProperties a (WrapperProperties {})
 stringCollection =
     { moduleName = [ "String" ]
     , represents = "string"
@@ -7031,7 +7032,7 @@ stringDetermineLength expression =
             Nothing
 
 
-arrayCollection : CollectionProperties {}
+arrayCollection : CollectionProperties a {}
 arrayCollection =
     { moduleName = [ "Array" ]
     , represents = "array"
@@ -7050,22 +7051,22 @@ arrayCollection =
 
 
 arrayDetermineSize :
-    ModuleNameLookupTable
+    Infer.Resources a
     -> Node Expression
     -> Maybe CollectionSize
-arrayDetermineSize lookupTable expressionNode =
+arrayDetermineSize resources expressionNode =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
-                    listDetermineLength lookupTable fromListCall.firstArg
+                    listDetermineLength resources fromListCall.firstArg
 
                 Nothing ->
                     Nothing
@@ -7073,7 +7074,7 @@ arrayDetermineSize lookupTable expressionNode =
         ()
 
 
-setCollection : CollectionProperties (WrapperProperties {})
+setCollection : CollectionProperties a (WrapperProperties {})
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
@@ -7099,27 +7100,27 @@ setCollection =
 
 
 setDetermineSize :
-    ModuleNameLookupTable
+    Infer.Resources a
     -> Node Expression
     -> Maybe CollectionSize
-setDetermineSize lookupTable expressionNode =
+setDetermineSize resources expressionNode =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 1)
 
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
                         Just [] ->
@@ -7145,7 +7146,7 @@ setDetermineSize lookupTable expressionNode =
         ()
 
 
-dictCollection : CollectionProperties {}
+dictCollection : CollectionProperties a {}
 dictCollection =
     { moduleName = [ "Dict" ]
     , represents = "dict"
@@ -7164,20 +7165,20 @@ dictCollection =
 
 
 dictDetermineSize :
-    ModuleNameLookupTable
+    Infer.Resources a
     -> Node Expression
     -> Maybe CollectionSize
-dictDetermineSize lookupTable expressionNode =
+dictDetermineSize resources expressionNode =
     findMap (\f -> f ())
         [ \() ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "singleton" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "singleton" ) resources.lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         _ :: [] ->
@@ -7189,7 +7190,7 @@ dictDetermineSize lookupTable expressionNode =
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
                         Just [] ->
@@ -8096,14 +8097,14 @@ emptiableFilterChecks emptiable checkInfo =
         ()
 
 
-collectionRemoveChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
     Maybe.andThen
         (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
         (secondArg checkInfo)
 
 
-collectionIntersectChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionIntersectChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
@@ -8115,7 +8116,7 @@ collectionIntersectChecks collection checkInfo =
         ()
 
 
-collectionDiffChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -8162,7 +8163,7 @@ collectionDiffChecks collection checkInfo =
         ()
 
 
-collectionUnionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -8205,7 +8206,7 @@ collectionUnionChecks collection checkInfo =
         ()
 
 
-collectionInsertChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -8230,7 +8231,7 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection checkInfo =
     Maybe.andThen
         (\collectionArg ->
@@ -8242,9 +8243,9 @@ collectionMemberChecks collection checkInfo =
         (secondArg checkInfo)
 
 
-collectionIsEmptyChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : CollectionProperties CheckInfo otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
-    case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
+    case collection.determineSize checkInfo checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
                 (resultsInConstantError
@@ -8265,9 +8266,9 @@ collectionIsEmptyChecks collection checkInfo =
             Nothing
 
 
-collectionSizeChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSizeChecks : CollectionProperties CheckInfo otherProperties -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
-    case collection.determineSize checkInfo.lookupTable checkInfo.firstArg of
+    case collection.determineSize checkInfo checkInfo.firstArg of
         Just (Exactly size) ->
             Just
                 (Rule.errorWithFix
@@ -8282,7 +8283,7 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-collectionFromListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionFromListChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
     callOnEmptyReturnsCheck
         { on = checkInfo.firstArg
@@ -8344,7 +8345,7 @@ emptiableToListChecks collection checkInfo =
     callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" } collection checkInfo
 
 
-collectionPartitionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection checkInfo =
     let
         collectionEmptyAsString : String
