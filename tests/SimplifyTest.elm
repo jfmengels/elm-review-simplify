@@ -14058,6 +14058,7 @@ a = Array.empty
         , test "should replace Array.map identity array by array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.map identity array
 """
                     |> Review.Test.run ruleWithDefaults
@@ -14068,6 +14069,7 @@ a = Array.map identity array
                             , under = "Array.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = array
 """
                         ]
