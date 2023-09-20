@@ -13952,6 +13952,7 @@ arrayTests : Test
 arrayTests =
     describe "Array"
         [ arrayMapTests
+        , arrayFilterTests
         ]
 
 
@@ -14126,6 +14127,290 @@ a = identity |> Array.map
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = identity
+"""
+                        ]
+        ]
+
+
+arrayFilterTests : Test
+arrayFilterTests =
+    describe "Array.filter"
+        [ test "should not report Array.filter used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter f array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.filter f Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter f Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.filter f <| Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter f <| Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.empty |> Array.filter f by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.empty |> Array.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.filter (always True) array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (always True) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return True will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.filter (\\x -> True) array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (\\x -> True) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return True will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.filter (always True) by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return True will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.filter <| (always True) by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter <| (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return True will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace always True |> Array.filter by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = always True |> Array.filter
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return True will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.filter (always False) array by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (always False) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.filter (\\x -> False) array by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (\\x -> False) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.filter (always False) <| array by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (always False) <| array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace array |> Array.filter (always False) by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = array |> Array.filter (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.filter (always False) by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace Array.filter <| (always False) by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter <| (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace always False |> Array.filter by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = always False |> Array.filter
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.filter with a function that will always return False will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
 """
                         ]
         ]

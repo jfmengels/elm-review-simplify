@@ -698,7 +698,7 @@ Destructuring using case expressions
 
 ### Arrays
 
-    Array.map f Array.empty
+    Array.map f Array.empty -- same for Array.filter
     --> Array.empty
 
     Array.map identity array
@@ -2397,6 +2397,7 @@ functionCallChecks =
         , ( ( [ "List" ], "map5" ), emptiableMapNChecks { n = 5 } listCollection )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
         , ( ( [ "Array" ], "map" ), emptiableMapChecks arrayCollection )
+        , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
