@@ -696,6 +696,15 @@ Destructuring using case expressions
     --> ( [], [] )
 
 
+### Arrays
+
+    Array.map f Array.empty
+    --> Array.empty
+
+    Array.map identity array
+    --> array
+
+
 ### Sets
 
     Set.map f Set.empty -- same for Set.filter, Set.remove...
@@ -2378,6 +2387,7 @@ functionCallChecks =
         , ( ( [ "List" ], "map4" ), emptiableMapNChecks { n = 4 } listCollection )
         , ( ( [ "List" ], "map5" ), emptiableMapNChecks { n = 5 } listCollection )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
+        , ( ( [ "Array" ], "map" ), emptiableMapChecks arrayCollection )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -6979,6 +6989,64 @@ stringDetermineLength expression =
 
         _ ->
             Nothing
+
+
+arrayCollection : CollectionProperties {}
+arrayCollection =
+    { moduleName = [ "Array" ]
+    , represents = "array"
+    , empty =
+        { description = Constant (qualifiedToString ( [ "Array" ], "empty" ))
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) lookupTable expr)
+        , asString =
+            \resources ->
+                qualifiedToString (qualify ( [ "Array" ], "empty" ) resources)
+        }
+    , nameForSize = "length"
+    , determineSize = arrayDetermineSize
+    }
+
+
+arrayDetermineSize :
+    ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe CollectionSize
+arrayDetermineSize lookupTable expressionNode =
+    firstThatConstructsJust
+        [ \() ->
+            case AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) lookupTable expressionNode of
+                Just _ ->
+                    Just (Exactly 0)
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expressionNode of
+                Just fromListCall ->
+                    case AstHelpers.getListLiteral fromListCall.firstArg of
+                        Just [] ->
+                            Just (Exactly 0)
+
+                        Just (_ :: []) ->
+                            Just (Exactly 1)
+
+                        Just (el0 :: el1 :: el2Up) ->
+                            case traverse getComparableExpression (el0 :: el1 :: el2Up) of
+                                Nothing ->
+                                    Just NotEmpty
+
+                                Just comparableExpressions ->
+                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
+
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 setCollection : CollectionProperties (WrapperProperties {})

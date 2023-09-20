@@ -27,6 +27,7 @@ all =
         , tupleTests
         , stringSimplificationTests
         , listSimplificationTests
+        , arrayTests
         , maybeTests
         , resultTests
         , setSimplificationTests
@@ -13937,6 +13938,193 @@ a = Tuple.second << (second |> f |> Tuple.pair)
                             , under = "Tuple.second"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        ]
+
+
+
+-- Array
+
+
+arrayTests : Test
+arrayTests =
+    describe "Array"
+        [ arrayMapTests
+        ]
+
+
+arrayMapTests : Test
+arrayMapTests =
+    describe "List.map"
+        [ test "should not report Array.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map
+b = Array.map f
+c = Array.map f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.map f Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map f Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.map f <| Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map f <| Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.empty |> Array.map f by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.empty |> Array.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.map identity array by array" <|
+            \() ->
+                """module A exposing (..)
+a = Array.map identity array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map with an identity function will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = array
+"""
+                        ]
+        , test "should replace Array.map identity <| array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map identity <| array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map with an identity function will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace array |> Array.map identity by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = array |> Array.map identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map with an identity function will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.map identity by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map with an identity function will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.map <| identity by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map <| identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map with an identity function will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace identity |> Array.map by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = identity |> Array.map
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map with an identity function will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = identity
 """
                         ]
