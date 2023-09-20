@@ -15068,6 +15068,7 @@ resultTests : Test
 resultTests =
     describe "Result"
         [ resultMapTests
+        , resultMapNTests
         , resultMapErrorTests
         , resultAndThenTests
         , resultWithDefaultTests
@@ -15387,6 +15388,154 @@ a = Ok >> Result.map f >> g
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = f >> Ok >> g
+"""
+                        ]
+        ]
+
+
+resultMapNTests : Test
+resultMapNTests =
+    -- testing behavior only with representatives for 2-5
+    describe "Result.mapN"
+        [ test "should not report Result.map3 with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3
+b = Result.map3 f
+c = Result.map3 f result0
+d = Result.map3 f result0 result1
+e = Result.map3 f result0 result1 result2
+f = Result.map3 f (Ok h) result1 result2 -- because this is a code style choice
+g = Result.map3 f result0 result1 (Err x) -- because result0/1 can have an earlier error
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Result.map3 f (Ok a) (Err x) result2 by (Err x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Ok a) (Err x) result2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where we know the first error will result in that error"
+                            , details = [ "You can replace this call by the first error." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Err x)
+"""
+                        ]
+        , test "should replace Result.map3 f (Ok a) (Err x) by always (Err x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Ok a) (Err x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where we know the first error will result in that error"
+                            , details = [ "You can replace this call by always with the first error." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always (Err x)
+"""
+                        ]
+        , test "should replace Result.map3 f (Err x) result1 result2 by (Err x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Err x) result1 result2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where we know the first error will result in that error"
+                            , details = [ "You can replace this call by the first error." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Err x)
+"""
+                        ]
+        , test "should replace Result.map3 f (Err x) result1 by always (Err x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Err x) result1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where we know the first error will result in that error"
+                            , details = [ "You can replace this call by always with the first error." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always (Err x)
+"""
+                        ]
+        , test "should replace Result.map3 f (Err x) by (\\_ _ -> (Err x))" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Err x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where we know the first error will result in that error"
+                            , details = [ "You can replace this call by \\_ _ -> with the first error." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\_ _ -> (Err x))
+"""
+                        ]
+        , test "should replace Result.map3 f result0 (Err x) result2 by Result.map2 f result0 (Err x)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f result0 (Err x) result2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 with an error early will ignore later arguments"
+                            , details = [ "You can replace this call by Result.map2 with the same arguments until the first error." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.map2 f result0 (Err x)
+"""
+                        ]
+        , test "should replace Result.map4 f result0 (Err x) result3 by always (Result.map2 f result0 (Err x))" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map4 f result0 (Err x) result3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map4 with an error early will ignore later arguments"
+                            , details = [ "You can replace this call by always with Result.map2 with the same arguments until the first error." ]
+                            , under = "Result.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always (Result.map2 f result0 (Err x))
+"""
+                        ]
+        , test "should replace Result.map4 f result0 (Err x) by (\\_ _ -> Result.map2 f result0 (Err x))" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map4 f result0 (Err x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map4 with an error early will ignore later arguments"
+                            , details = [ "You can replace this call by \\_ _ -> with Result.map2 with the same arguments until the first error." ]
+                            , under = "Result.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\_ _ -> Result.map2 f result0 (Err x))
 """
                         ]
         ]

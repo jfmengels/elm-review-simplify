@@ -410,6 +410,16 @@ Destructuring using case expressions
     Result.map f (Ok x)
     --> Ok (f x)
 
+    -- the following simplifications for map3 work for all Result.mapN
+    Result.map3 f (Ok a) (Ok b) (Ok c)
+    --> Ok (f a b c)
+
+    Result.map3 f (Ok a) (Err x) thirdResult
+    --> Err x
+
+    Result.map3 f firstResult (Err x) thirdResult
+    --> Result.map2 f firstResult (Err x)
+
     Result.mapError identity x
     --> x
 
@@ -2357,6 +2367,10 @@ functionCallChecks =
         , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
         , ( ( [ "Maybe" ], "withDefault" ), withDefaultChecks maybeWithJustAsWrap )
         , ( ( [ "Result" ], "map" ), resultMapChecks )
+        , ( ( [ "Result" ], "map2" ), resultMapNChecks { n = 2 } )
+        , ( ( [ "Result" ], "map3" ), resultMapNChecks { n = 3 } )
+        , ( ( [ "Result" ], "map4" ), resultMapNChecks { n = 4 } )
+        , ( ( [ "Result" ], "map5" ), resultMapNChecks { n = 5 } )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorChecks )
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), withDefaultChecks resultWithOkAsWrap )
@@ -4449,6 +4463,15 @@ resultMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks resultWithOkAsWrap checkInfo
 
 
+resultMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
+resultMapNChecks config checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperMapNChecks config resultWithOkAsWrap checkInfo
+        , \() -> mapNOrFirstEmptyConstructionChecks config resultWithOkAsWrap checkInfo
+        ]
+        ()
+
+
 mapWrapErrorInfo :
     ( ModuleName, String )
     -> WrapperProperties otherProperties
@@ -6007,6 +6030,204 @@ emptiableMapNChecks { n } emptiable checkInfo =
 
     else
         Nothing
+
+
+wrapperMapNChecks : { n : Int } -> WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+wrapperMapNChecks config wrapper checkInfo =
+    if List.length checkInfo.argsAfterFirst == config.n then
+        -- fully applied
+        case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) checkInfo.argsAfterFirst of
+            Just wraps ->
+                let
+                    wrapFn : ( ModuleName, String )
+                    wrapFn =
+                        ( wrapper.moduleName, wrapper.wrap.fnName )
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " on the values inside"
+                        , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ " where each " ++ wrapper.represents ++ " is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        (keepOnlyFix
+                            { parentRange = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                            , keep = Node.range checkInfo.firstArg
+                            }
+                            ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
+                            ++ [ Fix.insertAt checkInfo.parentRange.end ")"
+                               , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
+                               ]
+                        )
+                    )
+
+            Nothing ->
+                Nothing
+
+    else
+        Nothing
+
+
+mapNOrFirstEmptyConstructionChecks :
+    { n : Int }
+    ->
+        WrapperProperties
+            { otherProperties
+                | empty :
+                    { empty
+                        | is : ModuleNameLookupTable -> Node Expression -> Bool
+                        , description : Description
+                    }
+            }
+    -> CheckInfo
+    -> Maybe (Error {})
+mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            case List.filter (\el -> isNothing (emptiable.wrap.getValue checkInfo.lookupTable el)) checkInfo.argsAfterFirst of
+                firstNonWrappedElement :: _ ->
+                    if emptiable.empty.is checkInfo.lookupTable firstNonWrappedElement then
+                        let
+                            replacement : { description : String, fix : List Fix }
+                            replacement =
+                                case config.n - List.length checkInfo.argsAfterFirst of
+                                    -- fully applied
+                                    0 ->
+                                        { description = descriptionForDefinite "the first" emptiable.empty.description
+                                        , fix = replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement
+                                        }
+
+                                    -- one arg curried
+                                    1 ->
+                                        { description =
+                                            "always with " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        , fix =
+                                            replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement
+                                                ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " ") ]
+                                        }
+
+                                    -- multiple args curried
+                                    atLeast2 ->
+                                        let
+                                            lambdaStart : String
+                                            lambdaStart =
+                                                "\\" ++ String.join " " (List.repeat atLeast2 "_") ++ " -> "
+                                        in
+                                        { description =
+                                            lambdaStart ++ "with " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        , fix =
+                                            replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement
+                                                ++ [ Fix.insertAt checkInfo.parentRange.start ("(" ++ lambdaStart)
+                                                   , Fix.insertAt checkInfo.parentRange.end ")"
+                                                   ]
+                                        }
+                        in
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " where we know " ++ descriptionForDefinite "the first" emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "that" emptiable.empty.description
+                                , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                replacement.fix
+                            )
+
+                    else
+                        Nothing
+
+                [] ->
+                    Nothing
+        , \() ->
+            case findMapAndAllBefore (getEmpty checkInfo.lookupTable emptiable) checkInfo.argsAfterFirst of
+                Just emptyAndBefore ->
+                    let
+                        keptArgCount : Int
+                        keptArgCount =
+                            List.length emptyAndBefore.before + 1
+                    in
+                    if keptArgCount == config.n then
+                        -- last argument is empty
+                        Nothing
+
+                    else
+                        -- known empty arg argument before last
+                        let
+                            replacementMap : ( ModuleName, String )
+                            replacementMap =
+                                ( AstHelpers.qualifiedModuleName checkInfo.fn, "map" ++ String.fromInt keptArgCount )
+
+                            keptRange : Range
+                            keptRange =
+                                Range.combine
+                                    (checkInfo.fnRange
+                                        :: emptyAndBefore.found.range
+                                        :: List.map Node.range emptyAndBefore.before
+                                    )
+
+                            replacement : { description : String, fix : List Fix }
+                            replacement =
+                                case config.n - List.length checkInfo.argsAfterFirst of
+                                    -- fully applied
+                                    0 ->
+                                        { fix =
+                                            [ Fix.removeRange
+                                                { start = keptRange.end, end = checkInfo.parentRange.end }
+                                            , Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementMap checkInfo))
+                                            , Fix.removeRange
+                                                { start = checkInfo.parentRange.start, end = keptRange.start }
+                                            ]
+                                        , description =
+                                            qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        }
+
+                                    -- one arg curried
+                                    1 ->
+                                        { fix =
+                                            [ Fix.replaceRangeBy
+                                                { start = keptRange.end, end = checkInfo.parentRange.end }
+                                                ")"
+                                            , Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementMap checkInfo))
+                                            , Fix.replaceRangeBy
+                                                { start = checkInfo.parentRange.start
+                                                , end = keptRange.start
+                                                }
+                                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " (")
+                                            ]
+                                        , description =
+                                            "always with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        }
+
+                                    -- multiple args curried
+                                    atLeast2 ->
+                                        let
+                                            lambdaStart : String
+                                            lambdaStart =
+                                                "\\" ++ String.join " " (List.repeat atLeast2 "_") ++ " -> "
+                                        in
+                                        { fix =
+                                            [ Fix.replaceRangeBy
+                                                { start = keptRange.end, end = checkInfo.parentRange.end }
+                                                ")"
+                                            , Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementMap checkInfo))
+                                            , Fix.replaceRangeBy
+                                                { start = checkInfo.parentRange.start, end = keptRange.start }
+                                                ("(" ++ lambdaStart)
+                                            ]
+                                        , description =
+                                            lambdaStart ++ "with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        }
+                        in
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite emptiable.empty.description ++ " early will ignore later arguments"
+                                , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                replacement.fix
+                            )
+
+                Nothing ->
+                    Nothing
+        ]
+        ()
 
 
 listUnzipChecks : CheckInfo -> Maybe (Error {})
@@ -9676,6 +9897,54 @@ findMapNeighboringAfter before tryMap list =
 findMapNeighboring : (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
 findMapNeighboring tryMap list =
     findMapNeighboringAfter Nothing tryMap list
+
+
+findMapAndAllBefore : (a -> Maybe b) -> List a -> Maybe { before : List a, found : b }
+findMapAndAllBefore tryMap list =
+    foldUntilOkFrom []
+        (\el beforeReversed ->
+            case tryMap el of
+                Nothing ->
+                    Err (el :: beforeReversed)
+
+                Just found ->
+                    Ok
+                        { found = found
+                        , before = List.reverse beforeReversed
+                        }
+        )
+        list
+        |> Result.toMaybe
+
+
+{-| A fold that can stop early (→ `Ok`) instead of traversing the whole list.
+
+    [ 4, 8, -1, 2 ]
+        -- take from the right while not negative
+        |> foldUntilOkFrom []
+            (\n beforeReversed ->
+                if n < 0 then
+                    Ok (List.reverse beforeReversed) -- stop the fold
+                else
+                    Err (n :: beforeReversed)
+            )
+        |> Result.map
+    --> [ 4, 8 ]
+
+-}
+foldUntilOkFrom : folded -> (a -> folded -> Result folded b) -> List a -> Result folded b
+foldUntilOkFrom initialFolded mapOrFoldFurther list =
+    case list of
+        [] ->
+            Err initialFolded
+
+        head :: tail ->
+            case mapOrFoldFurther head initialFolded of
+                Ok found ->
+                    Ok found
+
+                Err newFolded ->
+                    foldUntilOkFrom newFolded mapOrFoldFurther tail
 
 
 traverse : (a -> Maybe b) -> List a -> Maybe (List b)
