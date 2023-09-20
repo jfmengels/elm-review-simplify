@@ -18277,7 +18277,7 @@ taskMapTests =
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.map f x
+a = Task.map f task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -18335,11 +18335,11 @@ import Task
 a = Task.fail z
 """
                         ]
-        , test "should replace Task.map identity x by x" <|
+        , test "should replace Task.map identity task by task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.map identity x
+a = Task.map identity task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18350,14 +18350,14 @@ a = Task.map identity x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x
+a = task
 """
                         ]
-        , test "should replace Task.map identity <| x by x" <|
+        , test "should replace Task.map identity <| task by task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = Task.map identity <| x
+a = Task.map identity <| task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18368,14 +18368,14 @@ a = Task.map identity <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x
+a = task
 """
                         ]
-        , test "should replace x |> Task.map identity by x" <|
+        , test "should replace task |> Task.map identity by task" <|
             \() ->
                 """module A exposing (..)
 import Task
-a = x |> Task.map identity
+a = task |> Task.map identity
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -18386,7 +18386,7 @@ a = x |> Task.map identity
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x
+a = task
 """
                         ]
         , test "should replace Task.map identity by identity" <|
@@ -18527,7 +18527,7 @@ taskAndThenTests =
 import Task
 a = Task.andThen
 b = Task.andThen f
-c = Task.andThen f x
+c = Task.andThen f task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -18685,7 +18685,7 @@ taskOnErrorTests =
 import Task
 a = Task.onError
 b = Task.onError f
-c = Task.onError f x
+c = Task.onError f task
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -18733,7 +18733,7 @@ import Task
 a = task
 """
                         ]
-        , test "should replace Task.onError (\\x -> Task.fail y) x by Task.mapError (\\x -> y) task" <|
+        , test "should replace Task.onError (\\x -> Task.fail y) task by Task.mapError (\\x -> y) task" <|
             \() ->
                 """module A exposing (..)
 import Task
