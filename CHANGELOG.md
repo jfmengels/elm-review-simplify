@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `Array.map f Array.empty` to `Array.empty`
+- `Array.map identity array` to `array`
+
 ## [2.1.1] - 2023-09-18
 
 - A very large number of error messages were reworded to be more consistent, precise and descriptive.
