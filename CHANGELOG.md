@@ -9,6 +9,7 @@ The rule now simplifies:
 - the same operations for `Array.filter` as for other types like `List.filter` and `Set.filter`
 - `Array.isEmpty Array.empty` to `True`
 - `Array.isEmpty (Array.fromList [ x ])` to `False`
+- `Array.repeat 0 n` to `Array.empty`
 - `List.singleton >> String.fromList` to `String.fromChar`
 
 ## [2.1.1] - 2023-09-18
