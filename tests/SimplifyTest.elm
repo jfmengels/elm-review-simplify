@@ -16849,7 +16849,7 @@ setIsEmptyTests =
                 """module A exposing (..)
 import Set
 a = Set.isEmpty
-b = Set.isEmpty list
+b = Set.isEmpty set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17133,8 +17133,7 @@ setToListTests =
                 """module A exposing (..)
 import Set
 a = Set.toList
-b = Set.toList list
-c = Set.toList set
+b = Set.toList set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17673,7 +17672,7 @@ dictIsEmptyTests =
                 """module A exposing (..)
 import Dict
 a = Dict.isEmpty
-b = Dict.isEmpty list
+b = Dict.isEmpty dict
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17822,8 +17821,7 @@ dictToListTests =
                 """module A exposing (..)
 import Dict
 a = Dict.toList
-b = Dict.toList list
-c = Dict.toList set
+b = Dict.toList dict
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
