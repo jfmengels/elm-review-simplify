@@ -5992,17 +5992,17 @@ emptiableMapNChecks : { n : Int } -> EmptiableProperties otherProperties -> Chec
 emptiableMapNChecks { n } emptiable checkInfo =
     if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
-            callReplacement : String
-            callReplacement =
-                multiAlways (n - List.length checkInfo.argsAfterFirst) "[]" checkInfo
+            callReplacement : QualifyResources a -> String
+            callReplacement resources =
+                multiAlways (n - List.length checkInfo.argsAfterFirst) (emptyAsString resources emptiable) resources
         in
         Just
             (Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " with any list being [] will result in []"
-                , details = [ "You can replace this call by " ++ callReplacement ++ "." ]
+                { message = qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.asString defaultQualifyResources ++ " will result in " ++ emptiable.empty.asString defaultQualifyResources
+                , details = [ "You can replace this call by " ++ callReplacement defaultQualifyResources ++ "." ]
                 }
                 checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange callReplacement ]
+                [ Fix.replaceRangeBy checkInfo.parentRange (callReplacement checkInfo) ]
             )
 
     else
