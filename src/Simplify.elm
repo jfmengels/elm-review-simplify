@@ -836,6 +836,15 @@ All of these also apply for `Sub`.
     Task.andThen (\a -> Task.succeed b) task
     --> Task.map (\a -> b) x
 
+    Task.mapError identity task
+    --> task
+
+    Task.mapError f (Task.succeed a)
+    --> Task.succeed a
+
+    Task.mapError f (Task.fail x)
+    --> Task.fail (f x)
+
     Task.onError f (Task.succeed a)
     --> Task.succeed a
 
@@ -2419,6 +2428,7 @@ functionCallChecks =
         , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
         , ( ( [ "Task" ], "map" ), taskMapChecks )
         , ( ( [ "Task" ], "andThen" ), taskAndThenChecks )
+        , ( ( [ "Task" ], "mapError" ), taskMapErrorChecks )
         , ( ( [ "Task" ], "onError" ), taskOnErrorChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceChecks )
         , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
@@ -2585,6 +2595,7 @@ compositionIntoChecks =
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
         , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
         , ( ( [ "Task" ], "map" ), taskMapCompositionChecks )
+        , ( ( [ "Task" ], "mapError" ), taskMapErrorCompositionChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
         , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
         ]
@@ -6050,6 +6061,20 @@ taskAndThenChecks checkInfo =
         , \() -> wrapperAndThenChecks taskWithSucceedAsWrap checkInfo
         ]
         ()
+
+
+taskMapErrorChecks : CheckInfo -> Maybe (Error {})
+taskMapErrorChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> emptiableMapChecks taskWithFailAsWrap checkInfo
+        , \() -> mapWrapChecks taskWithFailAsWrap checkInfo
+        ]
+        ()
+
+
+taskMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+taskMapErrorCompositionChecks checkInfo =
+    wrapToMapCompositionChecks taskWithFailAsWrap checkInfo
 
 
 taskOnErrorChecks : CheckInfo -> Maybe (Error {})

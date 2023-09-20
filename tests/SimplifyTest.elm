@@ -18265,6 +18265,7 @@ taskTests =
     Test.describe "Task"
         [ taskMapTests
         , taskAndThenTests
+        , taskMapErrorTests
         , taskOnErrorTests
         , taskSequenceTests
         ]
@@ -18513,6 +18514,256 @@ a = Task.map f << Task.succeed
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
 a = Task.succeed << f
+"""
+                        ]
+        ]
+
+
+taskMapErrorTests : Test
+taskMapErrorTests =
+    describe "Task.mapError"
+        [ test "should not report Task.mapError used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError
+b = Task.mapError f
+c = Task.mapError f task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.mapError f (Task.succeed a) by (Task.succeed a)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f (Task.succeed a)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a succeeding task will result in the given succeeding task"
+                            , details = [ "You can replace this call by the given succeeding task." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (Task.succeed a)
+"""
+                        ]
+        , test "should replace Task.mapError f <| Task.succeed a by Task.succeed a" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f <| Task.succeed a
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a succeeding task will result in the given succeeding task"
+                            , details = [ "You can replace this call by the given succeeding task." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed a
+"""
+                        ]
+        , test "should replace Task.succeed a |> Task.mapError f by Task.succeed a" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.succeed a |> Task.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a succeeding task will result in the given succeeding task"
+                            , details = [ "You can replace this call by the given succeeding task." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed a
+"""
+                        ]
+        , test "should replace Task.mapError identity task by task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError identity task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = task
+"""
+                        ]
+        , test "should replace Task.mapError identity <| task by task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError identity <| task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = task
+"""
+                        ]
+        , test "should replace task |> Task.mapError identity by task" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = task |> Task.mapError identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by the task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = task
+"""
+                        ]
+        , test "should replace Task.mapError identity by identity" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError with an identity function will always return the same given task"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = identity
+"""
+                        ]
+        , test "should replace Task.mapError f (Task.fail x) by Task.fail (f x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f (Task.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a failing task will result in Task.fail with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.fail with the function directly applied to the value inside the failing task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail (f x)
+"""
+                        ]
+        , test "should replace Task.mapError f <| Task.fail x by Task.fail (f x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f <| Task.fail x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a failing task will result in Task.fail with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.fail with the function directly applied to the value inside the failing task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail (f <| x)
+"""
+                        ]
+        , test "should replace Task.fail x |> Task.mapError f by x |> f |> Task.fail" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.fail x |> Task.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a failing task will result in Task.fail with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.fail with the function directly applied to the value inside the failing task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x |> f |> Task.fail
+"""
+                        ]
+        , test "should replace x |> Task.fail |> Task.mapError f by x |> f |> Task.fail" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = x |> Task.fail |> Task.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a failing task will result in Task.fail with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.fail with the function directly applied to the value inside the failing task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = x |> f |> Task.fail
+"""
+                        ]
+        , test "should replace Task.mapError f <| Task.fail <| x by Task.fail <| f <| x" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f <| Task.fail <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a failing task will result in Task.fail with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.fail with the function directly applied to the value inside the failing task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail (f <| x)
+"""
+                        ]
+        , test "should replace Task.mapError f << Task.fail by Task.fail << f" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f << Task.fail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a failing task will result in Task.fail with the function applied to the value inside"
+                            , details = [ "You can replace this call by Task.fail with the function directly applied to the value inside the failing task itself." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail << f
 """
                         ]
         ]
