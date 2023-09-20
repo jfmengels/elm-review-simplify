@@ -5,6 +5,7 @@
 The rule now simplifies:
 - `Array.map f Array.empty` to `Array.empty`
 - `Array.map identity array` to `array`
+- the same operations for `Array.filter` as for other types like `List.filter` and `Set.filter`
 
 ## [2.1.1] - 2023-09-18
 
