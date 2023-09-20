@@ -14562,6 +14562,32 @@ import Array
 a = Array.isEmpty (Array.empty)
 """
                         ]
+        , test "should replace Array.isEmpty (Array.repeat 2 x) by False" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.repeat 2 x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.isEmpty on this array will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = False
+"""
+                        ]
+        , test "should not report Array.isEmpty (Array.repeat n x)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.repeat n x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 

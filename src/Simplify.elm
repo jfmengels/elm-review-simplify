@@ -7070,6 +7070,14 @@ arrayDetermineSize resources expressionNode =
 
                 Nothing ->
                     Nothing
+        , \() ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
+                Just repeatCall ->
+                    Evaluate.getInt resources repeatCall.firstArg
+                        |> Maybe.map Exactly
+
+                Nothing ->
+                    Nothing
         ]
         ()
 
