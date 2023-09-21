@@ -849,6 +849,16 @@ All of these also apply for `Sub`.
     Task.map f (Task.succeed a)
     --> Task.succeed (f a)
 
+    -- the following simplifications for map3 work for all Task.mapN
+    Task.map3 f (Task.succeed a) (Task.succeed b) (Task.succeed c)
+    --> Task.succeed (f a b c)
+
+    Task.map3 f (Task.succeed a) (Task.fail x) thirdTask
+    --> Task.fail x
+
+    Task.map3 f firstTask (Task.fail x) thirdTask
+    --> Task.map2 f firstTask (Task.fail x)
+
     Task.andThen f (Task.fail x)
     --> Task.fail x
 
@@ -2460,6 +2470,10 @@ functionCallChecks =
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
         , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
         , ( ( [ "Task" ], "map" ), taskMapChecks )
+        , ( ( [ "Task" ], "map2" ), taskMapNChecks { n = 2 } )
+        , ( ( [ "Task" ], "map3" ), taskMapNChecks { n = 3 } )
+        , ( ( [ "Task" ], "map4" ), taskMapNChecks { n = 4 } )
+        , ( ( [ "Task" ], "map5" ), taskMapNChecks { n = 5 } )
         , ( ( [ "Task" ], "andThen" ), taskAndThenChecks )
         , ( ( [ "Task" ], "mapError" ), taskMapErrorChecks )
         , ( ( [ "Task" ], "onError" ), taskOnErrorChecks )
@@ -6342,6 +6356,15 @@ taskMapChecks checkInfo =
 taskMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks taskWithSucceedAsWrap checkInfo
+
+
+taskMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
+taskMapNChecks config checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperMapNChecks config taskWithSucceedAsWrap checkInfo
+        , \() -> mapNOrFirstEmptyConstructionChecks config taskWithSucceedAsWrap checkInfo
+        ]
+        ()
 
 
 taskAndThenChecks : CheckInfo -> Maybe (Error {})
