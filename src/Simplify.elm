@@ -6095,6 +6095,34 @@ wrapperMapNChecks config wrapper checkInfo =
         Nothing
 
 
+{-| If we find an empty argument given to the `mapN`, we either
+
+  - replace the whole call by the first empty argument if all earlier arguments are wrapped
+
+        map3 f (wrap first) empty thirdWrapper
+        --> empty
+
+        map2 f empty secondWrapper
+        --> empty
+
+    For example given `resultWithOkAsWrap`:
+
+        Result.map3 f (Ok x) (Err y) thirdResult
+        --> Err y
+
+  - ignore arguments after the known empty argument because they will never have an effect on the result
+
+        map3 f emptyOrWrappedWeDoNotKnow empty thirdWrapper
+        --> map2 f emptyOrWrappedWeDoNotKnow empty
+
+    For example given `resultWithOkAsWrap`:
+
+        Result.map3 f errorOrOkWeDoNotKnow (Err x) thirdResult
+        --> Result.map2 f errorOrOkWeDoNotKnow (Err x)
+
+This is pretty similar to `sequenceOrFirstEmptyChecks` where we look at arguments instead of list elements.
+
+-}
 mapNOrFirstEmptyConstructionChecks :
     { n : Int }
     ->
