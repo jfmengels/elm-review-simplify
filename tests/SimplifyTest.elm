@@ -14800,7 +14800,7 @@ a = Maybe.map f (Just x)
 a = Just (f x)
 """
                         ]
-        , test "should replace Maybe.map f <| Just x by Just (f x)" <|
+        , test "should replace Maybe.map f <| Just x by Just <| f <| x" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.map f <| Just x
@@ -14813,7 +14813,7 @@ a = Maybe.map f <| Just x
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (f <| x)
+a = Just <| f <| x
 """
                         ]
         , test "should replace Just x |> Maybe.map f by x |> f |> Just" <|
@@ -14861,7 +14861,7 @@ a = Maybe.map f <| Just <| x
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (f <| x)
+a = Just <| f <| x
 """
                         ]
         , test "should replace Maybe.map f << Just by Just << f" <|
@@ -15447,7 +15447,7 @@ a = Result.map f (Ok x)
 a = Ok (f x)
 """
                         ]
-        , test "should replace Result.map f <| Ok x by Ok (f x)" <|
+        , test "should replace Result.map f <| Ok x by Ok <| f <| x" <|
             \() ->
                 """module A exposing (..)
 a = Result.map f <| Ok x
@@ -15460,7 +15460,7 @@ a = Result.map f <| Ok x
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok (f <| x)
+a = Ok <| f <| x
 """
                         ]
         , test "should replace Ok x |> Result.map f by x |> f |> Ok" <|
@@ -15508,7 +15508,7 @@ a = Result.map f <| Ok <| x
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok (f <| x)
+a = Ok <| f <| x
 """
                         ]
         , test "should replace Result.map f << Ok by Ok << f" <|
@@ -15963,7 +15963,7 @@ a = Result.mapError f (Err x)
 a = Err (f x)
 """
                         ]
-        , test "should replace Result.mapError f <| Err x by Err (f x)" <|
+        , test "should replace Result.mapError f <| Err x by Err <| f <| x" <|
             \() ->
                 """module A exposing (..)
 a = Result.mapError f <| Err x
@@ -15976,7 +15976,7 @@ a = Result.mapError f <| Err x
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Err (f <| x)
+a = Err <| f <| x
 """
                         ]
         , test "should replace Err x |> Result.mapError f by x |> f |> Err" <|
@@ -16024,7 +16024,7 @@ a = Result.mapError f <| Err <| x
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Err (f <| x)
+a = Err <| f <| x
 """
                         ]
         , test "should replace Result.mapError f << Err by Err << f" <|
@@ -19297,7 +19297,7 @@ import Task
 a = Task.succeed (f x)
 """
                         ]
-        , test "should replace Task.map f <| Task.succeed x by Task.succeed (f x)" <|
+        , test "should replace Task.map f <| Task.succeed x by Task.succeed <| f <| x" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -19312,7 +19312,7 @@ a = Task.map f <| Task.succeed x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.succeed (f <| x)
+a = Task.succeed <| f <| x
 """
                         ]
         , test "should replace Task.succeed x |> Task.map f by x |> f |> Task.succeed" <|
@@ -19366,7 +19366,7 @@ a = Task.map f <| Task.succeed <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.succeed (f <| x)
+a = Task.succeed <| f <| x
 """
                         ]
         , test "should replace Task.map f << Task.succeed by Task.succeed << f" <|
@@ -19767,7 +19767,7 @@ import Task
 a = Task.fail (f x)
 """
                         ]
-        , test "should replace Task.mapError f <| Task.fail x by Task.fail (f x)" <|
+        , test "should replace Task.mapError f <| Task.fail x by Task.fail <| f <| x" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -19782,7 +19782,7 @@ a = Task.mapError f <| Task.fail x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.fail (f <| x)
+a = Task.fail <| f <| x
 """
                         ]
         , test "should replace Task.fail x |> Task.mapError f by x |> f |> Task.fail" <|
@@ -19836,7 +19836,7 @@ a = Task.mapError f <| Task.fail <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.fail (f <| x)
+a = Task.fail <| f <| x
 """
                         ]
         , test "should replace Task.mapError f << Task.fail by Task.fail << f" <|
@@ -21881,7 +21881,7 @@ import Random
 a = Random.constant (f x)
 """
                         ]
-        , test "should replace Random.map f <| Random.constant x by Random.constant (f x)" <|
+        , test "should replace Random.map f <| Random.constant x by Random.constant <| f <| x" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -21896,7 +21896,7 @@ a = Random.map f <| Random.constant x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant (f <| x)
+a = Random.constant <| f <| x
 """
                         ]
         , test "should replace Random.constant x |> Random.map f by x |> f |> Random.constant" <|
@@ -21950,7 +21950,7 @@ a = Random.map f <| Random.constant <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant (f <| x)
+a = Random.constant <| f <| x
 """
                         ]
         , test "should replace Random.map f << Random.constant by Random.constant << f" <|

@@ -7676,8 +7676,13 @@ mapWrapChecks wrapper checkInfo =
                                     ]
                                         ++ removeWrapCalls
 
-                                -- Pipe RightToLeft | Application
-                                _ ->
+                                Pipe RightToLeft ->
+                                    Fix.replaceRangeBy
+                                        { start = checkInfo.parentRange.start, end = mappingArgRange.start }
+                                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " <| ")
+                                        :: removeWrapCalls
+
+                                Application ->
                                     [ Fix.replaceRangeBy
                                         { start = checkInfo.parentRange.start, end = mappingArgRange.start }
                                         (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " (")
