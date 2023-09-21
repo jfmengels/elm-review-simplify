@@ -6046,6 +6046,20 @@ emptiableMapNChecks { n } emptiable checkInfo =
         Nothing
 
 
+{-| When all arguments of a fully applied `mapN` are wrapped,
+apply the given function to the values inside and wrap the whole thing again:
+
+    map2 f (wrap first) (wrap second)
+    --> wrap (f first second)
+
+For example given `resultWithOkAsWrap`:
+
+    Result.map2 f (Ok first) (Ok second)
+    --> Ok (f first second)
+
+This is pretty similar to `wrapperSequenceChecks` where we look at arguments instead of list elements.
+
+-}
 wrapperMapNChecks : { n : Int } -> WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
 wrapperMapNChecks config wrapper checkInfo =
     if List.length checkInfo.argsAfterFirst == config.n then
