@@ -1831,7 +1831,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , fn : ( ModuleName, String )
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
-            , usingRightPizza : Bool
+            , callStyle : FunctionCallStyle
             }
             -> CheckInfo
         toCheckInfo checkInfo =
@@ -1850,7 +1850,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , argsAfterFirst = checkInfo.argsAfterFirst
             , secondArg = List.head checkInfo.argsAfterFirst
             , thirdArg = List.head (List.drop 1 checkInfo.argsAfterFirst)
-            , usingRightPizza = checkInfo.usingRightPizza
+            , callStyle = checkInfo.callStyle
             }
 
         toCompositionCheckInfo :
@@ -1889,7 +1889,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsAfterFirst
-                                                , usingRightPizza = False
+                                                , callStyle = Application
                                                 }
                                             )
 
@@ -1942,7 +1942,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , usingRightPizza = False
+                                                , callStyle = Pipe RightToLeft
                                                 }
                                             )
 
@@ -1965,7 +1965,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , usingRightPizza = False
+                                                , callStyle = Pipe RightToLeft
                                                 }
                                             )
                                         )
@@ -2006,7 +2006,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , usingRightPizza = True
+                                                , callStyle = Pipe LeftToRight
                                                 }
                                             )
 
@@ -2029,7 +2029,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , usingRightPizza = True
+                                                , callStyle = Pipe LeftToRight
                                                 }
                                             )
                                         )
@@ -2341,7 +2341,7 @@ type alias CheckInfo =
     , parentRange : Range
     , fnRange : Range
     , fn : ( ModuleName, String )
-    , usingRightPizza : Bool
+    , callStyle : FunctionCallStyle
     , firstArg : Node Expression
     , argsAfterFirst : List (Node Expression)
 
@@ -2351,6 +2351,16 @@ type alias CheckInfo =
     , secondArg : Maybe (Node Expression)
     , thirdArg : Maybe (Node Expression)
     }
+
+
+type FunctionCallStyle
+    = Application
+    | Pipe LeftOrRightDirection
+
+
+type LeftOrRightDirection
+    = RightToLeft
+    | LeftToRight
 
 
 secondArg : CheckInfo -> Maybe (Node Expression)
@@ -5306,39 +5316,40 @@ listFoldAnyDirectionChecks checkInfo =
                                 Nothing
 
                             Just _ ->
-                                if checkInfo.usingRightPizza then
-                                    -- list |> fold op initial --> ((list |> List.op) op initial)
-                                    Just
-                                        (fixWith
-                                            [ Fix.insertAt (Node.range initialArg).end ")"
-                                            , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
-                                            , Fix.replaceRangeBy
-                                                { start = checkInfo.fnRange.start
-                                                , end = (Node.range checkInfo.firstArg).end
-                                                }
-                                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
-                                            , Fix.insertAt checkInfo.parentRange.start "(("
-                                            ]
-                                        )
+                                case checkInfo.callStyle of
+                                    Pipe LeftToRight ->
+                                        -- list |> fold op initial --> ((list |> List.op) op initial)
+                                        Just
+                                            (fixWith
+                                                [ Fix.insertAt (Node.range initialArg).end ")"
+                                                , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
+                                                , Fix.replaceRangeBy
+                                                    { start = checkInfo.fnRange.start
+                                                    , end = (Node.range checkInfo.firstArg).end
+                                                    }
+                                                    (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
+                                                , Fix.insertAt checkInfo.parentRange.start "(("
+                                                ]
+                                            )
 
-                                else
-                                    -- <| or application
-                                    -- fold op initial list --> (initial op (List.op list))
-                                    Just
-                                        (fixWith
-                                            [ Fix.insertAt checkInfo.parentRange.end ")"
-                                            , Fix.insertAt (Node.range initialArg).end
-                                                (" "
-                                                    ++ operation.two
-                                                    ++ " ("
-                                                    ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
-                                                )
-                                            , Fix.removeRange
-                                                { start = checkInfo.fnRange.start
-                                                , end = (Node.range initialArg).start
-                                                }
-                                            ]
-                                        )
+                                    -- Pipe RightToLeft | Application ->
+                                    _ ->
+                                        -- fold op initial list --> (initial op (List.op list))
+                                        Just
+                                            (fixWith
+                                                [ Fix.insertAt checkInfo.parentRange.end ")"
+                                                , Fix.insertAt (Node.range initialArg).end
+                                                    (" "
+                                                        ++ operation.two
+                                                        ++ " ("
+                                                        ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                                    )
+                                                , Fix.removeRange
+                                                    { start = checkInfo.fnRange.start
+                                                    , end = (Node.range initialArg).start
+                                                    }
+                                                ]
+                                            )
 
                 boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> Error {}
                 boolBinaryOperationChecks operation initialIsDetermining =
@@ -6100,16 +6111,17 @@ wrapperMapNChecks config wrapper checkInfo =
                             , keep = Node.range checkInfo.firstArg
                             }
                             ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
-                            ++ (if checkInfo.usingRightPizza then
-                                    [ Fix.insertAt checkInfo.parentRange.end
-                                        (" |> " ++ qualifiedToString (qualify wrapFn checkInfo))
-                                    ]
+                            ++ (case checkInfo.callStyle of
+                                    Pipe LeftToRight ->
+                                        [ Fix.insertAt checkInfo.parentRange.end
+                                            (" |> " ++ qualifiedToString (qualify wrapFn checkInfo))
+                                        ]
 
-                                else
-                                    -- <| or application
-                                    [ Fix.insertAt checkInfo.parentRange.end ")"
-                                    , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
-                                    ]
+                                    -- Pipe RightToLeft | application ->
+                                    _ ->
+                                        [ Fix.insertAt checkInfo.parentRange.end ")"
+                                        , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
+                                        ]
                                )
                         )
                     )
@@ -7652,20 +7664,22 @@ mapWrapChecks wrapper checkInfo =
                         (Rule.errorWithFix
                             (mapWrapErrorInfo checkInfo.fn wrapper)
                             checkInfo.fnRange
-                            (if checkInfo.usingRightPizza then
-                                [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
-                                , Fix.insertAt mappingArgRange.end
-                                    (" |> " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
-                                ]
-                                    ++ removeWrapCalls
+                            (case checkInfo.callStyle of
+                                Pipe LeftToRight ->
+                                    [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
+                                    , Fix.insertAt mappingArgRange.end
+                                        (" |> " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
+                                    ]
+                                        ++ removeWrapCalls
 
-                             else
-                                [ Fix.replaceRangeBy
-                                    { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                    (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " (")
-                                , Fix.insertAt checkInfo.parentRange.end ")"
-                                ]
-                                    ++ removeWrapCalls
+                                -- Pipe RightToLeft | Application
+                                _ ->
+                                    [ Fix.replaceRangeBy
+                                        { start = checkInfo.parentRange.start, end = mappingArgRange.start }
+                                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " (")
+                                    , Fix.insertAt checkInfo.parentRange.end ")"
+                                    ]
+                                        ++ removeWrapCalls
                             )
                         )
 
@@ -8091,11 +8105,6 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
 
         _ ->
             Nothing
-
-
-type LeftOrRightDirection
-    = RightToLeft
-    | LeftToRight
 
 
 pipingIntoCompositionChecks :
