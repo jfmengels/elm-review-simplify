@@ -13983,8 +13983,44 @@ a = identity
 arrayTests : Test
 arrayTests =
     describe "Array"
-        [ arrayMapTests
+        [ arrayFromListTests
+        , arrayMapTests
         , arrayFilterTests
+        ]
+
+
+arrayFromListTests : Test
+arrayFromListTests =
+    describe "Array.fromList"
+        [ test "should not report Array.fromList with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList
+b = Array.fromList list
+c = Array.fromList (x :: ys)
+d = Array.fromList [x, y]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.fromList [] by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList on [] will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
         ]
 
 

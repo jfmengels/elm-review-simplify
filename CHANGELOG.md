@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 The rule now simplifies:
+- `Array.fromList []` to `Array.empty`
 - `Array.map f Array.empty` to `Array.empty`
 - `Array.map identity array` to `array`
 - the same operations for `Array.filter` as for other types like `List.filter` and `Set.filter`
