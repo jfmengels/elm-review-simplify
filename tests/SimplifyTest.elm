@@ -14588,6 +14588,32 @@ a = Array.isEmpty (Array.repeat n x)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace Array.isEmpty (Array.initialize 2 f) by False" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.initialize 2 f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.isEmpty on this array will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = False
+"""
+                        ]
+        , test "should not report Array.isEmpty (Array.initialize n f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.isEmpty (Array.initialize n f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
