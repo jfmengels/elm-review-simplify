@@ -5771,7 +5771,7 @@ listRepeatChecks checkInfo =
         ()
 
 
-emptiableRepeatChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableRepeatChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableRepeatChecks collection checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
@@ -5787,7 +5787,7 @@ emptiableRepeatChecks collection checkInfo =
             Nothing
 
 
-wrapperRepeatChecks : CollectionProperties a (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 wrapperRepeatChecks wrapper checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just 1 ->
@@ -6714,11 +6714,11 @@ type alias ConstructWithOneArgProperties =
 
 {-| Properties of a type with with multiple elements. Includes `EmptiableProperties`.
 -}
-type alias CollectionProperties a otherProperties =
+type alias CollectionProperties otherProperties =
     EmptiableProperties
         { otherProperties
             | nameForSize : String
-            , determineSize : Infer.Resources a -> Node Expression -> Maybe CollectionSize
+            , determineSize : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
         }
 
 
@@ -6791,6 +6791,13 @@ extractQualifyResources resources =
     { importLookup = resources.importLookup
     , moduleBindings = resources.moduleBindings
     , localBindings = resources.localBindings
+    }
+
+
+extractInferResources : Infer.Resources a -> Infer.Resources {}
+extractInferResources resources =
+    { lookupTable = resources.lookupTable
+    , inferredConstants = resources.inferredConstants
     }
 
 
@@ -6951,10 +6958,7 @@ taskWithFailAsWrap =
     }
 
 
-listCollection :
-    CollectionProperties
-        a
-        (WrapperProperties { mapFnName : String })
+listCollection : CollectionProperties (WrapperProperties { mapFnName : String })
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -7001,7 +7005,7 @@ listDetermineLength resources expressionNode =
             Nothing
 
 
-stringCollection : CollectionProperties a (WrapperProperties {})
+stringCollection : CollectionProperties (WrapperProperties {})
 stringCollection =
     { moduleName = [ "String" ]
     , represents = "string"
@@ -7032,7 +7036,7 @@ stringDetermineLength expression =
             Nothing
 
 
-arrayCollection : CollectionProperties a {}
+arrayCollection : CollectionProperties {}
 arrayCollection =
     { moduleName = [ "Array" ]
     , represents = "array"
@@ -7090,7 +7094,7 @@ arrayDetermineSize resources expressionNode =
         ()
 
 
-setCollection : CollectionProperties a (WrapperProperties {})
+setCollection : CollectionProperties (WrapperProperties {})
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
@@ -7162,7 +7166,7 @@ setDetermineSize resources expressionNode =
         ()
 
 
-dictCollection : CollectionProperties a {}
+dictCollection : CollectionProperties {}
 dictCollection =
     { moduleName = [ "Dict" ]
     , represents = "dict"
@@ -8113,14 +8117,14 @@ emptiableFilterChecks emptiable checkInfo =
         ()
 
 
-collectionRemoveChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
     Maybe.andThen
         (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
         (secondArg checkInfo)
 
 
-collectionIntersectChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionIntersectChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
@@ -8132,7 +8136,7 @@ collectionIntersectChecks collection checkInfo =
         ()
 
 
-collectionDiffChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -8179,7 +8183,7 @@ collectionDiffChecks collection checkInfo =
         ()
 
 
-collectionUnionChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
     let
         maybeCollectionArg : Maybe (Node Expression)
@@ -8222,7 +8226,7 @@ collectionUnionChecks collection checkInfo =
         ()
 
 
-collectionInsertChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -8247,7 +8251,7 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection checkInfo =
     Maybe.andThen
         (\collectionArg ->
@@ -8259,9 +8263,9 @@ collectionMemberChecks collection checkInfo =
         (secondArg checkInfo)
 
 
-collectionIsEmptyChecks : CollectionProperties CheckInfo otherProperties -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
-    case collection.determineSize checkInfo checkInfo.firstArg of
+    case collection.determineSize (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
                 (resultsInConstantError
@@ -8282,9 +8286,9 @@ collectionIsEmptyChecks collection checkInfo =
             Nothing
 
 
-collectionSizeChecks : CollectionProperties CheckInfo otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSizeChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
-    case collection.determineSize checkInfo checkInfo.firstArg of
+    case collection.determineSize (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly size) ->
             Just
                 (Rule.errorWithFix
@@ -8299,7 +8303,7 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-collectionFromListChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionFromListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
     callOnEmptyReturnsCheck
         { on = checkInfo.firstArg
@@ -8361,7 +8365,7 @@ emptiableToListChecks collection checkInfo =
     callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" } collection checkInfo
 
 
-collectionPartitionChecks : CollectionProperties a otherProperties -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection checkInfo =
     let
         collectionEmptyAsString : String
