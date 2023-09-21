@@ -15644,6 +15644,22 @@ a = c |> g |> Ok |> Result.map3 f (Ok a) (Ok b)
 a = (c |> g) |> f a b |> Ok
 """
                         ]
+        , test "should replace Result.map3 f (Ok a) (Ok b) <| Ok <| g <| c by Ok <| f a b <| (g <| c)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Ok a) (Ok b) <| Ok <| g <| c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where each result is an okay result will result in Ok on the values inside"
+                            , details = [ "You can replace this call by Ok with the function applied to the values inside each okay result." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok <| f a b <| (g <| c)
+"""
+                        ]
         , test "should replace Result.map3 f (Ok a) (Err x) result2 by (Err x)" <|
             \() ->
                 """module A exposing (..)
@@ -19427,6 +19443,24 @@ a = c |> g |> Task.succeed |> Task.map3 f (Task.succeed a) (Task.succeed b)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
 a = (c |> g) |> f a b |> Task.succeed
+"""
+                        ]
+        , test "should replace Task.map3 f (Task.succeed a) (Task.succeed b) <| Task.succeed <| g <| c by Task.succeed <| f a b <| (g <| c)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.succeed a) (Task.succeed b) <| Task.succeed <| g <| c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where each task is a succeeding task will result in Task.succeed on the values inside"
+                            , details = [ "You can replace this call by Task.succeed with the function applied to the values inside each succeeding task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed <| f a b <| (g <| c)
 """
                         ]
         , test "should replace Task.map3 f (Task.succeed a) (Task.fail x) task2 by (Task.fail x)" <|

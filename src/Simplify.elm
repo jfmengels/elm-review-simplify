@@ -6117,8 +6117,12 @@ wrapperMapNChecks config wrapper checkInfo =
                                             (" |> " ++ qualifiedToString (qualify wrapFn checkInfo))
                                         ]
 
-                                    -- Pipe RightToLeft | application ->
-                                    _ ->
+                                    Pipe RightToLeft ->
+                                        [ Fix.insertAt checkInfo.parentRange.start
+                                            (qualifiedToString (qualify wrapFn checkInfo) ++ " <| ")
+                                        ]
+
+                                    Application ->
                                         [ Fix.insertAt checkInfo.parentRange.end ")"
                                         , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
                                         ]
