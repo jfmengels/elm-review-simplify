@@ -19118,6 +19118,7 @@ taskTests : Test
 taskTests =
     Test.describe "Task"
         [ taskMapTests
+        , taskMapNTests
         , taskAndThenTests
         , taskMapErrorTests
         , taskOnErrorTests
@@ -19368,6 +19369,208 @@ a = Task.map f << Task.succeed
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
 a = Task.succeed << f
+"""
+                        ]
+        ]
+
+
+taskMapNTests : Test
+taskMapNTests =
+    -- testing behavior only with representatives for 2-5
+    describe "Task.mapN"
+        [ test "should not report Task.map3 with task.succeeday arguments" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3
+b = Task.map3 f
+c = Task.map3 f task0
+d = Task.map3 f task0 task1
+e = Task.map3 f task0 task1 task2
+f = Task.map3 f (Task.succeed h) task1 task2 -- because this is a code style choice
+f = Task.map3 f (Task.succeed h)
+g = Task.map3 f task0 task1 (Task.fail x) -- because task0/1 can have an earlier failing task
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Task.map3 f (Task.succeed a) (Task.succeed b) (Task.succeed c) by Task.succeed (f a b c)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.succeed a) (Task.succeed b) (Task.succeed c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where each task is a succeeding task will result in Task.succeed on the values inside"
+                            , details = [ "You can replace this call by Task.succeed with the function applied to the values inside each succeeding task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed (f a b c)
+"""
+                        ]
+        , test "should replace c |> g |> Task.succeed |> Task.map3 f (Task.succeed a) (Task.succeed b) by (c |> g) |> f a b |> Task.succeed" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = c |> g |> Task.succeed |> Task.map3 f (Task.succeed a) (Task.succeed b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where each task is a succeeding task will result in Task.succeed on the values inside"
+                            , details = [ "You can replace this call by Task.succeed with the function applied to the values inside each succeeding task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (c |> g) |> f a b |> Task.succeed
+"""
+                        ]
+        , test "should replace Task.map3 f (Task.succeed a) (Task.fail x) task2 by (Task.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.succeed a) (Task.fail x) task2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where we know the first failing task will result in that failing task"
+                            , details = [ "You can replace this call by the first failing task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (Task.fail x)
+"""
+                        ]
+        , test "should replace Task.map3 f (Task.succeed a) (Task.fail x) by always (Task.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.succeed a) (Task.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where we know the first failing task will result in that failing task"
+                            , details = [ "You can replace this call by always with the first failing task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = always (Task.fail x)
+"""
+                        ]
+        , test "should replace Task.map3 f (Task.fail x) task1 task2 by (Task.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.fail x) task1 task2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where we know the first failing task will result in that failing task"
+                            , details = [ "You can replace this call by the first failing task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (Task.fail x)
+"""
+                        ]
+        , test "should replace Task.map3 f (Task.fail x) task1 by always (Task.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.fail x) task1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where we know the first failing task will result in that failing task"
+                            , details = [ "You can replace this call by always with the first failing task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = always (Task.fail x)
+"""
+                        ]
+        , test "should replace Task.map3 f (Task.fail x) by (\\_ _ -> (Task.fail x))" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f (Task.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 where we know the first failing task will result in that failing task"
+                            , details = [ "You can replace this call by \\_ _ -> with the first failing task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (\\_ _ -> (Task.fail x))
+"""
+                        ]
+        , test "should replace Task.map3 f task0 (Task.fail x) task2 by Task.map2 f task0 (Task.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map3 f task0 (Task.fail x) task2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map3 with a failing task early will ignore later arguments"
+                            , details = [ "You can replace this call by Task.map2 with the same arguments until the first failing task." ]
+                            , under = "Task.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.map2 f task0 (Task.fail x)
+"""
+                        ]
+        , test "should replace Task.map4 f task0 (Task.fail x) task3 by always (Task.map2 f task0 (Task.fail x))" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map4 f task0 (Task.fail x) task3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map4 with a failing task early will ignore later arguments"
+                            , details = [ "You can replace this call by always with Task.map2 with the same arguments until the first failing task." ]
+                            , under = "Task.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = always (Task.map2 f task0 (Task.fail x))
+"""
+                        ]
+        , test "should replace Task.map4 f task0 (Task.fail x) by (\\_ _ -> Task.map2 f task0 (Task.fail x))" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map4 f task0 (Task.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map4 with a failing task early will ignore later arguments"
+                            , details = [ "You can replace this call by \\_ _ -> with Task.map2 with the same arguments until the first failing task." ]
+                            , under = "Task.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = (\\_ _ -> Task.map2 f task0 (Task.fail x))
 """
                         ]
         ]
