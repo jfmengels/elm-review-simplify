@@ -15628,7 +15628,7 @@ a = Result.map3 f (Ok a) (Ok b) (Ok c)
 a = Ok (f a b c)
 """
                         ]
-        , test "should replace c |> g |> Ok |> Result.map3 f (Ok a) (Ok b) by Ok ((c |> g) |> f a b)" <|
+        , test "should replace c |> g |> Ok |> Result.map3 f (Ok a) (Ok b) by (c |> g) |> f a b |> Ok" <|
             \() ->
                 """module A exposing (..)
 a = c |> g |> Ok |> Result.map3 f (Ok a) (Ok b)
@@ -15641,7 +15641,7 @@ a = c |> g |> Ok |> Result.map3 f (Ok a) (Ok b)
                             , under = "Result.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok ((c |> g) |> f a b)
+a = (c |> g) |> f a b |> Ok
 """
                         ]
         , test "should replace Result.map3 f (Ok a) (Err x) result2 by (Err x)" <|
