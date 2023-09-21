@@ -6056,11 +6056,15 @@ wrapperMapNChecks config wrapper checkInfo =
                     wrapFn : ( ModuleName, String )
                     wrapFn =
                         ( wrapper.moduleName, wrapper.wrap.fnName )
+
+                    wrapFnDescription : String
+                    wrapFnDescription =
+                        qualifiedToString (qualify wrapFn defaultQualifyResources)
                 in
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " on the values inside"
-                        , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ " where each " ++ wrapper.represents ++ " is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnDescription ++ " on the values inside"
+                        , details = [ "You can replace this call by " ++ wrapFnDescription ++ " with the function applied to the values inside each " ++ descriptionWithoutArticle wrapper.wrap.description ++ "." ]
                         }
                         checkInfo.fnRange
                         (keepOnlyFix
