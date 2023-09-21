@@ -744,6 +744,18 @@ Destructuring using case expressions
     Array.initialize 0 f
     --> Array.empty
 
+    Array.length Array.empty
+    --> 0
+
+    Array.length (Array.fromList [ a, b, c ])
+    --> 3
+
+    Array.length (Array.repeat 3 x)
+    --> 3
+
+    Array.length (Array.initialize 3 f)
+    --> 3
+
 
 ### Sets
 
@@ -2479,6 +2491,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "indexedMap" ), arrayIndexedMapChecks )
         , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
+        , ( ( [ "Array" ], "length" ), collectionSizeChecks arrayCollection )
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
@@ -7726,7 +7739,7 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.map Exactly
+                        |> Maybe.map (\n -> Exactly (Basics.max n 0))
 
                 Nothing ->
                     Nothing
@@ -7734,7 +7747,7 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.map Exactly
+                        |> Maybe.map (\n -> Exactly (Basics.max n 0))
 
                 Nothing ->
                     Nothing

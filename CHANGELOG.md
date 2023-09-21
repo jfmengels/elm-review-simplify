@@ -12,6 +12,10 @@ The rule now simplifies:
 - `Array.isEmpty (Array.fromList [ x ])` to `False`
 - `Array.repeat 0 n` to `Array.empty`
 - `Array.initialize 0 f` to `Array.empty`
+- `Array.length Array.empty` to `0`
+- `Array.length (Array.fromList [ a, b, c ])` to `3`
+- `Array.length (Array.repeat 3 x)` to `3`
+- `Array.length (Array.initialize 3 f)` to `3`
 - `List.singleton >> String.fromList` to `String.fromChar`
 
 ## [2.1.1] - 2023-09-18
