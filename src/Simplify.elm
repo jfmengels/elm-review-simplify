@@ -6072,9 +6072,17 @@ wrapperMapNChecks config wrapper checkInfo =
                             , keep = Node.range checkInfo.firstArg
                             }
                             ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
-                            ++ [ Fix.insertAt checkInfo.parentRange.end ")"
-                               , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
-                               ]
+                            ++ (if checkInfo.usingRightPizza then
+                                    [ Fix.insertAt checkInfo.parentRange.end
+                                        (" |> " ++ qualifiedToString (qualify wrapFn checkInfo))
+                                    ]
+
+                                else
+                                    -- <| or application
+                                    [ Fix.insertAt checkInfo.parentRange.end ")"
+                                    , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
+                                    ]
+                               )
                         )
                     )
 
