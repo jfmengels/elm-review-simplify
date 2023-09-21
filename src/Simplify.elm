@@ -6174,7 +6174,7 @@ mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
                                     let
                                         lambdaStart : String
                                         lambdaStart =
-                                            "\\" ++ String.join " " (List.repeat atLeast2 "_") ++ " -> "
+                                            "\\" ++ String.repeat atLeast2 "_ " ++ "-> "
                                     in
                                     { description =
                                         lambdaStart ++ "with " ++ descriptionForDefinite "the first" emptiable.empty.description
@@ -6258,7 +6258,7 @@ mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
                                         let
                                             lambdaStart : String
                                             lambdaStart =
-                                                "\\" ++ String.join " " (List.repeat atLeast2 "_") ++ " -> "
+                                                "\\" ++ String.repeat atLeast2 "_ " ++ "-> "
                                         in
                                         { fix =
                                             [ Fix.replaceRangeBy
