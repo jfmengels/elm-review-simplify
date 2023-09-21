@@ -15607,10 +15607,43 @@ c = Result.map3 f result0
 d = Result.map3 f result0 result1
 e = Result.map3 f result0 result1 result2
 f = Result.map3 f (Ok h) result1 result2 -- because this is a code style choice
+f = Result.map3 f (Ok h)
 g = Result.map3 f result0 result1 (Err x) -- because result0/1 can have an earlier error
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace Result.map3 f (Ok a) (Ok b) (Ok c) by Ok (f a b c)" <|
+            \() ->
+                """module A exposing (..)
+a = Result.map3 f (Ok a) (Ok b) (Ok c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where each result is an okay result will result in Ok on the values inside"
+                            , details = [ "You can replace this call by Ok with the function applied to the values inside each okay result." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok (f a b c)
+"""
+                        ]
+        , test "should replace c |> g |> Ok |> Result.map3 f (Ok a) (Ok b) by Ok ((c |> g) |> f a b)" <|
+            \() ->
+                """module A exposing (..)
+a = c |> g |> Ok |> Result.map3 f (Ok a) (Ok b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.map3 where each result is an okay result will result in Ok on the values inside"
+                            , details = [ "You can replace this call by Ok with the function applied to the values inside each okay result." ]
+                            , under = "Result.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok ((c |> g) |> f a b)
+"""
+                        ]
         , test "should replace Result.map3 f (Ok a) (Err x) result2 by (Err x)" <|
             \() ->
                 """module A exposing (..)
