@@ -2591,6 +2591,7 @@ compositionIntoChecks =
     Dict.fromList
         [ ( ( [ "Basics" ], "always" ), basicsAlwaysCompositionChecks )
         , ( ( [ "String" ], "reverse" ), stringReverseCompositionChecks )
+        , ( ( [ "String" ], "fromList" ), stringFromListCompositionChecks )
         , ( ( [ "Tuple" ], "first" ), tupleFirstCompositionChecks )
         , ( ( [ "Tuple" ], "second" ), tupleSecondCompositionChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
@@ -4085,6 +4086,11 @@ stringFromListChecks checkInfo =
         , \() -> wrapperFromListSingletonChecks stringCollection checkInfo
         ]
         ()
+
+
+stringFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+stringFromListCompositionChecks checkInfo =
+    wrapperFromListSingletonCompositionChecks stringCollection checkInfo
 
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})

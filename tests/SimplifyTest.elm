@@ -6338,6 +6338,22 @@ a = String.fromList (List.singleton char)
 a = String.fromChar char
 """
                         ]
+        , test "should replace List.singleton >> String.fromList by String.fromChar" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton >> String.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList on a singleton list will result in String.fromChar with the value inside"
+                            , details = [ "You can replace this call by String.fromChar." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromChar
+"""
+                        ]
         ]
 
 
