@@ -707,6 +707,12 @@ Destructuring using case expressions
 
 ### Sets
 
+    Set.fromList []
+    --> Set.empty
+
+    Set.fromList [ a ]
+    --> Set.singleton a
+
     Set.map f Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
 
@@ -718,12 +724,6 @@ Destructuring using case expressions
 
     Set.member x Set.empty
     --> False
-
-    Set.fromList []
-    --> Set.empty
-
-    Set.fromList [ a ]
-    --> Set.singleton a
 
     Set.toList Set.empty
     --> []
@@ -759,11 +759,11 @@ Destructuring using case expressions
 
 ### Dict
 
-    Dict.isEmpty Dict.empty
-    --> True
-
     Dict.fromList []
     --> Dict.empty
+
+    Dict.isEmpty Dict.empty
+    --> True
 
     Dict.toList Dict.empty
     --> []
