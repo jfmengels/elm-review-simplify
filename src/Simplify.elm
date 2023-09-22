@@ -2563,6 +2563,7 @@ compositionChecks =
     [ basicsIdentityCompositionChecks
     , basicsNotCompositionChecks
     , basicsNegateCompositionChecks
+    , stringToAndFromListChecks
     , \checkInfo ->
         case
             ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
@@ -2973,6 +2974,32 @@ operationToSides checkInfo =
     ]
 
 
+{-| Sometimes, you can't use `replaceBySubExpressionFix` and `keepOnlyFix` because there is no
+existing node that could be kept.
+
+For example, you might want to remove `|> identity` in `f |> g |> identity`. `elm-syntax` might represent this as (simplified)
+
+    Op (Var "f") "|>" (Op (Var "g") "|>" (Var "identity"))
+
+In practice, you will check this syntax tree recursively, leading to situations where we only know
+
+  - the previous/next element which we want to keep
+  - and the current element which we want to remove
+
+`removeAndBetweenFix` takes the ranges of these two elements and removes the given element and everything between them.
+
+-}
+removeAndBetweenFix : { remove : Range, keep : Range } -> List Fix
+removeAndBetweenFix ranges =
+    case Range.compare ranges.keep ranges.remove of
+        LT ->
+            [ Fix.removeRange { start = ranges.keep.end, end = ranges.remove.end } ]
+
+        -- GT | EQ ->
+        _ ->
+            [ Fix.removeRange { start = ranges.remove.start, end = ranges.keep.start } ]
+
+
 fixToLeftRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
 fixToLeftRange checkInfo =
     { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
@@ -3273,6 +3300,105 @@ consChecks checkInfo =
                         )
 
                 Nothing ->
+                    Nothing
+        ]
+        ()
+
+
+{-| Composing two operations that are inverses of each other and therefore cancel each other out.
+For example
+
+    Array.toList >> Array.fromList
+    --> identity
+
+    Array.fromList >> Array.toList
+    --> identity
+
+-}
+inversesCompositionCheck : ( ModuleName, String ) -> ( ModuleName, String ) -> CompositionCheckInfo -> Maybe (Error {})
+inversesCompositionCheck inverseFn0 inverseFn1 checkInfo =
+    let
+        checkFnInfosForInverses config =
+            case ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable config.earlierFnInfo.range, ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable config.laterFnInfo.range ) of
+                ( Just earlierModuleName, Just laterModuleName ) ->
+                    let
+                        earlierFn : ( ModuleName, String )
+                        earlierFn =
+                            ( earlierModuleName, config.earlierFnInfo.name )
+
+                        laterFn : ( ModuleName, String )
+                        laterFn =
+                            ( laterModuleName, config.laterFnInfo.name )
+                    in
+                    if (earlierFn == inverseFn0 && laterFn == inverseFn1) || (earlierFn == inverseFn1 && laterFn == inverseFn0) then
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString earlierFn ++ " and " ++ qualifiedToString laterFn ++ " cancel each other out"
+                                , details = config.details
+                                }
+                                config.laterFnInfo.range
+                                config.fix
+                            )
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+    in
+    firstThatConstructsJust
+        [ \() ->
+            case ( AstHelpers.getValueOrFunction checkInfo.earlier, AstHelpers.getComposition checkInfo.later ) of
+                ( Just earlierFnInfo, Just composition ) ->
+                    case AstHelpers.getValueOrFunction composition.earlier of
+                        Just laterFnInfo ->
+                            checkFnInfosForInverses
+                                { earlierFnInfo = earlierFnInfo
+                                , laterFnInfo = laterFnInfo
+                                , details = [ "You can remove these two functions." ]
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later }
+                                        ++ removeAndBetweenFix { remove = Node.range composition.earlier, keep = Node.range composition.later }
+                                }
+
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+        , \() ->
+            case ( AstHelpers.getComposition checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
+                ( Just composition, Just laterFnInfo ) ->
+                    case AstHelpers.getValueOrFunction composition.later of
+                        Just earlierFnInfo ->
+                            checkFnInfosForInverses
+                                { earlierFnInfo = earlierFnInfo
+                                , laterFnInfo = laterFnInfo
+                                , details = [ "You can remove these two functions." ]
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
+                                        ++ removeAndBetweenFix { remove = Node.range composition.later, keep = Node.range composition.earlier }
+                                }
+
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+        , \() ->
+            case ( AstHelpers.getValueOrFunction checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
+                ( Just earlierFnInfo, Just laterFnInfo ) ->
+                    checkFnInfosForInverses
+                        { earlierFnInfo = earlierFnInfo
+                        , laterFnInfo = laterFnInfo
+                        , details = [ "You can replace this composition by identity." ]
+                        , fix =
+                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                            ]
+                        }
+
+                _ ->
                     Nothing
         ]
         ()
@@ -4144,6 +4270,11 @@ stringFromListChecks checkInfo =
 stringFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringFromListCompositionChecks checkInfo =
     wrapperFromListSingletonCompositionChecks stringCollection checkInfo
+
+
+stringToAndFromListChecks : CompositionCheckInfo -> Maybe (Error {})
+stringToAndFromListChecks checkInfo =
+    inversesCompositionCheck ( [ "String" ], "toList" ) ( [ "String" ], "fromList" ) checkInfo
 
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})
