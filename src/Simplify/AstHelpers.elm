@@ -1,6 +1,6 @@
 module Simplify.AstHelpers exposing
     ( removeParens, removeParensFromPattern
-    , getComposition, getValueOrFunctionOrFunctionCall
+    , getComposition, getValueOrFunctionOrFunctionCall, getValueOrFunction
     , getSpecificFunctionCall, getSpecificValueOrFunction
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
@@ -23,7 +23,7 @@ module Simplify.AstHelpers exposing
 
 ### value/function/function call/composition
 
-@docs getComposition, getValueOrFunctionOrFunctionCall
+@docs getComposition, getValueOrFunctionOrFunctionCall, getValueOrFunction
 @docs getSpecificFunctionCall, getSpecificValueOrFunction
 
 
