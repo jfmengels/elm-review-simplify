@@ -6286,7 +6286,7 @@ a = x |> f |> String.fromList |> String.toList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can replace this call by the argument given to String.fromList." ]
                             , under = "String.toList"
                             }
@@ -6302,7 +6302,7 @@ a = String.toList << String.fromList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "String.toList"
                             }
@@ -6318,7 +6318,7 @@ a = String.toList << (String.fromList << f)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.toList"
                             }
@@ -6334,7 +6334,7 @@ a = String.toList << (f >> String.fromList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.toList"
                             }
@@ -6350,7 +6350,7 @@ a = (f << String.toList) << String.fromList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.toList"
                             }
@@ -6366,7 +6366,7 @@ a = (String.toList >> f) << String.fromList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.toList"
                             }
@@ -6382,7 +6382,7 @@ a = (String.toList >> f >> g) << String.fromList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.fromList and String.toList cancel each other out"
+                            { message = "String.fromList, then String.toList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.toList"
                             }
@@ -6495,7 +6495,7 @@ a = x |> f |> String.toList |> String.fromList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can replace this call by the argument given to String.toList." ]
                             , under = "String.fromList"
                             }
@@ -6511,7 +6511,7 @@ a = String.fromList << String.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "String.fromList"
                             }
@@ -6527,7 +6527,7 @@ a = String.fromList << (String.toList << f)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.fromList"
                             }
@@ -6543,7 +6543,7 @@ a = String.fromList << (f >> String.toList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.fromList"
                             }
@@ -6559,7 +6559,7 @@ a = (f << String.fromList) << String.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.fromList"
                             }
@@ -6575,7 +6575,7 @@ a = (String.fromList >> f) << String.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.fromList"
                             }
@@ -6591,7 +6591,7 @@ a = (String.fromList >> f >> g) << String.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.toList and String.fromList cancel each other out"
+                            { message = "String.toList, then String.fromList cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.fromList"
                             }
