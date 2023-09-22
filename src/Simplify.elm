@@ -281,6 +281,12 @@ Destructuring using case expressions
     String.fromList [ a ]
     --> String.fromChar a
 
+    String.fromList (String.toList str)
+    --> str
+
+    String.toList (String.fromList list)
+    --> list
+
     String.isEmpty ""
     --> True
 
