@@ -15675,7 +15675,7 @@ import Array
 a = 1
 """
                         ]
-        , test "should replace Array.length (Array.repeat 0 x) by 0" <|
+        , test "should not replace Array.length (Array.repeat 0 x) by 0 directly" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15684,15 +15684,6 @@ a = Array.length (Array.repeat 0 x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of the array is 0"
-                            , details = [ "The length of the array can be determined by looking at the code." ]
-                            , under = "Array.length"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Array
-a = 0
-"""
-                        , Review.Test.error
                             { message = "Array.repeat with length 0 will always result in Array.empty"
                             , details = [ "You can replace this call by Array.empty." ]
                             , under = "Array.repeat"
@@ -15702,7 +15693,7 @@ import Array
 a = Array.length (Array.empty)
 """
                         ]
-        , test "should replace Array.length (Array.repeat -1 x) by 0" <|
+        , test "should not replace Array.length (Array.repeat -1 x) by 0 directly" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15711,15 +15702,6 @@ a = Array.length (Array.repeat -1 x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of the array is 0"
-                            , details = [ "The length of the array can be determined by looking at the code." ]
-                            , under = "Array.length"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Array
-a = 0
-"""
-                        , Review.Test.error
                             { message = "Array.repeat with negative length will always result in Array.empty"
                             , details = [ "You can replace this call by Array.empty." ]
                             , under = "Array.repeat"

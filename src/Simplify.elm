@@ -7739,7 +7739,7 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.map (\n -> Exactly (Basics.max n 0))
+                        |> Maybe.andThen ignoreCollectionSizeIfEmpty
 
                 Nothing ->
                     Nothing
@@ -7747,12 +7747,21 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.map (\n -> Exactly (Basics.max n 0))
+                        |> Maybe.andThen ignoreCollectionSizeIfEmpty
 
                 Nothing ->
                     Nothing
         ]
         ()
+
+
+ignoreCollectionSizeIfEmpty : Int -> Maybe CollectionSize
+ignoreCollectionSizeIfEmpty n =
+    if n <= 0 then
+        Nothing
+
+    else
+        Just (Exactly n)
 
 
 setCollection : CollectionProperties (WrapperProperties {})
