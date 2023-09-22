@@ -3342,6 +3342,7 @@ For example
 inversesCompositionCheck : ( ModuleName, String ) -> ( ModuleName, String ) -> CompositionCheckInfo -> Maybe (Error {})
 inversesCompositionCheck inverseFn0 inverseFn1 checkInfo =
     let
+        checkFnInfosForInverses : { earlierFnInfo : { range : Range, name : String }, laterFnInfo : { range : Range, name : String }, details : List String, fix : List Fix } -> Maybe (Error {})
         checkFnInfosForInverses config =
             case ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable config.earlierFnInfo.range, ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable config.laterFnInfo.range ) of
                 ( Just earlierModuleName, Just laterModuleName ) ->
