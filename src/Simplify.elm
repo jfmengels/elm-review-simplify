@@ -2570,7 +2570,8 @@ compositionChecks =
     [ basicsIdentityCompositionChecks
     , basicsNotCompositionChecks
     , basicsNegateCompositionChecks
-    , stringToAndFromListChecks
+    , inversesCompositionCheck { later = ( [ "String" ], "toList" ), earlier = ( [ "String" ], "fromList" ) }
+    , inversesCompositionCheck { later = ( [ "String" ], "fromList" ), earlier = ( [ "String" ], "toList" ) }
     , \checkInfo ->
         case
             ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
@@ -3321,9 +3322,9 @@ For example
     Array.toList (Array.fromList list)
     --> list
 
-These usually exist in pairs, like above so make sure to add this check for both functions.
-Tip: Add `inversesCompositionCheck` for the same thing for both sides as a composition check.
+Tip: Add `inversesCompositionCheck` for the same thing as a composition check.
 
+These usually exist in pairs, like above so make sure to add this check for both functions.
 But there are exceptions!
 
     Set.fromList (Set.toList set)
@@ -3346,7 +3347,7 @@ onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
         Just call ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString inverseFn ++ " and " ++ qualifiedToString checkInfo.fn ++ " cancel each other out"
+                    { message = qualifiedToString inverseFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " cancels each other out"
                     , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
                     }
                     checkInfo.fnRange
@@ -3360,15 +3361,33 @@ onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
 {-| Composing two operations that are inverses of each other and therefore cancel each other out.
 For example
 
+    -- inversesCompositionCheck { later = ( [ "Array" ], "fromList" ), earlier = ( [ "Array" ], "toList" ) }
     Array.toList >> Array.fromList
     --> identity
 
+    -- inversesCompositionCheck { later = ( [ "Array" ], "toList" ) , earlier = ( [ "Array" ], "fromList" ) }
     Array.fromList >> Array.toList
     --> identity
 
+Tip: Add `onCallToInverseReturnsItsArgumentCheck` for the same thing as a function call check.
+
+These usually exist in pairs, like above so make sure to add this check for both functions.
+But there are exceptions!
+
+    Set.fromList << Set.toList --> identity
+
+This will always work because `Set.toList` will never produce a list with duplicate elements. However
+
+    Set.toList << Set.fromList --> identity
+
+would be an incorrect fix. See for example
+
+    Set.toList (Set.fromList [ 0, 0 ])
+    --> not [ 0, 0 ] bit actually [ 0 ]
+
 -}
-inversesCompositionCheck : ( ModuleName, String ) -> ( ModuleName, String ) -> CompositionCheckInfo -> Maybe (Error {})
-inversesCompositionCheck inverseFn0 inverseFn1 checkInfo =
+inversesCompositionCheck : { later : ( ModuleName, String ), earlier : ( ModuleName, String ) } -> CompositionCheckInfo -> Maybe (Error {})
+inversesCompositionCheck inverseFn checkInfo =
     let
         checkFnInfosForInverses : { earlierFnInfo : { range : Range, name : String }, laterFnInfo : { range : Range, name : String }, details : List String, fix : List Fix } -> Maybe (Error {})
         checkFnInfosForInverses config =
@@ -3383,10 +3402,10 @@ inversesCompositionCheck inverseFn0 inverseFn1 checkInfo =
                         laterFn =
                             ( laterModuleName, config.laterFnInfo.name )
                     in
-                    if (earlierFn == inverseFn0 && laterFn == inverseFn1) || (earlierFn == inverseFn1 && laterFn == inverseFn0) then
+                    if earlierFn == inverseFn.earlier && laterFn == inverseFn.later then
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString earlierFn ++ " and " ++ qualifiedToString laterFn ++ " cancel each other out"
+                                { message = qualifiedToString earlierFn ++ ", then " ++ qualifiedToString laterFn ++ " cancels each other out"
                                 , details = config.details
                                 }
                                 config.laterFnInfo.range
@@ -4329,11 +4348,6 @@ stringFromListChecks checkInfo =
 stringFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringFromListCompositionChecks checkInfo =
     wrapperFromListSingletonCompositionChecks stringCollection checkInfo
-
-
-stringToAndFromListChecks : CompositionCheckInfo -> Maybe (Error {})
-stringToAndFromListChecks checkInfo =
-    inversesCompositionCheck ( [ "String" ], "toList" ) ( [ "String" ], "fromList" ) checkInfo
 
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})
