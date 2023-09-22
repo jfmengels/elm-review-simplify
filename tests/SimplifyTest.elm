@@ -5727,7 +5727,8 @@ a = left ++ ([ b ] ++ c)
 stringSimplificationTests : Test
 stringSimplificationTests =
     describe "String"
-        [ stringFromListTests
+        [ stringToListTests
+        , stringFromListTests
         , stringIsEmptyTests
         , stringLengthTests
         , concatTests
@@ -6258,6 +6259,119 @@ a = String.lines ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        ]
+
+
+stringToListTests : Test
+stringToListTests =
+    describe "String.toList"
+        [ test "should not report String.toList that contains a variable" <|
+            \() ->
+                """module A exposing (..)
+a = String.toList
+b = String.toList str
+c = String.toList << f << String.fromList
+d = (String.toList << f) << String.fromList
+e = String.toList << (f << String.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.toList << String.fromList by identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.toList << String.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace String.toList << (String.fromList << f) by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = String.toList << (String.fromList << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace String.toList << (f >> String.fromList) by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = String.toList << (f >> String.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace (f << String.toList) << String.fromList by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = (f << String.toList) << String.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace (String.toList >> f) << String.fromList by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = (String.toList >> f) << String.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace (String.toList >> f >> g) << String.fromList by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+a = (String.toList >> f >> g) << String.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f >> g)
 """
                         ]
         ]
