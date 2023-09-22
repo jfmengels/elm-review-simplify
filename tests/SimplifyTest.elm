@@ -6400,7 +6400,7 @@ stringFromListTests =
             \() ->
                 """module A exposing (..)
 a = String.fromList
-b = String.fromList str
+b = String.fromList list
 c = String.fromList << f << String.toList
 d = (String.fromList << f) << String.toList
 e = String.fromList << (f << String.toList)
@@ -6423,10 +6423,10 @@ a = String.fromList []
 a = ""
 """
                         ]
-        , test "should replace String.fromList [ a ] by String.fromChar a" <|
+        , test "should replace String.fromList [ char ] by String.fromChar char" <|
             \() ->
                 """module A exposing (..)
-a = String.fromList [ a ]
+a = String.fromList [ char ]
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -6436,7 +6436,7 @@ a = String.fromList [ a ]
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = String.fromChar a
+a = String.fromChar char
 """
                         ]
         , test "should replace String.fromList [ f a ] by String.fromChar (f a)" <|
