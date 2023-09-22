@@ -6278,6 +6278,22 @@ e = String.toList << (f << String.fromList)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace x |> f |> String.fromList |> String.toList by (x |> f)" <|
+            \() ->
+                """module A exposing (..)
+a = x |> f |> String.fromList |> String.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList and String.toList cancel each other out"
+                            , details = [ "You can replace this call by the argument given to String.fromList." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x |> f)
+"""
+                        ]
         , test "should replace String.toList << String.fromList by identity" <|
             \() ->
                 """module A exposing (..)
@@ -6466,6 +6482,22 @@ a = List.singleton >> String.fromList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = String.fromChar
+"""
+                        ]
+        , test "should replace x |> f |> String.toList |> String.fromList by (x |> f)" <|
+            \() ->
+                """module A exposing (..)
+a = x |> f |> String.toList |> String.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList and String.fromList cancel each other out"
+                            , details = [ "You can replace this call by the argument given to String.toList." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x |> f)
 """
                         ]
         ]

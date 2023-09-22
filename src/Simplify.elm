@@ -2469,6 +2469,7 @@ functionCallChecks =
         , ( ( [ "Dict" ], "intersect" ), collectionIntersectChecks dictCollection )
         , ( ( [ "Dict" ], "diff" ), collectionDiffChecks dictCollection )
         , ( ( [ "Dict" ], "union" ), collectionUnionChecks dictCollection )
+        , ( ( [ "String" ], "toList" ), stringToListChecks )
         , ( ( [ "String" ], "fromList" ), stringFromListChecks )
         , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
         , ( ( [ "String" ], "concat" ), stringConcatChecks )
@@ -3303,6 +3304,23 @@ consChecks checkInfo =
                     Nothing
         ]
         ()
+
+
+onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
+    case AstHelpers.getSpecificFunctionCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
+        Just call ->
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString inverseFn ++ " and " ++ qualifiedToString checkInfo.fn ++ " cancel each other out"
+                    , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    (replaceBySubExpressionFix checkInfo.parentRange call.firstArg)
+                )
+
+        Nothing ->
+            Nothing
 
 
 {-| Composing two operations that are inverses of each other and therefore cancel each other out.
@@ -4255,6 +4273,11 @@ tuplePartChecks partConfig checkInfo =
 -- STRING
 
 
+stringToListChecks : CheckInfo -> Maybe (Error {})
+stringToListChecks checkInfo =
+    onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "fromList" ) checkInfo
+
+
 stringFromListChecks : CheckInfo -> Maybe (Error {})
 stringFromListChecks checkInfo =
     firstThatConstructsJust
@@ -4263,6 +4286,7 @@ stringFromListChecks checkInfo =
                 listCollection
                 checkInfo
         , \() -> wrapperFromListSingletonChecks stringCollection checkInfo
+        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "toList" ) checkInfo
         ]
         ()
 
