@@ -3312,6 +3312,34 @@ consChecks checkInfo =
         ()
 
 
+{-| Chaining two operations that are inverses of each other and therefore cancel each other out.
+For example
+
+    Array.fromList (Array.toList array)
+    --> array
+
+    Array.toList (Array.fromList list)
+    --> list
+
+These usually exist in pairs, like above so make sure to add this check for both functions.
+Tip: Add `inversesCompositionCheck` for the same thing for both sides as a composition check.
+
+But there are exceptions!
+
+    Set.fromList (Set.toList set)
+    --> set
+
+This will always work because `Set.toList` will never produce a list with duplicate elements. However
+
+    Set.toList (Set.fromList list)
+    --> list
+
+would be an incorrect fix. See for example
+
+    Set.toList (Set.fromList [ 0, 0 ])
+    --> not [ 0, 0 ] bit actually [ 0 ]
+
+-}
 onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
 onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
     case AstHelpers.getSpecificFunctionCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
