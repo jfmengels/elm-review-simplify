@@ -14297,6 +14297,7 @@ arrayTests =
         , arrayFilterTests
         , arrayIsEmptyTests
         , arrayRepeatTests
+        , arrayInitializeTests
         ]
 
 
@@ -14997,6 +14998,85 @@ a = Array.repeat -5 x
                             { message = "Array.repeat with negative length will always result in Array.empty"
                             , details = [ "You can replace this call by Array.empty." ]
                             , under = "Array.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        ]
+
+
+arrayInitializeTests : Test
+arrayInitializeTests =
+    describe "Array.initialize"
+        [ test "should not report Array.initialize used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize n
+b = Array.initialize 2
+c = Array.initialize n f
+d = Array.initialize 5 f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not replace Array.initialize n f by f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize n f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.initialize 0 f by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize 0 f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with length 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.initialize 0 by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with length 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace Array.initialize -5 f by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize -5 f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with negative length will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.initialize"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array

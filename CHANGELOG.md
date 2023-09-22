@@ -10,6 +10,7 @@ The rule now simplifies:
 - `Array.isEmpty Array.empty` to `True`
 - `Array.isEmpty (Array.fromList [ x ])` to `False`
 - `Array.repeat 0 n` to `Array.empty`
+- `Array.initialize 0 f` to `Array.empty`
 - `List.singleton >> String.fromList` to `String.fromChar`
 
 ## [2.1.1] - 2023-09-18
