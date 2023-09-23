@@ -15804,12 +15804,12 @@ a = Array.length (Array.empty)
 """
                         , Review.Test.error
                             { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
-                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , details = [ "You can replace this call by 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = max 0 0
+a = 0
 """
                         ]
         , test "should replace Array.length (Array.repeat -1 x) by 0" <|
@@ -15831,12 +15831,12 @@ a = Array.length (Array.empty)
 """
                         , Review.Test.error
                             { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
-                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , details = [ "You can replace this call by 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = max 0 -1
+a = 0
 """
                         ]
         , test "should replace Array.length (Array.initialize 1 f) by 1" <|
@@ -15876,12 +15876,12 @@ a = Array.length (Array.empty)
 """
                         , Review.Test.error
                             { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
-                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , details = [ "You can replace this call by 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = max 0 0
+a = 0
 """
                         ]
         , test "should replace Array.length (Array.initialize -1 f) by 0" <|
@@ -15903,12 +15903,12 @@ a = Array.length (Array.empty)
 """
                         , Review.Test.error
                             { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
-                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , details = [ "You can replace this call by 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = max 0 -1
+a = 0
 """
                         ]
         , test "should replace Array.length (Array.initialize n f) by max 0 n" <|
