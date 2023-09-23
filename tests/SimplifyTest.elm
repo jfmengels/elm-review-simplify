@@ -19165,6 +19165,7 @@ a = Dict.empty
         , test "should replace x |> f |> Dict.toList |> Dict.fromList by x |> f" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = x |> f |> Dict.toList |> Dict.fromList
 """
                     |> Review.Test.run (rule defaults)
@@ -19175,12 +19176,14 @@ a = x |> f |> Dict.toList |> Dict.fromList
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = x |> f
 """
                         ]
         , test "should replace Dict.fromList << Dict.toList by identity" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19191,12 +19194,14 @@ a = Dict.fromList << Dict.toList
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = identity
 """
                         ]
         , test "should replace Dict.fromList << (Dict.toList << f) by (f)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList << (Dict.toList << f)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19207,12 +19212,14 @@ a = Dict.fromList << (Dict.toList << f)
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (f)
 """
                         ]
         , test "should replace Dict.fromList << (Dict.toList << g << f) by (g << f)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList << (Dict.toList << g << f)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19223,12 +19230,14 @@ a = Dict.fromList << (Dict.toList << g << f)
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (g << f)
 """
                         ]
         , test "should replace Dict.fromList << (f >> Dict.toList) by (f)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList << (f >> Dict.toList)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19239,12 +19248,14 @@ a = Dict.fromList << (f >> Dict.toList)
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (f)
 """
                         ]
         , test "should replace (f << Dict.fromList) << Dict.toList by f" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = (f << Dict.fromList) << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19255,12 +19266,14 @@ a = (f << Dict.fromList) << Dict.toList
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = f
 """
                         ]
         , test "should replace (Dict.fromList >> f) << Dict.toList by f" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = (Dict.fromList >> f) << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19271,12 +19284,14 @@ a = (Dict.fromList >> f) << Dict.toList
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = f
 """
                         ]
         , test "should replace (Dict.fromList >> f >> g) << Dict.toList by (f >> g)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = (Dict.fromList >> f >> g) << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -19287,6 +19302,7 @@ a = (Dict.fromList >> f >> g) << Dict.toList
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (f >> g)
 """
                         ]
