@@ -6,6 +6,7 @@ The rule now simplifies:
 - `Array.fromList []` to `Array.empty`
 - `Array.map f Array.empty` to `Array.empty`
 - `Array.map identity array` to `array`
+- `Array.indexedMap (\_ value -> f value) array` to `Array.map (\value -> f value) array`
 - the same operations for `Array.filter` as for other types like `List.filter` and `Set.filter`
 - `Array.isEmpty Array.empty` to `True`
 - `Array.isEmpty (Array.fromList [ x ])` to `False`

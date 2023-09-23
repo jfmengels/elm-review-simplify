@@ -732,6 +732,9 @@ Destructuring using case expressions
     Array.map identity array
     --> array
 
+    Array.indexedMap (\_ value -> f value) array
+    --> Array.map (\value -> f value) array
+
     Array.isEmpty Array.empty
     --> True
 
@@ -2473,6 +2476,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "toList" ), arrayToListChecks )
         , ( ( [ "Array" ], "fromList" ), arrayFromListChecks )
         , ( ( [ "Array" ], "map" ), emptiableMapChecks arrayCollection )
+        , ( ( [ "Array" ], "indexedMap" ), arrayIndexedMapChecks )
         , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
@@ -6117,6 +6121,20 @@ arrayRepeatChecks checkInfo =
 arrayInitializeChecks : CheckInfo -> Maybe (Error {})
 arrayInitializeChecks checkInfo =
     emptiableRepeatChecks arrayCollection checkInfo
+
+
+arrayIndexedMapChecks : CheckInfo -> Maybe (Error {})
+arrayIndexedMapChecks checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            Maybe.andThen
+                (\arrayArg ->
+                    callOnEmptyReturnsEmptyCheck arrayArg arrayCollection checkInfo
+                )
+                (secondArg checkInfo)
+        , \() -> operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "Array" ], "map" ) } checkInfo
+        ]
+        ()
 
 
 emptiableRepeatChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})

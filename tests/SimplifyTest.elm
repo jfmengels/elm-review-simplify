@@ -14311,6 +14311,7 @@ arrayTests =
         [ arrayToListTests
         , arrayFromListTests
         , arrayMapTests
+        , arrayIndexedMapTests
         , arrayFilterTests
         , arrayIsEmptyTests
         , arrayRepeatTests
@@ -14871,6 +14872,147 @@ a = identity |> Array.map
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = identity
+"""
+                        ]
+        ]
+
+
+arrayIndexedMapTests : Test
+arrayIndexedMapTests =
+    describe "Array.indexedMap"
+        [ test "should not report Array.indexedMap used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap f array
+b = Array.indexedMap (\\i value -> i + value) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.indexedMap f Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap f Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.indexedMap (\\_ y -> y) array by Array.map (\\y -> y) array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap (\\_ y -> y) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap with a function that ignores the first argument is the same as Array.map"
+                            , details = [ "You can replace this call by Array.map." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.map (\\y -> y) array
+"""
+                        ]
+        , test "should replace Array.indexedMap (\\(_) (y) -> y) array by Array.map (\\(y) -> y) array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap (\\(_) (y) -> y) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap with a function that ignores the first argument is the same as Array.map"
+                            , details = [ "You can replace this call by Array.map." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.map (\\(y) -> y) array
+"""
+                        ]
+        , test "should replace Array.indexedMap (\\_ -> f) array by Array.map f array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap (\\_ -> f) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap with a function that ignores the first argument is the same as Array.map"
+                            , details = [ "You can replace this call by Array.map." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.map f array
+"""
+                        ]
+        , test "should replace Array.indexedMap (always f) array by Array.map f array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap (always f) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap with a function that ignores the first argument is the same as Array.map"
+                            , details = [ "You can replace this call by Array.map." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.map f array
+"""
+                        ]
+        , test "should replace Array.indexedMap (always <| f y) array by Array.map (f y) array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap (always <| f y) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap with a function that ignores the first argument is the same as Array.map"
+                            , details = [ "You can replace this call by Array.map." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.map (f y) array
+"""
+                        ]
+        , test "should replace Array.indexedMap (f y |> always) array by Array.map (f y) array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.indexedMap (f y |> always) array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.indexedMap with a function that ignores the first argument is the same as Array.map"
+                            , details = [ "You can replace this call by Array.map." ]
+                            , under = "Array.indexedMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.map (f y) array
 """
                         ]
         ]
