@@ -9577,6 +9577,22 @@ a = List.map f >> List.filterMap identity
 a = List.filterMap f
 """
                         ]
+        , test "should replace List.filterMap identity [ a, Nothing, b ] by List.filterMap identity [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap identity [ a, Nothing, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.filterMap on a list containing an irrelevant Nothing"
+                            , details = [ "Including Nothing in the list does not change the result of this call. You can remove the Nothing element." ]
+                            , under = "Nothing"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filterMap identity [ a, b ]
+"""
+                        ]
         , test "should replace List.filterMap identity << List.map f by List.filterMap f" <|
             \() ->
                 """module A exposing (..)
