@@ -17982,6 +17982,7 @@ a = Set.singleton
         , test "should replace x |> f |> Set.toList |> Set.fromList by x |> f" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = x |> f |> Set.toList |> Set.fromList
 """
                     |> Review.Test.run (rule defaults)
@@ -17992,12 +17993,14 @@ a = x |> f |> Set.toList |> Set.fromList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = x |> f
 """
                         ]
         , test "should replace Set.fromList << Set.toList by identity" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18008,12 +18011,14 @@ a = Set.fromList << Set.toList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = identity
 """
                         ]
         , test "should replace Set.fromList << (Set.toList << f) by (f)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList << (Set.toList << f)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18024,12 +18029,14 @@ a = Set.fromList << (Set.toList << f)
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (f)
 """
                         ]
         , test "should replace Set.fromList << (Set.toList << g << f) by (g << f)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList << (Set.toList << g << f)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18040,12 +18047,14 @@ a = Set.fromList << (Set.toList << g << f)
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (g << f)
 """
                         ]
         , test "should replace Set.fromList << (f >> Set.toList) by (f)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList << (f >> Set.toList)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18056,12 +18065,14 @@ a = Set.fromList << (f >> Set.toList)
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (f)
 """
                         ]
         , test "should replace (f << Set.fromList) << Set.toList by f" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = (f << Set.fromList) << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18072,12 +18083,14 @@ a = (f << Set.fromList) << Set.toList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = f
 """
                         ]
         , test "should replace (Set.fromList >> f) << Set.toList by f" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = (Set.fromList >> f) << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18088,12 +18101,14 @@ a = (Set.fromList >> f) << Set.toList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = f
 """
                         ]
         , test "should replace (Set.fromList >> f >> g) << Set.toList by (f >> g)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = (Set.fromList >> f >> g) << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -18104,6 +18119,7 @@ a = (Set.fromList >> f >> g) << Set.toList
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (f >> g)
 """
                         ]
