@@ -6374,7 +6374,7 @@ a = String.toList << (f >> g >> String.fromList)
 a = (f >> g)
 """
                         ]
-        , test "should replace (f << String.toList) << String.fromList by (f)" <|
+        , test "should replace (f << String.toList) << String.fromList by f" <|
             \() ->
                 """module A exposing (..)
 a = (f << String.toList) << String.fromList
@@ -6387,7 +6387,7 @@ a = (f << String.toList) << String.fromList
                             , under = "String.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (f)
+a = f
 """
                         ]
         , test "should replace (g << f << String.toList) << String.fromList by (g << f)" <|
@@ -6406,7 +6406,7 @@ a = (g << f << String.toList) << String.fromList
 a = (g << f)
 """
                         ]
-        , test "should replace (String.toList >> f) << String.fromList by (f)" <|
+        , test "should replace (String.toList >> f) << String.fromList by f" <|
             \() ->
                 """module A exposing (..)
 a = (String.toList >> f) << String.fromList
@@ -6419,7 +6419,7 @@ a = (String.toList >> f) << String.fromList
                             , under = "String.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (f)
+a = f
 """
                         ]
         , test "should replace (String.toList >> f >> g) << String.fromList by (f >> g)" <|
@@ -6615,7 +6615,7 @@ a = String.fromList << (f >> String.toList)
 a = (f)
 """
                         ]
-        , test "should replace (f << String.fromList) << String.toList by (f)" <|
+        , test "should replace (f << String.fromList) << String.toList by f" <|
             \() ->
                 """module A exposing (..)
 a = (f << String.fromList) << String.toList
@@ -6628,10 +6628,10 @@ a = (f << String.fromList) << String.toList
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (f)
+a = f
 """
                         ]
-        , test "should replace (String.fromList >> f) << String.toList by (f)" <|
+        , test "should replace (String.fromList >> f) << String.toList by f" <|
             \() ->
                 """module A exposing (..)
 a = (String.fromList >> f) << String.toList
@@ -6644,7 +6644,7 @@ a = (String.fromList >> f) << String.toList
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (f)
+a = f
 """
                         ]
         , test "should replace (String.fromList >> f >> g) << String.toList by (f >> g)" <|
