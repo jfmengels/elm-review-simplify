@@ -3418,10 +3418,21 @@ inversesCompositionCheck inverseFn checkInfo =
                 _ ->
                     Nothing
     in
-    firstThatConstructsJust
-        [ \() ->
-            case ( AstHelpers.getValueOrFunction checkInfo.earlier, AstHelpers.getComposition checkInfo.later ) of
-                ( Just earlierFnInfo, Just composition ) ->
+    case ( AstHelpers.getValueOrFunction checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
+        ( Just earlierFnInfo, Just laterFnInfo ) ->
+            checkFnInfosForInverses
+                { earlierFnInfo = earlierFnInfo
+                , laterFnInfo = laterFnInfo
+                , details = [ "You can replace this composition by identity." ]
+                , fix =
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                    ]
+                }
+
+        ( Just earlierFnInfo, Nothing ) ->
+            case AstHelpers.getComposition checkInfo.later of
+                Just composition ->
                     case AstHelpers.getValueOrFunction composition.earlier of
                         Just laterFnInfo ->
                             checkFnInfosForInverses
@@ -3436,11 +3447,12 @@ inversesCompositionCheck inverseFn checkInfo =
                         Nothing ->
                             Nothing
 
-                _ ->
+                Nothing ->
                     Nothing
-        , \() ->
-            case ( getCompositionToLast checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
-                ( Just composition, Just laterFnInfo ) ->
+
+        ( Nothing, Just laterFnInfo ) ->
+            case getCompositionToLast checkInfo.earlier of
+                Just composition ->
                     case AstHelpers.getValueOrFunction composition.last of
                         Just earlierFnInfo ->
                             checkFnInfosForInverses
@@ -3455,25 +3467,11 @@ inversesCompositionCheck inverseFn checkInfo =
                         Nothing ->
                             Nothing
 
-                _ ->
+                Nothing ->
                     Nothing
-        , \() ->
-            case ( AstHelpers.getValueOrFunction checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
-                ( Just earlierFnInfo, Just laterFnInfo ) ->
-                    checkFnInfosForInverses
-                        { earlierFnInfo = earlierFnInfo
-                        , laterFnInfo = laterFnInfo
-                        , details = [ "You can replace this composition by identity." ]
-                        , fix =
-                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
-                            ]
-                        }
 
-                _ ->
-                    Nothing
-        ]
-        ()
+        ( Nothing, Nothing ) ->
+            Nothing
 
 
 {-| The function applied later than all the others in a composition chain and the function directly before.
