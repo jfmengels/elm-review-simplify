@@ -3439,9 +3439,9 @@ inversesCompositionCheck inverseFn checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case ( AstHelpers.getComposition checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
+            case ( getCompositionToLast checkInfo.earlier, AstHelpers.getValueOrFunction checkInfo.later ) of
                 ( Just composition, Just laterFnInfo ) ->
-                    case AstHelpers.getValueOrFunction composition.later of
+                    case AstHelpers.getValueOrFunction composition.last of
                         Just earlierFnInfo ->
                             checkFnInfosForInverses
                                 { earlierFnInfo = earlierFnInfo
@@ -3449,7 +3449,7 @@ inversesCompositionCheck inverseFn checkInfo =
                                 , details = [ "You can remove these two functions." ]
                                 , fix =
                                     keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.earlier }
-                                        ++ removeAndBetweenFix { remove = Node.range composition.later, keep = Node.range composition.earlier }
+                                        ++ removeAndBetweenFix { remove = Node.range composition.last, keep = Node.range composition.earlier }
                                 }
 
                         Nothing ->
@@ -3474,6 +3474,42 @@ inversesCompositionCheck inverseFn checkInfo =
                     Nothing
         ]
         ()
+
+
+{-| The function applied later than all the others in a composition chain and the function directly before.
+
+E.g. `f << g << h` would return `Just { earlier = g, last = h }`
+
+-}
+getCompositionToLast : Node Expression -> Maybe { earlier : Node Expression, last : Node Expression }
+getCompositionToLast expressionNode =
+    case getFullComposition expressionNode of
+        Just fullComposition ->
+            case getCompositionToLast fullComposition.composedLater of
+                Just actualLast ->
+                    Just actualLast
+
+                Nothing ->
+                    Just { earlier = fullComposition.earlier, last = fullComposition.composedLater }
+
+        Nothing ->
+            Nothing
+
+
+{-| Unlike `AstHelpers.getComposition` which only looks at the earliest 2 composed functions, e.g. `f << g` for `f << g << h`.
+`getFullComposition` returns the later part as an expression, e.g. `{ earlier = f, composedLater = g << h }`.
+-}
+getFullComposition : Node Expression -> Maybe { earlier : Node Expression, composedLater : Node Expression }
+getFullComposition expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.OperatorApplication "<<" _ composedLater earlier ->
+            Just { earlier = earlier, composedLater = composedLater }
+
+        Expression.OperatorApplication ">>" _ earlier composedLater ->
+            Just { earlier = earlier, composedLater = composedLater }
+
+        _ ->
+            Nothing
 
 
 toggleCompositionChecks : ( ModuleName, String ) -> CompositionCheckInfo -> Maybe (Error {})
