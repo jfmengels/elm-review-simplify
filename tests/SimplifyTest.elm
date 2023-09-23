@@ -8773,6 +8773,22 @@ a = List.map f [ g x ]
 a = [ f (g x) ]
 """
                         ]
+        , test "should replace List.map f (if cond then [ x ] else [ y ]) by [ f (if cond then x else y) ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f (if cond then [ x ] else [ y ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f (if cond then x else y) ]
+"""
+                        ]
         , test "should replace List.map f (List.singleton x) by [ f x ]" <|
             \() ->
                 """module A exposing (..)
