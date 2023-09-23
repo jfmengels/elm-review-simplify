@@ -744,6 +744,24 @@ Destructuring using case expressions
     Array.initialize 0 f
     --> Array.empty
 
+    Array.length Array.empty
+    --> 0
+
+    Array.length (Array.fromList [ a, b, c ])
+    --> 3
+
+    Array.length (Array.repeat 3 x)
+    --> 3
+
+    Array.length (Array.initialize 3 f)
+    --> 3
+
+    Array.length (Array.repeat n x)
+    --> max 0 n
+
+    Array.length (Array.initialize n f)
+    --> max 0 n
+
 
 ### Sets
 
@@ -2479,6 +2497,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "indexedMap" ), arrayIndexedMapChecks )
         , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
+        , ( ( [ "Array" ], "length" ), arrayLengthChecks )
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
@@ -6181,6 +6200,52 @@ wrapperRepeatChecks wrapper checkInfo =
             Nothing
 
 
+arrayLengthChecks : CheckInfo -> Maybe (Error {})
+arrayLengthChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> collectionSizeChecks arrayCollection checkInfo
+        , \() -> arrayLengthOnArrayRepeatOrInitializeChecks checkInfo
+        ]
+        ()
+
+
+arrayLengthOnArrayRepeatOrInitializeChecks : CheckInfo -> Maybe (Error {})
+arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
+    let
+        maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression) } )
+        maybeCall =
+            firstThatConstructsJust
+                [ \() ->
+                    AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.map (Tuple.pair "repeat")
+                , \() ->
+                    AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.map (Tuple.pair "initialize")
+                ]
+                ()
+    in
+    case maybeCall of
+        Just ( fnName, call ) ->
+            let
+                maxFn : String
+                maxFn =
+                    qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString (qualify checkInfo.fn checkInfo) ++ " on an array created by " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources) ++ " with a given length will result in that length"
+                    , details = [ "You can replace this call by " ++ maxFn ++ " 0 with the given length. " ++ maxFn ++ " 0 makes sure that negative given lengths return 0." ]
+                    }
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
+                        ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
+                    )
+                )
+
+        Nothing ->
+            Nothing
+
+
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableReverseChecks emptiable checkInfo =
     firstThatConstructsJust
@@ -7726,7 +7791,7 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.map Exactly
+                        |> Maybe.map (\n -> Exactly (max 0 n))
 
                 Nothing ->
                     Nothing
@@ -7734,7 +7799,7 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.map Exactly
+                        |> Maybe.map (\n -> Exactly (max 0 n))
 
                 Nothing ->
                     Nothing

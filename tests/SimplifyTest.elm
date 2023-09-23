@@ -14316,6 +14316,7 @@ arrayTests =
         , arrayIsEmptyTests
         , arrayRepeatTests
         , arrayInitializeTests
+        , arrayLengthTests
         ]
 
 
@@ -15585,6 +15586,347 @@ a = Array.initialize -5 f
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.empty
+"""
+                        ]
+        ]
+
+
+arrayLengthTests : Test
+arrayLengthTests =
+    describe "Array.length"
+        [ test "should not report Array.length used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length
+b = Array.length array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.length Array.empty by 0" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 0
+"""
+                        ]
+        , test "should replace Array.length (Array.fromList [b, c, d]) by 3" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.fromList [b, c, d])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the array is 3"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 3
+"""
+                        ]
+        , test "should replace Array.empty |> Array.length by 0" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.empty |> Array.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 0
+"""
+                        ]
+        , test "should replace Array.length (Array.repeat 1 x) by 1" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.repeat 1 x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the array is 1"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 1
+"""
+                        ]
+        , test "should replace Array.length (Array.repeat n x) by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.repeat n x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.length (Array.repeat n x) by Basics.max 0 n (when max is already in scope)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+max = 1
+a = Array.length (Array.repeat n x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+max = 1
+a = Basics.max 0 n
+"""
+                        ]
+        , test "should replace Array.length <| Array.repeat n x by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length <| Array.repeat n x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.length <| Array.repeat n <| x by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length <| Array.repeat n <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.repeat n x |> Array.length by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat n x |> Array.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace x |> Array.repeat n |> Array.length by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = x |> Array.repeat n |> Array.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.length (Array.repeat 0 x) by 0" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.repeat 0 x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.repeat with length 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.length (Array.empty)
+"""
+                        , Review.Test.error
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 0
+"""
+                        ]
+        , test "should replace Array.length (Array.repeat -1 x) by 0" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.repeat -1 x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.repeat with negative length will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.repeat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.length (Array.empty)
+"""
+                        , Review.Test.error
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 0
+"""
+                        ]
+        , test "should replace Array.length (Array.initialize 1 f) by 1" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.initialize 1 f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the array is 1"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 1
+"""
+                        ]
+        , test "should replace Array.length (Array.initialize 0 f) by 0" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.initialize 0 f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with length 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.length (Array.empty)
+"""
+                        , Review.Test.error
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 0
+"""
+                        ]
+        , test "should replace Array.length (Array.initialize -1 f) by 0" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.initialize -1 f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with negative length will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.length (Array.empty)
+"""
+                        , Review.Test.error
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = 0
+"""
+                        ]
+        , test "should replace Array.length (Array.initialize n f) by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.initialize n f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
 """
                         ]
         ]
