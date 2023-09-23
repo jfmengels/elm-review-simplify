@@ -3431,7 +3431,7 @@ inversesCompositionCheck inverseFn checkInfo =
                 }
 
         ( Just earlierFnInfo, Nothing ) ->
-            case AstHelpers.getComposition checkInfo.later of
+            case getFullComposition checkInfo.later of
                 Just composition ->
                     case AstHelpers.getValueOrFunction composition.earlier of
                         Just laterFnInfo ->
@@ -3439,9 +3439,7 @@ inversesCompositionCheck inverseFn checkInfo =
                                 { earlierFnInfo = earlierFnInfo
                                 , laterFnInfo = laterFnInfo
                                 , details = [ "You can remove these two functions." ]
-                                , fix =
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.later }
-                                        ++ removeAndBetweenFix { remove = Node.range composition.earlier, keep = Node.range composition.later }
+                                , fix = replaceBySubExpressionFix checkInfo.parentRange composition.composedLater
                                 }
 
                         Nothing ->
