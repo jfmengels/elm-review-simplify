@@ -3351,7 +3351,7 @@ onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
                     , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
                     }
                     checkInfo.fnRange
-                    (replaceBySubExpressionFix checkInfo.parentRange call.firstArg)
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg })
                 )
 
         Nothing ->
