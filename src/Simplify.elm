@@ -6250,7 +6250,9 @@ wrapperRepeatChecks wrapper checkInfo =
             Nothing
 
 
-arrayLengthChecks : CheckInfo -> Maybe (Error {})
+arrayLengthChecks :
+    CheckInfo
+    -> Maybe (Error {})
 arrayLengthChecks checkInfo =
     firstThatConstructsJust
         [ \() -> collectionSizeChecks arrayCollection checkInfo
