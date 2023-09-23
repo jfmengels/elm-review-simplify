@@ -5336,12 +5336,7 @@ listMapOnSingletonCheck checkInfo =
                                 , keep = mappingArgRange
                                 }
                                 ++ List.concatMap
-                                    (\wrap ->
-                                        keepOnlyFix
-                                            { parentRange = wrap.nodeRange
-                                            , keep = Node.range wrap.value
-                                            }
-                                    )
+                                    (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value)
                                     wraps
                                 ++ [ Fix.insertAt checkInfo.parentRange.start "[ "
                                    , Fix.insertAt checkInfo.parentRange.end " ]"

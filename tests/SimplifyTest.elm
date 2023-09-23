@@ -8757,6 +8757,22 @@ a = List.map f [ x ]
 a = [ f x ]
 """
                         ]
+        , test "should replace List.map f [ g x ] by [ f (g x) ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f [ g x ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f (g x) ]
+"""
+                        ]
         , test "should replace List.map f (List.singleton x) by [ f x ]" <|
             \() ->
                 """module A exposing (..)
