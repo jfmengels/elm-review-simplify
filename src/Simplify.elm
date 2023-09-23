@@ -741,6 +741,9 @@ Destructuring using case expressions
     Set.fromList [ a ]
     --> Set.singleton a
 
+    Set.fromList (Set.toList set)
+    --> set
+
     Set.map f Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
 
