@@ -6239,11 +6239,8 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = "The length of this array is the argument given to " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources)
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to " ++ maxFn ++ " 0 n. Calling " ++ maxFn ++ " is to handle the case where n might be negative."
-                                ]
+                            { message = qualifiedToString (qualify checkInfo.fn checkInfo) ++ " on an array created by " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources) ++ " with a given length will result in that length"
+                            , details = [ "You can replace this call by " ++ maxFn ++ " 0 with the given length. " ++ maxFn ++ " 0 makes sure that negative given lengths return 0." ]
                             }
                             checkInfo.fnRange
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }

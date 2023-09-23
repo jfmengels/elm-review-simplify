@@ -15684,11 +15684,8 @@ a = Array.length (Array.repeat n x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.repeat"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15706,11 +15703,8 @@ a = Array.length (Array.repeat n x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.repeat"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15728,11 +15722,8 @@ a = Array.length <| Array.repeat n x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.repeat"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15749,11 +15740,8 @@ a = Array.length <| Array.repeat n <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.repeat"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15770,11 +15758,8 @@ a = Array.repeat n x |> Array.length
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.repeat"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15791,11 +15776,8 @@ a = x |> Array.repeat n |> Array.length
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.repeat"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15902,11 +15884,8 @@ a = Array.length (Array.initialize n f)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The length of this array is the argument given to Array.initialize"
-                            , details =
-                                [ "This is creating an array of a given size n, to then determine the size."
-                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
-                                ]
+                            { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
