@@ -6278,7 +6278,7 @@ e = String.toList << (f << String.fromList)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace x |> f |> String.fromList |> String.toList by (x |> f)" <|
+        , test "should replace x |> f |> String.fromList |> String.toList by x |> f" <|
             \() ->
                 """module A exposing (..)
 a = x |> f |> String.fromList |> String.toList
@@ -6291,7 +6291,7 @@ a = x |> f |> String.fromList |> String.toList
                             , under = "String.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (x |> f)
+a = x |> f
 """
                         ]
         , test "should replace String.toList << String.fromList by identity" <|
@@ -6487,7 +6487,7 @@ a = List.singleton >> String.fromList
 a = String.fromChar
 """
                         ]
-        , test "should replace x |> f |> String.toList |> String.fromList by (x |> f)" <|
+        , test "should replace x |> f |> String.toList |> String.fromList by x |> f" <|
             \() ->
                 """module A exposing (..)
 a = x |> f |> String.toList |> String.fromList
@@ -6500,7 +6500,7 @@ a = x |> f |> String.toList |> String.fromList
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (x |> f)
+a = x |> f
 """
                         ]
         , test "should replace String.fromList << String.toList by identity" <|
