@@ -15785,7 +15785,7 @@ import Array
 a = max 0 n
 """
                         ]
-        , test "should not replace Array.length (Array.repeat 0 x) by 0 directly" <|
+        , test "should replace Array.length (Array.repeat 0 x) by 0" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15802,8 +15802,17 @@ a = Array.length (Array.repeat 0 x)
 import Array
 a = Array.length (Array.empty)
 """
+                        , Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 0
+"""
                         ]
-        , test "should not replace Array.length (Array.repeat -1 x) by 0 directly" <|
+        , test "should replace Array.length (Array.repeat -1 x) by 0" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15819,6 +15828,15 @@ a = Array.length (Array.repeat -1 x)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.length (Array.empty)
+"""
+                        , Review.Test.error
+                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 -1
 """
                         ]
         , test "should replace Array.length (Array.initialize 1 f) by 1" <|
@@ -15839,7 +15857,7 @@ import Array
 a = 1
 """
                         ]
-        , test "should not replace Array.length (Array.initialize 0 f) by 0 directly" <|
+        , test "should replace Array.length (Array.initialize 0 f) by 0" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15856,8 +15874,17 @@ a = Array.length (Array.initialize 0 f)
 import Array
 a = Array.length (Array.empty)
 """
+                        , Review.Test.error
+                            { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 0
+"""
                         ]
-        , test "should not replace Array.length (Array.initialize -1 f) by 0 directly" <|
+        , test "should replace Array.length (Array.initialize -1 f) by 0" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15873,6 +15900,15 @@ a = Array.length (Array.initialize -1 f)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.length (Array.empty)
+"""
+                        , Review.Test.error
+                            { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
+                            , details = [ "You can replace this call by max 0 with the given length. max 0 makes sure that negative given lengths return 0." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 -1
 """
                         ]
         , test "should replace Array.length (Array.initialize n f) by max 0 n" <|

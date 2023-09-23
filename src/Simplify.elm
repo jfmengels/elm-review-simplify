@@ -6226,27 +6226,21 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
     in
     case maybeCall of
         Just ( fnName, call ) ->
-            case Evaluate.getInt checkInfo call.firstArg of
-                Just _ ->
-                    -- If size could be determined, then we would already have an error reported for the call to `repeat` or `initialize`.
-                    Nothing
-
-                Nothing ->
-                    let
-                        maxFn : String
-                        maxFn =
-                            qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString (qualify checkInfo.fn checkInfo) ++ " on an array created by " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources) ++ " with a given length will result in that length"
-                            , details = [ "You can replace this call by " ++ maxFn ++ " 0 with the given length. " ++ maxFn ++ " 0 makes sure that negative given lengths return 0." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
-                                ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
-                            )
-                        )
+            let
+                maxFn : String
+                maxFn =
+                    qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString (qualify checkInfo.fn checkInfo) ++ " on an array created by " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources) ++ " with a given length will result in that length"
+                    , details = [ "You can replace this call by " ++ maxFn ++ " 0 with the given length. " ++ maxFn ++ " 0 makes sure that negative given lengths return 0." ]
+                    }
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
+                        ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
+                    )
+                )
 
         Nothing ->
             Nothing
