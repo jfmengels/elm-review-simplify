@@ -1,0 +1,20 @@
+name: Display preview command
+on:
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  comment-on-pull:
+    name: Comment On Pull
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "The branch can be tried out by running:\n\n```\nelm-review --template " + process.env.GITHUB_REPOSITORY + "/preview#" + process.env.GITHUB_REF_NAME + "\n```"
+            });
