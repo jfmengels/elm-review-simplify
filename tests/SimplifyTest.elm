@@ -14292,12 +14292,211 @@ a = identity
 arrayTests : Test
 arrayTests =
     describe "Array"
-        [ arrayFromListTests
+        [ arrayToListTests
+        , arrayFromListTests
         , arrayMapTests
         , arrayFilterTests
         , arrayIsEmptyTests
         , arrayRepeatTests
         , arrayInitializeTests
+        ]
+
+
+arrayToListTests : Test
+arrayToListTests =
+    describe "String.toList"
+        [ test "should not report String.toList that contains a variable" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList
+b = Array.toList array
+c = Array.toList << f << Array.fromList
+d = (Array.toList << f) << Array.fromList
+e = Array.toList << (f << Array.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace x |> f |> Array.fromList |> Array.toList by x |> f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = x |> f |> Array.fromList |> Array.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Array.fromList." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = x |> f
+"""
+                        ]
+        , test "should replace Array.toList << Array.fromList by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.toList << (Array.fromList << f) by (f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList << (Array.fromList << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f)
+"""
+                        ]
+        , test "should replace Array.toList << (Array.fromList << g << f) by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList << (Array.fromList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (g << f)
+"""
+                        ]
+        , test "should replace Array.toList << (f >> Array.fromList) by (f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList << (f >> Array.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f)
+"""
+                        ]
+        , test "should replace Array.toList << (f >> g >> Array.fromList) by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList << (f >> g >> Array.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f >> g)
+"""
+                        ]
+        , test "should replace (f << Array.toList) << Array.fromList by f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (f << Array.toList) << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = f
+"""
+                        ]
+        , test "should replace (g << f << Array.toList) << Array.fromList by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (g << f << Array.toList) << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (g << f)
+"""
+                        ]
+        , test "should replace (Array.toList >> f) << Array.fromList by f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (Array.toList >> f) << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = f
+"""
+                        ]
+        , test "should replace (Array.toList >> f >> g) << Array.fromList by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (Array.toList >> f >> g) << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f >> g)
+"""
+                        ]
         ]
 
 
@@ -14312,6 +14511,9 @@ a = Array.fromList
 b = Array.fromList list
 c = Array.fromList (x :: ys)
 d = Array.fromList [x, y]
+e = Array.fromList << f << Array.toList
+f = (Array.fromList << f) << Array.toList
+g = Array.fromList << (f << Array.toList)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -14331,6 +14533,150 @@ a = Array.fromList []
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.empty
+"""
+                        ]
+        , test "should replace x |> f |> Array.toList |> Array.fromList by x |> f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = x |> f |> Array.toList |> Array.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Array.toList." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = x |> f
+"""
+                        ]
+        , test "should replace Array.fromList << Array.toList by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList << Array.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.fromList << (Array.toList << f) by (f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList << (Array.toList << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f)
+"""
+                        ]
+        , test "should replace Array.fromList << (Array.toList << g << f) by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList << (Array.toList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (g << f)
+"""
+                        ]
+        , test "should replace Array.fromList << (f >> Array.toList) by (f)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList << (f >> Array.toList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f)
+"""
+                        ]
+        , test "should replace (f << Array.fromList) << Array.toList by f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (f << Array.fromList) << Array.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = f
+"""
+                        ]
+        , test "should replace (Array.fromList >> f) << Array.toList by f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (Array.fromList >> f) << Array.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = f
+"""
+                        ]
+        , test "should replace (Array.fromList >> f >> g) << Array.toList by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = (Array.fromList >> f >> g) << Array.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then Array.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f >> g)
 """
                         ]
         ]

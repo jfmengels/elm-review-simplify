@@ -717,6 +717,12 @@ Destructuring using case expressions
     Array.fromList []
     --> Array.empty
 
+    Array.fromList (Array.toList array)
+    --> array
+
+    Array.toList (Array.fromList list)
+    --> list
+
     Array.map f Array.empty -- same for Array.filter
     --> Array.empty
 
@@ -2461,7 +2467,8 @@ functionCallChecks =
         , ( ( [ "List" ], "map4" ), emptiableMapNChecks { n = 4 } listCollection )
         , ( ( [ "List" ], "map5" ), emptiableMapNChecks { n = 5 } listCollection )
         , ( ( [ "List" ], "unzip" ), listUnzipChecks )
-        , ( ( [ "Array" ], "fromList" ), collectionFromListChecks arrayCollection )
+        , ( ( [ "Array" ], "toList" ), arrayToListChecks )
+        , ( ( [ "Array" ], "fromList" ), arrayFromListChecks )
         , ( ( [ "Array" ], "map" ), emptiableMapChecks arrayCollection )
         , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
@@ -2586,6 +2593,8 @@ compositionChecks =
     , basicsNegateCompositionChecks
     , inversesCompositionCheck { later = ( [ "String" ], "toList" ), earlier = ( [ "String" ], "fromList" ) }
     , inversesCompositionCheck { later = ( [ "String" ], "fromList" ), earlier = ( [ "String" ], "toList" ) }
+    , inversesCompositionCheck { later = ( [ "Array" ], "toList" ), earlier = ( [ "Array" ], "fromList" ) }
+    , inversesCompositionCheck { later = ( [ "Array" ], "fromList" ), earlier = ( [ "Array" ], "toList" ) }
     , inversesCompositionCheck { later = ( [ "Set" ], "fromList" ), earlier = ( [ "Set" ], "toList" ) }
     , inversesCompositionCheck { later = ( [ "Dict" ], "fromList" ), earlier = ( [ "Dict" ], "toList" ) }
     , \checkInfo ->
@@ -6074,6 +6083,20 @@ listRepeatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableRepeatChecks listCollection checkInfo
         , \() -> wrapperRepeatChecks listCollection checkInfo
+        ]
+        ()
+
+
+arrayToListChecks : CheckInfo -> Maybe (Error {})
+arrayToListChecks checkInfo =
+    onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" ) checkInfo
+
+
+arrayFromListChecks : CheckInfo -> Maybe (Error {})
+arrayFromListChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> collectionFromListChecks arrayCollection checkInfo
+        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "toList" ) checkInfo
         ]
         ()
 
