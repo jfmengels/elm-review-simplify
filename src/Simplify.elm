@@ -790,7 +790,7 @@ Destructuring using case expressions
     Dict.fromList []
     --> Dict.empty
 
-    Dict.fromList (Dict.toList set)
+    Dict.fromList (Dict.toList dict)
     --> dict
 
     Dict.isEmpty Dict.empty
