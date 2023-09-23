@@ -6227,39 +6227,19 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
     case maybeCall of
         Just ( fnName, call ) ->
             let
-                replacement : { details : List String, fix : List Fix }
-                replacement =
-                    case Evaluate.getInt checkInfo call.firstArg of
-                        Just length ->
-                            let
-                                positiveLength : String
-                                positiveLength =
-                                    String.fromInt (max 0 length)
-                            in
-                            { details = [ "You can replace this call by " ++ positiveLength ++ "." ]
-                            , fix = [ Fix.replaceRangeBy checkInfo.parentRange positiveLength ]
-                            }
-
-                        Nothing ->
-                            let
-                                maxFn : String
-                                maxFn =
-                                    qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
-                            in
-                            { details =
-                                [ "You can replace this call by " ++ maxFn ++ " 0 with the given length. " ++ maxFn ++ " 0 makes sure that negative given lengths return 0." ]
-                            , fix =
-                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
-                                    ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
-                            }
+                maxFn : String
+                maxFn =
+                    qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
             in
             Just
                 (Rule.errorWithFix
                     { message = qualifiedToString (qualify checkInfo.fn checkInfo) ++ " on an array created by " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources) ++ " with a given length will result in that length"
-                    , details = replacement.details
+                    , details = [ "You can replace this call by " ++ maxFn ++ " 0 with the given length. " ++ maxFn ++ " 0 makes sure that negative given lengths return 0." ]
                     }
                     checkInfo.fnRange
-                    replacement.fix
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
+                        ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
+                    )
                 )
 
         Nothing ->
@@ -7811,7 +7791,7 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.andThen ignoreCollectionSizeIfEmpty
+                        |> Maybe.map (\n -> Exactly (max 0 n))
 
                 Nothing ->
                     Nothing
@@ -7819,21 +7799,12 @@ arrayDetermineSize resources expressionNode =
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
-                        |> Maybe.andThen ignoreCollectionSizeIfEmpty
+                        |> Maybe.map (\n -> Exactly (max 0 n))
 
                 Nothing ->
                     Nothing
         ]
         ()
-
-
-ignoreCollectionSizeIfEmpty : Int -> Maybe CollectionSize
-ignoreCollectionSizeIfEmpty n =
-    if n <= 0 then
-        Nothing
-
-    else
-        Just (Exactly n)
 
 
 setCollection : CollectionProperties (WrapperProperties {})

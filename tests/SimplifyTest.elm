@@ -15803,8 +15803,8 @@ import Array
 a = Array.length (Array.empty)
 """
                         , Review.Test.error
-                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
-                            , details = [ "You can replace this call by 0." ]
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15830,8 +15830,8 @@ import Array
 a = Array.length (Array.empty)
 """
                         , Review.Test.error
-                            { message = "Array.length on an array created by Array.repeat with a given length will result in that length"
-                            , details = [ "You can replace this call by 0." ]
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15875,8 +15875,8 @@ import Array
 a = Array.length (Array.empty)
 """
                         , Review.Test.error
-                            { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
-                            , details = [ "You can replace this call by 0." ]
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15902,8 +15902,8 @@ import Array
 a = Array.length (Array.empty)
 """
                         , Review.Test.error
-                            { message = "Array.length on an array created by Array.initialize with a given length will result in that length"
-                            , details = [ "You can replace this call by 0." ]
+                            { message = "The length of the array is 0"
+                            , details = [ "The length of the array can be determined by looking at the code." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
