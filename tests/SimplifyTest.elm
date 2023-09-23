@@ -18756,8 +18756,13 @@ dictFromListTests =
 import Dict
 a = Dict.fromList
 b = Dict.fromList list
-b = Dict.fromList [x]
-b = Dict.fromList [x, y]
+c = Dict.fromList [x]
+d = Dict.fromList [x, y]
+e = Dict.fromList
+f = Dict.fromList list
+g = Dict.fromList << fun << Dict.toList
+h = (Dict.fromList << fun) << Dict.toList
+i = Dict.fromList << (fun << Dict.toList)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -18777,6 +18782,134 @@ a = Dict.fromList []
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.empty
+"""
+                        ]
+        , test "should replace x |> f |> Dict.toList |> Dict.fromList by x |> f" <|
+            \() ->
+                """module A exposing (..)
+a = x |> f |> Dict.toList |> Dict.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Dict.toList." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f
+"""
+                        ]
+        , test "should replace Dict.fromList << Dict.toList by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Dict.fromList << (Dict.toList << f) by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList << (Dict.toList << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace Dict.fromList << (Dict.toList << g << f) by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList << (Dict.toList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (g << f)
+"""
+                        ]
+        , test "should replace Dict.fromList << (f >> Dict.toList) by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList << (f >> Dict.toList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace (f << Dict.fromList) << Dict.toList by f" <|
+            \() ->
+                """module A exposing (..)
+a = (f << Dict.fromList) << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace (Dict.fromList >> f) << Dict.toList by f" <|
+            \() ->
+                """module A exposing (..)
+a = (Dict.fromList >> f) << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace (Dict.fromList >> f >> g) << Dict.toList by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+a = (Dict.fromList >> f >> g) << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then Dict.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f >> g)
 """
                         ]
         ]
