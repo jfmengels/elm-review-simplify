@@ -6326,6 +6326,22 @@ a = String.toList << (String.fromList << f)
 a = (f)
 """
                         ]
+        , test "should replace String.toList << (String.fromList << g << f) by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+a = String.toList << (String.fromList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList, then String.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (g << f)
+"""
+                        ]
         , test "should replace String.toList << (f >> String.fromList) by (f)" <|
             \() ->
                 """module A exposing (..)
@@ -6342,6 +6358,22 @@ a = String.toList << (f >> String.fromList)
 a = (f)
 """
                         ]
+        , test "should replace String.toList << (f >> g >> String.fromList) by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+a = String.toList << (f >> g >> String.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList, then String.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f >> g)
+"""
+                        ]
         , test "should replace (f << String.toList) << String.fromList by (f)" <|
             \() ->
                 """module A exposing (..)
@@ -6356,6 +6388,22 @@ a = (f << String.toList) << String.fromList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
+"""
+                        ]
+        , test "should replace (g << f << String.toList) << String.fromList by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+a = (g << f << String.toList) << String.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList, then String.toList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (g << f)
 """
                         ]
         , test "should replace (String.toList >> f) << String.fromList by (f)" <|
@@ -6533,6 +6581,22 @@ a = String.fromList << (String.toList << f)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
+"""
+                        ]
+        , test "should replace String.fromList << (String.toList << g << f) by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList << (String.toList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList, then String.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (g << f)
 """
                         ]
         , test "should replace String.fromList << (f >> String.toList) by (f)" <|
