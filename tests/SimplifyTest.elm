@@ -8741,6 +8741,86 @@ a = identity |> List.map
 a = identity
 """
                         ]
+        , test "should replace List.map f [ x ] by [ f x ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f [ x ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f x ]
+"""
+                        ]
+        , test "should replace List.map f (List.singleton x) by [ f x ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f (List.singleton x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f x ]
+"""
+                        ]
+        , test "should replace List.map f <| [ x ] by [ f <| x ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f <| [ x ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f <| x ]
+"""
+                        ]
+        , test "should replace [ x ] |> List.map f by [ x |> f ]" <|
+            \() ->
+                """module A exposing (..)
+a = [ x ] |> List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ x |> f ]
+"""
+                        ]
+        , test "should replace List.map f << List.singleton by List.singleton << f" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in List.singleton with the function applied to the value inside"
+                            , details = [ "You can replace this call by List.singleton with the function directly applied to the value inside the singleton list itself." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.singleton << f
+"""
+                        ]
         , test "should replace Dict.toList >> List.map Tuple.first by Dict.keys" <|
             \() ->
                 """module A exposing (..)

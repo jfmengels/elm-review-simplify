@@ -507,6 +507,9 @@ Destructuring using case expressions
     List.map identity list
     --> list
 
+    List.map f [ a ]
+    --> [ f a ]
+
     List.filter (always True) list
     --> list
 
@@ -5305,9 +5308,52 @@ listMapChecks : CheckInfo -> Maybe (Error {})
 listMapChecks checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableMapChecks listCollection checkInfo
+        , \() -> listMapOnSingletonCheck checkInfo
         , \() -> dictToListMapChecks checkInfo
         ]
         ()
+
+
+listMapOnSingletonCheck : CheckInfo -> Maybe (Error {})
+listMapOnSingletonCheck checkInfo =
+    case secondArg checkInfo of
+        Just listArg ->
+            case sameInAllBranches (getValueWithNodeRange (listCollection.wrap.getValue checkInfo.lookupTable)) listArg of
+                Determined wraps ->
+                    let
+                        mappingArgRange : Range
+                        mappingArgRange =
+                            Node.range checkInfo.firstArg
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyFix
+                                { parentRange = Range.combine [ checkInfo.fnRange, mappingArgRange ]
+                                , keep = mappingArgRange
+                                }
+                                ++ List.concatMap
+                                    (\wrap ->
+                                        keepOnlyFix
+                                            { parentRange = wrap.nodeRange
+                                            , keep = Node.range wrap.value
+                                            }
+                                    )
+                                    wraps
+                                ++ [ Fix.insertAt checkInfo.parentRange.start "[ "
+                                   , Fix.insertAt checkInfo.parentRange.end " ]"
+                                   ]
+                            )
+                        )
+
+                Undetermined ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 dictToListMapErrorInfo : { toEntryAspectList : String, tuplePart : String } -> { message : String, details : List String }
@@ -5359,6 +5405,15 @@ dictToListMapChecks listMapCheckInfo =
 
 listMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listMapCompositionChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapToMapCompositionChecks listCollection checkInfo
+        , \() -> dictToListIntoListMapCompositionCheck checkInfo
+        ]
+        ()
+
+
+dictToListIntoListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+dictToListIntoListMapCompositionCheck checkInfo =
     case
         ( ( checkInfo.earlier.fn, checkInfo.earlier.args )
         , checkInfo.later.args
