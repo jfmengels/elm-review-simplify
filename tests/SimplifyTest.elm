@@ -19647,7 +19647,7 @@ a = Cmd.batch [ b ]
 a = b
 """
                         ]
-        , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch []" <|
+        , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch [ b ]" <|
             \() ->
                 """module A exposing (..)
 a = Cmd.batch [ b, Cmd.none ]
