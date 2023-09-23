@@ -9655,8 +9655,8 @@ listIndexedMapTests =
         [ test "should not report List.indexedMap used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap f x
-b = List.indexedMap (\\i value -> i + value) x
+a = List.indexedMap f list
+b = List.indexedMap (\\i value -> i + value) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -9676,10 +9676,10 @@ a = List.indexedMap f []
 a = []
 """
                         ]
-        , test "should replace List.indexedMap (\\_ y -> y) x by List.map (\\y -> y) x" <|
+        , test "should replace List.indexedMap (\\_ y -> y) list by List.map (\\y -> y) list" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap (\\_ y -> y) x
+a = List.indexedMap (\\_ y -> y) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -9689,13 +9689,13 @@ a = List.indexedMap (\\_ y -> y) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\y -> y) x
+a = List.map (\\y -> y) list
 """
                         ]
-        , test "should replace List.indexedMap (\\(_) (y) -> y) x by List.map (\\(y) -> y) x" <|
+        , test "should replace List.indexedMap (\\(_) (y) -> y) list by List.map (\\(y) -> y) list" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap (\\(_) (y) -> y) x
+a = List.indexedMap (\\(_) (y) -> y) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -9705,13 +9705,13 @@ a = List.indexedMap (\\(_) (y) -> y) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (\\(y) -> y) x
+a = List.map (\\(y) -> y) list
 """
                         ]
-        , test "should replace List.indexedMap (\\_ -> f) x by List.map f x" <|
+        , test "should replace List.indexedMap (\\_ -> f) list by List.map f list" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap (\\_ -> f) x
+a = List.indexedMap (\\_ -> f) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -9721,13 +9721,13 @@ a = List.indexedMap (\\_ -> f) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map f x
+a = List.map f list
 """
                         ]
-        , test "should replace List.indexedMap (always f) x by List.map f x" <|
+        , test "should replace List.indexedMap (always f) list by List.map f list" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap (always f) x
+a = List.indexedMap (always f) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -9737,13 +9737,13 @@ a = List.indexedMap (always f) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map f x
+a = List.map f list
 """
                         ]
-        , test "should replace List.indexedMap (always <| f y) x by List.map (f y) x" <|
+        , test "should replace List.indexedMap (always <| f y) list by List.map (f y) list" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap (always <| f y) x
+a = List.indexedMap (always <| f y) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -9753,13 +9753,13 @@ a = List.indexedMap (always <| f y) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (f y) x
+a = List.map (f y) list
 """
                         ]
-        , test "should replace List.indexedMap (f y |> always) x by List.map (f y) x" <|
+        , test "should replace List.indexedMap (f y |> always) list by List.map (f y) list" <|
             \() ->
                 """module A exposing (..)
-a = List.indexedMap (f y |> always) x
+a = List.indexedMap (f y |> always) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -9769,7 +9769,7 @@ a = List.indexedMap (f y |> always) x
                             , under = "List.indexedMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = List.map (f y) x
+a = List.map (f y) list
 """
                         ]
         ]
@@ -12068,10 +12068,10 @@ a = List.all f []
 a = True
 """
                         ]
-        , test "should replace List.all (always True) x by True" <|
+        , test "should replace List.all (always True) list by True" <|
             \() ->
                 """module A exposing (..)
-a = List.all (always True) x
+a = List.all (always True) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -12129,10 +12129,10 @@ a = List.any f []
 a = False
 """
                         ]
-        , test "should replace List.any (always False) x by False" <|
+        , test "should replace List.any (always False) list by False" <|
             \() ->
                 """module A exposing (..)
-a = List.any (always False) x
+a = List.any (always False) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13165,10 +13165,10 @@ a = List.singleton >> List.reverse
 a = List.singleton
 """
                         ]
-        , test "should replace List.reverse <| List.reverse <| x by x" <|
+        , test "should replace List.reverse <| List.reverse <| list by list" <|
             \() ->
                 """module A exposing (..)
-a = List.reverse <| List.reverse <| x
+a = List.reverse <| List.reverse <| list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13178,7 +13178,7 @@ a = List.reverse <| List.reverse <| x
                             , under = "List.reverse <| List.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x
+a = list
 """
                         ]
         ]
@@ -13190,7 +13190,7 @@ listTakeTests =
         [ test "should not report List.take that contains a variable or expression" <|
             \() ->
                 """module A exposing (..)
-a = List.take 2 x
+a = List.take 2 list
 b = List.take y [ 1, 2, 3 ]
 """
                     |> Review.Test.run ruleWithDefaults
@@ -13211,10 +13211,10 @@ a = List.take n []
 a = []
 """
                         ]
-        , test "should replace List.take 0 x by []" <|
+        , test "should replace List.take 0 list by []" <|
             \() ->
                 """module A exposing (..)
-a = List.take 0 x
+a = List.take 0 list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13268,7 +13268,7 @@ listDropTests =
         [ test "should not report List.drop that contains a variable or expression" <|
             \() ->
                 """module A exposing (..)
-a = List.drop 2 x
+a = List.drop 2 list
 b = List.drop y [ 1, 2, 3 ]
 """
                     |> Review.Test.run ruleWithDefaults
@@ -13289,10 +13289,10 @@ a = List.drop n []
 a = []
 """
                         ]
-        , test "should replace List.drop 0 x by x" <|
+        , test "should replace List.drop 0 list by list" <|
             \() ->
                 """module A exposing (..)
-a = List.drop 0 x
+a = List.drop 0 list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13302,13 +13302,13 @@ a = List.drop 0 x
                             , under = "List.drop"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x
+a = list
 """
                         ]
-        , test "should replace x |> List.drop 0 by x" <|
+        , test "should replace list |> List.drop 0 by list" <|
             \() ->
                 """module A exposing (..)
-a = x |> List.drop 0
+a = list |> List.drop 0
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13318,7 +13318,7 @@ a = x |> List.drop 0
                             , under = "List.drop"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x
+a = list
 """
                         ]
         , test "should replace List.drop 0 by identity" <|
@@ -13346,7 +13346,7 @@ listPartitionTests =
         [ test "should not report List.partition used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.partition f x
+a = List.partition f list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -13398,10 +13398,10 @@ a = [] |> List.partition f
 a = ( [], [] )
 """
                         ]
-        , test "should replace List.partition (always True) x by ( x, [] )" <|
+        , test "should replace List.partition (always True) list by ( list, [] )" <|
             \() ->
                 """module A exposing (..)
-a = List.partition (always True) x
+a = List.partition (always True) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13411,7 +13411,7 @@ a = List.partition (always True) x
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( x, [] )
+a = ( list, [] )
 """
                         ]
         , test "should not replace List.partition (always True)" <|
@@ -13424,10 +13424,10 @@ a = List.partition (always True)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace List.partition (always False) x by ( [], x )" <|
+        , test "should replace List.partition (always False) list by ( [], list )" <|
             \() ->
                 """module A exposing (..)
-a = List.partition (always False) x
+a = List.partition (always False) list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -13437,7 +13437,7 @@ a = List.partition (always False) x
                             , under = "List.partition"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ( [], x )
+a = ( [], list )
 """
                         ]
         , test "should replace List.partition (always False) by (Tuple.pair [])" <|
@@ -13497,12 +13497,12 @@ listIntersperseTests =
         [ test "should not report List.intersperse that contains a variable or expression" <|
             \() ->
                 """module A exposing (..)
-a = List.intersperse 2 x
+a = List.intersperse 2 list
 b = List.intersperse y [ 1, 2, 3 ]
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace List.intersperse n [] by []" <|
+        , test "should replace List.intersperse x [] by []" <|
             \() ->
                 """module A exposing (..)
 a = List.intersperse x []
