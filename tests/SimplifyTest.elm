@@ -15675,6 +15675,134 @@ import Array
 a = 1
 """
                         ]
+        , test "should replace Array.length (Array.repeat n x) by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.repeat n x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.repeat"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.length (Array.repeat n x) by Basics.max 0 n (when max is already in scope)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+max = 1
+a = Array.length (Array.repeat n x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.repeat"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+max = 1
+a = Basics.max 0 n
+"""
+                        ]
+        , test "should replace Array.length <| Array.repeat n x by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length <| Array.repeat n x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.repeat"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.length <| Array.repeat n <| x by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length <| Array.repeat n <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.repeat"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace Array.repeat n x |> Array.length by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat n x |> Array.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.repeat"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
+        , test "should replace x |> Array.repeat n |> Array.length by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = x |> Array.repeat n |> Array.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.repeat"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
+"""
+                        ]
         , test "should not replace Array.length (Array.repeat 0 x) by 0 directly" <|
             \() ->
                 """module A exposing (..)
@@ -15763,6 +15891,27 @@ a = Array.length (Array.initialize -1 f)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.length (Array.empty)
+"""
+                        ]
+        , test "should replace Array.length (Array.initialize n f) by max 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.length (Array.initialize n f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of this array is the argument given to Array.initialize"
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to max 0 n. Calling max is to handle the case where n might be negative."
+                                ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = max 0 n
 """
                         ]
         ]

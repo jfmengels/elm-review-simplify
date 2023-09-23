@@ -16,6 +16,8 @@ The rule now simplifies:
 - `Array.length (Array.fromList [ a, b, c ])` to `3`
 - `Array.length (Array.repeat 3 x)` to `3`
 - `Array.length (Array.initialize 3 f)` to `3`
+- `Array.length (Array.repeat n x)` to `max 0 n`
+- `Array.length (Array.initialize n f)` to `max 0 n`
 - `List.singleton >> String.fromList` to `String.fromChar`
 
 ## [2.1.1] - 2023-09-18

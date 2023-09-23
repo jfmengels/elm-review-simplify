@@ -756,6 +756,12 @@ Destructuring using case expressions
     Array.length (Array.initialize 3 f)
     --> 3
 
+    Array.length (Array.repeat n x)
+    --> max 0 n
+
+    Array.length (Array.initialize n f)
+    --> max 0 n
+
 
 ### Sets
 
@@ -2491,7 +2497,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "indexedMap" ), arrayIndexedMapChecks )
         , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
         , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
-        , ( ( [ "Array" ], "length" ), collectionSizeChecks arrayCollection )
+        , ( ( [ "Array" ], "length" ), arrayLengthChecks )
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
@@ -6189,6 +6195,61 @@ wrapperRepeatChecks wrapper checkInfo =
 
         Just _ ->
             Nothing
+
+        Nothing ->
+            Nothing
+
+
+arrayLengthChecks : CheckInfo -> Maybe (Error {})
+arrayLengthChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> collectionSizeChecks arrayCollection checkInfo
+        , \() -> arrayLengthOnArrayRepeatOrInitializeChecks checkInfo
+        ]
+        ()
+
+
+arrayLengthOnArrayRepeatOrInitializeChecks : CheckInfo -> Maybe (Error {})
+arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
+    let
+        maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression) } )
+        maybeCall =
+            firstThatConstructsJust
+                [ \() ->
+                    AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.map (Tuple.pair "repeat")
+                , \() ->
+                    AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.map (Tuple.pair "initialize")
+                ]
+                ()
+    in
+    case maybeCall of
+        Just ( fnName, call ) ->
+            case Evaluate.getInt checkInfo call.firstArg of
+                Just _ ->
+                    -- If size could be determined, then we would already have an error reported for the call to `repeat` or `initialize`.
+                    Nothing
+
+                Nothing ->
+                    let
+                        maxFn : String
+                        maxFn =
+                            qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = "The length of this array is the argument given to " ++ qualifiedToString (qualify ( [ "Array" ], fnName ) defaultQualifyResources)
+                            , details =
+                                [ "This is creating an array of a given size n, to then determine the size."
+                                , "You can replace this expression to " ++ maxFn ++ " 0 n. Calling " ++ maxFn ++ " is to handle the case where n might be negative."
+                                ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
+                                ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
+                            )
+                        )
 
         Nothing ->
             Nothing
