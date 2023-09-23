@@ -790,6 +790,9 @@ Destructuring using case expressions
     Dict.fromList []
     --> Dict.empty
 
+    Dict.fromList (Dict.toList set)
+    --> dict
+
     Dict.isEmpty Dict.empty
     --> True
 
@@ -2475,7 +2478,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "union" ), collectionUnionChecks setCollection )
         , ( ( [ "Set" ], "insert" ), collectionInsertChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
-        , ( ( [ "Dict" ], "fromList" ), collectionFromListChecks dictCollection )
+        , ( ( [ "Dict" ], "fromList" ), dictFromListChecks )
         , ( ( [ "Dict" ], "toList" ), emptiableToListChecks dictCollection )
         , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
         , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
@@ -2581,6 +2584,7 @@ compositionChecks =
     , inversesCompositionCheck { later = ( [ "String" ], "toList" ), earlier = ( [ "String" ], "fromList" ) }
     , inversesCompositionCheck { later = ( [ "String" ], "fromList" ), earlier = ( [ "String" ], "toList" ) }
     , inversesCompositionCheck { later = ( [ "Set" ], "fromList" ), earlier = ( [ "Set" ], "toList" ) }
+    , inversesCompositionCheck { later = ( [ "Dict" ], "fromList" ), earlier = ( [ "Dict" ], "toList" ) }
     , \checkInfo ->
         case
             ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
@@ -6601,6 +6605,15 @@ setFromListChecks checkInfo =
 setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 setFromListCompositionChecks checkInfo =
     wrapperFromListSingletonCompositionChecks setCollection checkInfo
+
+
+dictFromListChecks : CheckInfo -> Maybe (Error {})
+dictFromListChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> collectionFromListChecks dictCollection checkInfo
+        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Dict" ], "toList" ) checkInfo
+        ]
+        ()
 
 
 subAndCmdBatchChecks :
