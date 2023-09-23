@@ -17811,6 +17811,11 @@ a = Set.fromList
 b = Set.fromList list
 c = Set.fromList (x :: ys)
 d = Set.fromList [x, y]
+e = Set.fromList
+f = Set.fromList list
+g = Set.fromList << fun << Set.toList
+h = (Set.fromList << fun) << Set.toList
+i = Set.fromList << (fun << Set.toList)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17956,6 +17961,134 @@ a = Set.fromList << List.singleton
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.singleton
+"""
+                        ]
+        , test "should replace x |> f |> Set.toList |> Set.fromList by x |> f" <|
+            \() ->
+                """module A exposing (..)
+a = x |> f |> Set.toList |> Set.fromList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Set.toList." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f
+"""
+                        ]
+        , test "should replace Set.fromList << Set.toList by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace Set.fromList << (Set.toList << f) by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList << (Set.toList << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace Set.fromList << (Set.toList << g << f) by (g << f)" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList << (Set.toList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (g << f)
+"""
+                        ]
+        , test "should replace Set.fromList << (f >> Set.toList) by (f)" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList << (f >> Set.toList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should replace (f << Set.fromList) << Set.toList by f" <|
+            \() ->
+                """module A exposing (..)
+a = (f << Set.fromList) << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace (Set.fromList >> f) << Set.toList by f" <|
+            \() ->
+                """module A exposing (..)
+a = (Set.fromList >> f) << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
+        , test "should replace (Set.fromList >> f >> g) << Set.toList by (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+a = (Set.fromList >> f >> g) << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then Set.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f >> g)
 """
                         ]
         ]

@@ -2580,6 +2580,7 @@ compositionChecks =
     , basicsNegateCompositionChecks
     , inversesCompositionCheck { later = ( [ "String" ], "toList" ), earlier = ( [ "String" ], "fromList" ) }
     , inversesCompositionCheck { later = ( [ "String" ], "fromList" ), earlier = ( [ "String" ], "toList" ) }
+    , inversesCompositionCheck { later = ( [ "Set" ], "fromList" ), earlier = ( [ "Set" ], "toList" ) }
     , \checkInfo ->
         case
             ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier
@@ -6592,6 +6593,7 @@ setFromListChecks checkInfo =
     firstThatConstructsJust
         [ \() -> collectionFromListChecks setCollection checkInfo
         , \() -> wrapperFromListSingletonChecks setCollection checkInfo
+        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Set" ], "toList" ) checkInfo
         ]
         ()
 
