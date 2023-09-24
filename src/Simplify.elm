@@ -5163,9 +5163,9 @@ collectionAppendChecks collection checkInfo =
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysReturnsLastArgError
-                        (qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite collection.empty.description ++ " as the first argument")
+                        (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
                         { lastArg = secondArg checkInfo
-                        , lastArgRepresents = "second " ++ collection.represents ++ " argument"
+                        , lastArgRepresents = collection.represents
                         }
                         checkInfo
                     )
@@ -5177,12 +5177,12 @@ collectionAppendChecks collection checkInfo =
                 Just secondArg_ ->
                     if collection.empty.is checkInfo.lookupTable secondArg_ then
                         Just
-                            (alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite collection.empty.description ++ " as the second argument")
-                                { lastArg = Just checkInfo.firstArg
-                                , lastArgRepresents = "first " ++ collection.represents ++ " argument"
+                            (Rule.errorWithFix
+                                { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ descriptionForIndefinite collection.empty.description
+                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
-                                checkInfo
+                                checkInfo.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
                             )
 
                     else

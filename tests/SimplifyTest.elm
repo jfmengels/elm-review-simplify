@@ -7393,8 +7393,8 @@ a = List.append [] list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the first argument will always return the same given second list argument"
-                            , details = [ "You can replace this call by the second list argument itself." ]
+                            { message = "List.append [] will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7409,8 +7409,8 @@ a = List.append [] <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the first argument will always return the same given second list argument"
-                            , details = [ "You can replace this call by the second list argument itself." ]
+                            { message = "List.append [] will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7425,8 +7425,8 @@ a = list |> List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the first argument will always return the same given second list argument"
-                            , details = [ "You can replace this call by the second list argument itself." ]
+                            { message = "List.append [] will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7441,7 +7441,7 @@ a = List.append []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the first argument will always return the same given second list argument"
+                            { message = "List.append [] will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.append"
                             }
@@ -7457,8 +7457,8 @@ a = List.append list []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the second argument will always return the same given first list argument"
-                            , details = [ "You can replace this call by the first list argument itself." ]
+                            { message = "Unnecessary List.append with []"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7473,8 +7473,8 @@ a = List.append list <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the second argument will always return the same given first list argument"
-                            , details = [ "You can replace this call by the first list argument itself." ]
+                            { message = "Unnecessary List.append with []"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7489,8 +7489,8 @@ a = [] |> List.append list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append with [] as the second argument will always return the same given first list argument"
-                            , details = [ "You can replace this call by the first list argument itself." ]
+                            { message = "Unnecessary List.append with []"
+                            , details = [ "You can replace this call by the list itself." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
