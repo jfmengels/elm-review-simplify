@@ -8965,42 +8965,66 @@ collectionUnionChecks collection checkInfo =
                             )
 
                     else
-                        case collection.fromListLiteralRange checkInfo.lookupTable secondArg_ of
-                            Just literalListRangeSecond ->
-                                case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.firstArg of
-                                    Just literalListRangeFirst ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on literal " ++ collection.represents ++ "s can be turned into a single literal " ++ collection.represents
-                                                , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (if collection.literalUnionLeftElementsStayOnTheLeft then
-                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range secondArg_ }
-                                                        ++ [ Fix.insertAt
-                                                                (rangeWithoutBoundaries literalListRangeSecond).start
-                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
-                                                           ]
-
-                                                 else
-                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                                        ++ [ Fix.insertAt
-                                                                (rangeWithoutBoundaries literalListRangeFirst).start
-                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
-                                                           ]
-                                                )
-                                            )
-
-                                    Nothing ->
-                                        Nothing
-
-                            Nothing ->
-                                Nothing
+                        collectionUnionWithLiteralsChecks collection
+                            { lookupTable = checkInfo.lookupTable
+                            , extractSourceCode = checkInfo.extractSourceCode
+                            , parentRange = checkInfo.parentRange
+                            , first = checkInfo.firstArg
+                            , second = secondArg_
+                            , operationRange = checkInfo.fnRange
+                            , operation = qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
+                            }
 
                 Nothing ->
                     Nothing
         ]
         ()
+
+
+collectionUnionWithLiteralsChecks :
+    CollectionProperties (FromListProperties otherProperties)
+    ->
+        { lookupTable : ModuleNameLookupTable
+        , extractSourceCode : Range -> String
+        , parentRange : Range
+        , first : Node Expression
+        , second : Node Expression
+        , operationRange : Range
+        , operation : String
+        }
+    -> Maybe (Error {})
+collectionUnionWithLiteralsChecks collection checkInfo =
+    case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.second of
+        Just literalListRangeSecond ->
+            case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.first of
+                Just literalListRangeFirst ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = checkInfo.operation ++ " on literal " ++ collection.represents ++ "s can be turned into a single literal " ++ collection.represents
+                            , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
+                            }
+                            checkInfo.operationRange
+                            (if collection.literalUnionLeftElementsStayOnTheLeft then
+                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.second }
+                                    ++ [ Fix.insertAt
+                                            (rangeWithoutBoundaries literalListRangeSecond).start
+                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
+                                       ]
+
+                             else
+                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.first }
+                                    ++ [ Fix.insertAt
+                                            (rangeWithoutBoundaries literalListRangeFirst).start
+                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
+                                       ]
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 collectionInsertChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
