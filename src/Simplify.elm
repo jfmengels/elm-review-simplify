@@ -5192,7 +5192,7 @@ collectionAppendChecks collection checkInfo =
                                     Just literalListRangeFirst ->
                                         Just
                                             (Rule.errorWithFix
-                                                { message = "Appending literal " ++ collection.represents ++ "s could be simplified to be a single " ++ collection.represents
+                                                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on literal " ++ collection.represents ++ "s can be turned into a single literal " ++ collection.represents
                                                 , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
                                                 }
                                                 checkInfo.fnRange
