@@ -7777,7 +7777,7 @@ arrayCollection =
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+                |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
     , literalUnionLeftElementsStayOnTheLeft = True
     }
 
