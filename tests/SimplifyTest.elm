@@ -5717,6 +5717,22 @@ a = left ++ ([ b ] ++ c)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace String.fromList [ b, c ] ++ String.fromList [ d, e ] by String.fromList [ b, c , d, e ]" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList [ b, c ] ++ String.fromList [ d, e ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromList [ b, c , d, e ]
+"""
+                        ]
         ]
 
 
