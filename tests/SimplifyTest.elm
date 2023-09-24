@@ -19799,7 +19799,7 @@ a = Set.union set Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Set.empty"
+                            { message = "Unnecessary Set.union with Set.empty"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.union"
                             }
@@ -19817,7 +19817,7 @@ a = Set.empty |> Set.union set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Set.empty"
+                            { message = "Unnecessary Set.union with Set.empty"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.union"
                             }
@@ -19835,13 +19835,175 @@ a = Set.empty |> Set.union set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Set.empty"
+                            { message = "Unnecessary Set.union with Set.empty"
                             , details = [ "You can replace this call by the set itself." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = set
+"""
+                        ]
+        , test "should report Set.union applied on two set literals" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union (Set.fromList [b,c]) (Set.fromList [d,e])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.fromList [b,c,d,e])
+"""
+                        ]
+        , test "should report Set.union applied on two set literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union (Set.fromList [ b, z ]) (Set.fromList [c,d,0])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.fromList [ b, z ,c,d,0])
+"""
+                        ]
+        , test "should report Set.union <| on two set literals" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union (Set.fromList [b, c]) <| Set.fromList [d,e]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [b, c,d,e]
+"""
+                        ]
+        , test "should report Set.union |> on two set literals" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [d,e] |> Set.union (Set.fromList [b,c])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [b,c,d,e]
+"""
+                        ]
+        , test "should report Set.union |> on two set literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [c,d,0] |> Set.union (Set.fromList [ b, z ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [ b, z ,c,d,0]
+"""
+                        ]
+        , test "should replace Set.union ([ b, c ] |> Set.fromList) (Set.fromList [ d, e ]) by (Set.fromList [ b, c, d, e ])" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union ([ b, c ] |> Set.fromList) (Set.fromList [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.fromList [ b, c , d, e ])
+"""
+                        ]
+        , test "should replace Set.union ([ b, c ] |> Set.fromList) (Set.fromList <| [ d, e ]) by (Set.fromList <| [ b, c, d, e ])" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union ([ b, c ] |> Set.fromList) (Set.fromList <| [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.fromList <| [ b, c , d, e ])
+"""
+                        ]
+        , test "should replace Set.union (Set.fromList <| [ b, c ]) ([ d, e ] |> Set.fromList) by ([ b, c , d, e ] |> Set.fromList)" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union (Set.fromList <| [ b, c ]) ([ d, e ] |> Set.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = ([ b, c , d, e ] |> Set.fromList)
+"""
+                        ]
+        , test "should replace [ d, e ] |> Set.fromList |> Set.union (Set.fromList <| [ b, c ]) by [ b, c , d, e ] |> Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = [ d, e ] |> Set.fromList |> Set.union (Set.fromList <| [ b, c ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union on literal sets can be turned into a single literal set"
+                            , details = [ "Try moving all the elements into a single set." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = [ b, c , d, e ] |> Set.fromList
 """
                         ]
         ]
@@ -20802,7 +20964,7 @@ a = Dict.union dict Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Dict.empty"
+                            { message = "Unnecessary Dict.union with Dict.empty"
                             , details = [ "You can replace this call by the dict itself." ]
                             , under = "Dict.union"
                             }
@@ -20820,7 +20982,7 @@ a = Dict.empty |> Dict.union dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Dict.empty"
+                            { message = "Unnecessary Dict.union with Dict.empty"
                             , details = [ "You can replace this call by the dict itself." ]
                             , under = "Dict.union"
                             }
@@ -20838,13 +21000,103 @@ a = Dict.empty |> Dict.union dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary union with Dict.empty"
+                            { message = "Unnecessary Dict.union with Dict.empty"
                             , details = [ "You can replace this call by the dict itself." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = dict
+"""
+                        ]
+        , test "should report Dict.union applied on two dict literals" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union (Dict.fromList [b,c]) (Dict.fromList [d,e])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList [d,e,b,c])
+"""
+                        ]
+        , test "should report Dict.union applied on two dict literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union (Dict.fromList [ b, c ]) (Dict.fromList [d,e])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList [d,e, b, c ])
+"""
+                        ]
+        , test "should report Dict.union <| on two dict literals" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union (Dict.fromList [b,c]) <| Dict.fromList [d,e]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList [d,e,b,c])
+"""
+                        ]
+        , test "should replace Dict.fromList [d,e] |> Dict.union (Dict.fromList [b, c]) by (Dict.fromList [d,e,b, c])" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [d,e] |> Dict.union (Dict.fromList [b, c])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList [d,e,b, c])
+"""
+                        ]
+        , test "should replace Dict.fromList [b,c] |> Dict.union (Dict.fromList [d,e]) by (Dict.fromList [b,c,d,e])" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [b,c] |> Dict.union (Dict.fromList [d,e])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList [b,c,d,e])
 """
                         ]
         ]
@@ -21155,6 +21407,78 @@ a = Sub.map f Sub.none
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Sub.none
+"""
+                        ]
+        , test "should replace Dict.union ([ b, c ] |> Dict.fromList) (Dict.fromList [ d, e ]) by ([ d, e , b, c ] |> Dict.fromList)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union ([ b, c ] |> Dict.fromList) (Dict.fromList [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = ([ d, e , b, c ] |> Dict.fromList)
+"""
+                        ]
+        , test "should replace Dict.union ([ b, c ] |> Dict.fromList) (Dict.fromList <| [ d, e ]) by ([ d, e , b, c ] |> Dict.fromList)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union ([ b, c ] |> Dict.fromList) (Dict.fromList <| [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = ([ d, e , b, c ] |> Dict.fromList)
+"""
+                        ]
+        , test "should replace Dict.union (Dict.fromList <| [ b, c ]) ([ d, e ] |> Dict.fromList) by (Dict.fromList <| [ d, e , b, c ])" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union (Dict.fromList <| [ b, c ]) ([ d, e ] |> Dict.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList <| [ d, e , b, c ])
+"""
+                        ]
+        , test "should replace [ d, e ] |> Dict.fromList |> Dict.union (Dict.fromList <| [ b, c ]) by (Dict.fromList <| [ d, e , b, c ])" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = [ d, e ] |> Dict.fromList |> Dict.union (Dict.fromList <| [ b, c ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
+                            , details = [ "Try moving all the elements into a single dict." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.fromList <| [ d, e , b, c ])
 """
                         ]
         ]

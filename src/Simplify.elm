@@ -813,6 +813,9 @@ Destructuring using case expressions
     Set.union set Set.empty
     --> set
 
+    Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])
+    --> Set.fromList [ a, b, c, d]
+
     Set.insert x Set.empty
     --> Set.singleton x
 
@@ -858,6 +861,9 @@ Destructuring using case expressions
 
     Dict.union dict Dict.empty
     --> dict
+
+    Dict.union (Dict.fromList [ a, b ]) (Dict.fromList [ c, d ])
+    --> Dict.fromList [ c, d, a, b ]
 
     Dict.partition f Dict.empty
     --> ( Dict.empty, Dict.empty )
@@ -2521,7 +2527,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
         , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
-        , ( ( [ "Set" ], "union" ), collectionUnionChecks setCollection )
+        , ( ( [ "Set" ], "union" ), collectionAppendChecks setCollection )
         , ( ( [ "Set" ], "insert" ), collectionInsertChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), dictFromListChecks )
@@ -2531,7 +2537,7 @@ functionCallChecks =
         , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
         , ( ( [ "Dict" ], "intersect" ), collectionIntersectChecks dictCollection )
         , ( ( [ "Dict" ], "diff" ), collectionDiffChecks dictCollection )
-        , ( ( [ "Dict" ], "union" ), collectionUnionChecks dictCollection )
+        , ( ( [ "Dict" ], "union" ), collectionAppendChecks dictCollection )
         , ( ( [ "String" ], "toList" ), stringToListChecks )
         , ( ( [ "String" ], "fromList" ), stringFromListChecks )
         , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
@@ -5203,11 +5209,19 @@ collectionAppendChecks collection checkInfo =
                                                 , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
                                                 }
                                                 checkInfo.fnRange
-                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range secondArg_ }
-                                                    ++ [ Fix.insertAt
-                                                            (rangeWithoutBoundaries literalListRangeSecond).start
-                                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
-                                                       ]
+                                                (if collection.literalUnionLeftElementsStayOnTheLeft then
+                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range secondArg_ }
+                                                        ++ [ Fix.insertAt
+                                                                (rangeWithoutBoundaries literalListRangeSecond).start
+                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
+                                                           ]
+
+                                                 else
+                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                                        ++ [ Fix.insertAt
+                                                                (rangeWithoutBoundaries literalListRangeFirst).start
+                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
+                                                           ]
                                                 )
                                             )
 
@@ -7463,6 +7477,7 @@ type alias FromListProperties otherProperties =
     TypeProperties
         { otherProperties
             | fromListLiteralRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
+            , literalUnionLeftElementsStayOnTheLeft : Bool
         }
 
 
@@ -7752,6 +7767,7 @@ listCollection =
         }
     , mapFnName = "map"
     , fromListLiteralRange = \_ expr -> AstHelpers.getListLiteralRange expr
+    , literalUnionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -7830,6 +7846,7 @@ arrayCollection =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , literalUnionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -7873,7 +7890,7 @@ arrayDetermineSize resources expressionNode =
         ()
 
 
-setCollection : CollectionProperties (WrapperProperties {})
+setCollection : CollectionProperties (WrapperProperties (FromListProperties {}))
 setCollection =
     { moduleName = [ "Set" ]
     , represents = "set"
@@ -7895,6 +7912,11 @@ setCollection =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expr)
         }
+    , fromListLiteralRange =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
+                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , literalUnionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -7945,7 +7967,7 @@ setDetermineSize resources expressionNode =
         ()
 
 
-dictCollection : CollectionProperties {}
+dictCollection : CollectionProperties (FromListProperties {})
 dictCollection =
     { moduleName = [ "Dict" ]
     , represents = "dict"
@@ -7960,6 +7982,11 @@ dictCollection =
         }
     , nameForSize = "size"
     , determineSize = dictDetermineSize
+    , fromListLiteralRange =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
+                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , literalUnionLeftElementsStayOnTheLeft = False
     }
 
 
@@ -8991,7 +9018,7 @@ collectionUnionChecks collection checkInfo =
                     if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary union with " ++ descriptionForIndefinite collection.empty.description
+                                { message = "Unnecessary " ++ Tuple.second checkInfo.fn ++ " with " ++ descriptionForIndefinite collection.empty.description
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
