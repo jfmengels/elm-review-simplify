@@ -14431,6 +14431,7 @@ arrayTests =
         , arrayRepeatTests
         , arrayInitializeTests
         , arrayLengthTests
+        , arrayAppendTests
         ]
 
 
@@ -16041,6 +16042,312 @@ a = Array.length (Array.initialize n f)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = max 0 n
+"""
+                        ]
+        ]
+
+
+arrayAppendTests : Test
+arrayAppendTests =
+    describe "Array.append"
+        [ test "should not report Array.append with an array variable" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append
+b = Array.append (Array.fromList [ 1 ])
+c = Array.append (Array.fromList [ 1 ]) array
+d = Array.append array (Array.fromList [ 1 ])
+e = Array.append array1 array2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.append Array.empty array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append Array.empty array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append Array.empty will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.append Array.empty <| array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append Array.empty <| array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append Array.empty will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace array |> Array.append Array.empty by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = array |> Array.append Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append Array.empty will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.append Array.empty by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append Array.empty will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.append array Array.empty by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append array Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.append with Array.empty"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.append array <| Array.empty by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append array <| Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.append with Array.empty"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.empty |> Array.append array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.empty |> Array.append array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.append with Array.empty"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should report Array.append applied on two array literals" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append (Array.fromList [b]) (Array.fromList [c,d,0])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.fromList [b,c,d,0])
+"""
+                        ]
+        , test "should report Array.append applied on two array literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append (Array.fromList [ b, z ]) (Array.fromList [c,d,0])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.fromList [ b, z ,c,d,0])
+"""
+                        ]
+        , test "should report Array.append <| on two array literals" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append (Array.fromList [b]) <| Array.fromList [c,d,0]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.fromList [b,c,d,0]
+"""
+                        ]
+        , test "should report Array.append |> on two array literals" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList [c,d,0] |> Array.append (Array.fromList [b])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.fromList [b,c,d,0]
+"""
+                        ]
+        , test "should report Array.append |> on two array literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList [c,d,0] |> Array.append (Array.fromList [ b, z ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.fromList [ b, z ,c,d,0]
+"""
+                        ]
+        , test "should replace Array.append ([ b, c ] |> Array.fromList) (Array.fromList [ d, e ]) by (Array.fromList [ b, c, d, e ])" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append ([ b, c ] |> Array.fromList) (Array.fromList [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.fromList [ b, c , d, e ])
+"""
+                        ]
+        , test "should replace Array.append ([ b, c ] |> Array.fromList) (Array.fromList <| [ d, e ]) by (Array.fromList <| [ b, c, d, e ])" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append ([ b, c ] |> Array.fromList) (Array.fromList <| [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.fromList <| [ b, c , d, e ])
+"""
+                        ]
+        , test "should replace Array.append (Array.fromList <| [ b, c ]) ([ d, e ] |> Array.fromList) by ([ b, c , d, e ] |> Array.fromList)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.append (Array.fromList <| [ b, c ]) ([ d, e ] |> Array.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = ([ b, c , d, e ] |> Array.fromList)
+"""
+                        ]
+        , test "should replace [ d, e ] |> Array.fromList |> Array.append (Array.fromList <| [ b, c ]) by [ b, c , d, e ] |> Array.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = [ d, e ] |> Array.fromList |> Array.append (Array.fromList <| [ b, c ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.append on literal arrays can be turned into a single literal array"
+                            , details = [ "Try moving all the elements into a single array." ]
+                            , under = "Array.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = [ b, c , d, e ] |> Array.fromList
 """
                         ]
         ]

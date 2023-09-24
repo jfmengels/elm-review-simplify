@@ -765,6 +765,12 @@ Destructuring using case expressions
     Array.length (Array.initialize n f)
     --> max 0 n
 
+    Array.append Array.empty array
+    --> array
+
+    Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])
+    --> (Array.fromList [ a, b, c, d ])
+
 
 ### Sets
 
@@ -2503,6 +2509,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "length" ), arrayLengthChecks )
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
+        , ( ( [ "Array" ], "append" ), collectionAppendChecks arrayCollection )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -7804,7 +7811,7 @@ stringDetermineLength expression =
             Nothing
 
 
-arrayCollection : CollectionProperties {}
+arrayCollection : CollectionProperties (FromListProperties {})
 arrayCollection =
     { moduleName = [ "Array" ]
     , represents = "array"
@@ -7819,6 +7826,10 @@ arrayCollection =
         }
     , nameForSize = "length"
     , determineSize = arrayDetermineSize
+    , fromListLiteralRange =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
+                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
     }
 
 

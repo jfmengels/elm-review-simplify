@@ -18,6 +18,8 @@ The rule now simplifies:
 - `Array.length (Array.initialize 3 f)` to `3`
 - `Array.length (Array.repeat n x)` to `max 0 n`
 - `Array.length (Array.initialize n f)` to `max 0 n`
+- `Array.append Array.empty array` to `array`
+- `Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])` to `Array.fromList [ a, b, c, d ]`
 - `List.singleton >> String.fromList` to `String.fromChar`
 
 ## [2.1.1] - 2023-09-18
