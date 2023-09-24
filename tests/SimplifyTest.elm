@@ -5737,6 +5737,7 @@ stringSimplificationTests =
         , stringReplaceTests
         , stringWordsTests
         , stringLinesTests
+        , stringAppendTests
         , stringReverseTests
         , stringSliceTests
         , stringRightTests
@@ -6661,6 +6662,227 @@ a = (String.fromList >> f >> g) << String.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f >> g)
+"""
+                        ]
+        ]
+
+
+stringAppendTests : Test
+stringAppendTests =
+    describe "String.append"
+        [ test "should not report String.append used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = String.append string1 string2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.append \"\" string by string" <|
+            \() ->
+                """module A exposing (..)
+a = String.append "" string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append \"\" will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = string
+"""
+                        ]
+        , test "should replace String.append string \"\" by string" <|
+            \() ->
+                """module A exposing (..)
+a = String.append string ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.append with \"\""
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = string
+"""
+                        ]
+        , test "should replace \"\" |> String.append string by string" <|
+            \() ->
+                """module A exposing (..)
+a = "" |> String.append string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.append with \"\""
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = string
+"""
+                        ]
+        , test "should replace string |> String.append \"\" by string" <|
+            \() ->
+                """module A exposing (..)
+a = "" |> String.append string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.append with \"\""
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = string
+"""
+                        ]
+        , test "should report String.append applied on two string literals" <|
+            \() ->
+                """module A exposing (..)
+a = String.append (String.fromList [b,c]) (String.fromList [d,e])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.fromList [b,c,d,e])
+"""
+                        ]
+        , test "should report String.append applied on two string literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+a = String.append (String.fromList [ b, z ]) (String.fromList [c,d,0])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.fromList [ b, z ,c,d,0])
+"""
+                        ]
+        , test "should report String.append <| on two string literals" <|
+            \() ->
+                """module A exposing (..)
+a = String.append (String.fromList [b, c]) <| String.fromList [d,e]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromList [b, c,d,e]
+"""
+                        ]
+        , test "should report String.append |> on two string literals" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList [d,e] |> String.append (String.fromList [b,c])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromList [b,c,d,e]
+"""
+                        ]
+        , test "should report String.append |> on two string literals (multiple elements)" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromList [c,d,0] |> String.append (String.fromList [ b, z ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.fromList [ b, z ,c,d,0]
+"""
+                        ]
+        , test "should replace String.append ([ b, c ] |> String.fromList) (String.fromList [ d, e ]) by (String.fromList [ b, c, d, e ])" <|
+            \() ->
+                """module A exposing (..)
+a = String.append ([ b, c ] |> String.fromList) (String.fromList [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.fromList [ b, c , d, e ])
+"""
+                        ]
+        , test "should replace String.append ([ b, c ] |> String.fromList) (String.fromList <| [ d, e ]) by (String.fromList <| [ b, c, d, e ])" <|
+            \() ->
+                """module A exposing (..)
+a = String.append ([ b, c ] |> String.fromList) (String.fromList <| [ d, e ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.fromList <| [ b, c , d, e ])
+"""
+                        ]
+        , test "should replace String.append (String.fromList <| [ b, c ]) ([ d, e ] |> String.fromList) by ([ b, c , d, e ] |> String.fromList)" <|
+            \() ->
+                """module A exposing (..)
+a = String.append (String.fromList <| [ b, c ]) ([ d, e ] |> String.fromList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ([ b, c , d, e ] |> String.fromList)
+"""
+                        ]
+        , test "should replace [ d, e ] |> String.fromList |> String.append (String.fromList <| [ b, c ]) by [ b, c , d, e ] |> String.fromList" <|
+            \() ->
+                """module A exposing (..)
+a = [ d, e ] |> String.fromList |> String.append (String.fromList <| [ b, c ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.append on literal strings can be turned into a single literal string"
+                            , details = [ "Try moving all the elements into a single string." ]
+                            , under = "String.append"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ b, c , d, e ] |> String.fromList
 """
                         ]
         ]
