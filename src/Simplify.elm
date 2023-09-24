@@ -2188,6 +2188,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         in
                         checkFn
                             { lookupTable = context.lookupTable
+                            , extractSourceCode = context.extractSourceCode
                             , expectNaN = config.expectNaN
                             , importLookup = context.importLookup
                             , moduleBindings = context.moduleBindings
@@ -2586,6 +2587,7 @@ functionCallChecks =
 
 type alias OperatorCheckInfo =
     { lookupTable : ModuleNameLookupTable
+    , extractSourceCode : Range -> String
     , expectNaN : Bool
     , importLookup : ImportLookup
     , moduleBindings : Set String
@@ -3290,6 +3292,16 @@ plusplusChecks checkInfo =
 
                 ( _, Nothing ) ->
                     Nothing
+        , \() ->
+            collectionUnionWithLiteralsChecks stringCollection
+                { lookupTable = checkInfo.lookupTable
+                , extractSourceCode = checkInfo.extractSourceCode
+                , parentRange = checkInfo.parentRange
+                , first = checkInfo.left
+                , second = checkInfo.right
+                , operationRange = checkInfo.operatorRange
+                , operation = "++"
+                }
         , \() ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
                 Just leftListSingleton ->
