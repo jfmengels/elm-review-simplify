@@ -3271,27 +3271,15 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case ( AstHelpers.getListLiteral checkInfo.left, AstHelpers.getListLiteral checkInfo.right ) of
-                ( Just _, Just _ ) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Expression could be simplified to be a single List"
-                            , details = [ "Try moving all the elements into a single list." ]
-                            }
-                            checkInfo.operatorRange
-                            [ Fix.replaceRangeBy
-                                { start = endWithoutBoundary checkInfo.leftRange
-                                , end = startWithoutBoundary checkInfo.rightRange
-                                }
-                                ","
-                            ]
-                        )
-
-                ( Nothing, _ ) ->
-                    Nothing
-
-                ( _, Nothing ) ->
-                    Nothing
+            collectionUnionWithLiteralsChecks listCollection
+                { lookupTable = checkInfo.lookupTable
+                , extractSourceCode = checkInfo.extractSourceCode
+                , parentRange = checkInfo.parentRange
+                , first = checkInfo.left
+                , second = checkInfo.right
+                , operationRange = checkInfo.operatorRange
+                , operation = "++"
+                }
         , \() ->
             collectionUnionWithLiteralsChecks stringCollection
                 { lookupTable = checkInfo.lookupTable
