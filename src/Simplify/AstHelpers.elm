@@ -5,7 +5,7 @@ module Simplify.AstHelpers exposing
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
-    , getCollapsedCons, getListLiteral, getListSingleton
+    , getCollapsedCons, getListLiteral, getListLiteralRange, getListSingleton
     , getTuple2, getTuple2Literal
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 @docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
-@docs getCollapsedCons, getListLiteral, getListSingleton
+@docs getCollapsedCons, getListLiteral, getListLiteralRange, getListSingleton
 @docs getTuple2, getTuple2Literal
 
 
@@ -688,6 +688,16 @@ getListLiteral expressionNode =
     case removeParens expressionNode of
         Node _ (Expression.ListExpr list) ->
             Just list
+
+        _ ->
+            Nothing
+
+
+getListLiteralRange : Node Expression -> Maybe Range
+getListLiteralRange expressionNode =
+    case removeParens expressionNode of
+        Node range (Expression.ListExpr _) ->
+            Just range
 
         _ ->
             Nothing

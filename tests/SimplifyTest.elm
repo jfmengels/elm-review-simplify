@@ -7313,7 +7313,7 @@ a = List.append [b] [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending literal lists could be simplified to be a single List"
+                            { message = "Appending literal lists could be simplified to be a single list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.append"
                             }
@@ -7329,7 +7329,7 @@ a = List.append [ b, z ] [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending literal lists could be simplified to be a single List"
+                            { message = "Appending literal lists could be simplified to be a single list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.append"
                             }
@@ -7345,7 +7345,7 @@ a = List.append [b] <| [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending literal lists could be simplified to be a single List"
+                            { message = "Appending literal lists could be simplified to be a single list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.append"
                             }
@@ -7361,7 +7361,7 @@ a = [c,d,0] |> List.append [b]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending literal lists could be simplified to be a single List"
+                            { message = "Appending literal lists could be simplified to be a single list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.append"
                             }
@@ -7377,7 +7377,7 @@ a = [c,d,0] |> List.append [ b, z ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Appending literal lists could be simplified to be a single List"
+                            { message = "Appending literal lists could be simplified to be a single list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "List.append"
                             }

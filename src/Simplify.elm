@@ -2459,7 +2459,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), withDefaultChecks resultWithOkAsWrap )
         , ( ( [ "Result" ], "toMaybe" ), unwrapToMaybeChecks resultWithOkAsWrap )
-        , ( ( [ "List" ], "append" ), listAppendChecks )
+        , ( ( [ "List" ], "append" ), collectionAppendChecks listCollection )
         , ( ( [ "List" ], "head" ), listHeadChecks )
         , ( ( [ "List" ], "tail" ), listTailChecks )
         , ( ( [ "List" ], "member" ), listMemberChecks )
@@ -5156,62 +5156,59 @@ listIntersperseCompositionChecks checkInfo =
     compositionAfterWrapIsUnnecessaryCheck listCollection checkInfo
 
 
-listAppendChecks : CheckInfo -> Maybe (Error {})
-listAppendChecks checkInfo =
-    let
-        listArgToTheLeft : Node Expression
-        listArgToTheLeft =
-            checkInfo.firstArg
-    in
+collectionAppendChecks : CollectionProperties (FromListProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionAppendChecks collection checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case AstHelpers.getListLiteral listArgToTheLeft of
-                Just [] ->
-                    Just
-                        (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with [] as the first argument")
-                            { lastArg = secondArg checkInfo
-                            , lastArgRepresents = "second list argument"
-                            }
-                            checkInfo
-                        )
+            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+                Just
+                    (alwaysReturnsLastArgError
+                        (qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite collection.empty.description ++ " as the first argument")
+                        { lastArg = secondArg checkInfo
+                        , lastArgRepresents = "second " ++ collection.represents ++ " argument"
+                        }
+                        checkInfo
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
         , \() ->
             case secondArg checkInfo of
-                Just listArgToTheRight ->
-                    case AstHelpers.getListLiteral listArgToTheRight of
-                        Just [] ->
-                            Just
-                                (returnsArgError (qualifiedToString checkInfo.fn ++ " with [] as the second argument")
-                                    { arg = listArgToTheLeft
-                                    , argRepresents = "first list argument"
-                                    }
-                                    checkInfo
-                                )
+                Just secondArg_ ->
+                    if collection.empty.is checkInfo.lookupTable secondArg_ then
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite collection.empty.description ++ " as the second argument")
+                                { lastArg = Just checkInfo.firstArg
+                                , lastArgRepresents = "first " ++ collection.represents ++ " argument"
+                                }
+                                checkInfo
+                            )
 
-                        Just (_ :: _) ->
-                            case AstHelpers.getListLiteral listArgToTheLeft of
-                                Just (_ :: _) ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Appending literal lists could be simplified to be a single List"
-                                            , details = [ "Try moving all the elements into a single list." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.removeRange { start = (Node.range listArgToTheRight).end, end = checkInfo.parentRange.end }
-                                            , Fix.replaceRangeBy
-                                                { start = checkInfo.parentRange.start, end = startWithoutBoundary (Node.range listArgToTheRight) }
-                                                ("[" ++ checkInfo.extractSourceCode (rangeWithoutBoundaries (Node.range listArgToTheLeft)) ++ ",")
-                                            ]
-                                        )
+                    else
+                        case collection.fromListLiteralRange checkInfo.lookupTable secondArg_ of
+                            Just literalListRangeSecond ->
+                                case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.firstArg of
+                                    Just literalListRangeFirst ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "Appending literal " ++ collection.represents ++ "s could be simplified to be a single " ++ collection.represents
+                                                , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range secondArg_ }
+                                                    ++ [ Fix.insertAt
+                                                            (rangeWithoutBoundaries literalListRangeSecond).start
+                                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
+                                                       ]
+                                                )
+                                            )
 
-                                _ ->
-                                    Nothing
+                                    Nothing ->
+                                        Nothing
 
-                        Nothing ->
-                            Nothing
+                            Nothing ->
+                                Nothing
 
                 Nothing ->
                     Nothing
@@ -7455,6 +7452,13 @@ type alias WrapperProperties otherProperties =
         }
 
 
+type alias FromListProperties otherProperties =
+    TypeProperties
+        { otherProperties
+            | fromListLiteralRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
+        }
+
+
 type alias ConstructWithOneArgProperties =
     { description : Description
     , fnName : String
@@ -7721,7 +7725,7 @@ taskWithFailAsWrap =
     }
 
 
-listCollection : CollectionProperties (WrapperProperties { mapFnName : String })
+listCollection : CollectionProperties (WrapperProperties (FromListProperties { mapFnName : String }))
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -7740,6 +7744,7 @@ listCollection =
                 Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
         }
     , mapFnName = "map"
+    , fromListLiteralRange = \_ expr -> AstHelpers.getListLiteralRange expr
     }
 
 
