@@ -7297,9 +7297,11 @@ listAppendTests =
             \() ->
                 """module A exposing (..)
 a = List.append
-b = List.append [ 1 ]
-c = List.append [ 1 ] ys
-d = List.append xs [ 1 ]
+b = List.append list
+c = List.append [ 1 ]
+d = List.append [ 1 ] list
+e = List.append list [ 1 ]
+f = List.append list1 list2
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -7383,10 +7385,10 @@ a = [c,d,0] |> List.append [ b, z ]
 a = [ b, z ,c,d,0]
 """
                         ]
-        , test "should replace List.append [] ys by ys" <|
+        , test "should replace List.append [] list by list" <|
             \() ->
                 """module A exposing (..)
-a = List.append [] ys
+a = List.append [] list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7396,13 +7398,13 @@ a = List.append [] ys
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ys
+a = list
 """
                         ]
-        , test "should replace List.append [] <| ys by ys" <|
+        , test "should replace List.append [] <| list by list" <|
             \() ->
                 """module A exposing (..)
-a = List.append [] <| ys
+a = List.append [] <| list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7412,13 +7414,13 @@ a = List.append [] <| ys
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ys
+a = list
 """
                         ]
-        , test "should replace ys |> List.append [] by ys" <|
+        , test "should replace list |> List.append [] by list" <|
             \() ->
                 """module A exposing (..)
-a = ys |> List.append []
+a = list |> List.append []
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7428,7 +7430,7 @@ a = ys |> List.append []
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ys
+a = list
 """
                         ]
         , test "should replace List.append [] by identity" <|
@@ -7447,10 +7449,10 @@ a = List.append []
 a = identity
 """
                         ]
-        , test "should replace List.append xs [] by xs" <|
+        , test "should replace List.append list [] by list" <|
             \() ->
                 """module A exposing (..)
-a = List.append xs []
+a = List.append list []
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7460,13 +7462,13 @@ a = List.append xs []
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = xs
+a = list
 """
                         ]
-        , test "should replace List.append xs <| [] by xs" <|
+        , test "should replace List.append list <| [] by list" <|
             \() ->
                 """module A exposing (..)
-a = List.append xs <| []
+a = List.append list <| []
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7476,13 +7478,13 @@ a = List.append xs <| []
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = xs
+a = list
 """
                         ]
-        , test "should replace [] |> List.append xs by xs" <|
+        , test "should replace [] |> List.append list by list" <|
             \() ->
                 """module A exposing (..)
-a = [] |> List.append xs
+a = [] |> List.append list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7492,7 +7494,7 @@ a = [] |> List.append xs
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = xs
+a = list
 """
                         ]
         ]
@@ -21119,7 +21121,7 @@ taskMapNTests : Test
 taskMapNTests =
     -- testing behavior only with representatives for 2-5
     describe "Task.mapN"
-        [ test "should not report Task.map3 with task.succeeday arguments" <|
+        [ test "should not report Task.map3 with okay arguments" <|
             \() ->
                 """module A exposing (..)
 import Task
