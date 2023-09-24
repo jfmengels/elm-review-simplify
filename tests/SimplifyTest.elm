@@ -5621,7 +5621,7 @@ a = [ 1 ] ++ [ 2, 3 ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression could be simplified to be a single List"
+                            { message = "++ on literal lists can be turned into a single literal list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "++"
                             }
@@ -5637,7 +5637,7 @@ a = [ a, 1 ] ++ [ b, 2 ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Expression could be simplified to be a single List"
+                            { message = "++ on literal lists can be turned into a single literal list"
                             , details = [ "Try moving all the elements into a single list." ]
                             , under = "++"
                             }
