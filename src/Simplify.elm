@@ -6234,7 +6234,7 @@ wrapperRepeatChecks wrapper checkInfo =
             Just
                 (Rule.errorWithFix
                     { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.nameForSize ++ " 1 will result in " ++ qualifiedToString wrapFn
-                    , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ "." ]
+                    , details = [ "You can replace this call by x " ++ qualifiedToString wrapFn ++ "." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy
