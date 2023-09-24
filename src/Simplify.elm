@@ -296,6 +296,12 @@ Destructuring using case expressions
     String.concat []
     --> ""
 
+    String.append "" str
+    --> str
+
+    String.append (String.fromList [ a, b ]) (String.fromList [ c, d ])
+    --> String.fromList [ a, b, c, d ]
+
     String.join str []
     --> ""
 
@@ -769,7 +775,7 @@ Destructuring using case expressions
     --> array
 
     Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])
-    --> (Array.fromList [ a, b, c, d ])
+    --> Array.fromList [ a, b, c, d ]
 
 
 ### Sets
@@ -2552,6 +2558,7 @@ functionCallChecks =
         , ( ( [ "String" ], "slice" ), stringSliceChecks )
         , ( ( [ "String" ], "left" ), stringLeftChecks )
         , ( ( [ "String" ], "right" ), stringRightChecks )
+        , ( ( [ "String" ], "append" ), collectionUnionChecks stringCollection )
         , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks cmdCollection )
         , ( ( [ "Platform", "Cmd" ], "map" ), emptiableMapChecks cmdCollection )
         , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
@@ -7728,7 +7735,7 @@ listDetermineLength resources expressionNode =
             Nothing
 
 
-stringCollection : CollectionProperties (WrapperProperties {})
+stringCollection : CollectionProperties (WrapperProperties (FromListProperties {}))
 stringCollection =
     { moduleName = [ "String" ]
     , represents = "string"
@@ -7746,6 +7753,11 @@ stringCollection =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromChar" ) lookupTable expr)
         }
+    , fromListLiteralRange =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
+                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , literalUnionLeftElementsStayOnTheLeft = True
     }
 
 

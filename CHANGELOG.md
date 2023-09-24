@@ -20,6 +20,8 @@ The rule now simplifies:
 - `Array.length (Array.initialize n f)` to `max 0 n`
 - `Array.append Array.empty array` to `array`
 - `Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])` to `Array.fromList [ a, b, c, d ]`
+- `String.append String.empty str` to `str`
+- `String.append (String.fromList [ a, b ]) (String.fromList [ c, d ])` to `String.fromList [ a, b, c, d ]`
 - `Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])` to `Set.fromList [ a, b, c, d ]`
 - `Dict.union (Dict.fromList [ a, b ]) (Dict.fromList [ c, d ])` to `Dict.fromList [ c, d, a, b ]`
 - `List.singleton >> String.fromList` to `String.fromChar`
