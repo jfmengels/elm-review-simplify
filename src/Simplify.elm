@@ -2471,7 +2471,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
         , ( ( [ "Result" ], "withDefault" ), withDefaultChecks resultWithOkAsWrap )
         , ( ( [ "Result" ], "toMaybe" ), unwrapToMaybeChecks resultWithOkAsWrap )
-        , ( ( [ "List" ], "append" ), collectionAppendChecks listCollection )
+        , ( ( [ "List" ], "append" ), collectionUnionChecks listCollection )
         , ( ( [ "List" ], "head" ), listHeadChecks )
         , ( ( [ "List" ], "tail" ), listTailChecks )
         , ( ( [ "List" ], "member" ), listMemberChecks )
@@ -2515,7 +2515,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "length" ), arrayLengthChecks )
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
-        , ( ( [ "Array" ], "append" ), collectionAppendChecks arrayCollection )
+        , ( ( [ "Array" ], "append" ), collectionUnionChecks arrayCollection )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -2527,7 +2527,7 @@ functionCallChecks =
         , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
         , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
         , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
-        , ( ( [ "Set" ], "union" ), collectionAppendChecks setCollection )
+        , ( ( [ "Set" ], "union" ), collectionUnionChecks setCollection )
         , ( ( [ "Set" ], "insert" ), collectionInsertChecks setCollection )
         , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
         , ( ( [ "Dict" ], "fromList" ), dictFromListChecks )
@@ -2537,7 +2537,7 @@ functionCallChecks =
         , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
         , ( ( [ "Dict" ], "intersect" ), collectionIntersectChecks dictCollection )
         , ( ( [ "Dict" ], "diff" ), collectionDiffChecks dictCollection )
-        , ( ( [ "Dict" ], "union" ), collectionAppendChecks dictCollection )
+        , ( ( [ "Dict" ], "union" ), collectionUnionChecks dictCollection )
         , ( ( [ "String" ], "toList" ), stringToListChecks )
         , ( ( [ "String" ], "fromList" ), stringFromListChecks )
         , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
@@ -5167,74 +5167,6 @@ listIntersperseChecks checkInfo =
 listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listIntersperseCompositionChecks checkInfo =
     compositionAfterWrapIsUnnecessaryCheck listCollection checkInfo
-
-
-collectionAppendChecks : CollectionProperties (FromListProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionAppendChecks collection checkInfo =
-    firstThatConstructsJust
-        [ \() ->
-            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
-                Just
-                    (alwaysReturnsLastArgError
-                        (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
-                        { lastArg = secondArg checkInfo
-                        , lastArgRepresents = collection.represents
-                        }
-                        checkInfo
-                    )
-
-            else
-                Nothing
-        , \() ->
-            case secondArg checkInfo of
-                Just secondArg_ ->
-                    if collection.empty.is checkInfo.lookupTable secondArg_ then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ descriptionForIndefinite collection.empty.description
-                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
-                                }
-                                checkInfo.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
-                            )
-
-                    else
-                        case collection.fromListLiteralRange checkInfo.lookupTable secondArg_ of
-                            Just literalListRangeSecond ->
-                                case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.firstArg of
-                                    Just literalListRangeFirst ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on literal " ++ collection.represents ++ "s can be turned into a single literal " ++ collection.represents
-                                                , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (if collection.literalUnionLeftElementsStayOnTheLeft then
-                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range secondArg_ }
-                                                        ++ [ Fix.insertAt
-                                                                (rangeWithoutBoundaries literalListRangeSecond).start
-                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
-                                                           ]
-
-                                                 else
-                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                                        ++ [ Fix.insertAt
-                                                                (rangeWithoutBoundaries literalListRangeFirst).start
-                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
-                                                           ]
-                                                )
-                                            )
-
-                                    Nothing ->
-                                        Nothing
-
-                            Nothing ->
-                                Nothing
-
-                Nothing ->
-                    Nothing
-        ]
-        ()
 
 
 listHeadChecks : CheckInfo -> Maybe (Error {})
@@ -8991,20 +8923,15 @@ collectionDiffChecks collection checkInfo =
         ()
 
 
-collectionUnionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : CollectionProperties (FromListProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection checkInfo =
-    let
-        maybeCollectionArg : Maybe (Node Expression)
-        maybeCollectionArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysReturnsLastArgError
                         (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
-                        { lastArg = maybeCollectionArg
+                        { lastArg = secondArg checkInfo
                         , lastArgRepresents = collection.represents
                         }
                         checkInfo
@@ -9013,12 +8940,12 @@ collectionUnionChecks collection checkInfo =
             else
                 Nothing
         , \() ->
-            case maybeCollectionArg of
-                Just collectionArg ->
-                    if collection.empty.is checkInfo.lookupTable collectionArg then
+            case secondArg checkInfo of
+                Just secondArg_ ->
+                    if collection.empty.is checkInfo.lookupTable secondArg_ then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary " ++ Tuple.second checkInfo.fn ++ " with " ++ descriptionForIndefinite collection.empty.description
+                                { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ descriptionForIndefinite collection.empty.description
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
@@ -9026,7 +8953,37 @@ collectionUnionChecks collection checkInfo =
                             )
 
                     else
-                        Nothing
+                        case collection.fromListLiteralRange checkInfo.lookupTable secondArg_ of
+                            Just literalListRangeSecond ->
+                                case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.firstArg of
+                                    Just literalListRangeFirst ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on literal " ++ collection.represents ++ "s can be turned into a single literal " ++ collection.represents
+                                                , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (if collection.literalUnionLeftElementsStayOnTheLeft then
+                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range secondArg_ }
+                                                        ++ [ Fix.insertAt
+                                                                (rangeWithoutBoundaries literalListRangeSecond).start
+                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
+                                                           ]
+
+                                                 else
+                                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                                        ++ [ Fix.insertAt
+                                                                (rangeWithoutBoundaries literalListRangeFirst).start
+                                                                (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
+                                                           ]
+                                                )
+                                            )
+
+                                    Nothing ->
+                                        Nothing
+
+                            Nothing ->
+                                Nothing
 
                 Nothing ->
                     Nothing
