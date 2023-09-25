@@ -2535,7 +2535,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
         , ( ( [ "Array" ], "append" ), collectionUnionChecks arrayCollection )
-        , ( ( [ "Array" ], "get" ), arrayGetChecks )
+        , ( ( [ "Array" ], "get" ), getChecks arrayCollection )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -6266,21 +6266,21 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
             Nothing
 
 
-arrayGetChecks : CheckInfo -> Maybe (Error {})
-arrayGetChecks checkInfo =
+getChecks : EmptiableProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+getChecks collection checkInfo =
     firstThatConstructsJust
         [ \() ->
             case checkInfo.secondArg of
                 Just arg ->
                     callOnEmptyReturnsCheck { on = arg, resultAsString = maybeWithJustAsWrap.empty.asString }
-                        arrayCollection
+                        collection
                         checkInfo
 
                 Nothing ->
                     Nothing
         , \() ->
             Evaluate.getInt checkInfo checkInfo.firstArg
-                |> Maybe.andThen (indexAccessChecks arrayCollection checkInfo)
+                |> Maybe.andThen (indexAccessChecks collection checkInfo)
         ]
         ()
 
