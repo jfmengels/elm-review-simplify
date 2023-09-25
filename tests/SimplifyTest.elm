@@ -6669,11 +6669,13 @@ a = (f >> g)
 stringReverseTests : Test
 stringReverseTests =
     describe "String.reverse"
-        [ test "should not report String.reverse that contains a variable or expression" <|
+        [ test "should not report String.reverse with okay arguments" <|
             \() ->
                 """module A exposing (..)
 a = String.reverse
 b = String.reverse str
+c = (String.reverse << f) << String.reverse
+d = String.reverse << (f << String.reverse)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -6771,6 +6773,54 @@ a = String.reverse <| String.reverse <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
+"""
+                        ]
+        , test "should simplify String.reverse >> String.reverse to identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse >> String.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double String.reverse"
+                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
+                            , under = "String.reverse >> String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should simplify (f << String.reverse) << String.reverse to (f)" <|
+            \() ->
+                """module A exposing (..)
+a = (f << String.reverse) << String.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double String.reverse"
+                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
+                            , under = "String.reverse) << String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should simplify String.reverse << (String.reverse << f) to (f)" <|
+            \() ->
+                """module A exposing (..)
+a = String.reverse << (String.reverse << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double String.reverse"
+                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
+                            , under = "String.reverse << (String.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
 """
                         ]
         ]
@@ -13061,11 +13111,13 @@ a = List.reverse
 listReverseTests : Test
 listReverseTests =
     describe "List.reverse"
-        [ test "should not report List.reverse that contains a variable or expression" <|
+        [ test "should not report List.reverse with okay arguments" <|
             \() ->
                 """module A exposing (..)
 a = List.reverse
 b = List.reverse str
+c = (List.reverse << f) << List.reverse
+d = List.reverse << (f << List.reverse)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -13179,6 +13231,54 @@ a = List.reverse <| List.reverse <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
+"""
+                        ]
+        , test "should simplify List.reverse >> List.reverse to identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse >> List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double List.reverse"
+                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
+                            , under = "List.reverse >> List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should simplify (f << List.reverse) << List.reverse to (f)" <|
+            \() ->
+                """module A exposing (..)
+a = (f << List.reverse) << List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double List.reverse"
+                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
+                            , under = "List.reverse) << List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
+"""
+                        ]
+        , test "should simplify List.reverse << (List.reverse << f) to (f)" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse << (List.reverse << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary double List.reverse"
+                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
+                            , under = "List.reverse << (List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f)
 """
                         ]
         ]
