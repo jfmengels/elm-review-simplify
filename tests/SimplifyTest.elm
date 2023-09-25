@@ -5621,8 +5621,8 @@ a = [ 1 ] ++ [ 2, 3 ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "++ on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "++ on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5637,8 +5637,8 @@ a = [ a, 1 ] ++ [ b, 2 ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "++ on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "++ on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5731,8 +5731,8 @@ a = String.fromList [ b, c ] ++ String.fromList [ d, e ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "++ on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "++ on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6771,8 +6771,8 @@ a = String.append (String.fromList [b,c]) (String.fromList [d,e])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6787,8 +6787,8 @@ a = String.append (String.fromList [ b, z ]) (String.fromList [c,d,0])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6803,8 +6803,8 @@ a = String.append (String.fromList [b, c]) <| String.fromList [d,e]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6819,8 +6819,8 @@ a = String.fromList [d,e] |> String.append (String.fromList [b,c])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6835,8 +6835,8 @@ a = String.fromList [c,d,0] |> String.append (String.fromList [ b, z ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6851,8 +6851,8 @@ a = String.append ([ b, c ] |> String.fromList) (String.fromList [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6867,8 +6867,8 @@ a = String.append ([ b, c ] |> String.fromList) (String.fromList <| [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6883,8 +6883,8 @@ a = String.append (String.fromList <| [ b, c ]) ([ d, e ] |> String.fromList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6899,8 +6899,8 @@ a = [ d, e ] |> String.fromList |> String.append (String.fromList <| [ b, c ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.append on literal strings can be turned into a single literal string"
-                            , details = [ "Try moving all the elements into a single string." ]
+                            { message = "String.append on String.fromList calls can be turned into a single String.fromList call"
+                            , details = [ "Try moving all the elements into a single String.fromList call." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7557,8 +7557,8 @@ a = List.append [b] [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "List.append on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7573,8 +7573,8 @@ a = List.append [ b, z ] [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "List.append on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7589,8 +7589,8 @@ a = List.append [b] <| [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "List.append on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7605,8 +7605,8 @@ a = [c,d,0] |> List.append [b]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "List.append on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7621,8 +7621,8 @@ a = [c,d,0] |> List.append [ b, z ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.append on literal lists can be turned into a single literal list"
-                            , details = [ "Try moving all the elements into a single list." ]
+                            { message = "List.append on list literals can be turned into a single list literal"
+                            , details = [ "Try moving all the elements into a single list literal." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16441,8 +16441,8 @@ a = Array.append (Array.fromList [b]) (Array.fromList [c,d,0])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16459,8 +16459,8 @@ a = Array.append (Array.fromList [ b, z ]) (Array.fromList [c,d,0])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16477,8 +16477,8 @@ a = Array.append (Array.fromList [b]) <| Array.fromList [c,d,0]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16495,8 +16495,8 @@ a = Array.fromList [c,d,0] |> Array.append (Array.fromList [b])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16513,8 +16513,8 @@ a = Array.fromList [c,d,0] |> Array.append (Array.fromList [ b, z ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16531,8 +16531,8 @@ a = Array.append ([ b, c ] |> Array.fromList) (Array.fromList [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16549,8 +16549,8 @@ a = Array.append ([ b, c ] |> Array.fromList) (Array.fromList <| [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16567,8 +16567,8 @@ a = Array.append (Array.fromList <| [ b, c ]) ([ d, e ] |> Array.fromList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -16585,8 +16585,8 @@ a = [ d, e ] |> Array.fromList |> Array.append (Array.fromList <| [ b, c ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.append on literal arrays can be turned into a single literal array"
-                            , details = [ "Try moving all the elements into a single array." ]
+                            { message = "Array.append on Array.fromList calls can be turned into a single Array.fromList call"
+                            , details = [ "Try moving all the elements into a single Array.fromList call." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20097,8 +20097,8 @@ a = Set.union (Set.fromList [b,c]) (Set.fromList [d,e])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20115,8 +20115,8 @@ a = Set.union (Set.fromList [ b, z ]) (Set.fromList [c,d,0])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20133,8 +20133,8 @@ a = Set.union (Set.fromList [b, c]) <| Set.fromList [d,e]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20151,8 +20151,8 @@ a = Set.fromList [d,e] |> Set.union (Set.fromList [b,c])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20169,8 +20169,8 @@ a = Set.fromList [c,d,0] |> Set.union (Set.fromList [ b, z ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20187,8 +20187,8 @@ a = Set.union ([ b, c ] |> Set.fromList) (Set.fromList [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20205,8 +20205,8 @@ a = Set.union ([ b, c ] |> Set.fromList) (Set.fromList <| [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20223,8 +20223,8 @@ a = Set.union (Set.fromList <| [ b, c ]) ([ d, e ] |> Set.fromList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -20241,8 +20241,8 @@ a = [ d, e ] |> Set.fromList |> Set.union (Set.fromList <| [ b, c ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union on literal sets can be turned into a single literal set"
-                            , details = [ "Try moving all the elements into a single set." ]
+                            { message = "Set.union on Set.fromList calls can be turned into a single Set.fromList call"
+                            , details = [ "Try moving all the elements into a single Set.fromList call." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21262,8 +21262,8 @@ a = Dict.union (Dict.fromList [b,c]) (Dict.fromList [d,e])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21280,8 +21280,8 @@ a = Dict.union (Dict.fromList [ b, c ]) (Dict.fromList [d,e])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21298,8 +21298,8 @@ a = Dict.union (Dict.fromList [b,c]) <| Dict.fromList [d,e]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21316,8 +21316,8 @@ a = Dict.fromList [d,e] |> Dict.union (Dict.fromList [b, c])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21334,8 +21334,8 @@ a = Dict.fromList [b,c] |> Dict.union (Dict.fromList [d,e])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21662,8 +21662,8 @@ a = Dict.union ([ b, c ] |> Dict.fromList) (Dict.fromList [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21680,8 +21680,8 @@ a = Dict.union ([ b, c ] |> Dict.fromList) (Dict.fromList <| [ d, e ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21698,8 +21698,8 @@ a = Dict.union (Dict.fromList <| [ b, c ]) ([ d, e ] |> Dict.fromList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21716,8 +21716,8 @@ a = [ d, e ] |> Dict.fromList |> Dict.union (Dict.fromList <| [ b, c ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union on literal dicts can be turned into a single literal dict"
-                            , details = [ "Try moving all the elements into a single dict." ]
+                            { message = "Dict.union on Dict.fromList calls can be turned into a single Dict.fromList call"
+                            , details = [ "Try moving all the elements into a single Dict.fromList call." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
