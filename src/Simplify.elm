@@ -7416,6 +7416,7 @@ type alias FromListProperties otherProperties =
     TypeProperties
         { otherProperties
             | fromListLiteralRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
+            , fromListLiteralDescription : String
             , literalUnionLeftElementsStayOnTheLeft : Bool
         }
 
@@ -7706,6 +7707,7 @@ listCollection =
         }
     , mapFnName = "map"
     , fromListLiteralRange = \_ expr -> AstHelpers.getListLiteralRange expr
+    , fromListLiteralDescription = "list literal"
     , literalUnionLeftElementsStayOnTheLeft = True
     }
 
@@ -7757,6 +7759,7 @@ stringCollection =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , fromListLiteralDescription = "String.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = True
     }
 
@@ -7790,6 +7793,7 @@ arrayCollection =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
+    , fromListLiteralDescription = "Array.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = True
     }
 
@@ -7860,6 +7864,7 @@ setCollection =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , fromListLiteralDescription = "Set.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = True
     }
 
@@ -7930,6 +7935,7 @@ dictCollection =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+    , fromListLiteralDescription = "Dict.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = False
     }
 
@@ -9000,8 +9006,8 @@ collectionUnionWithLiteralsChecks collection checkInfo =
                 Just literalListRangeFirst ->
                     Just
                         (Rule.errorWithFix
-                            { message = checkInfo.operation ++ " on literal " ++ collection.represents ++ "s can be turned into a single literal " ++ collection.represents
-                            , details = [ "Try moving all the elements into a single " ++ collection.represents ++ "." ]
+                            { message = checkInfo.operation ++ " on " ++ collection.fromListLiteralDescription ++ "s can be turned into a single " ++ collection.fromListLiteralDescription
+                            , details = [ "Try moving all the elements into a single " ++ collection.fromListLiteralDescription ++ "." ]
                             }
                             checkInfo.operationRange
                             (if collection.literalUnionLeftElementsStayOnTheLeft then
