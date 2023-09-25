@@ -1910,12 +1910,40 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         toCheckInfo :
             { fnRange : Range
             , fn : ( ModuleName, String )
+            , argCount : Int
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
             -> CheckInfo
         toCheckInfo checkInfo =
+            let
+                ( parentRange, callStyle ) =
+                    case List.drop (checkInfo.argCount - 1) (checkInfo.firstArg :: checkInfo.argsAfterFirst) of
+                        lastExpectedArg :: _ :: _ ->
+                            -- Too many arguments!
+                            -- We'll update the range to drop the extra ones and force the call style to application
+                            ( case checkInfo.callStyle of
+                                Application ->
+                                    { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
+
+                                Pipe LeftToRight ->
+                                    { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
+
+                                Pipe RightToLeft ->
+                                    { start = (Node.range checkInfo.firstArg).start, end = (Node.range checkInfo.firstArg).end }
+                            , Application
+                            )
+
+                        -- [] | _ :: [] ->
+                        _ ->
+                            ( expressionRange, checkInfo.callStyle )
+
+                argsAfterFirst : List (Node Expression)
+                argsAfterFirst =
+                    -- Drop the extra arguments
+                    List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
+            in
             { lookupTable = context.lookupTable
             , expectNaN = config.expectNaN
             , extractSourceCode = context.extractSourceCode
@@ -1924,14 +1952,14 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
             , inferredConstants = context.inferredConstants
-            , parentRange = expressionRange
+            , parentRange = parentRange
             , fnRange = checkInfo.fnRange
             , fn = checkInfo.fn
             , firstArg = checkInfo.firstArg
-            , argsAfterFirst = checkInfo.argsAfterFirst
-            , secondArg = List.head checkInfo.argsAfterFirst
-            , thirdArg = List.head (List.drop 1 checkInfo.argsAfterFirst)
-            , callStyle = checkInfo.callStyle
+            , argsAfterFirst = argsAfterFirst
+            , secondArg = List.head argsAfterFirst
+            , thirdArg = List.head (List.drop 1 argsAfterFirst)
+            , callStyle = callStyle
             }
 
         toCompositionCheckInfo :
@@ -1963,11 +1991,12 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
                                 case Dict.get ( moduleName, fnName ) functionCallChecks of
-                                    Just checkFn ->
+                                    Just ( argCount, checkFn ) ->
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
                                                 , fn = ( moduleName, fnName )
+                                                , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsAfterFirst
                                                 , callStyle = Application
@@ -2016,11 +2045,12 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         (case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
                                 case Dict.get ( moduleName, fnName ) functionCallChecks of
-                                    Just checkFn ->
+                                    Just ( argCount, checkFn ) ->
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
                                                 , fn = ( moduleName, fnName )
+                                                , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
                                                 , callStyle = Pipe RightToLeft
@@ -2038,11 +2068,12 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                         Just moduleName ->
                             case Dict.get ( moduleName, fnName ) functionCallChecks of
-                                Just checkFn ->
+                                Just ( argCount, checkFn ) ->
                                     maybeErrorAndRangesToIgnore
                                         (checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
+                                                , argCount = argCount
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
@@ -2080,11 +2111,12 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         (case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
                                 case Dict.get ( moduleName, fnName ) functionCallChecks of
-                                    Just checks ->
+                                    Just ( argCount, checks ) ->
                                         checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
                                                 , fn = ( moduleName, fnName )
+                                                , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
                                                 , callStyle = Pipe LeftToRight
@@ -2102,12 +2134,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                         Just moduleName ->
                             case Dict.get ( moduleName, fnName ) functionCallChecks of
-                                Just checks ->
+                                Just ( argCount, checks ) ->
                                     maybeErrorAndRangesToIgnore
                                         (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
                                                 , fn = ( moduleName, fnName )
+                                                , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                                 , callStyle = Pipe LeftToRight
@@ -2468,133 +2501,137 @@ type alias ErrorInfoAndFix =
     }
 
 
-functionCallChecks : Dict ( ModuleName, String ) (CheckInfo -> Maybe (Error {}))
+functionCallChecks : Dict ( ModuleName, String ) ( Int, CheckInfo -> Maybe (Error {}) )
 functionCallChecks =
+    -- The number of arguments is used to determine how many arguments to pass to the check function.
+    -- This corresponds to the number of arguments that the function to check is expected to have.
+    -- Any additional arguments will be ignored in order to avoid removing too many arguments
+    -- when replacing the entire argument, which is quite common.
     Dict.fromList
-        [ ( ( [ "Basics" ], "identity" ), basicsIdentityChecks )
-        , ( ( [ "Basics" ], "always" ), basicsAlwaysChecks )
-        , ( ( [ "Basics" ], "not" ), basicsNotChecks )
-        , ( ( [ "Basics" ], "negate" ), basicsNegateChecks )
-        , ( ( [ "Tuple" ], "first" ), tupleFirstChecks )
-        , ( ( [ "Tuple" ], "second" ), tupleSecondChecks )
-        , ( ( [ "Tuple" ], "pair" ), tuplePairChecks )
-        , ( ( [ "Maybe" ], "map" ), maybeMapChecks )
-        , ( ( [ "Maybe" ], "andThen" ), maybeAndThenChecks )
-        , ( ( [ "Maybe" ], "withDefault" ), withDefaultChecks maybeWithJustAsWrap )
-        , ( ( [ "Result" ], "map" ), resultMapChecks )
-        , ( ( [ "Result" ], "map2" ), resultMapNChecks { n = 2 } )
-        , ( ( [ "Result" ], "map3" ), resultMapNChecks { n = 3 } )
-        , ( ( [ "Result" ], "map4" ), resultMapNChecks { n = 4 } )
-        , ( ( [ "Result" ], "map5" ), resultMapNChecks { n = 5 } )
-        , ( ( [ "Result" ], "mapError" ), resultMapErrorChecks )
-        , ( ( [ "Result" ], "andThen" ), resultAndThenChecks )
-        , ( ( [ "Result" ], "withDefault" ), withDefaultChecks resultWithOkAsWrap )
-        , ( ( [ "Result" ], "toMaybe" ), unwrapToMaybeChecks resultWithOkAsWrap )
-        , ( ( [ "List" ], "append" ), collectionUnionChecks listCollection )
-        , ( ( [ "List" ], "head" ), listHeadChecks )
-        , ( ( [ "List" ], "tail" ), listTailChecks )
-        , ( ( [ "List" ], "member" ), listMemberChecks )
-        , ( ( [ "List" ], "map" ), listMapChecks )
-        , ( ( [ "List" ], "filter" ), emptiableFilterChecks listCollection )
-        , ( ( [ "List" ], "filterMap" ), listFilterMapChecks )
-        , ( ( [ "List" ], "concat" ), listConcatChecks )
-        , ( ( [ "List" ], "concatMap" ), listConcatMapChecks )
-        , ( ( [ "List" ], "indexedMap" ), listIndexedMapChecks )
-        , ( ( [ "List" ], "intersperse" ), listIntersperseChecks )
-        , ( ( [ "List" ], "sum" ), listSumChecks )
-        , ( ( [ "List" ], "product" ), listProductChecks )
-        , ( ( [ "List" ], "minimum" ), listMinimumChecks )
-        , ( ( [ "List" ], "maximum" ), listMaximumChecks )
-        , ( ( [ "List" ], "foldl" ), listFoldlChecks )
-        , ( ( [ "List" ], "foldr" ), listFoldrChecks )
-        , ( ( [ "List" ], "all" ), listAllChecks )
-        , ( ( [ "List" ], "any" ), listAnyChecks )
-        , ( ( [ "List" ], "range" ), listRangeChecks )
-        , ( ( [ "List" ], "length" ), collectionSizeChecks listCollection )
-        , ( ( [ "List" ], "repeat" ), listRepeatChecks )
-        , ( ( [ "List" ], "isEmpty" ), collectionIsEmptyChecks listCollection )
-        , ( ( [ "List" ], "partition" ), collectionPartitionChecks listCollection )
-        , ( ( [ "List" ], "reverse" ), listReverseChecks )
-        , ( ( [ "List" ], "sort" ), listSortChecks )
-        , ( ( [ "List" ], "sortBy" ), listSortByChecks )
-        , ( ( [ "List" ], "sortWith" ), listSortWithChecks )
-        , ( ( [ "List" ], "take" ), listTakeChecks )
-        , ( ( [ "List" ], "drop" ), listDropChecks )
-        , ( ( [ "List" ], "map2" ), emptiableMapNChecks { n = 2 } listCollection )
-        , ( ( [ "List" ], "map3" ), emptiableMapNChecks { n = 3 } listCollection )
-        , ( ( [ "List" ], "map4" ), emptiableMapNChecks { n = 4 } listCollection )
-        , ( ( [ "List" ], "map5" ), emptiableMapNChecks { n = 5 } listCollection )
-        , ( ( [ "List" ], "unzip" ), listUnzipChecks )
-        , ( ( [ "Array" ], "toList" ), arrayToListChecks )
-        , ( ( [ "Array" ], "fromList" ), arrayFromListChecks )
-        , ( ( [ "Array" ], "map" ), emptiableMapChecks arrayCollection )
-        , ( ( [ "Array" ], "indexedMap" ), arrayIndexedMapChecks )
-        , ( ( [ "Array" ], "filter" ), emptiableFilterChecks arrayCollection )
-        , ( ( [ "Array" ], "isEmpty" ), collectionIsEmptyChecks arrayCollection )
-        , ( ( [ "Array" ], "length" ), arrayLengthChecks )
-        , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
-        , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
-        , ( ( [ "Array" ], "append" ), collectionUnionChecks arrayCollection )
-        , ( ( [ "Array" ], "get" ), getChecks arrayCollection )
-        , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
-        , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
-        , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
-        , ( ( [ "Set" ], "isEmpty" ), collectionIsEmptyChecks setCollection )
-        , ( ( [ "Set" ], "size" ), collectionSizeChecks setCollection )
-        , ( ( [ "Set" ], "member" ), collectionMemberChecks setCollection )
-        , ( ( [ "Set" ], "fromList" ), setFromListChecks )
-        , ( ( [ "Set" ], "toList" ), emptiableToListChecks setCollection )
-        , ( ( [ "Set" ], "partition" ), collectionPartitionChecks setCollection )
-        , ( ( [ "Set" ], "intersect" ), collectionIntersectChecks setCollection )
-        , ( ( [ "Set" ], "diff" ), collectionDiffChecks setCollection )
-        , ( ( [ "Set" ], "union" ), collectionUnionChecks setCollection )
-        , ( ( [ "Set" ], "insert" ), collectionInsertChecks setCollection )
-        , ( ( [ "Dict" ], "isEmpty" ), collectionIsEmptyChecks dictCollection )
-        , ( ( [ "Dict" ], "fromList" ), dictFromListChecks )
-        , ( ( [ "Dict" ], "toList" ), emptiableToListChecks dictCollection )
-        , ( ( [ "Dict" ], "size" ), collectionSizeChecks dictCollection )
-        , ( ( [ "Dict" ], "member" ), collectionMemberChecks dictCollection )
-        , ( ( [ "Dict" ], "partition" ), collectionPartitionChecks dictCollection )
-        , ( ( [ "Dict" ], "intersect" ), collectionIntersectChecks dictCollection )
-        , ( ( [ "Dict" ], "diff" ), collectionDiffChecks dictCollection )
-        , ( ( [ "Dict" ], "union" ), collectionUnionChecks dictCollection )
-        , ( ( [ "String" ], "toList" ), stringToListChecks )
-        , ( ( [ "String" ], "fromList" ), stringFromListChecks )
-        , ( ( [ "String" ], "isEmpty" ), collectionIsEmptyChecks stringCollection )
-        , ( ( [ "String" ], "concat" ), stringConcatChecks )
-        , ( ( [ "String" ], "join" ), stringJoinChecks )
-        , ( ( [ "String" ], "length" ), collectionSizeChecks stringCollection )
-        , ( ( [ "String" ], "repeat" ), stringRepeatChecks )
-        , ( ( [ "String" ], "replace" ), stringReplaceChecks )
-        , ( ( [ "String" ], "words" ), stringWordsChecks )
-        , ( ( [ "String" ], "lines" ), stringLinesChecks )
-        , ( ( [ "String" ], "reverse" ), stringReverseChecks )
-        , ( ( [ "String" ], "slice" ), stringSliceChecks )
-        , ( ( [ "String" ], "left" ), stringLeftChecks )
-        , ( ( [ "String" ], "right" ), stringRightChecks )
-        , ( ( [ "String" ], "append" ), collectionUnionChecks stringCollection )
-        , ( ( [ "Platform", "Cmd" ], "batch" ), subAndCmdBatchChecks cmdCollection )
-        , ( ( [ "Platform", "Cmd" ], "map" ), emptiableMapChecks cmdCollection )
-        , ( ( [ "Platform", "Sub" ], "batch" ), subAndCmdBatchChecks subCollection )
-        , ( ( [ "Platform", "Sub" ], "map" ), emptiableMapChecks subCollection )
-        , ( ( [ "Task" ], "map" ), taskMapChecks )
-        , ( ( [ "Task" ], "map2" ), taskMapNChecks { n = 2 } )
-        , ( ( [ "Task" ], "map3" ), taskMapNChecks { n = 3 } )
-        , ( ( [ "Task" ], "map4" ), taskMapNChecks { n = 4 } )
-        , ( ( [ "Task" ], "map5" ), taskMapNChecks { n = 5 } )
-        , ( ( [ "Task" ], "andThen" ), taskAndThenChecks )
-        , ( ( [ "Task" ], "mapError" ), taskMapErrorChecks )
-        , ( ( [ "Task" ], "onError" ), taskOnErrorChecks )
-        , ( ( [ "Task" ], "sequence" ), taskSequenceChecks )
-        , ( ( [ "Json", "Decode" ], "oneOf" ), oneOfChecks )
-        , ( ( [ "Html", "Attributes" ], "classList" ), htmlAttributesClassListChecks )
-        , ( ( [ "Parser" ], "oneOf" ), oneOfChecks )
-        , ( ( [ "Parser", "Advanced" ], "oneOf" ), oneOfChecks )
-        , ( ( [ "Random" ], "uniform" ), randomUniformChecks )
-        , ( ( [ "Random" ], "weighted" ), randomWeightedChecks )
-        , ( ( [ "Random" ], "list" ), randomListChecks )
-        , ( ( [ "Random" ], "map" ), randomMapChecks )
-        , ( ( [ "Random" ], "andThen" ), randomAndThenChecks )
+        [ ( ( [ "Basics" ], "identity" ), ( 1, basicsIdentityChecks ) )
+        , ( ( [ "Basics" ], "always" ), ( 2, basicsAlwaysChecks ) )
+        , ( ( [ "Basics" ], "not" ), ( 1, basicsNotChecks ) )
+        , ( ( [ "Basics" ], "negate" ), ( 1, basicsNegateChecks ) )
+        , ( ( [ "Tuple" ], "first" ), ( 1, tupleFirstChecks ) )
+        , ( ( [ "Tuple" ], "second" ), ( 1, tupleSecondChecks ) )
+        , ( ( [ "Tuple" ], "pair" ), ( 2, tuplePairChecks ) )
+        , ( ( [ "Maybe" ], "map" ), ( 2, maybeMapChecks ) )
+        , ( ( [ "Maybe" ], "andThen" ), ( 2, maybeAndThenChecks ) )
+        , ( ( [ "Maybe" ], "withDefault" ), ( 2, withDefaultChecks maybeWithJustAsWrap ) )
+        , ( ( [ "Result" ], "map" ), ( 2, resultMapChecks ) )
+        , ( ( [ "Result" ], "map2" ), ( 3, resultMapNChecks { n = 2 } ) )
+        , ( ( [ "Result" ], "map3" ), ( 4, resultMapNChecks { n = 3 } ) )
+        , ( ( [ "Result" ], "map4" ), ( 5, resultMapNChecks { n = 4 } ) )
+        , ( ( [ "Result" ], "map5" ), ( 6, resultMapNChecks { n = 5 } ) )
+        , ( ( [ "Result" ], "mapError" ), ( 2, resultMapErrorChecks ) )
+        , ( ( [ "Result" ], "andThen" ), ( 2, resultAndThenChecks ) )
+        , ( ( [ "Result" ], "withDefault" ), ( 2, withDefaultChecks resultWithOkAsWrap ) )
+        , ( ( [ "Result" ], "toMaybe" ), ( 1, unwrapToMaybeChecks resultWithOkAsWrap ) )
+        , ( ( [ "List" ], "append" ), ( 2, collectionUnionChecks listCollection ) )
+        , ( ( [ "List" ], "head" ), ( 1, listHeadChecks ) )
+        , ( ( [ "List" ], "tail" ), ( 1, listTailChecks ) )
+        , ( ( [ "List" ], "member" ), ( 2, listMemberChecks ) )
+        , ( ( [ "List" ], "map" ), ( 2, listMapChecks ) )
+        , ( ( [ "List" ], "filter" ), ( 2, emptiableFilterChecks listCollection ) )
+        , ( ( [ "List" ], "filterMap" ), ( 2, listFilterMapChecks ) )
+        , ( ( [ "List" ], "concat" ), ( 1, listConcatChecks ) )
+        , ( ( [ "List" ], "concatMap" ), ( 2, listConcatMapChecks ) )
+        , ( ( [ "List" ], "indexedMap" ), ( 2, listIndexedMapChecks ) )
+        , ( ( [ "List" ], "intersperse" ), ( 2, listIntersperseChecks ) )
+        , ( ( [ "List" ], "sum" ), ( 1, listSumChecks ) )
+        , ( ( [ "List" ], "product" ), ( 1, listProductChecks ) )
+        , ( ( [ "List" ], "minimum" ), ( 1, listMinimumChecks ) )
+        , ( ( [ "List" ], "maximum" ), ( 1, listMaximumChecks ) )
+        , ( ( [ "List" ], "foldl" ), ( 3, listFoldlChecks ) )
+        , ( ( [ "List" ], "foldr" ), ( 3, listFoldrChecks ) )
+        , ( ( [ "List" ], "all" ), ( 2, listAllChecks ) )
+        , ( ( [ "List" ], "any" ), ( 2, listAnyChecks ) )
+        , ( ( [ "List" ], "range" ), ( 2, listRangeChecks ) )
+        , ( ( [ "List" ], "length" ), ( 1, collectionSizeChecks listCollection ) )
+        , ( ( [ "List" ], "repeat" ), ( 2, listRepeatChecks ) )
+        , ( ( [ "List" ], "isEmpty" ), ( 1, collectionIsEmptyChecks listCollection ) )
+        , ( ( [ "List" ], "partition" ), ( 2, collectionPartitionChecks listCollection ) )
+        , ( ( [ "List" ], "reverse" ), ( 1, listReverseChecks ) )
+        , ( ( [ "List" ], "sort" ), ( 1, listSortChecks ) )
+        , ( ( [ "List" ], "sortBy" ), ( 2, listSortByChecks ) )
+        , ( ( [ "List" ], "sortWith" ), ( 2, listSortWithChecks ) )
+        , ( ( [ "List" ], "take" ), ( 2, listTakeChecks ) )
+        , ( ( [ "List" ], "drop" ), ( 2, listDropChecks ) )
+        , ( ( [ "List" ], "map2" ), ( 3, emptiableMapNChecks { n = 2 } listCollection ) )
+        , ( ( [ "List" ], "map3" ), ( 4, emptiableMapNChecks { n = 3 } listCollection ) )
+        , ( ( [ "List" ], "map4" ), ( 5, emptiableMapNChecks { n = 4 } listCollection ) )
+        , ( ( [ "List" ], "map5" ), ( 6, emptiableMapNChecks { n = 5 } listCollection ) )
+        , ( ( [ "List" ], "unzip" ), ( 1, listUnzipChecks ) )
+        , ( ( [ "Array" ], "toList" ), ( 1, arrayToListChecks ) )
+        , ( ( [ "Array" ], "fromList" ), ( 1, arrayFromListChecks ) )
+        , ( ( [ "Array" ], "map" ), ( 2, emptiableMapChecks arrayCollection ) )
+        , ( ( [ "Array" ], "indexedMap" ), ( 2, arrayIndexedMapChecks ) )
+        , ( ( [ "Array" ], "filter" ), ( 2, emptiableFilterChecks arrayCollection ) )
+        , ( ( [ "Array" ], "isEmpty" ), ( 1, collectionIsEmptyChecks arrayCollection ) )
+        , ( ( [ "Array" ], "length" ), ( 1, arrayLengthChecks ) )
+        , ( ( [ "Array" ], "repeat" ), ( 2, arrayRepeatChecks ) )
+        , ( ( [ "Array" ], "initialize" ), ( 2, arrayInitializeChecks ) )
+        , ( ( [ "Array" ], "append" ), ( 2, collectionUnionChecks arrayCollection ) )
+        , ( ( [ "Array" ], "get" ), ( 2, getChecks arrayCollection ) )
+        , ( ( [ "Set" ], "map" ), ( 2, emptiableMapChecks setCollection ) )
+        , ( ( [ "Set" ], "filter" ), ( 2, emptiableFilterChecks setCollection ) )
+        , ( ( [ "Set" ], "remove" ), ( 2, collectionRemoveChecks setCollection ) )
+        , ( ( [ "Set" ], "isEmpty" ), ( 1, collectionIsEmptyChecks setCollection ) )
+        , ( ( [ "Set" ], "size" ), ( 1, collectionSizeChecks setCollection ) )
+        , ( ( [ "Set" ], "member" ), ( 2, collectionMemberChecks setCollection ) )
+        , ( ( [ "Set" ], "fromList" ), ( 1, setFromListChecks ) )
+        , ( ( [ "Set" ], "toList" ), ( 1, emptiableToListChecks setCollection ) )
+        , ( ( [ "Set" ], "partition" ), ( 2, collectionPartitionChecks setCollection ) )
+        , ( ( [ "Set" ], "intersect" ), ( 2, collectionIntersectChecks setCollection ) )
+        , ( ( [ "Set" ], "diff" ), ( 2, collectionDiffChecks setCollection ) )
+        , ( ( [ "Set" ], "union" ), ( 2, collectionUnionChecks setCollection ) )
+        , ( ( [ "Set" ], "insert" ), ( 2, collectionInsertChecks setCollection ) )
+        , ( ( [ "Dict" ], "isEmpty" ), ( 1, collectionIsEmptyChecks dictCollection ) )
+        , ( ( [ "Dict" ], "fromList" ), ( 1, dictFromListChecks ) )
+        , ( ( [ "Dict" ], "toList" ), ( 1, emptiableToListChecks dictCollection ) )
+        , ( ( [ "Dict" ], "size" ), ( 1, collectionSizeChecks dictCollection ) )
+        , ( ( [ "Dict" ], "member" ), ( 2, collectionMemberChecks dictCollection ) )
+        , ( ( [ "Dict" ], "partition" ), ( 2, collectionPartitionChecks dictCollection ) )
+        , ( ( [ "Dict" ], "intersect" ), ( 2, collectionIntersectChecks dictCollection ) )
+        , ( ( [ "Dict" ], "diff" ), ( 2, collectionDiffChecks dictCollection ) )
+        , ( ( [ "Dict" ], "union" ), ( 2, collectionUnionChecks dictCollection ) )
+        , ( ( [ "String" ], "toList" ), ( 1, stringToListChecks ) )
+        , ( ( [ "String" ], "fromList" ), ( 1, stringFromListChecks ) )
+        , ( ( [ "String" ], "isEmpty" ), ( 1, collectionIsEmptyChecks stringCollection ) )
+        , ( ( [ "String" ], "concat" ), ( 1, stringConcatChecks ) )
+        , ( ( [ "String" ], "join" ), ( 2, stringJoinChecks ) )
+        , ( ( [ "String" ], "length" ), ( 1, collectionSizeChecks stringCollection ) )
+        , ( ( [ "String" ], "repeat" ), ( 2, stringRepeatChecks ) )
+        , ( ( [ "String" ], "replace" ), ( 3, stringReplaceChecks ) )
+        , ( ( [ "String" ], "words" ), ( 1, stringWordsChecks ) )
+        , ( ( [ "String" ], "lines" ), ( 1, stringLinesChecks ) )
+        , ( ( [ "String" ], "reverse" ), ( 1, stringReverseChecks ) )
+        , ( ( [ "String" ], "slice" ), ( 3, stringSliceChecks ) )
+        , ( ( [ "String" ], "left" ), ( 2, stringLeftChecks ) )
+        , ( ( [ "String" ], "right" ), ( 2, stringRightChecks ) )
+        , ( ( [ "String" ], "append" ), ( 2, collectionUnionChecks stringCollection ) )
+        , ( ( [ "Platform", "Cmd" ], "batch" ), ( 1, subAndCmdBatchChecks cmdCollection ) )
+        , ( ( [ "Platform", "Cmd" ], "map" ), ( 2, emptiableMapChecks cmdCollection ) )
+        , ( ( [ "Platform", "Sub" ], "batch" ), ( 1, subAndCmdBatchChecks subCollection ) )
+        , ( ( [ "Platform", "Sub" ], "map" ), ( 2, emptiableMapChecks subCollection ) )
+        , ( ( [ "Task" ], "map" ), ( 2, taskMapChecks ) )
+        , ( ( [ "Task" ], "map2" ), ( 3, taskMapNChecks { n = 2 } ) )
+        , ( ( [ "Task" ], "map3" ), ( 4, taskMapNChecks { n = 3 } ) )
+        , ( ( [ "Task" ], "map4" ), ( 5, taskMapNChecks { n = 4 } ) )
+        , ( ( [ "Task" ], "map5" ), ( 6, taskMapNChecks { n = 5 } ) )
+        , ( ( [ "Task" ], "andThen" ), ( 2, taskAndThenChecks ) )
+        , ( ( [ "Task" ], "mapError" ), ( 2, taskMapErrorChecks ) )
+        , ( ( [ "Task" ], "onError" ), ( 2, taskOnErrorChecks ) )
+        , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceChecks ) )
+        , ( ( [ "Json", "Decode" ], "oneOf" ), ( 1, oneOfChecks ) )
+        , ( ( [ "Html", "Attributes" ], "classList" ), ( 1, htmlAttributesClassListChecks ) )
+        , ( ( [ "Parser" ], "oneOf" ), ( 1, oneOfChecks ) )
+        , ( ( [ "Parser", "Advanced" ], "oneOf" ), ( 1, oneOfChecks ) )
+        , ( ( [ "Random" ], "uniform" ), ( 2, randomUniformChecks ) )
+        , ( ( [ "Random" ], "weighted" ), ( 2, randomWeightedChecks ) )
+        , ( ( [ "Random" ], "list" ), ( 2, randomListChecks ) )
+        , ( ( [ "Random" ], "map" ), ( 2, randomMapChecks ) )
+        , ( ( [ "Random" ], "andThen" ), ( 2, randomAndThenChecks ) )
         ]
 
 

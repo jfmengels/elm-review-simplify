@@ -11593,6 +11593,22 @@ a = List.foldr (always identity) x
 a = always x
 """
                         ]
+        , test "should replace List.foldr (always identity) initial data extraData by initial extraArgument" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (always identity) initial data extraArgument
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = initial extraArgument
+"""
+                        ]
         , test "should replace List.foldr f x (Set.toList set) by Set.foldl f x set" <|
             \() ->
                 """module A exposing (..)
