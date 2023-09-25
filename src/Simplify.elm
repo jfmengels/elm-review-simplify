@@ -4906,14 +4906,14 @@ listConcatChecks checkInfo =
                                             Nothing
                                 , \() ->
                                     case findConsecutiveListLiterals firstListElement restOfListElements of
-                                        firstFix :: fixesAFterFirst ->
+                                        firstFix :: fixesAfterFirst ->
                                             Just
                                                 (Rule.errorWithFix
                                                     { message = "Consecutive literal lists can be merged"
                                                     , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
                                                     }
                                                     checkInfo.fnRange
-                                                    (firstFix :: fixesAFterFirst)
+                                                    (firstFix :: fixesAfterFirst)
                                                 )
 
                                         [] ->
