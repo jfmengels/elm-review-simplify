@@ -1045,15 +1045,7 @@ a = always g
 booleanTests : Test
 booleanTests =
     describe "Booleans"
-        [ test "should not report unsimplifiable condition" <|
-            \() ->
-                """module A exposing (..)
-a = x || y
-b = y && z
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
-        , orTests
+        [ orTests
         , andTests
         , notTests
         , equalTests
@@ -1091,7 +1083,14 @@ comparisonIsAlwaysMessage value =
 orTests : Test
 orTests =
     describe "||"
-        [ test "should simplify 'True || x' to True" <|
+        [ test "should not report unsimplifiable condition" <|
+            \() ->
+                """module A exposing (..)
+a = x || y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify 'True || x' to True" <|
             \() ->
                 """module A exposing (..)
 a = True || x
@@ -1341,7 +1340,14 @@ a = x && (True && y)
 andTests : Test
 andTests =
     describe "&&"
-        [ test "should simplify 'True && x' to x" <|
+        [ test "should not report unsimplifiable condition" <|
+            \() ->
+                """module A exposing (..)
+a = x && y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify 'True && x' to x" <|
             \() ->
                 """module A exposing (..)
 a = True && x
