@@ -9449,32 +9449,37 @@ recordUpdateChecks recordUpdateRange recordVariable fields =
 
 getUnnecessaryRecordUpdateSetter : String -> Node ( Node String, Node Expression ) -> Maybe { valueAccessRange : Range, setterRange : Range }
 getUnnecessaryRecordUpdateSetter recordVariableName (Node setterRange ( Node _ field, valueNode )) =
-    case getRecordVariableAccess valueNode of
-        Just recordVariableAccess ->
-            if field == recordVariableAccess.field && recordVariableName == recordVariableAccess.recordVariable then
-                Just { setterRange = setterRange, valueAccessRange = recordVariableAccess.range }
+    case getAccessingRecord valueNode of
+        Just accessingRecord ->
+            case accessingRecord.record of
+                Node _ (Expression.FunctionOrValue [] recordVariable) ->
+                    if field == accessingRecord.field && recordVariableName == recordVariable then
+                        Just { setterRange = setterRange, valueAccessRange = accessingRecord.range }
 
-            else
-                Nothing
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
 
         Nothing ->
             Nothing
 
 
-getRecordVariableAccess : Node Expression -> Maybe { range : Range, recordVariable : String, field : String }
-getRecordVariableAccess expressionNode =
+getAccessingRecord : Node Expression -> Maybe { range : Range, record : Node Expression, field : String }
+getAccessingRecord expressionNode =
     case AstHelpers.removeParens expressionNode of
-        Node valueAccessRange (Expression.RecordAccess (Node _ (Expression.FunctionOrValue [] recordVariable)) (Node _ fieldName)) ->
-            Just { field = fieldName, recordVariable = recordVariable, range = valueAccessRange }
+        Node range (Expression.RecordAccess record (Node _ fieldName)) ->
+            Just { field = fieldName, record = record, range = range }
 
-        Node valueAccessRange (Expression.Application ((Node _ (Expression.RecordAccessFunction fieldName)) :: (Node _ (Expression.FunctionOrValue [] recordVariable)) :: [])) ->
-            Just { field = String.replace "." "" fieldName, recordVariable = recordVariable, range = valueAccessRange }
+        Node range (Expression.Application ((Node _ (Expression.RecordAccessFunction fieldName)) :: record :: [])) ->
+            Just { field = String.replace "." "" fieldName, record = record, range = range }
 
-        Node valueAccessRange (Expression.OperatorApplication "|>" _ (Node _ (Expression.FunctionOrValue [] recordVariable)) (Node _ (Expression.RecordAccessFunction fieldName))) ->
-            Just { field = String.replace "." "" fieldName, recordVariable = recordVariable, range = valueAccessRange }
+        Node range (Expression.OperatorApplication "|>" _ record (Node _ (Expression.RecordAccessFunction fieldName))) ->
+            Just { field = String.replace "." "" fieldName, record = record, range = range }
 
-        Node valueAccessRange (Expression.OperatorApplication "<|" _ (Node _ (Expression.RecordAccessFunction fieldName)) (Node _ (Expression.FunctionOrValue [] recordVariable))) ->
-            Just { field = String.replace "." "" fieldName, recordVariable = recordVariable, range = valueAccessRange }
+        Node range (Expression.OperatorApplication "<|" _ (Node _ (Expression.RecordAccessFunction fieldName)) record) ->
+            Just { field = String.replace "." "" fieldName, record = record, range = range }
 
         _ ->
             Nothing
