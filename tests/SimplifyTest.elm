@@ -16647,6 +16647,114 @@ import Array
 a = Nothing
 """
                         ]
+        , test "should replace Array.get 1 (Array.fromList [ b, c, d ]) by Just c" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get 1 (Array.fromList [ b, c, d ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the targeted element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Just c
+"""
+                        ]
+        , test "should replace Array.get 1 (Array.fromList [ b 0, c 0, d 0 ]) by Just (c 0)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get 1 (Array.fromList [ b 0, c 0, d 0 ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the targeted element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Just (c 0)
+"""
+                        ]
+        , test "should replace Array.fromList [ b, c, d ] |> Array.get 1 |> f by c |> Just |> f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList [ b, c, d ] |> Array.get 1 |> f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the targeted element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = c |> Just |> f
+"""
+                        ]
+        , test "should replace Array.fromList [ b, g <| c, d ] |> Array.get 1 |> f by (g <| c) |> Just |> f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList [ b, g <| c, d ] |> Array.get 1 |> f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the targeted element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (g <| c) |> Just |> f
+"""
+                        ]
+        , test "should replace f <| Array.get 1 <| Array.fromList [ b, c, d ] by f <| Just <| c" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = f <| Array.get 1 <| Array.fromList [ b, c, d ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the targeted element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = f <| Just <| c
+"""
+                        ]
+        , test "should replace f <| Array.get 1 <| Array.fromList [ b, c |> g, d ] by f <| Just <| (c |> g)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = f <| Array.get 1 <| Array.fromList [ b, c |> g, d ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the targeted element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = f <| Just <| (c |> g)
+"""
+                        ]
         ]
 
 

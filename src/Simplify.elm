@@ -780,6 +780,9 @@ Destructuring using case expressions
     Array.get n Array.empty
     --> Nothing
 
+    Array.get 1 (Array.fromList [ a, b, c ])
+    --> Just b
+
     Array.get -1 array
     --> Nothing
 
@@ -6273,23 +6276,49 @@ arrayGetChecks checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just 0 ->
-                    Nothing
-
-                Just intValue ->
-                    callWithNonPositiveIntCanBeReplacedByCheck
-                        { int = intValue
-                        , intDescription = "index"
-                        , replacement = maybeWithJustAsWrap.empty.asString
-                        , lastArg = secondArg checkInfo
-                        }
-                        checkInfo
-
-                _ ->
-                    Nothing
+            Evaluate.getInt checkInfo checkInfo.firstArg
+                |> Maybe.andThen (indexAccessChecks arrayCollection checkInfo)
         ]
         ()
+
+
+indexAccessChecks : IndexableProperties otherProperties -> CheckInfo -> Int -> Maybe (Error {})
+indexAccessChecks collection checkInfo n =
+    if n < 0 then
+        Just
+            (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with negative index")
+                { replacement = maybeWithJustAsWrap.empty.asString, lastArg = secondArg checkInfo }
+                checkInfo
+            )
+
+    else
+        case secondArg checkInfo of
+            Just arg ->
+                case collection.literalElements checkInfo.lookupTable arg of
+                    Just literalElements ->
+                        case List.drop n literalElements |> List.head of
+                            Just element ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
+                                        , details = [ "You can replace this call by Just the targeted element." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceBySubExpressionFix (Node.range arg) element
+                                            ++ [ Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                               ]
+                                        )
+                                    )
+
+                            Nothing ->
+                                Nothing
+
+                    Nothing ->
+                        Nothing
+
+            Nothing ->
+                Nothing
 
 
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -7460,6 +7489,13 @@ type alias FromListProperties otherProperties =
         }
 
 
+type alias IndexableProperties otherProperties =
+    TypeProperties
+        { otherProperties
+            | literalElements : ModuleNameLookupTable -> Node Expression -> Maybe (List (Node Expression))
+        }
+
+
 type alias ConstructWithOneArgProperties =
     { description : Description
     , fnName : String
@@ -7813,7 +7849,7 @@ stringDetermineLength expression =
             Nothing
 
 
-arrayCollection : CollectionProperties (FromListProperties {})
+arrayCollection : CollectionProperties (FromListProperties (IndexableProperties {}))
 arrayCollection =
     { moduleName = [ "Array" ]
     , represents = "array"
@@ -7828,6 +7864,10 @@ arrayCollection =
         }
     , nameForSize = "length"
     , determineSize = arrayDetermineSize
+    , literalElements =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
+                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteral firstArg)
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr

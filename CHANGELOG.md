@@ -21,6 +21,7 @@ The rule now simplifies:
 - `Array.append Array.empty array` to `array`
 - `Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])` to `Array.fromList [ a, b, c, d ]`
 - `Array.get n Array.empty` to `Nothing`
+- `Array.get 1 (Array.fromList [ a, b, c ])` to `Just b`
 - `Array.get -1 array` to `Nothing`
 - `String.append String.empty str` to `str`
 - `String.fromList [ a, b ] ++ String.fromList [ c, d ]` to `String.fromList [ a, b, c, d ]`
