@@ -783,6 +783,9 @@ Destructuring using case expressions
     Array.get 1 (Array.fromList [ a, b, c ])
     --> Just b
 
+    Array.get 100 (Array.fromList [ a, b, c ])
+    --> Nothing
+
     Array.get -1 array
     --> Nothing
 
@@ -6312,7 +6315,14 @@ indexAccessChecks collection checkInfo n =
                                     )
 
                             Nothing ->
-                                Nothing
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
+                                        , details = [ "You can replace this call by Nothing." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)) ]
+                                    )
 
                     Nothing ->
                         Nothing

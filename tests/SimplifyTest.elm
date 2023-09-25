@@ -16755,6 +16755,24 @@ import Array
 a = f <| Just <| (c |> g)
 """
                         ]
+        , test "should replace Array.get 100 (Array.fromList [ b, c, d ]) by Nothing" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get 100 (Array.fromList [ b, c, d ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.get with an index out of bounds of the given array will always return Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Nothing
+"""
+                        ]
         ]
 
 
