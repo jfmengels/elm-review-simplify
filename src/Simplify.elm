@@ -792,6 +792,9 @@ Destructuring using case expressions
     Array.set n x Array.empty
     --> Array.empty
 
+    Array.set -1 x array
+    --> array
+
 
 ### Sets
 
@@ -6381,6 +6384,37 @@ setChecks collection checkInfo =
             Maybe.andThen
                 (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg collection checkInfo)
                 (thirdArg checkInfo)
+        , \() ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just n ->
+                    if n < 0 then
+                        case secondArg checkInfo of
+                            Just _ ->
+                                Just
+                                    (alwaysReturnsLastArgError
+                                        (qualifiedToString checkInfo.fn ++ " with negative index")
+                                        { lastArg = thirdArg checkInfo
+                                        , lastArgRepresents = collection.represents
+                                        }
+                                        checkInfo
+                                    )
+
+                            Nothing ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with negative index will always return the same given " ++ collection.represents
+                                        , details =
+                                            [ "You can replace this call by \\_ -> identity." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy checkInfo.parentRange "\\_ -> identity" ]
+                                    )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
         ]
         ()
 

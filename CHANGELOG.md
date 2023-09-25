@@ -25,6 +25,7 @@ The rule now simplifies:
 - `Array.get 100 (Array.fromList [ a, b, c ])` to `Nothing`
 - `Array.get -1 array` to `Nothing`
 - `Array.set n x Array.empty` to `Array.empty`
+- `Array.set -1 x array` to `array`
 - `String.append String.empty str` to `str`
 - `String.fromList [ a, b ] ++ String.fromList [ c, d ]` to `String.fromList [ a, b, c, d ]`
 - `String.append (String.fromList [ a, b ]) (String.fromList [ c, d ])` to `String.fromList [ a, b, c, d ]`

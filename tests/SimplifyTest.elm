@@ -16924,6 +16924,60 @@ import Array
 a = Array.empty
 """
                         ]
+        , test "should replace Array.set -1 x array by array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set -1 x array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set with negative index will always return the same given array"
+                            , details = [ "You can replace this call by the array itself." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array
+"""
+                        ]
+        , test "should replace Array.set -1 x by identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set -1 x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set with negative index will always return the same given array"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = identity
+"""
+                        ]
+        , test "should replace Array.set -1 by \\_ -> identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set with negative index will always return the same given array"
+                            , details = [ "You can replace this call by \\_ -> identity." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = \\_ -> identity
+"""
+                        ]
         ]
 
 
