@@ -14676,6 +14676,7 @@ arrayTests =
         , arrayInitializeTests
         , arrayLengthTests
         , arrayAppendTests
+        , arrayGetTests
         ]
 
 
@@ -16592,6 +16593,58 @@ a = [ d, e ] |> Array.fromList |> Array.append (Array.fromList <| [ b, c ])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = [ b, c , d, e ] |> Array.fromList
+"""
+                        ]
+        ]
+
+
+arrayGetTests : Test
+arrayGetTests =
+    describe "Array.get"
+        [ test "should not report Array.get with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get n array
+b = Array.get 0 array
+c = Array.get n (Array.fromList [ 1 ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.get n Array.empty by Nothing" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get n Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.get on Array.empty will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Nothing
+"""
+                        ]
+        , test "should replace Array.get -1 array by Nothing" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get -1 array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.get with negative index will always result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Nothing
 """
                         ]
         ]

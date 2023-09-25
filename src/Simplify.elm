@@ -777,6 +777,12 @@ Destructuring using case expressions
     Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])
     --> Array.fromList [ a, b, c, d ]
 
+    Array.get n Array.empty
+    --> Nothing
+
+    Array.get -1 array
+    --> Nothing
+
 
 ### Sets
 
@@ -2523,6 +2529,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "repeat" ), arrayRepeatChecks )
         , ( ( [ "Array" ], "initialize" ), arrayInitializeChecks )
         , ( ( [ "Array" ], "append" ), collectionUnionChecks arrayCollection )
+        , ( ( [ "Array" ], "get" ), arrayGetChecks )
         , ( ( [ "Set" ], "map" ), emptiableMapChecks setCollection )
         , ( ( [ "Set" ], "filter" ), emptiableFilterChecks setCollection )
         , ( ( [ "Set" ], "remove" ), collectionRemoveChecks setCollection )
@@ -6251,6 +6258,38 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
 
         Nothing ->
             Nothing
+
+
+arrayGetChecks : CheckInfo -> Maybe (Error {})
+arrayGetChecks checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            case checkInfo.secondArg of
+                Just arg ->
+                    callOnEmptyReturnsCheck { on = arg, resultAsString = maybeWithJustAsWrap.empty.asString }
+                        arrayCollection
+                        checkInfo
+
+                Nothing ->
+                    Nothing
+        , \() ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just 0 ->
+                    Nothing
+
+                Just intValue ->
+                    callWithNonPositiveIntCanBeReplacedByCheck
+                        { int = intValue
+                        , intDescription = "index"
+                        , replacement = maybeWithJustAsWrap.empty.asString
+                        , lastArg = secondArg checkInfo
+                        }
+                        checkInfo
+
+                _ ->
+                    Nothing
+        ]
+        ()
 
 
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
