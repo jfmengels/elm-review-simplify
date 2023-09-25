@@ -2655,6 +2655,8 @@ compositionChecks =
     [ basicsIdentityCompositionChecks
     , basicsNotCompositionChecks
     , basicsNegateCompositionChecks
+    , toggleCompositionChecks ( [ "String" ], "reverse" )
+    , toggleCompositionChecks ( [ "List" ], "reverse" )
     , inversesCompositionCheck { later = ( [ "String" ], "toList" ), earlier = ( [ "String" ], "fromList" ) }
     , inversesCompositionCheck { later = ( [ "String" ], "fromList" ), earlier = ( [ "String" ], "toList" ) }
     , inversesCompositionCheck { later = ( [ "Array" ], "toList" ), earlier = ( [ "Array" ], "fromList" ) }
