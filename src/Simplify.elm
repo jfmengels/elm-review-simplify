@@ -795,6 +795,9 @@ Destructuring using case expressions
     Array.set -1 x array
     --> array
 
+    Array.set 1 x (Array.fromList [ a, b, c ])
+    --> Array.fromList [ a, x, c ]
+
 
 ### Sets
 
@@ -6389,7 +6392,7 @@ setChecks collection checkInfo =
                 Just n ->
                     if n < 0 then
                         case secondArg checkInfo of
-                            Just _ ->
+                            Just replacementArg ->
                                 Just
                                     (alwaysReturnsLastArgError
                                         (qualifiedToString checkInfo.fn ++ " with negative index")
@@ -6411,12 +6414,51 @@ setChecks collection checkInfo =
                                     )
 
                     else
-                        Nothing
+                        case secondArg checkInfo of
+                            Just replacementArg ->
+                                setOnKnownElementChecks collection checkInfo n (Node.range replacementArg)
+
+                            Nothing ->
+                                Nothing
 
                 Nothing ->
                     Nothing
         ]
         ()
+
+
+setOnKnownElementChecks :
+    CollectionProperties (FromListProperties (IndexableProperties {}))
+    -> CheckInfo
+    -> Int
+    -> Range
+    -> Maybe (Error {})
+setOnKnownElementChecks collection checkInfo n replacementArgRange =
+    case thirdArg checkInfo of
+        Just collectionArg ->
+            case collection.literalElements checkInfo.lookupTable collectionArg of
+                Just literalElements ->
+                    case List.drop n literalElements |> List.head of
+                        Just element ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
+                                    , details = [ "You can move the replacement argument directly into the " ++ collection.represents ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg }
+                                        ++ [ Fix.replaceRangeBy (Node.range element) (checkInfo.extractSourceCode replacementArgRange) ]
+                                    )
+                                )
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})

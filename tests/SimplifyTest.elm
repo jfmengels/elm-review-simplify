@@ -16902,7 +16902,10 @@ arraySetTests =
 import Array
 a = Array.set n x array
 b = Array.set 0 x array
-c = Array.set n x (Array.fromList [ 1 ])
+c = Array.set n x
+d = Array.set 1
+e = Array.set 1 x
+f = Array.set n x (Array.fromList [ 1 ])
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -16976,6 +16979,24 @@ a = Array.set -1
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = \\_ -> identity
+"""
+                        ]
+        , test "should replace Array.set 1 x (Array.fromList [ b, c, d ]) by (Array.fromList [ b, x, d ])" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set 1 x (Array.fromList [ b, c, d ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.set is known"
+                            , details = [ "You can move the replacement argument directly into the array." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.fromList [ b, x, d ])
 """
                         ]
         ]
