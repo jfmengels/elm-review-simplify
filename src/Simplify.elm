@@ -9466,25 +9466,6 @@ getUnnecessaryRecordUpdateSetter recordVariableName (Node setterRange ( Node _ f
             Nothing
 
 
-getAccessingRecord : Node Expression -> Maybe { range : Range, record : Node Expression, field : String }
-getAccessingRecord expressionNode =
-    case AstHelpers.removeParens expressionNode of
-        Node range (Expression.RecordAccess record (Node _ fieldName)) ->
-            Just { field = fieldName, record = record, range = range }
-
-        Node range (Expression.Application ((Node _ (Expression.RecordAccessFunction fieldName)) :: record :: [])) ->
-            Just { field = String.replace "." "" fieldName, record = record, range = range }
-
-        Node range (Expression.OperatorApplication "|>" _ record (Node _ (Expression.RecordAccessFunction fieldName))) ->
-            Just { field = String.replace "." "" fieldName, record = record, range = range }
-
-        Node range (Expression.OperatorApplication "<|" _ (Node _ (Expression.RecordAccessFunction fieldName)) record) ->
-            Just { field = String.replace "." "" fieldName, record = record, range = range }
-
-        _ ->
-            Nothing
-
-
 
 -- IF
 

@@ -4,6 +4,7 @@ module Simplify.AstHelpers exposing
     , getSpecificFunctionCall, getSpecificValueOrFunction
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
+    , getAccessingRecord
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, getListLiteralRange, getListSingleton
     , getTuple2, getTuple2Literal
@@ -31,6 +32,7 @@ module Simplify.AstHelpers exposing
 
 @docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
+@docs getAccessingRecord
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, getListLiteralRange, getListSingleton
 @docs getTuple2, getTuple2Literal
@@ -398,6 +400,28 @@ isTupleSecondPatternLambda expressionNode =
 
         _ ->
             False
+
+
+{-| Parse a record access or call of a record access function.
+The resulting `range` refers to the unparenthesized range of the access/function application.
+-}
+getAccessingRecord : Node Expression -> Maybe { range : Range, record : Node Expression, field : String }
+getAccessingRecord expressionNode =
+    case removeParens expressionNode of
+        Node range (Expression.RecordAccess record (Node _ fieldName)) ->
+            Just { field = fieldName, record = record, range = range }
+
+        Node range (Expression.Application ((Node _ (Expression.RecordAccessFunction fieldName)) :: record :: [])) ->
+            Just { field = String.replace "." "" fieldName, record = record, range = range }
+
+        Node range (Expression.OperatorApplication "|>" _ record (Node _ (Expression.RecordAccessFunction fieldName))) ->
+            Just { field = String.replace "." "" fieldName, record = record, range = range }
+
+        Node range (Expression.OperatorApplication "<|" _ (Node _ (Expression.RecordAccessFunction fieldName)) record) ->
+            Just { field = String.replace "." "" fieldName, record = record, range = range }
+
+        _ ->
+            Nothing
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
