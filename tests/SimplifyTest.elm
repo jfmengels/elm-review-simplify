@@ -14793,6 +14793,7 @@ arrayTests =
         , arrayLengthTests
         , arrayAppendTests
         , arrayGetTests
+        , arraySetTests
         ]
 
 
@@ -16887,6 +16888,40 @@ a = Array.get 100 (Array.fromList [ b, c, d ])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Nothing
+"""
+                        ]
+        ]
+
+
+arraySetTests : Test
+arraySetTests =
+    describe "Array.set"
+        [ test "should not report Array.set with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set n x array
+b = Array.set 0 x array
+c = Array.set n x (Array.fromList [ 1 ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.set n x Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set n x Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
 """
                         ]
         ]

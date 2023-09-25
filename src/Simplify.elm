@@ -789,6 +789,9 @@ Destructuring using case expressions
     Array.get -1 array
     --> Nothing
 
+    Array.set n x Array.empty
+    --> Array.empty
+
 
 ### Sets
 
@@ -2573,6 +2576,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "initialize" ), ( 2, arrayInitializeChecks ) )
         , ( ( [ "Array" ], "append" ), ( 2, collectionUnionChecks arrayCollection ) )
         , ( ( [ "Array" ], "get" ), ( 2, getChecks arrayCollection ) )
+        , ( ( [ "Array" ], "set" ), ( 3, setChecks arrayCollection ) )
         , ( ( [ "Set" ], "map" ), ( 2, emptiableMapChecks setCollection ) )
         , ( ( [ "Set" ], "filter" ), ( 2, emptiableFilterChecks setCollection ) )
         , ( ( [ "Set" ], "remove" ), ( 2, collectionRemoveChecks setCollection ) )
@@ -6368,6 +6372,17 @@ indexAccessChecks collection checkInfo n =
 
             Nothing ->
                 Nothing
+
+
+setChecks : CollectionProperties (FromListProperties (IndexableProperties {})) -> CheckInfo -> Maybe (Error {})
+setChecks collection checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            Maybe.andThen
+                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg collection checkInfo)
+                (thirdArg checkInfo)
+        ]
+        ()
 
 
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
