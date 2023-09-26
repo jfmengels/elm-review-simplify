@@ -3996,18 +3996,18 @@ a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
 a = True
 """
                         , Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
-                            , under = ".a"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                     , under = ".a"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 37 }, end = { row = 2, column = 39 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ({ a = 1 }).a == (2 - 1)
 """
                         , Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
-                            , under = ".a"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                     , under = ".a"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 16 }, end = { row = 2, column = 18 } }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4038,9 +4038,9 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
-                            , under = ".a"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                        , details = [ "You can replace accessing this record by just that field's value." ]
+                        , under = ".a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 1 == ({ a = 1 }).b
@@ -25189,12 +25189,6 @@ a = (always (f x))
 
 recordAccessTests : Test
 recordAccessTests =
-    let
-        details : List String
-        details =
-            [ "Accessing the field of a record or record update can be simplified to just that field's value"
-            ]
-    in
     describe "Simplify.RecordAccess"
         [ test "should simplify record accesses for explicit records" <|
             \() ->
@@ -25204,9 +25198,9 @@ a = { b = 3 }.b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = details
-                            , under = ".b"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                    , under = ".b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 3
@@ -25220,9 +25214,9 @@ a = { b = f n }.b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = details
-                            , under = ".b"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                    , under = ".b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f n)
@@ -25236,9 +25230,9 @@ a = (({ b = 3 })).b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = details
-                            , under = ".b"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                    , under = ".b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 3
@@ -25259,9 +25253,9 @@ a = foo { d | b = f x y }.b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = details
-                            , under = ".b"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                    , under = ".b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = foo (f x y)
@@ -25275,9 +25269,9 @@ a = foo (({ d | b = f x y })).b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = details
-                            , under = ".b"
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
+                    , under = ".b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = foo (f x y)
@@ -25291,8 +25285,8 @@ a = { d | b = 3 }.c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
+                            { message = "Updating a record, then accessing an unchanged field will result in that field from the unchanged record"
+                            , details = [ "You can replace accessing this record by just the original record variable inside the record update." ]
                             , under = ".c"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25307,8 +25301,8 @@ a = (let b = c in { e = 3 }).e
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                            , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                             , under = ".e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25323,8 +25317,8 @@ a = (let b = c in f x).e
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                            , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                             , under = ".e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25339,8 +25333,8 @@ a = (let b = c in x).e
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                            , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                             , under = ".e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25355,8 +25349,8 @@ a = (((let b = c in {e = 2}))).e
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                            , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                             , under = ".e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25371,8 +25365,8 @@ a = (let b = c in { e = { f = 2 } }).e.f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                            , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                             , under = ".e"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25387,8 +25381,8 @@ a = (let b = c in (f x).e).f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                            , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25403,8 +25397,8 @@ a = (if x then { f = 3 } else { z | f = 3 }).f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside an if/then/else expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside an if...then...else will result in accessing it in each branch"
+                            , details = [ "You can replace accessing this record outside an if...then...else by accessing the record inside each branch." ]
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25426,8 +25420,8 @@ a = (if x then { f = 3 } else if y then { z | f = 4 } else { z | f = 3 }).f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside an if/then/else expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside an if...then...else will result in accessing it in each branch"
+                            , details = [ "You can replace accessing this record outside an if...then...else by accessing the record inside each branch." ]
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -25444,8 +25438,8 @@ a = (if x then { f = 3 } else if y then {f = 2} else
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field outside an if/then/else expression can be simplified to access the field inside it" ]
+                            { message = "Accessing a field outside an if...then...else will result in accessing it in each branch"
+                            , details = [ "You can replace accessing this record outside an if...then...else by accessing the record inside each branch." ]
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

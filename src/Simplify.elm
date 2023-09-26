@@ -9930,10 +9930,10 @@ accessingRecordChecks checkInfo =
             Just (injectRecordAccessIntoLetExpression dotFieldRange letIn.expression checkInfo.fieldName)
 
         Expression.IfBlock _ thenBranch elseBranch ->
-            distributeFieldAccess "an if/then/else" dotFieldRange [ thenBranch, elseBranch ] checkInfo.fieldName
+            distributeFieldAccess "an if...then...else" dotFieldRange [ thenBranch, elseBranch ] checkInfo.fieldName
 
         Expression.CaseExpression caseOf ->
-            distributeFieldAccess "a case/of" dotFieldRange (List.map Tuple.second caseOf.cases) checkInfo.fieldName
+            distributeFieldAccess "a case...of" dotFieldRange (List.map Tuple.second caseOf.cases) checkInfo.fieldName
 
         _ ->
             Nothing
@@ -9964,8 +9964,8 @@ recordAccessChecks checkInfo =
         Just setter ->
             Just
                 { info =
-                    { message = "Field access can be simplified"
-                    , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                    { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                    , details = [ "You can replace accessing this record by just that field's value." ]
                     }
                 , fix = replaceBySubExpressionFix checkInfo.nodeRange setter
                 }
@@ -9975,8 +9975,8 @@ recordAccessChecks checkInfo =
                 Just recordNameRange ->
                     Just
                         { info =
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
+                            { message = "Updating a record, then accessing an unchanged field will result in that field from the unchanged record"
+                            , details = [ "You can replace accessing this record by just the original record variable inside the record update." ]
                             }
                         , fix =
                             [ Fix.removeRange { start = checkInfo.nodeRange.start, end = recordNameRange.start }
@@ -9994,8 +9994,8 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
         Just records ->
             Just
                 { info =
-                    { message = "Field access can be simplified"
-                    , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+                    { message = "Accessing a field outside " ++ kind ++ " will result in accessing it in each branch"
+                    , details = [ "You can replace accessing this record outside " ++ kind ++ " by accessing the record inside each branch." ]
                     }
                 , fix =
                     Fix.removeRange dotFieldRange
@@ -10009,8 +10009,8 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
 injectRecordAccessIntoLetExpression : Range -> Node Expression -> String -> ErrorInfoAndFix
 injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
     { info =
-        { message = "Field access can be simplified"
-        , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+        { message = "Accessing a field outside a let...in will result in accessing it in its result"
+        , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
         }
     , fix =
         Fix.removeRange dotFieldRange
