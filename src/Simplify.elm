@@ -9927,7 +9927,15 @@ accessingRecordChecks checkInfo =
                 }
 
         Expression.LetExpression letIn ->
-            Just (injectRecordAccessIntoLetExpression dotFieldRange letIn.expression checkInfo.fieldName)
+            Just
+                { info =
+                    { message = "Accessing a field outside a let...in will result in accessing it in its result"
+                    , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
+                    }
+                , fix =
+                    Fix.removeRange dotFieldRange
+                        :: replaceSubExpressionByRecordAccessFix checkInfo.fieldName letIn.expression
+                }
 
         Expression.IfBlock _ thenBranch elseBranch ->
             distributeFieldAccess "an if...then...else" dotFieldRange [ thenBranch, elseBranch ] checkInfo.fieldName
@@ -10004,18 +10012,6 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
 
         Nothing ->
             Nothing
-
-
-injectRecordAccessIntoLetExpression : Range -> Node Expression -> String -> ErrorInfoAndFix
-injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
-    { info =
-        { message = "Accessing a field outside a let...in will result in accessing it in its result"
-        , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
-        }
-    , fix =
-        Fix.removeRange dotFieldRange
-            :: replaceSubExpressionByRecordAccessFix fieldName letBody
-    }
 
 
 returnsRecordInAllBranches : List (Node Expression) -> Maybe (List (Node Expression))
