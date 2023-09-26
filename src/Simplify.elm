@@ -2606,7 +2606,7 @@ functionCallChecks =
         , ( ( [ "String" ], "words" ), ( 1, stringWordsChecks ) )
         , ( ( [ "String" ], "lines" ), ( 1, stringLinesChecks ) )
         , ( ( [ "String" ], "reverse" ), ( 1, stringReverseChecks ) )
-        , ( ( [ "String" ], "slice" ), ( 3, stringSliceChecks ) )
+        , ( ( [ "String" ], "slice" ), ( 3, collectionSliceChecks stringCollection ) )
         , ( ( [ "String" ], "left" ), ( 2, stringLeftChecks ) )
         , ( ( [ "String" ], "right" ), ( 2, stringRightChecks ) )
         , ( ( [ "String" ], "append" ), ( 2, collectionUnionChecks stringCollection ) )
@@ -4541,13 +4541,13 @@ stringReverseCompositionChecks checkInfo =
     compositionAfterWrapIsUnnecessaryCheck stringCollection checkInfo
 
 
-stringSliceChecks : CheckInfo -> Maybe (Error {})
-stringSliceChecks checkInfo =
+collectionSliceChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSliceChecks collection checkInfo =
     firstThatConstructsJust
         [ \() ->
             Maybe.andThen
                 (\stringArg ->
-                    callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo
+                    callOnEmptyReturnsEmptyCheck stringArg collection checkInfo
                 )
                 (thirdArg checkInfo)
         , \() ->
@@ -4557,8 +4557,8 @@ stringSliceChecks checkInfo =
                         [ \() ->
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just
-                                    (alwaysResultsInUnparenthesizedConstantError "String.slice with equal start and end index"
-                                        { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                    (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with equal start and end index")
+                                        { replacement = collection.empty.asString, lastArg = thirdArg checkInfo }
                                         checkInfo
                                     )
 
@@ -4572,8 +4572,8 @@ stringSliceChecks checkInfo =
                                             case endInt of
                                                 0 ->
                                                     Just
-                                                        (alwaysResultsInUnparenthesizedConstantError "String.slice with end index 0"
-                                                            { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                        (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with end index 0")
+                                                            { replacement = collection.empty.asString, lastArg = thirdArg checkInfo }
                                                             checkInfo
                                                         )
 
@@ -4585,15 +4585,15 @@ stringSliceChecks checkInfo =
                                                     if startInt > endInt then
                                                         if startInt >= 0 && endInt >= 0 then
                                                             Just
-                                                                (alwaysResultsInUnparenthesizedConstantError "String.slice with a start index greater than the end index"
-                                                                    { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                                (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                                                    { replacement = collection.empty.asString, lastArg = thirdArg checkInfo }
                                                                     checkInfo
                                                                 )
 
                                                         else if startInt <= -1 && endInt <= -1 then
                                                             Just
-                                                                (alwaysResultsInUnparenthesizedConstantError "String.slice with a negative start index closer to the right than the negative end index"
-                                                                    { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                                (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a negative start index closer to the right than the negative end index")
+                                                                    { replacement = collection.empty.asString, lastArg = thirdArg checkInfo }
                                                                     checkInfo
                                                                 )
 
