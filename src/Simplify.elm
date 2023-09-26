@@ -9942,7 +9942,7 @@ recordAccessChecks checkInfo =
                             , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
                             }
                         , fix =
-                            [ Fix.replaceRangeBy { start = checkInfo.nodeRange.start, end = recordNameRange.start } ""
+                            [ Fix.removeRange { start = checkInfo.nodeRange.start, end = recordNameRange.start }
                             , Fix.replaceRangeBy { start = recordNameRange.end, end = checkInfo.nodeRange.end } ("." ++ checkInfo.fieldName)
                             ]
                         }
