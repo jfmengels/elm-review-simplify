@@ -5167,6 +5167,13 @@ a = { b | c = 1, d = b.c, e = c.e, f = g b.f, g = b.g.h }
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not simplify when assigning a field to itself applied to an extra argument" <|
+            \() ->
+                """module A exposing (..)
+a = { b | d = .d b extraArgument }
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should not simplify when assigning a field in a non-update record assignment" <|
             \() ->
                 """module A exposing (..)
@@ -25206,6 +25213,22 @@ a = .b { b = 3 }
 a = 3
 """
                         ]
+        , test "should simplify record accesses for explicit records (using access function application with extra argument)" <|
+            \() ->
+                """module A exposing (..)
+a = .b { b = f } extraArgument
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
+                            , under = ".b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f extraArgument
+"""
+                        ]
         , test "should simplify record accesses for explicit records (using access function <|)" <|
             \() ->
                 """module A exposing (..)
@@ -25307,6 +25330,22 @@ a = foo <| .b { d | b = f x y }
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = foo <| (f x y)
+"""
+                        ]
+        , test "should simplify record accesses for record updates (using access function application with extra argument)" <|
+            \() ->
+                """module A exposing (..)
+a = foo <| .b { d | b = f x y } extraArgument
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
+                            , under = ".b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = foo <| (f x y) extraArgument
 """
                         ]
         , test "should simplify record accesses for record updates (using access function <|)" <|
