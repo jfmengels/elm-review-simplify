@@ -2943,7 +2943,7 @@ functionCallChecks =
         , ( Fn.String.words, ( 1, stringWordsChecks ) )
         , ( Fn.String.lines, ( 1, stringLinesChecks ) )
         , ( Fn.String.reverse, ( 1, stringReverseChecks ) )
-        , ( Fn.String.slice, ( 3, stringSliceChecks ) )
+        , ( Fn.String.slice, ( 3, collectionSliceChecks stringCollection ) )
         , ( Fn.String.left, ( 2, stringLeftChecks ) )
         , ( Fn.String.right, ( 2, stringRightChecks ) )
         , ( Fn.String.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } stringCollection ) )
@@ -4794,10 +4794,10 @@ stringReverseCompositionChecks =
         ]
 
 
-stringSliceChecks : CheckInfo -> Maybe (Error {})
-stringSliceChecks =
+collectionSliceChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSliceChecks collection =
     firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck stringCollection
+        [ unnecessaryCallOnEmptyCheck collection
         , \checkInfo ->
             case secondArg checkInfo of
                 Just endArg ->
@@ -4805,8 +4805,8 @@ stringSliceChecks =
                         [ \() ->
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just
-                                    (alwaysResultsInUnparenthesizedConstantError "String.slice with equal start and end index"
-                                        { replacement = stringCollection.empty.asString }
+                                    (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with equal start and end index")
+                                        { replacement = collection.empty.asString }
                                         checkInfo
                                     )
 
@@ -4820,8 +4820,8 @@ stringSliceChecks =
                                             case endInt of
                                                 0 ->
                                                     Just
-                                                        (alwaysResultsInUnparenthesizedConstantError "String.slice with end index 0"
-                                                            { replacement = stringCollection.empty.asString }
+                                                        (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with end index 0")
+                                                            { replacement = collection.empty.asString }
                                                             checkInfo
                                                         )
 
@@ -4833,15 +4833,15 @@ stringSliceChecks =
                                                     if startInt > endInt then
                                                         if startInt >= 0 && endInt >= 0 then
                                                             Just
-                                                                (alwaysResultsInUnparenthesizedConstantError "String.slice with a start index greater than the end index"
-                                                                    { replacement = stringCollection.empty.asString }
+                                                                (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                                                    { replacement = collection.empty.asString }
                                                                     checkInfo
                                                                 )
 
                                                         else if startInt <= -1 && endInt <= -1 then
                                                             Just
-                                                                (alwaysResultsInUnparenthesizedConstantError "String.slice with a negative start index closer to the right than the negative end index"
-                                                                    { replacement = stringCollection.empty.asString }
+                                                                (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a negative start index closer to the right than the negative end index")
+                                                                    { replacement = collection.empty.asString }
                                                                     checkInfo
                                                                 )
 
