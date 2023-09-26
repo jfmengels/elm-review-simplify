@@ -2034,7 +2034,12 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     otherApplied ->
                         case AstHelpers.getRecordAccessFunction otherApplied of
                             Just fieldName ->
-                                accessingRecordChecks { parentRange = expressionRange, record = firstArg, fieldRange = Node.range otherApplied, fieldName = fieldName }
+                                accessingRecordChecks
+                                    { parentRange = Range.combine [ Node.range applied, Node.range firstArg ]
+                                    , record = firstArg
+                                    , fieldRange = Node.range otherApplied
+                                    , fieldName = fieldName
+                                    }
                                     |> Maybe.map (\e -> Rule.errorWithFix e.info (Node.range otherApplied) e.fix)
 
                             Nothing ->
