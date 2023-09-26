@@ -798,6 +798,9 @@ Destructuring using case expressions
     Array.set 1 x (Array.fromList [ a, b, c ])
     --> Array.fromList [ a, x, c ]
 
+    Array.set 100 x (Array.fromList [ a, b, c ])
+    --> Array.fromList [ a, b, c ]
+
 
 ### Sets
 
@@ -6452,7 +6455,14 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
                                 )
 
                         Nothing ->
-                            Nothing
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return the same given " ++ collection.represents
+                                    , details = [ "You can replace this call by the given " ++ collection.represents ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+                                )
 
                 Nothing ->
                     Nothing

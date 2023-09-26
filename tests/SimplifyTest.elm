@@ -16999,6 +16999,24 @@ import Array
 a = (Array.fromList [ b, x, d ])
 """
                         ]
+        , test "should replace Array.set 100 x (Array.fromList [ b, c, d ]) by Nothing" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set 100 x (Array.fromList [ b, c, d ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set with an index out of bounds of the given array will always return the same given array"
+                            , details = [ "You can replace this call by the given array." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.fromList [ b, c, d ])
+"""
+                        ]
         ]
 
 
