@@ -2280,45 +2280,9 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- RECORD ACCESS --
         -------------------
         Expression.RecordAccess record (Node fieldRange fieldName) ->
-            let
-                dotFieldRange : Range
-                dotFieldRange =
-                    { start = (Node.range record).end, end = fieldRange.end }
-
-                maybeErrorInfoAndFix : Maybe ErrorInfoAndFix
-                maybeErrorInfoAndFix =
-                    case Node.value (AstHelpers.removeParens record) of
-                        Expression.RecordExpr setters ->
-                            recordAccessChecks
-                                { nodeRange = expressionRange
-                                , maybeRecordNameRange = Nothing
-                                , fieldName = fieldName
-                                , setters = setters
-                                }
-
-                        Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
-                            recordAccessChecks
-                                { nodeRange = expressionRange
-                                , maybeRecordNameRange = Just recordNameRange
-                                , fieldName = fieldName
-                                , setters = setters
-                                }
-
-                        Expression.LetExpression letIn ->
-                            Just (injectRecordAccessIntoLetExpression dotFieldRange letIn.expression fieldName)
-
-                        Expression.IfBlock _ thenBranch elseBranch ->
-                            distributeFieldAccess "an if/then/else" dotFieldRange [ thenBranch, elseBranch ] fieldName
-
-                        Expression.CaseExpression caseOf ->
-                            distributeFieldAccess "a case/of" dotFieldRange (List.map Tuple.second caseOf.cases) fieldName
-
-                        _ ->
-                            Nothing
-            in
             onlyMaybeError
-                (maybeErrorInfoAndFix
-                    |> Maybe.map (\e -> Rule.errorWithFix e.info dotFieldRange e.fix)
+                (accessingRecordChecks { parentRange = expressionRange, record = record, fieldRange = fieldRange, fieldName = fieldName }
+                    |> Maybe.map (\e -> Rule.errorWithFix e.info { start = (Node.range record).end, end = fieldRange.end } e.fix)
                 )
 
         --------
@@ -9936,6 +9900,43 @@ letKeyWordRange range =
 
 
 -- RECORD ACCESS
+
+
+accessingRecordChecks : { parentRange : Range, fieldName : String, fieldRange : Range, record : Node Expression } -> Maybe ErrorInfoAndFix
+accessingRecordChecks checkInfo =
+    let
+        dotFieldRange : Range
+        dotFieldRange =
+            { start = (Node.range checkInfo.record).end, end = checkInfo.fieldRange.end }
+    in
+    case Node.value (AstHelpers.removeParens checkInfo.record) of
+        Expression.RecordExpr setters ->
+            recordAccessChecks
+                { nodeRange = checkInfo.parentRange
+                , maybeRecordNameRange = Nothing
+                , fieldName = checkInfo.fieldName
+                , setters = setters
+                }
+
+        Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
+            recordAccessChecks
+                { nodeRange = checkInfo.parentRange
+                , maybeRecordNameRange = Just recordNameRange
+                , fieldName = checkInfo.fieldName
+                , setters = setters
+                }
+
+        Expression.LetExpression letIn ->
+            Just (injectRecordAccessIntoLetExpression dotFieldRange letIn.expression checkInfo.fieldName)
+
+        Expression.IfBlock _ thenBranch elseBranch ->
+            distributeFieldAccess "an if/then/else" dotFieldRange [ thenBranch, elseBranch ] checkInfo.fieldName
+
+        Expression.CaseExpression caseOf ->
+            distributeFieldAccess "a case/of" dotFieldRange (List.map Tuple.second caseOf.cases) checkInfo.fieldName
+
+        _ ->
+            Nothing
 
 
 recordAccessChecks :
