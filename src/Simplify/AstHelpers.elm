@@ -4,7 +4,7 @@ module Simplify.AstHelpers exposing
     , getSpecificFunctionCall, getSpecificValueOrFunction
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
-    , getAccessingRecord
+    , getAccessingRecord, getRecordAccessFunction
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, getListLiteralRange, getListSingleton
     , getTuple2, getTuple2Literal
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 
 @docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
-@docs getAccessingRecord
+@docs getAccessingRecord, getRecordAccessFunction
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, getListLiteralRange, getListSingleton
 @docs getTuple2, getTuple2Literal
@@ -411,14 +411,27 @@ getAccessingRecord expressionNode =
         Node range (Expression.RecordAccess record (Node _ fieldName)) ->
             Just { field = fieldName, record = record, range = range }
 
-        Node range (Expression.Application ((Node _ (Expression.RecordAccessFunction fieldName)) :: record :: [])) ->
-            Just { field = String.replace "." "" fieldName, record = record, range = range }
+        Node range (Expression.Application (function :: record :: [])) ->
+            Maybe.map (\fieldName -> { field = fieldName, record = record, range = range }) (getRecordAccessFunction function)
 
-        Node range (Expression.OperatorApplication "|>" _ record (Node _ (Expression.RecordAccessFunction fieldName))) ->
-            Just { field = String.replace "." "" fieldName, record = record, range = range }
+        Node range (Expression.OperatorApplication "|>" _ record function) ->
+            Maybe.map (\fieldName -> { field = fieldName, record = record, range = range }) (getRecordAccessFunction function)
 
-        Node range (Expression.OperatorApplication "<|" _ (Node _ (Expression.RecordAccessFunction fieldName)) record) ->
-            Just { field = String.replace "." "" fieldName, record = record, range = range }
+        Node range (Expression.OperatorApplication "<|" _ function record) ->
+            Maybe.map (\fieldName -> { field = fieldName, record = record, range = range }) (getRecordAccessFunction function)
+
+        _ ->
+            Nothing
+
+
+{-| Parse a function that accesses a specific field and is therefore equivalent to `.field`.
+The resulting String is the field name without the leading dot.
+-}
+getRecordAccessFunction : Node Expression -> Maybe String
+getRecordAccessFunction expressionNode =
+    case expressionNode of
+        Node _ (Expression.RecordAccessFunction fieldName) ->
+            Just (String.replace "." "" fieldName)
 
         _ ->
             Nothing
