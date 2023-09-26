@@ -2002,8 +2002,14 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             _ ->
                                 Nothing
 
-                    _ ->
-                        Nothing
+                    otherApplied ->
+                        case AstHelpers.getRecordAccessFunction otherApplied of
+                            Just fieldName ->
+                                accessingRecordChecks { parentRange = expressionRange, record = firstArg, fieldRange = Node.range otherApplied, fieldName = fieldName }
+                                    |> Maybe.map (\e -> Rule.errorWithFix e.info (Node.range otherApplied) e.fix)
+
+                            Nothing ->
+                                Nothing
                 )
 
         ----------
@@ -8581,6 +8587,14 @@ pipelineChecks checkInfo =
     firstThatConstructsJust
         [ \() -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
         , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
+        , \() ->
+            case AstHelpers.getRecordAccessFunction checkInfo.pipedInto of
+                Just fieldName ->
+                    accessingRecordChecks { parentRange = checkInfo.nodeRange, record = checkInfo.arg, fieldRange = Node.range checkInfo.pipedInto, fieldName = fieldName }
+                        |> Maybe.map (\e -> Rule.errorWithFix e.info (Node.range checkInfo.pipedInto) e.fix)
+
+                Nothing ->
+                    Nothing
         ]
         ()
 
