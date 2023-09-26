@@ -9904,11 +9904,6 @@ letKeyWordRange range =
 
 accessingRecordChecks : { parentRange : Range, fieldName : String, fieldRange : Range, record : Node Expression } -> Maybe ErrorInfoAndFix
 accessingRecordChecks checkInfo =
-    let
-        dotFieldRange : Range
-        dotFieldRange =
-            { start = (Node.range checkInfo.record).end, end = checkInfo.fieldRange.end }
-    in
     case Node.value (AstHelpers.removeParens checkInfo.record) of
         Expression.RecordExpr setters ->
             recordAccessChecks
@@ -9933,15 +9928,15 @@ accessingRecordChecks checkInfo =
                     , details = [ "You can replace accessing this record outside the let...in by accessing its result record after `in`." ]
                     }
                 , fix =
-                    Fix.removeRange dotFieldRange
-                        :: replaceSubExpressionByRecordAccessFix checkInfo.fieldName letIn.expression
+                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.record }
+                        ++ replaceSubExpressionByRecordAccessFix checkInfo.fieldName letIn.expression
                 }
 
         Expression.IfBlock _ thenBranch elseBranch ->
-            distributeFieldAccess "an if...then...else" dotFieldRange [ thenBranch, elseBranch ] checkInfo.fieldName
+            distributeFieldAccess "an if...then...else" [ thenBranch, elseBranch ] checkInfo
 
         Expression.CaseExpression caseOf ->
-            distributeFieldAccess "a case...of" dotFieldRange (List.map Tuple.second caseOf.cases) checkInfo.fieldName
+            distributeFieldAccess "a case...of" (List.map Tuple.second caseOf.cases) checkInfo
 
         _ ->
             Nothing
@@ -9996,8 +9991,8 @@ recordAccessChecks checkInfo =
                     Nothing
 
 
-distributeFieldAccess : String -> Range -> List (Node Expression) -> String -> Maybe ErrorInfoAndFix
-distributeFieldAccess kind dotFieldRange branches fieldName =
+distributeFieldAccess : String -> List (Node Expression) -> { checkInfo | parentRange : Range, record : Node Expression, fieldName : String } -> Maybe ErrorInfoAndFix
+distributeFieldAccess kind branches checkInfo =
     case returnsRecordInAllBranches branches of
         Just records ->
             Just
@@ -10006,8 +10001,8 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
                     , details = [ "You can replace accessing this record outside " ++ kind ++ " by accessing the record inside each branch." ]
                     }
                 , fix =
-                    Fix.removeRange dotFieldRange
-                        :: List.concatMap (\leaf -> replaceSubExpressionByRecordAccessFix fieldName leaf) records
+                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.record }
+                        ++ List.concatMap (\leaf -> replaceSubExpressionByRecordAccessFix checkInfo.fieldName leaf) records
                 }
 
         Nothing ->
