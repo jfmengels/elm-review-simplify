@@ -9905,20 +9905,20 @@ letKeyWordRange range =
 accessingRecordChecks : { parentRange : Range, fieldName : String, fieldRange : Range, record : Node Expression } -> Maybe ErrorInfoAndFix
 accessingRecordChecks checkInfo =
     case Node.value (AstHelpers.removeParens checkInfo.record) of
-        Expression.RecordExpr setters ->
+        Expression.RecordExpr fields ->
             recordAccessChecks
                 { nodeRange = checkInfo.parentRange
                 , maybeRecordNameRange = Nothing
                 , fieldName = checkInfo.fieldName
-                , setters = setters
+                , knownFields = fields
                 }
 
-        Expression.RecordUpdateExpression (Node recordNameRange _) setters ->
+        Expression.RecordUpdateExpression (Node recordNameRange _) setFields ->
             recordAccessChecks
                 { nodeRange = checkInfo.parentRange
                 , maybeRecordNameRange = Just recordNameRange
                 , fieldName = checkInfo.fieldName
-                , setters = setters
+                , knownFields = setFields
                 }
 
         Expression.LetExpression letIn ->
@@ -9946,7 +9946,7 @@ recordAccessChecks :
     { nodeRange : Range
     , maybeRecordNameRange : Maybe Range
     , fieldName : String
-    , setters : List (Node Expression.RecordSetter)
+    , knownFields : List (Node Expression.RecordSetter)
     }
     -> Maybe ErrorInfoAndFix
 recordAccessChecks checkInfo =
@@ -9961,7 +9961,7 @@ recordAccessChecks checkInfo =
                     else
                         Nothing
                 )
-                checkInfo.setters
+                checkInfo.knownFields
     in
     case maybeMatchingSetterValue of
         Just setter ->
