@@ -20,6 +20,11 @@ The rule now simplifies:
 - `Array.length (Array.initialize n f)` to `max 0 n`
 - `Array.append Array.empty array` to `array`
 - `Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])` to `Array.fromList [ a, b, c, d ]`
+- `Array.slice n n array` to `Array.empty`
+- `Array.slice n 0 array` to `Array.empty`
+- `Array.slice a z Array.empty` to `Array.empty`
+- `Array.slice 2 1 array` to `Array.empty`
+- `Array.slice -1 -2 array` to `Array.empty`
 - `Array.get n Array.empty` to `Nothing`
 - `Array.get 1 (Array.fromList [ a, b, c ])` to `Just b`
 - `Array.get 100 (Array.fromList [ a, b, c ])` to `Nothing`

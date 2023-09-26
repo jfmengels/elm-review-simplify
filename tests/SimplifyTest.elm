@@ -14792,6 +14792,7 @@ arrayTests =
         , arrayInitializeTests
         , arrayLengthTests
         , arrayAppendTests
+        , arraySliceTests
         , arrayGetTests
         ]
 
@@ -16711,6 +16712,173 @@ import Array
 a = [ b, c , d, e ] |> Array.fromList
 """
                         ]
+        ]
+
+
+arraySliceTests : Test
+arraySliceTests =
+    describe "Array.slice"
+        [ test "should not report Array.slice that contains variables or expressions" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice b c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report Array.slice 0 n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice 0
+b = Array.slice 0 n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.slice b 0 by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice b 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice with end index 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace Array.slice b 0 str by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice b 0 str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice with end index 0 will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.slice n n by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice n n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice with equal start and end index will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace Array.slice n n str by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice n n str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice with equal start and end index will always result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.slice a z Array.empty by Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice a z Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice on Array.empty will result in Array.empty"
+                            , details = [ "You can replace this call by Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.empty
+"""
+                        ]
+        , test "should replace Array.slice with natural start >= natural end by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice 2 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice with a start index greater than the end index will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should replace Array.slice with negative start >= negative end by always Array.empty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice -1 -2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice with a negative start index closer to the right than the negative end index will always result in Array.empty"
+                            , details = [ "You can replace this call by always Array.empty." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always Array.empty
+"""
+                        ]
+        , test "should not report Array.slice with negative start, natural end" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice -1 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        []
+        , test "should not report Array.slice with natural start, negative end" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.slice 1 -2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        []
         ]
 
 

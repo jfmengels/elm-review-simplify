@@ -777,6 +777,21 @@ Destructuring using case expressions
     Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])
     --> Array.fromList [ a, b, c, d ]
 
+    Array.slice n n array
+    --> Array.empty
+
+    Array.slice n 0 array
+    --> Array.empty
+
+    Array.slice a z Array.empty
+    --> Array.empty
+
+    Array.slice 2 1 array
+    --> Array.empty
+
+    Array.slice -1 -2 array
+    --> Array.empty
+
     Array.get n Array.empty
     --> Nothing
 
@@ -2572,6 +2587,7 @@ functionCallChecks =
         , ( ( [ "Array" ], "repeat" ), ( 2, arrayRepeatChecks ) )
         , ( ( [ "Array" ], "initialize" ), ( 2, arrayInitializeChecks ) )
         , ( ( [ "Array" ], "append" ), ( 2, collectionUnionChecks arrayCollection ) )
+        , ( ( [ "Array" ], "slice" ), ( 3, collectionSliceChecks arrayCollection ) )
         , ( ( [ "Array" ], "get" ), ( 2, getChecks arrayCollection ) )
         , ( ( [ "Set" ], "map" ), ( 2, emptiableMapChecks setCollection ) )
         , ( ( [ "Set" ], "filter" ), ( 2, emptiableFilterChecks setCollection ) )
