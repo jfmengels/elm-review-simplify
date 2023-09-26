@@ -9412,7 +9412,7 @@ recordUpdateChecks recordUpdateRange recordVariable fields =
 
 getUnnecessaryRecordUpdateSetter : String -> Node ( Node String, Node Expression ) -> Maybe { valueAccessRange : Range, setterRange : Range }
 getUnnecessaryRecordUpdateSetter recordVariableName (Node setterRange ( Node _ field, valueNode )) =
-    case getAccessingRecord valueNode of
+    case AstHelpers.getAccessingRecord valueNode of
         Just accessingRecord ->
             case accessingRecord.record of
                 Node _ (Expression.FunctionOrValue [] recordVariable) ->
