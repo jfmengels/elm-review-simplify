@@ -39,7 +39,7 @@ all =
         , jsonDecodeTests
         , htmlAttributesTests
         , randomTests
-        , recordAccessTests
+        , accessingRecordTests
         , letTests
         , pipelineTests
         ]
@@ -25171,9 +25171,9 @@ a = (always (f x))
 -- Record access
 
 
-recordAccessTests : Test
-recordAccessTests =
-    describe "Simplify.RecordAccess"
+accessingRecordTests : Test
+accessingRecordTests =
+    describe "accessing record"
         [ test "should simplify record accesses for explicit records" <|
             \() ->
                 """module A exposing (..)
