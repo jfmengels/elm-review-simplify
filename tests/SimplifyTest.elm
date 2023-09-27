@@ -5197,6 +5197,7 @@ a = { b | d = b.d, c = 1 }
 a = { b | c = 1 }
 """
                         ]
+        
         , test "should remove the update record syntax when it assigns the previous value of a field to itself and it is the only assignment" <|
             \() ->
                 """module A exposing (..)
@@ -25474,6 +25475,38 @@ a = { d | b = 3 } |> .c
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = d.c
+"""
+                        ]
+        , test "should replace constructing record composition into field access function by contructing that field's value" <|
+            \() ->
+                """module A exposing (..)
+a = .b << (\\x -> { b = f <| x })
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
+                            , under = ".b"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\x -> (f <| x))
+"""
+                        ]
+        , test "should replace constructing record update composition into field access function by contructing the updated field" <|
+            \() ->
+                """module A exposing (..)
+a = .d << (\\x -> { b | d = f <| x, c = 1 })
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
+                            , under = ".d"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\x -> (f <| x))
 """
                         ]
         , test "should simplify record accesses for let/in expressions" <|
