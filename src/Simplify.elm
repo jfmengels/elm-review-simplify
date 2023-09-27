@@ -3060,7 +3060,8 @@ type alias CompositionCheckInfo =
 
 compositionChecks : List (CompositionCheckInfo -> Maybe (Error {}))
 compositionChecks =
-    [ basicsIdentityCompositionChecks
+    [ accessingRecordCompositionChecks
+    , basicsIdentityCompositionChecks
     , \checkInfo ->
         case
             ( AstHelpers.getValueOrFnOrFnCall checkInfo.earlier.node
@@ -11885,6 +11886,53 @@ accessingRecordChecks checkInfo =
 
                 Nothing ->
                     Nothing
+
+
+accessingRecordCompositionChecks : CompositionCheckInfo -> Maybe (Error {})
+accessingRecordCompositionChecks checkInfo =
+    case AstHelpers.getRecordAccessFunction checkInfo.later.node of
+        Just accessFunctionFieldName ->
+            case constructs getRecordWithKnownFields checkInfo.lookupTable checkInfo.earlier.node of
+                Determined recordWithKnownField ->
+                    accessingRecordWithKnownFieldsChecks
+                        { nodeRange = recordWithKnownField.range
+                        , fieldName = accessFunctionFieldName
+                        , maybeRecordNameRange = recordWithKnownField.maybeRecordNameRange
+                        , knownFields = recordWithKnownField.knownFields
+                        }
+                        |> Maybe.map
+                            (\e ->
+                                Rule.errorWithFix e.info
+                                    (Node.range checkInfo.later.node)
+                                    (Fix.removeRange checkInfo.later.removeRange :: e.fix)
+                            )
+
+                Undetermined ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+getRecordWithKnownFields : Node Expression -> Match { range : Range, maybeRecordNameRange : Maybe Range, knownFields : List (Node ( Node String, Node Expression )) }
+getRecordWithKnownFields expressionNode =
+    case AstHelpers.removeParens expressionNode of
+        Node range (Expression.RecordExpr fields) ->
+            Determined
+                { range = range
+                , maybeRecordNameRange = Nothing
+                , knownFields = fields
+                }
+
+        Node range (Expression.RecordUpdateExpression (Node recordNameRange _) setFields) ->
+            Determined
+                { range = range
+                , maybeRecordNameRange = Just recordNameRange
+                , knownFields = setFields
+                }
+
+        _ ->
+            Undetermined
 
 
 accessingRecordWithKnownFieldsChecks :
