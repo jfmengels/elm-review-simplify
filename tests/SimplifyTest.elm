@@ -16963,7 +16963,7 @@ import Array
 a = identity
 """
                         ]
-        , test "should replace Array.set -1 by \\_ -> identity" <|
+        , test "should replace Array.set -1 by always" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -16973,12 +16973,12 @@ a = Array.set -1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.set with negative index will always return the same given array"
-                            , details = [ "You can replace this call by \\_ -> identity." ]
+                            , details = [ "You can replace this call by always identity." ]
                             , under = "Array.set"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = \\_ -> identity
+a = always identity
 """
                         ]
         , test "should replace Array.set 1 x (Array.fromList [ b, c, d ]) by (Array.fromList [ b, x, d ])" <|
@@ -16990,7 +16990,7 @@ a = Array.set 1 x (Array.fromList [ b, c, d ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "The element returned by Array.set is known"
+                            { message = "Array.set will replace a known element in a literal array"
                             , details = [ "You can move the replacement argument directly into the array." ]
                             , under = "Array.set"
                             }

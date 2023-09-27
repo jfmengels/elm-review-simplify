@@ -1967,6 +1967,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , parentRange = parentRange
             , fnRange = checkInfo.fnRange
             , fn = checkInfo.fn
+            , argCount = checkInfo.argCount
             , firstArg = checkInfo.firstArg
             , argsAfterFirst = argsAfterFirst
             , secondArg = List.head argsAfterFirst
@@ -2468,6 +2469,7 @@ type alias CheckInfo =
     , parentRange : Range
     , fnRange : Range
     , fn : ( ModuleName, String )
+    , argCount : Int
     , callStyle : FunctionCallStyle
     , firstArg : Node Expression
     , argsAfterFirst : List (Node Expression)
@@ -4769,9 +4771,7 @@ stringRepeatChecks checkInfo =
                                 1 ->
                                     Just
                                         (alwaysReturnsLastArgError "String.repeat 1"
-                                            { lastArg = secondArg checkInfo
-                                            , lastArgRepresents = "string to repeat"
-                                            }
+                                            { represents = "string to repeat" }
                                             checkInfo
                                         )
 
@@ -4832,9 +4832,7 @@ stringReplaceChecks checkInfo =
                             Just
                                 (alwaysReturnsLastArgError
                                     (qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal")
-                                    { lastArg = thirdArg checkInfo
-                                    , lastArgRepresents = "string"
-                                    }
+                                    { represents = "string" }
                                     checkInfo
                                 )
 
@@ -6061,9 +6059,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                     Just
                         (alwaysReturnsLastArgError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return Just")
-                            { lastArg = secondArg checkInfo
-                            , lastArgRepresents = emptiableWrapper.represents
-                            }
+                            emptiableWrapper
                             checkInfo
                         )
 
@@ -6394,27 +6390,12 @@ setChecks collection checkInfo =
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just n ->
                     if n < 0 then
-                        case secondArg checkInfo of
-                            Just replacementArg ->
-                                Just
-                                    (alwaysReturnsLastArgError
-                                        (qualifiedToString checkInfo.fn ++ " with negative index")
-                                        { lastArg = thirdArg checkInfo
-                                        , lastArgRepresents = collection.represents
-                                        }
-                                        checkInfo
-                                    )
-
-                            Nothing ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " with negative index will always return the same given " ++ collection.represents
-                                        , details =
-                                            [ "You can replace this call by \\_ -> identity." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange "\\_ -> identity" ]
-                                    )
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with negative index")
+                                collection
+                                checkInfo
+                            )
 
                     else
                         case secondArg checkInfo of
@@ -6445,7 +6426,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
                         Just element ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
+                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element in a literal " ++ collection.represents
                                     , details = [ "You can move the replacement argument directly into the " ++ collection.represents ++ "." ]
                                     }
                                     checkInfo.fnRange
@@ -6523,9 +6504,7 @@ listSortByChecks checkInfo =
                     Just
                         (alwaysReturnsLastArgError
                             (qualifiedToString checkInfo.fn ++ " (always a)")
-                            { lastArgRepresents = "list"
-                            , lastArg = secondArg checkInfo
-                            }
+                            { represents = "list" }
                             checkInfo
                         )
 
@@ -6566,9 +6545,7 @@ listSortWithChecks checkInfo =
                         fixToIdentity =
                             alwaysReturnsLastArgError
                                 (qualifiedToString checkInfo.fn ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")")
-                                { lastArgRepresents = "list"
-                                , lastArg = secondArg checkInfo
-                                }
+                                { represents = "list" }
                                 checkInfo
                     in
                     case order of
@@ -6630,11 +6607,6 @@ listTakeChecks checkInfo =
 
 listDropChecks : CheckInfo -> Maybe (Error {})
 listDropChecks checkInfo =
-    let
-        maybeListArg : Maybe (Node Expression)
-        maybeListArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -6642,9 +6614,7 @@ listDropChecks checkInfo =
                     Just
                         (alwaysReturnsLastArgError
                             (qualifiedToString checkInfo.fn ++ " 0")
-                            { lastArg = maybeListArg
-                            , lastArgRepresents = "list"
-                            }
+                            { represents = "list" }
                             checkInfo
                         )
 
@@ -6653,7 +6623,7 @@ listDropChecks checkInfo =
         , \() ->
             Maybe.andThen
                 (\listArg -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo)
-                maybeListArg
+                (secondArg checkInfo)
         ]
         ()
 
@@ -8285,9 +8255,7 @@ mapIdentityChecks mappable checkInfo =
         Just
             (alwaysReturnsLastArgError
                 (qualifiedToString checkInfo.fn ++ " with an identity function")
-                { lastArg = secondArg checkInfo
-                , lastArgRepresents = mappable.represents
-                }
+                mappable
                 checkInfo
             )
 
@@ -8526,14 +8494,9 @@ wrapperAndThenChecks :
     -> CheckInfo
     -> Maybe (Error {})
 wrapperAndThenChecks wrapper checkInfo =
-    let
-        maybeWrapperArg : Maybe (Node Expression)
-        maybeWrapperArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
-            case maybeWrapperArg of
+            case secondArg checkInfo of
                 Just maybeArg ->
                     case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) maybeArg of
                         Determined wrapCalls ->
@@ -8559,9 +8522,7 @@ wrapperAndThenChecks wrapper checkInfo =
                     Just
                         (alwaysReturnsLastArgError
                             (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources))
-                            { lastArg = maybeWrapperArg
-                            , lastArgRepresents = wrapper.represents
-                            }
+                            wrapper
                             checkInfo
                         )
 
@@ -9082,9 +9043,7 @@ emptiableFilterChecks emptiable checkInfo =
                     Just
                         (alwaysReturnsLastArgError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                            { lastArg = maybeEmptiableArg
-                            , lastArgRepresents = emptiable.represents
-                            }
+                            emptiable
                             checkInfo
                         )
 
@@ -9178,9 +9137,7 @@ collectionUnionChecks collection checkInfo =
                 Just
                     (alwaysReturnsLastArgError
                         (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
-                        { lastArg = secondArg checkInfo
-                        , lastArgRepresents = collection.represents
-                        }
+                        collection
                         checkInfo
                     )
 
@@ -10354,7 +10311,7 @@ operationDoesNotChangeSpecificLastArgErrorInfo config =
     }
 
 
-{-| In your specific situation, the next (and last) incoming argument will always be returned unchanged.
+{-| In your specific situation, the last incoming argument will always be returned unchanged.
 
 For example, `List.map identity` will not change whatever list comes next. It is equivalent to `identity`
 
@@ -10363,27 +10320,49 @@ Use `returnsArgError` with the given last arg as `arg` when the last arg is alre
 -}
 alwaysReturnsLastArgError :
     String
-    ->
-        { lastArgRepresents : String
-        , lastArg : Maybe (Node Expression)
-        }
-    -> QualifyResources { a | fnRange : Range, parentRange : Range }
+    -> { b | represents : String }
+    -> QualifyResources { a | fnRange : Range, parentRange : Range, argCount : Int, argsAfterFirst : List (Node Expression) }
     -> Error {}
-alwaysReturnsLastArgError usingSpecificSituation config resources =
-    case config.lastArg of
-        Nothing ->
-            Rule.errorWithFix
-                { message = usingSpecificSituation ++ " will always return the same given " ++ config.lastArgRepresents
-                , details =
-                    [ "You can replace this call by identity." ]
-                }
-                resources.fnRange
-                [ Fix.replaceRangeBy resources.parentRange
-                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) resources))
-                ]
-
+alwaysReturnsLastArgError usingSpecificSituation config checkInfo =
+    case List.drop (checkInfo.argCount - 2) checkInfo.argsAfterFirst |> List.head of
         Just lastArg ->
-            returnsArgError usingSpecificSituation { arg = lastArg, argRepresents = config.lastArgRepresents } resources
+            returnsArgError usingSpecificSituation { arg = lastArg, argRepresents = config.represents } checkInfo
+
+        Nothing ->
+            -- Not enough arguments
+            let
+                replacement : { description : String, fix : List Fix }
+                replacement =
+                    case checkInfo.argCount - List.length checkInfo.argsAfterFirst - 1 of
+                        1 ->
+                            { description = "identity"
+                            , fix =
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                                ]
+                            }
+
+                        2 ->
+                            { description = "always identity"
+                            , fix =
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " " ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                                ]
+                            }
+
+                        _ ->
+                            -- Use-case is absent for now
+                            { description = "the " ++ config.represents ++ " argument"
+                            , fix = []
+                            }
+            in
+            Rule.errorWithFix
+                { message = usingSpecificSituation ++ " will always return the same given " ++ config.represents
+                , details =
+                    [ "You can replace this call by " ++ replacement.description ++ "." ]
+                }
+                checkInfo.fnRange
+                replacement.fix
 
 
 {-| In your specific situation, the given arg will always be returned unchanged.
