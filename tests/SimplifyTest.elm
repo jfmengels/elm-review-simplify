@@ -5197,7 +5197,6 @@ a = { b | d = b.d, c = 1 }
 a = { b | c = 1 }
 """
                         ]
-        
         , test "should remove the update record syntax when it assigns the previous value of a field to itself and it is the only assignment" <|
             \() ->
                 """module A exposing (..)
