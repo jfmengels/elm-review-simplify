@@ -2,12 +2,16 @@
 
 ## [Unreleased]
 
+Lots of new simplifications, especially for `Array` and `Task`.
+
 The rule now simplifies:
 - `Array.fromList []` to `Array.empty`
+- `Array.fromList (Array.toList array)` to `array`
+- `Array.toList (Array.fromList list)` to `list`
 - `Array.map f Array.empty` to `Array.empty`
 - `Array.map identity array` to `array`
 - `Array.indexedMap (\_ value -> f value) array` to `Array.map (\value -> f value) array`
-- the same operations for `Array.filter` as for other types like `List.filter` and `Set.filter`
+- the same operations for `Array.filter` as for `List.filter` and `Set.filter`
 - `Array.isEmpty Array.empty` to `True`
 - `Array.isEmpty (Array.fromList [ x ])` to `False`
 - `Array.repeat 0 n` to `Array.empty`
@@ -28,12 +32,49 @@ The rule now simplifies:
 - `Array.set -1 x array` to `array`
 - `Array.set 1 x (Array.fromList [ a, b, c ])` to `Array.fromList [ a, x, c ]`
 - `Array.set 100 x (Array.fromList [ a, b, c ])` to `Array.fromList [ a, b, c ]`
-- `String.append String.empty str` to `str`
-- `String.fromList [ a, b ] ++ String.fromList [ c, d ]` to `String.fromList [ a, b, c, d ]`
-- `String.append (String.fromList [ a, b ]) (String.fromList [ c, d ])` to `String.fromList [ a, b, c, d ]`
-- `Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])` to `Set.fromList [ a, b, c, d ]`
-- `Dict.union (Dict.fromList [ a, b ]) (Dict.fromList [ c, d ])` to `Dict.fromList [ c, d, a, b ]`
+
+
+- `Task.andThen f (Task.fail x)` to `Task.fail x`
+- `Task.andThen f (Task.succeed a)` to `f a`
+- `Task.andThen Task.succeed task` to `task`
+- `Task.andThen (\a -> Task.succeed b) task` to `Task.map (\a -> b) x`
+- `Task.onError f (Task.succeed a)` to `Task.succeed a`
+- `Task.onError f (Task.fail x)` to `f x`
+- `Task.onError Task.fail task` to `task`
+- `Task.onError (\x -> Task.fail y) task` to `Task.mapError (\x -> y) x`
+- `Task.sequence [ Task.succeed a, Task.succeed b ]` to `Task.succeed [ a, b ]`
+- `Task.sequence [ Task.succeed a, Task.fail x ]` to `Task.fail x`
+- `Task.sequence [ a, Task.fail x, b ]` to `Task.sequence [ a, Task.fail x ]`
+- `Task.sequence [ task ]` to `Task.map List.singleton task`
+- `Task.map identity task` to `task`
+- `Task.map f (Task.fail x)` to `Task.fail x`
+- `Task.map f (Task.succeed a)` to `Task.succeed (f a)`
+- `Task.map3 f (Task.succeed a) (Task.succeed b) (Task.succeed c)` to `Task.succeed (f a b c)` (same for all `Task.mapN` functions)
+- `Task.map3 f (Task.succeed a) (Task.fail x) thirdTask` to `Task.fail x`
+- `Task.map3 f firstTask (Task.fail x) thirdTask` to `Task.map2 f firstTask (Task.fail x)`
+- `Task.mapError identity task` to `task`
+- `Task.mapError f (Task.succeed a)` to `Task.succeed a`
+- `Task.mapError f (Task.fail x)` to `Task.fail (f x)`
+
+
+- `List.map f [ a ]` to `[ f a ]`
+- `List.filterMap identity [ a, Nothing, b ]` to `List.filterMap identity [ a, b ]`
 - `List.singleton >> String.fromList` to `String.fromChar`
+- `Result.map3 f (Ok a) (Ok b) (Ok c)` to `Ok (f a b c)` (same for all `Result.mapN` functions)
+- `Result.map3 f (Ok a) (Err x) thirdResult` to `Err x`
+- `Result.map3 f firstResult (Err x) thirdResult` to `Result.map2 f firstResult (Err x)`
+- `String.append String.empty str` to `str`
+- `String.append (String.fromList [ a, b ]) (String.fromList [ c, d ])` to `String.fromList [ a, b, c, d ]`
+- `String.fromList [ a, b ] ++ String.fromList [ c, d ]` to `String.fromList [ a, b, c, d ]`
+- `String.fromList (String.toList str)` to `str`
+- `String.toList (String.fromList list)` to `list`
+- `String.reverse >> String.reverse` to `identity`
+- `List.reverse >> List.reverse` to `identity`
+- `Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])` to `Set.fromList [ a, b, c, d ]`
+- `Set.fromList (Set.toList set)` to `set`
+- `Dict.fromList (Dict.toList dict)` to `dict`
+- `Dict.union (Dict.fromList [ a, b ]) (Dict.fromList [ c, d ])` to `Dict.fromList [ c, d, a, b ]`
+
 
 ## [2.1.1] - 2023-09-18
 
