@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.2] - 2023-09-28
+
 Lots of new simplifications, especially for `Array` and `Task`.
 
 The rule now simplifies:
@@ -471,7 +473,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.2...HEAD
+[2.1.2]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.2
 [2.1.1]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.1
 [2.1.0]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.0
 [2.0.33]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.0.33
