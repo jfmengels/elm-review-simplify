@@ -6426,8 +6426,8 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
                         Just element ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element in a literal " ++ collection.represents
-                                    , details = [ "You can move the replacement argument directly into the " ++ collection.represents ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element in the " ++ collection.fromListLiteralDescription
+                                    , details = [ "You can move the replacement argument directly into the " ++ collection.fromListLiteralDescription ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg }

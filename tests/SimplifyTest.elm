@@ -16990,8 +16990,8 @@ a = Array.set 1 x (Array.fromList [ b, c, d ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.set will replace a known element in a literal array"
-                            , details = [ "You can move the replacement argument directly into the array." ]
+                            { message = "Array.set will replace a known element in the Array.fromList call"
+                            , details = [ "You can move the replacement argument directly into the Array.fromList call." ]
                             , under = "Array.set"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
