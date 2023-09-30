@@ -13034,6 +13034,40 @@ a = List.sort [ a ]
 a = [ a ]
 """
                         ]
+        , test "should replace List.sort (List.sort list) by (List.sort list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort after List.sort"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.sort list)
+"""
+                        ]
+        , test "should replace List.sort << List.sort by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort << List.sort
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort after List.sort"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
         ]
 
 
@@ -13045,6 +13079,7 @@ listSortByTests =
                 """module A exposing (..)
 a = List.sortBy fn
 b = List.sortBy fn list
+c = List.sortBy << List.sortBy fn
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -13216,6 +13251,40 @@ a = List.sortBy (\\b -> b) list
 a = List.sort list
 """
                         ]
+        , test "should replace List.sortBy f (List.sortBy f list) by (List.sortBy f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy f (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy after equivalent List.sortBy"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.sortBy f list)
+"""
+                        ]
+        , test "should replace List.sortBy f << List.sortBy f by List.sortBy f" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy f << List.sortBy f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy after equivalent List.sortBy"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sortBy f
+"""
+                        ]
         ]
 
 
@@ -13229,6 +13298,7 @@ a = List.sortWith fn
 b = List.sortWith fn list
 b = List.sortWith (always fn) list
 b = List.sortWith (always (always fn)) list
+e = List.sortWith << List.sortWith f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -13542,6 +13612,40 @@ a = List.sortWith (always (\\_ -> LT))
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.reverse
+"""
+                        ]
+        , test "should replace List.sortWith f (List.sortWith f list) by (List.sortWith f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith f (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith after equivalent List.sortWith"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.sortWith f list)
+"""
+                        ]
+        , test "should replace List.sortWith f << List.sortWith f by List.sortWith f" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith f << List.sortWith f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith after equivalent List.sortWith"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sortWith f
 """
                         ]
         ]
