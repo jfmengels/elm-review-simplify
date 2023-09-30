@@ -6636,6 +6636,54 @@ a = String.fromList << (String.toList << g << f)
 a = (g << f)
 """
                         ]
+        , test "should replace (i << h << String.fromList) << (String.toList << g << f) by (i << h) << (g << f)" <|
+            \() ->
+                """module A exposing (..)
+a = (i << h << String.fromList) << (String.toList << g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList, then String.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (i << h) << (g << f)
+"""
+                        ]
+        , test "should replace (String.fromList >> h >> i) << (f >> g >> String.toList) by (h >> i) << (f >> g)" <|
+            \() ->
+                """module A exposing (..)
+a = (String.fromList >> h >> i) << (f >> g >> String.toList)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList, then String.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (h >> i) << (f >> g)
+"""
+                        ]
+        , test "should replace (i << (h << String.fromList)) << ((String.toList << g) << f) by (i << (h)) << ((g) << f)" <|
+            \() ->
+                """module A exposing (..)
+a = (i << (h << String.fromList)) << ((String.toList << g) << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList, then String.fromList cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (i << (h)) << ((g) << f)
+"""
+                        ]
         , test "should replace String.fromList << (f >> String.toList) by (f)" <|
             \() ->
                 """module A exposing (..)
