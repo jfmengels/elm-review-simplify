@@ -14971,8 +14971,8 @@ arrayTests =
 
 arrayToListTests : Test
 arrayToListTests =
-    describe "String.toList"
-        [ test "should not report String.toList that contains a variable" <|
+    describe "Array.toList"
+        [ test "should not report Array.toList that contains a variable" <|
             \() ->
                 """module A exposing (..)
 import Array
