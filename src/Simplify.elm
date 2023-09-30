@@ -2778,7 +2778,7 @@ compositionIntoChecks =
         , ( ( [ "Basics" ], "negate" ), toggleCompositionChecks )
         , ( ( [ "String" ], "reverse" ), stringReverseCompositionChecks )
         , ( ( [ "String" ], "fromList" ), stringFromListCompositionChecks )
-        , ( ( [ "String" ], "toList" ), inversesCompositionCheck ( [ "String" ], "fromList" ) )
+        , ( ( [ "String" ], "toList" ), stringToListCompositionChecks )
         , ( ( [ "Tuple" ], "first" ), tupleFirstCompositionChecks )
         , ( ( [ "Tuple" ], "second" ), tupleSecondCompositionChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
@@ -2793,9 +2793,9 @@ compositionIntoChecks =
         , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
         , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
-        , ( ( [ "Dict" ], "fromList" ), inversesCompositionCheck ( [ "Dict" ], "toList" ) )
-        , ( ( [ "Array" ], "toList" ), inversesCompositionCheck ( [ "Array" ], "fromList" ) )
-        , ( ( [ "Array" ], "fromList" ), inversesCompositionCheck ( [ "Array" ], "toList" ) )
+        , ( ( [ "Dict" ], "fromList" ), dictFromListCompositionChecks )
+        , ( ( [ "Array" ], "toList" ), arrayToListCompositionChecks )
+        , ( ( [ "Array" ], "fromList" ), arrayFromListCompositionChecks )
         , ( ( [ "Task" ], "map" ), taskMapCompositionChecks )
         , ( ( [ "Task" ], "mapError" ), taskMapErrorCompositionChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
@@ -4439,6 +4439,11 @@ tuplePartChecks partConfig checkInfo =
 stringToListChecks : CheckInfo -> Maybe (Error {})
 stringToListChecks checkInfo =
     onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "fromList" ) checkInfo
+
+
+stringToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+stringToListCompositionChecks checkInfo =
+    inversesCompositionCheck ( [ "String" ], "fromList" ) checkInfo
 
 
 stringFromListChecks : CheckInfo -> Maybe (Error {})
@@ -6137,6 +6142,11 @@ arrayToListChecks checkInfo =
     onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" ) checkInfo
 
 
+arrayToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+arrayToListCompositionChecks checkInfo =
+    inversesCompositionCheck ( [ "Array" ], "fromList" ) checkInfo
+
+
 arrayFromListChecks : CheckInfo -> Maybe (Error {})
 arrayFromListChecks checkInfo =
     firstThatConstructsJust
@@ -6144,6 +6154,11 @@ arrayFromListChecks checkInfo =
         , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "toList" ) checkInfo
         ]
         ()
+
+
+arrayFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+arrayFromListCompositionChecks checkInfo =
+    inversesCompositionCheck ( [ "Array" ], "toList" ) checkInfo
 
 
 arrayRepeatChecks : CheckInfo -> Maybe (Error {})
@@ -6880,6 +6895,11 @@ dictFromListChecks checkInfo =
         , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Dict" ], "toList" ) checkInfo
         ]
         ()
+
+
+dictFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+dictFromListCompositionChecks checkInfo =
+    inversesCompositionCheck ( [ "Dict" ], "toList" ) checkInfo
 
 
 subAndCmdBatchChecks :
