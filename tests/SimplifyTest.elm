@@ -13034,6 +13034,40 @@ a = List.sort [ a ]
 a = [ a ]
 """
                         ]
+        , test "should replace List.sort (List.sort list) by (List.sort list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort after List.sort"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.sort list)
+"""
+                        ]
+        , test "should replace List.sort << List.sort by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort << List.sort
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort after List.sort"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
         ]
 
 

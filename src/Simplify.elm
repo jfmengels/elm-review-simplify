@@ -713,6 +713,9 @@ Destructuring using case expressions
     List.sort [ a ]
     --> [ a ]
 
+    List.sort (List.sort list)
+    --> List.sort list
+
     -- same for up to List.map5 when any list is empty
     List.map2 f xs []
     --> []
@@ -1994,6 +1997,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             in
             { lookupTable = context.lookupTable
             , importLookup = context.importLookup
+            , inferredConstants = context.inferredConstants
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
             , extractSourceCode = context.extractSourceCode
@@ -2672,6 +2676,7 @@ operatorApplicationChecks =
 type alias CompositionCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , extractSourceCode : Range -> String
@@ -2708,6 +2713,7 @@ compositionChecks =
                                 compositionIntoChecksForSpecificLater
                                     { lookupTable = checkInfo.lookupTable
                                     , importLookup = checkInfo.importLookup
+                                    , inferredConstants = checkInfo.inferredConstants
                                     , moduleBindings = checkInfo.moduleBindings
                                     , localBindings = checkInfo.localBindings
                                     , extractSourceCode = checkInfo.extractSourceCode
@@ -2749,6 +2755,7 @@ compositionChecks =
 type alias CompositionIntoCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , extractSourceCode : Range -> String
@@ -2786,6 +2793,7 @@ compositionIntoChecks =
         , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
         , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
         , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
+        , ( ( [ "List" ], "sort" ), listSortCompositionChecks )
         , ( ( [ "List" ], "map" ), listMapCompositionChecks )
         , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
         , ( ( [ "List" ], "intersperse" ), listIntersperseCompositionChecks )
@@ -6445,8 +6453,108 @@ listSortChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
         , \() -> callOnSingletonListDoesNotChangeItCheck checkInfo.firstArg checkInfo
+        , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
         ()
+
+
+listSortCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listSortCompositionChecks checkInfo =
+    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 1 } checkInfo
+
+
+{-| Condense applying the the same function with equal arguments (except the last one) twice in sequence into one.
+This applies to functions that are equivalent to identity when operating on the result another such function.
+
+Examples of such functions:
+
+  - one argument: `Simplify.expectNaN`, `Review.Rule.providesFixesForModuleRule`, `List.sort`, `List.Extra.unique`, [`AVL.Set.clear`](https://package.elm-lang.org/packages/owanturist/elm-avl-dict/2.1.0/AVL-Set#clear)
+  - two arguments: `List.filter f`, `List.take/drop n`, `List.Extra.filterNot f`, `List.Extra.takeWhile/dropWhile(Right) f`, `List.sortBy f`, `List.sortWith f`, `List.Extra.uniqueBy f`
+  - three arguments: `Array.set i new`, `Array.Extra.resizelRepeat l pad`, `List.Extra.setAt i new`
+
+Note that `update` or `setWhere` operations for example _can_ have an effect even after the same operation has already been applied.
+
+For operations that toggle between 2 states, like `reverse` or `List.Extra.swapAt i j`, use `removeAlongWithOtherFunctionCheck`
+
+-}
+operationDoesNotChangeResultOfOperationCheck : CheckInfo -> Maybe (Error {})
+operationDoesNotChangeResultOfOperationCheck checkInfo =
+    case Maybe.andThen (AstHelpers.getSpecificFunctionCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+        Just lastArgCall ->
+            let
+                areAllArgsEqual : Bool
+                areAllArgsEqual =
+                    List.all
+                        (\( arg, lastArgCallArg ) ->
+                            Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
+                        )
+                        (List.map2 Tuple.pair
+                            (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
+                            (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
+                        )
+            in
+            if areAllArgsEqual then
+                Just
+                    (Rule.errorWithFix
+                        { message =
+                            case checkInfo.argCount of
+                                1 ->
+                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
+
+                                _ ->
+                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
+                        , details = [ "You can remove this additional operation." ]
+                        }
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = lastArgCall.nodeRange })
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+operationDoesNotChangeResultOfOperationCompositionCheck : { argCount : Int } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+operationDoesNotChangeResultOfOperationCompositionCheck config checkInfo =
+    let
+        areAllArgsEqual : () -> Bool
+        areAllArgsEqual () =
+            List.all
+                (\( arg, earlierArg ) ->
+                    Normalize.compare checkInfo arg earlierArg == Normalize.ConfirmedEquality
+                )
+                (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
+    in
+    if (List.length checkInfo.later.args == (config.argCount - 1)) && (checkInfo.earlier.fn == checkInfo.later.fn) == areAllArgsEqual () then
+        Just
+            { info =
+                { message =
+                    case config.argCount of
+                        1 ->
+                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after " ++ qualifiedToString checkInfo.earlier.fn
+
+                        _ ->
+                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after equivalent " ++ qualifiedToString checkInfo.earlier.fn
+                , details = [ "You can remove this additional operation." ]
+                }
+            , fix = [ Fix.removeRange checkInfo.later.removeRange ]
+            }
+
+    else
+        Nothing
+
+
+{-| The last argument of a fully applied function (the given `argCount` specifies what is considered "fully applied").
+
+For example, `fullyAppliedLastArg` on `Array.set 3 "Hitagi"` would return `Nothing`
+while `fullyAppliedLastArg` on `Array.set 3 "Hitagi" arr` would return `Just arr`.
+
+-}
+fullyAppliedLastArg : { callInfo | firstArg : Node Expression, argsAfterFirst : List (Node Expression), argCount : Int } -> Maybe (Node Expression)
+fullyAppliedLastArg callInfo =
+    List.drop (callInfo.argCount - 1) (callInfo.firstArg :: callInfo.argsAfterFirst) |> List.head
 
 
 listSortByChecks : CheckInfo -> Maybe (Error {})
@@ -10637,6 +10745,21 @@ listFilledLast ( head, tail ) =
 
         tailHead :: tailTail ->
             listFilledLast ( tailHead, tailTail )
+
+
+listFilledToList : ( a, List a ) -> List a
+listFilledToList ( head, tail ) =
+    head :: tail
+
+
+listFilledInit : ( a, List a ) -> List a
+listFilledInit ( head, tail ) =
+    case tail of
+        [] ->
+            []
+
+        tailHead :: tailTail ->
+            head :: listFilledInit ( tailHead, tailTail )
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b

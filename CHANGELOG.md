@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - composition checks now also detect function pairs across nested compositions like `(here << ...) >> (... << there)`
+- `List.sort (List.sort list)` to `List.sort list`
 
 ## [2.1.2] - 2023-09-28
 
