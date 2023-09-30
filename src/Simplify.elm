@@ -2794,6 +2794,8 @@ compositionIntoChecks =
         , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
         , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
         , ( ( [ "List" ], "sort" ), listSortCompositionChecks )
+        , ( ( [ "List" ], "sortBy" ), listSortByCompositionChecks )
+        , ( ( [ "List" ], "sortWith" ), listSortWithCompositionChecks )
         , ( ( [ "List" ], "map" ), listMapCompositionChecks )
         , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
         , ( ( [ "List" ], "intersperse" ), listIntersperseCompositionChecks )
@@ -6585,8 +6587,14 @@ listSortByChecks checkInfo =
                     Nothing
         , \() ->
             operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "sort" ) } checkInfo
+        , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
         ()
+
+
+listSortByCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listSortByCompositionChecks checkInfo =
+    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 2 } checkInfo
 
 
 listSortWithChecks : CheckInfo -> Maybe (Error {})
@@ -6645,8 +6653,14 @@ listSortWithChecks checkInfo =
 
                 Nothing ->
                     Nothing
+        , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
         ()
+
+
+listSortWithCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listSortWithCompositionChecks checkInfo =
+    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 2 } checkInfo
 
 
 listTakeChecks : CheckInfo -> Maybe (Error {})
