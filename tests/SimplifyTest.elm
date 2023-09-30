@@ -5767,7 +5767,7 @@ stringSimplificationTests =
         , stringFromListTests
         , stringIsEmptyTests
         , stringLengthTests
-        , concatTests
+        , stringConcatTests
         , joinTests
         , stringRepeatTests
         , stringReplaceTests
@@ -5907,8 +5907,8 @@ a = 13
         ]
 
 
-concatTests : Test
-concatTests =
+stringConcatTests : Test
+stringConcatTests =
     describe "String.concat"
         [ test "should not report String.concat that contains a variable or expression" <|
             \() ->
