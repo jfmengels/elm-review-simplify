@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- composition checks now also detect function pairs across nested compositions like `(here << ...) >> (... << there)`
+
 ## [2.1.2] - 2023-09-28
 
 Lots of new simplifications, especially for `Array` and `Task`.
