@@ -1525,7 +1525,8 @@ a = a >> not >> not
                             { message = "Basics.not, then Basics.not cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "not"
-                            } |> Review.Test.atExactly { start = { row = 2, column = 17 }, end = { row = 2, column = 20 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 17 }, end = { row = 2, column = 20 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a >> identity
 """
@@ -1541,7 +1542,8 @@ a = not >> not >> a
                             { message = "Basics.not, then Basics.not cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "not"
-                            } |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 15 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 15 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
 """
@@ -1557,7 +1559,8 @@ a = not << not
                             { message = "Basics.not, then Basics.not cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "not"
-                            } |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 8 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 8 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -1590,7 +1593,8 @@ a = a << not << not
                             { message = "Basics.not, then Basics.not cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "not"
-                            }|>Review.Test.atExactly { start = { row = 2, column = 10 }, end = { row = 2, column = 13 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 10 }, end = { row = 2, column = 13 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
 """
@@ -1606,7 +1610,8 @@ a = (not >> a) << not
                             { message = "Basics.not, then Basics.not cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "not"
-                            } |> Review.Test.atExactly { start = { row = 2, column = 6 }, end = { row = 2, column = 9 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 6 }, end = { row = 2, column = 9 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (a)
 """
@@ -2897,7 +2902,8 @@ a = negate >> negate
                             { message = "Basics.negate, then Basics.negate cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "negate"
-                            }|>Review.Test.atExactly { start = { row = 2, column = 15 }, end = { row = 2, column = 21 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 15 }, end = { row = 2, column = 21 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -2913,7 +2919,8 @@ a = a >> negate >> negate
                             { message = "Basics.negate, then Basics.negate cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "negate"
-                            }|>Review.Test.atExactly { start = { row = 2, column = 20 }, end = { row = 2, column = 26 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 20 }, end = { row = 2, column = 26 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a >> identity
 """
@@ -2929,7 +2936,8 @@ a = negate >> negate >> a
                             { message = "Basics.negate, then Basics.negate cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "negate"
-                            }|>Review.Test.atExactly { start = { row = 2, column = 15 }, end = { row = 2, column = 21 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 15 }, end = { row = 2, column = 21 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
 """
@@ -2945,7 +2953,8 @@ a = negate << negate
                             { message = "Basics.negate, then Basics.negate cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "negate"
-                            } |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 11 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 11 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -2978,7 +2987,8 @@ a = a << negate << negate
                             { message = "Basics.negate, then Basics.negate cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "negate"
-                            }|>Review.Test.atExactly { start = { row = 2, column = 10 }, end = { row = 2, column = 16 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 10 }, end = { row = 2, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
 """
@@ -2994,7 +3004,8 @@ a = (negate >> a) << negate
                             { message = "Basics.negate, then Basics.negate cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "negate"
-                            }|> Review.Test.atExactly { start = { row = 2, column = 6 }, end = { row = 2, column = 12 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 6 }, end = { row = 2, column = 12 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (a)
 """
@@ -7067,7 +7078,8 @@ a = String.reverse << (String.reverse << f)
                             { message = "String.reverse, then String.reverse cancels each other out"
                             , details = [ "You can remove these two functions." ]
                             , under = "String.reverse"
-                            }|>Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
 """
@@ -13623,7 +13635,8 @@ a = List.reverse >> List.reverse
                             { message = "List.reverse, then List.reverse cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "List.reverse"
-                            } |> Review.Test.atExactly { start = { row = 2, column = 21 }, end = { row = 2, column = 33 } }
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 21 }, end = { row = 2, column = 33 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
