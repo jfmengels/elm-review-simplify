@@ -6471,7 +6471,7 @@ This applies to functions that are equivalent to identity when operating on the 
 Examples of such functions:
 
   - one argument: `Simplify.expectNaN`, `Review.Rule.providesFixesForModuleRule`, `List.sort`, `List.Extra.unique`, [`AVL.Set.clear`](https://package.elm-lang.org/packages/owanturist/elm-avl-dict/2.1.0/AVL-Set#clear)
-  - two arguments: `List.filter f`, `List.take/drop n`, `List.Extra.filterNot f`, `List.Extra.takeWhile/dropWhile(Right) f`, `List.sortBy f`, `List.sortWith f`, `List.Extra.uniqueBy f`
+  - two arguments: `List.filter f`, `List.Extra.filterNot f`, `List.Extra.takeWhile/dropWhile(Right) f`, `List.sortBy f`, `List.sortWith f`, `List.Extra.uniqueBy f`
   - three arguments: `Array.set i new`, `Array.Extra.resizelRepeat l pad`, `List.Extra.setAt i new`
 
 Note that `update` or `setWhere` operations for example _can_ have an effect even after the same operation has already been applied.
