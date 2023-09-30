@@ -6465,7 +6465,7 @@ listSortCompositionChecks checkInfo =
     operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 1 } checkInfo
 
 
-{-| Condense applying the the same function with equal arguments (except the last one) twice in sequence into one.
+{-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
 This applies to functions that are equivalent to identity when operating on the result another such function.
 
 Examples of such functions:
