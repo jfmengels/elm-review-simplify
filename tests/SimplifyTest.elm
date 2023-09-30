@@ -1505,10 +1505,11 @@ a = not >> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not >> not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 15 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -1521,15 +1522,15 @@ a = a >> not >> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not >> not"
-                            }
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "not"
+                            } |> Review.Test.atExactly { start = { row = 2, column = 17 }, end = { row = 2, column = 20 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a >> identity
 """
                         ]
-        , test "should simplify not >> not >> a to identity >> a" <|
+        , test "should simplify not >> not >> a to a" <|
             \() ->
                 """module A exposing (..)
 a = not >> not >> a
@@ -1537,12 +1538,12 @@ a = not >> not >> a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not >> not"
-                            }
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "not"
+                            } |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 15 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = identity >> a
+a = a
 """
                         ]
         , test "should simplify not << not to identity" <|
@@ -1553,10 +1554,10 @@ a = not << not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not << not"
-                            }
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "not"
+                            } |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 8 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -1569,15 +1570,16 @@ a = not << not << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not << not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 8 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity << a
 """
                         ]
-        , test "should simplify a << not << not to a << identity" <|
+        , test "should simplify a << not << not to a" <|
             \() ->
                 """module A exposing (..)
 a = a << not << not
@@ -1585,12 +1587,12 @@ a = a << not << not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not << not"
-                            }
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "not"
+                            }|>Review.Test.atExactly { start = { row = 2, column = 10 }, end = { row = 2, column = 13 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = a << identity
+a = a
 """
                         ]
         , test "should simplify (not >> a) << not to a" <|
@@ -1601,10 +1603,10 @@ a = (not >> a) << not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not >> a) << not"
-                            }
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "not"
+                            } |> Review.Test.atExactly { start = { row = 2, column = 6 }, end = { row = 2, column = 9 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (a)
 """
@@ -2892,10 +2894,10 @@ a = negate >> negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate >> negate"
-                            }
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "negate"
+                            }|>Review.Test.atExactly { start = { row = 2, column = 15 }, end = { row = 2, column = 21 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -2908,15 +2910,15 @@ a = a >> negate >> negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate >> negate"
-                            }
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "negate"
+                            }|>Review.Test.atExactly { start = { row = 2, column = 20 }, end = { row = 2, column = 26 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a >> identity
 """
                         ]
-        , test "should simplify negate >> negate >> a to identity >> a" <|
+        , test "should simplify negate >> negate >> a to a" <|
             \() ->
                 """module A exposing (..)
 a = negate >> negate >> a
@@ -2924,12 +2926,12 @@ a = negate >> negate >> a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate >> negate"
-                            }
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "negate"
+                            }|>Review.Test.atExactly { start = { row = 2, column = 15 }, end = { row = 2, column = 21 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = identity >> a
+a = a
 """
                         ]
         , test "should simplify negate << negate to identity" <|
@@ -2940,10 +2942,10 @@ a = negate << negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate << negate"
-                            }
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "negate"
+                            } |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 11 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -2956,15 +2958,16 @@ a = negate << negate << a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate << negate"
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "negate"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 11 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity << a
 """
                         ]
-        , test "should simplify a << negate << negate to a << identity" <|
+        , test "should simplify a << negate << negate to a" <|
             \() ->
                 """module A exposing (..)
 a = a << negate << negate
@@ -2972,12 +2975,12 @@ a = a << negate << negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate << negate"
-                            }
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "negate"
+                            }|>Review.Test.atExactly { start = { row = 2, column = 10 }, end = { row = 2, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = a << identity
+a = a
 """
                         ]
         , test "should simplify (negate >> a) << negate to a" <|
@@ -2988,10 +2991,10 @@ a = (negate >> a) << negate
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate >> a) << negate"
-                            }
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "negate"
+                            }|> Review.Test.atExactly { start = { row = 2, column = 6 }, end = { row = 2, column = 12 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (a)
 """
@@ -6397,7 +6400,7 @@ a = String.toList << (f >> g >> String.fromList)
 a = (f >> g)
 """
                         ]
-        , test "should replace (f << String.toList) << String.fromList by f" <|
+        , test "should replace (f << String.toList) << String.fromList by (f)" <|
             \() ->
                 """module A exposing (..)
 a = (f << String.toList) << String.fromList
@@ -6410,7 +6413,7 @@ a = (f << String.toList) << String.fromList
                             , under = "String.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = f
+a = (f)
 """
                         ]
         , test "should replace (g << f << String.toList) << String.fromList by (g << f)" <|
@@ -6429,7 +6432,7 @@ a = (g << f << String.toList) << String.fromList
 a = (g << f)
 """
                         ]
-        , test "should replace (String.toList >> f) << String.fromList by f" <|
+        , test "should replace (String.toList >> f) << String.fromList by (f)" <|
             \() ->
                 """module A exposing (..)
 a = (String.toList >> f) << String.fromList
@@ -6442,7 +6445,7 @@ a = (String.toList >> f) << String.fromList
                             , under = "String.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = f
+a = (f)
 """
                         ]
         , test "should replace (String.toList >> f >> g) << String.fromList by (f >> g)" <|
@@ -6638,7 +6641,7 @@ a = String.fromList << (f >> String.toList)
 a = (f)
 """
                         ]
-        , test "should replace (f << String.fromList) << String.toList by f" <|
+        , test "should replace (f << String.fromList) << String.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 a = (f << String.fromList) << String.toList
@@ -6651,10 +6654,10 @@ a = (f << String.fromList) << String.toList
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = f
+a = (f)
 """
                         ]
-        , test "should replace (String.fromList >> f) << String.toList by f" <|
+        , test "should replace (String.fromList >> f) << String.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 a = (String.fromList >> f) << String.toList
@@ -6667,7 +6670,7 @@ a = (String.fromList >> f) << String.toList
                             , under = "String.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = f
+a = (f)
 """
                         ]
         , test "should replace (String.fromList >> f >> g) << String.toList by (f >> g)" <|
@@ -7027,10 +7030,11 @@ a = String.reverse >> String.reverse
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double String.reverse"
-                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
-                            , under = "String.reverse >> String.reverse"
+                            { message = "String.reverse, then String.reverse cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "String.reverse"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 23 }, end = { row = 2, column = 37 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -7043,10 +7047,11 @@ a = (f << String.reverse) << String.reverse
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double String.reverse"
-                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
-                            , under = "String.reverse) << String.reverse"
+                            { message = "String.reverse, then String.reverse cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.reverse"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 11 }, end = { row = 2, column = 25 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
 """
@@ -7059,10 +7064,10 @@ a = String.reverse << (String.reverse << f)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double String.reverse"
-                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
-                            , under = "String.reverse << (String.reverse"
-                            }
+                            { message = "String.reverse, then String.reverse cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "String.reverse"
+                            }|>Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
 """
@@ -13615,10 +13620,10 @@ a = List.reverse >> List.reverse
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double List.reverse"
-                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
-                            , under = "List.reverse >> List.reverse"
-                            }
+                            { message = "List.reverse, then List.reverse cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "List.reverse"
+                            } |> Review.Test.atExactly { start = { row = 2, column = 21 }, end = { row = 2, column = 33 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
 """
@@ -13631,10 +13636,11 @@ a = (f << List.reverse) << List.reverse
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double List.reverse"
-                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
-                            , under = "List.reverse) << List.reverse"
+                            { message = "List.reverse, then List.reverse cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "List.reverse"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 11 }, end = { row = 2, column = 23 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
 """
@@ -13647,10 +13653,11 @@ a = List.reverse << (List.reverse << f)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double List.reverse"
-                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
-                            , under = "List.reverse << (List.reverse"
+                            { message = "List.reverse, then List.reverse cancels each other out"
+                            , details = [ "You can remove these two functions." ]
+                            , under = "List.reverse"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 17 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
 """
@@ -14765,7 +14772,7 @@ a = Tuple.second << (second |> f |> Tuple.pair)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Tuple.pair with a first part, then Tuple.second will always result in the incoming second part"
-                            , details = [ "You can replace this call by identity." ]
+                            , details = [ "You can replace this composition by identity." ]
                             , under = "Tuple.second"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14920,7 +14927,7 @@ import Array
 a = (f >> g)
 """
                         ]
-        , test "should replace (f << Array.toList) << Array.fromList by f" <|
+        , test "should replace (f << Array.toList) << Array.fromList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -14935,7 +14942,7 @@ a = (f << Array.toList) << Array.fromList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = f
+a = (f)
 """
                         ]
         , test "should replace (g << f << Array.toList) << Array.fromList by (g << f)" <|
@@ -14956,7 +14963,7 @@ import Array
 a = (g << f)
 """
                         ]
-        , test "should replace (Array.toList >> f) << Array.fromList by f" <|
+        , test "should replace (Array.toList >> f) << Array.fromList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -14971,7 +14978,7 @@ a = (Array.toList >> f) << Array.fromList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = f
+a = (f)
 """
                         ]
         , test "should replace (Array.toList >> f >> g) << Array.fromList by (f >> g)" <|
@@ -15120,7 +15127,7 @@ import Array
 a = (f)
 """
                         ]
-        , test "should replace (f << Array.fromList) << Array.toList by f" <|
+        , test "should replace (f << Array.fromList) << Array.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15135,10 +15142,10 @@ a = (f << Array.fromList) << Array.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = f
+a = (f)
 """
                         ]
-        , test "should replace (Array.fromList >> f) << Array.toList by f" <|
+        , test "should replace (Array.fromList >> f) << Array.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Array
@@ -15153,7 +15160,7 @@ a = (Array.fromList >> f) << Array.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = f
+a = (f)
 """
                         ]
         , test "should replace (Array.fromList >> f >> g) << Array.toList by (f >> g)" <|
@@ -19987,7 +19994,7 @@ import Set
 a = (f)
 """
                         ]
-        , test "should replace (f << Set.fromList) << Set.toList by f" <|
+        , test "should replace (f << Set.fromList) << Set.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -20002,10 +20009,10 @@ a = (f << Set.fromList) << Set.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = f
+a = (f)
 """
                         ]
-        , test "should replace (Set.fromList >> f) << Set.toList by f" <|
+        , test "should replace (Set.fromList >> f) << Set.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -20020,7 +20027,7 @@ a = (Set.fromList >> f) << Set.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = f
+a = (f)
 """
                         ]
         , test "should replace (Set.fromList >> f >> g) << Set.toList by (f >> g)" <|
@@ -20986,7 +20993,7 @@ import Dict
 a = (f)
 """
                         ]
-        , test "should replace (f << Dict.fromList) << Dict.toList by f" <|
+        , test "should replace (f << Dict.fromList) << Dict.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -21001,10 +21008,10 @@ a = (f << Dict.fromList) << Dict.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = f
+a = (f)
 """
                         ]
-        , test "should replace (Dict.fromList >> f) << Dict.toList by f" <|
+        , test "should replace (Dict.fromList >> f) << Dict.toList by (f)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -21019,7 +21026,7 @@ a = (Dict.fromList >> f) << Dict.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = f
+a = (f)
 """
                         ]
         , test "should replace (Dict.fromList >> f >> g) << Dict.toList by (f >> g)" <|
