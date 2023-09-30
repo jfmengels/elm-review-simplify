@@ -1990,7 +1990,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     , isEmbeddedInComposition : Bool
                     }
                 innerComposition =
-                    getInnerComposition { earlier = compositionSpecific.earlier, later = compositionSpecific.later }
+                    getInnerComposition compositionSpecific
             in
             { lookupTable = context.lookupTable
             , importLookup = context.importLookup
