@@ -10747,11 +10747,6 @@ listFilledLast ( head, tail ) =
             listFilledLast ( tailHead, tailTail )
 
 
-listFilledToList : ( a, List a ) -> List a
-listFilledToList ( head, tail ) =
-    head :: tail
-
-
 listFilledInit : ( a, List a ) -> List a
 listFilledInit ( head, tail ) =
     case tail of
