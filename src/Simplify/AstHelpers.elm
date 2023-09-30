@@ -1,6 +1,6 @@
 module Simplify.AstHelpers exposing
     ( removeParens, removeParensFromPattern
-    , getComposition, getValueOrFunctionOrFunctionCall, getValueOrFunction
+    , getValueOrFunctionOrFunctionCall
     , getSpecificFunctionCall, getSpecificValueOrFunction
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
@@ -23,7 +23,7 @@ module Simplify.AstHelpers exposing
 
 ### value/function/function call/composition
 
-@docs getComposition, getValueOrFunctionOrFunctionCall, getValueOrFunction
+@docs getValueOrFunctionOrFunctionCall
 @docs getSpecificFunctionCall, getSpecificValueOrFunction
 
 
@@ -290,55 +290,6 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                 , firstArg = firstArg
                 , argsAfterFirst = []
                 }
-
-        _ ->
-            Nothing
-
-
-{-| Parse a << or >> operation.
-
-  - `earlier` is the operation applied first
-  - `later` is the operation applied next, directly after `earlier`, not all that are applied next
-  - `parentRange` covers the range between and including `earlier` and `later`
-
-Example: f << g << h
-
-  - `parentRange` only covers `g << h`
-  - `h` is `earlier`
-  - `f << g` is `later`
-
--}
-getComposition : Node Expression -> Maybe { parentRange : Range, earlier : Node Expression, later : Node Expression }
-getComposition expressionNode =
-    let
-        inParensNode : Node Expression
-        inParensNode =
-            removeParens expressionNode
-    in
-    case Node.value inParensNode of
-        Expression.OperatorApplication "<<" _ composedLater earlier ->
-            let
-                ( later, parentRange ) =
-                    case composedLater of
-                        Node _ (Expression.OperatorApplication "<<" _ _ later_) ->
-                            ( later_, { start = (Node.range later_).start, end = (Node.range earlier).end } )
-
-                        endLater ->
-                            ( endLater, Node.range inParensNode )
-            in
-            Just { earlier = earlier, later = later, parentRange = parentRange }
-
-        Expression.OperatorApplication ">>" _ earlier composedLater ->
-            let
-                ( later, parentRange ) =
-                    case composedLater of
-                        Node _ (Expression.OperatorApplication ">>" _ later_ _) ->
-                            ( later_, { start = (Node.range earlier).start, end = (Node.range later_).end } )
-
-                        endLater ->
-                            ( endLater, Node.range inParensNode )
-            in
-            Just { earlier = earlier, later = later, parentRange = parentRange }
 
         _ ->
             Nothing
