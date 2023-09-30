@@ -5768,7 +5768,7 @@ stringSimplificationTests =
         , stringIsEmptyTests
         , stringLengthTests
         , stringConcatTests
-        , joinTests
+        , stringJoinTests
         , stringRepeatTests
         , stringReplaceTests
         , stringWordsTests
@@ -5936,8 +5936,8 @@ a = ""
         ]
 
 
-joinTests : Test
-joinTests =
+stringJoinTests : Test
+stringJoinTests =
     describe "String.join"
         [ test "should not report String.join that contains a variable or expression" <|
             \() ->
