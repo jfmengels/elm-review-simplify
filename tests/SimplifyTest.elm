@@ -5933,6 +5933,54 @@ a = String.concat []
 a = ""
 """
                         ]
+        , test "should replace String.concat (List.repeat n str) by (String.repeat n str)" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat (List.repeat n str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on List.repeat can be combined into String.repeat"
+                            , details = [ "You can replace these two operations by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.repeat n str)
+"""
+                        ]
+        , test "should replace str |> List.repeat n |> String.concat by str |> String.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = str |> List.repeat n |> String.concat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on List.repeat can be combined into String.repeat"
+                            , details = [ "You can replace these two operations by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str |> String.repeat n
+"""
+                        ]
+        , test "should replace String.concat << List.repeat n by String.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on List.repeat can be combined into String.repeat"
+                            , details = [ "You can replace these two operations by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.repeat n
+"""
+                        ]
         ]
 
 
