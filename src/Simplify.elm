@@ -8130,6 +8130,7 @@ resultWithErrAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
+        , mapFn : ( ModuleName, String )
         }
 resultWithErrAsWrap =
     { moduleName = [ "Result" ]
@@ -8147,6 +8148,7 @@ resultWithErrAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
         }
+    , mapFn = ( [ "Result" ], "mapError" )
     }
 
 
