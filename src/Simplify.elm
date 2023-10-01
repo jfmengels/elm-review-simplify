@@ -9616,20 +9616,20 @@ collectionUnionWithLiteralsChecks collection checkInfo =
             Nothing
 
 
-collectionInsertChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
             if collection.empty.is checkInfo.lookupTable collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ " instead of inserting in " ++ descriptionForIndefinite collection.empty.description
-                        , details = [ "You can replace this call by " ++ qualifiedToString ( collection.moduleName, "singleton" ) ++ "." ]
+                        { message = "Use " ++ qualifiedToString collection.wrap.fn ++ " instead of inserting in " ++ descriptionForIndefinite collection.empty.description
+                        , details = [ "You can replace this call by " ++ qualifiedToString collection.wrap.fn ++ "." ]
                         }
                         checkInfo.fnRange
                         (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
                             ++ [ Fix.insertAt checkInfo.parentRange.start
-                                    (qualifiedToString (qualify ( collection.moduleName, "singleton" ) checkInfo) ++ " ")
+                                    (qualifiedToString (qualify collection.wrap.fn checkInfo) ++ " ")
                                ]
                         )
                     )
