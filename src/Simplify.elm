@@ -469,6 +469,12 @@ Destructuring using case expressions
     Result.withDefault x (Ok y)
     --> y
 
+    Result.fromMaybe x (Just a)
+    --> Ok a
+
+    Result.fromMaybe x Nothing
+    --> Err x
+
     Result.toMaybe (Ok x)
     --> Just x
 
@@ -2579,6 +2585,7 @@ functionCallChecks =
         , ( ( [ "Result" ], "andThen" ), ( 2, resultAndThenChecks ) )
         , ( ( [ "Result" ], "withDefault" ), ( 2, withDefaultChecks resultWithOkAsWrap ) )
         , ( ( [ "Result" ], "toMaybe" ), ( 1, unwrapToMaybeChecks resultWithOkAsWrap ) )
+        , ( ( [ "Result" ], "fromMaybe" ), ( 2, resultFromMaybeChecks ) )
         , ( ( [ "List" ], "append" ), ( 2, collectionUnionChecks listCollection ) )
         , ( ( [ "List" ], "head" ), ( 1, listHeadChecks ) )
         , ( ( [ "List" ], "tail" ), ( 1, listTailChecks ) )
@@ -2861,6 +2868,7 @@ compositionIntoChecks =
         , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
         , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
+        , ( ( [ "Result" ], "fromMaybe" ), wrapperFromMaybeCompositionChecks resultWithOkAsWrap )
         , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
         , ( ( [ "List" ], "sort" ), listSortCompositionChecks )
         , ( ( [ "List" ], "sortBy" ), listSortByCompositionChecks )
@@ -9050,6 +9058,90 @@ resultToMaybeCompositionChecks checkInfo =
                     Nothing
         ]
         ()
+
+
+resultFromMaybeChecks : CheckInfo -> Maybe (Error {})
+resultFromMaybeChecks checkInfo =
+    fromMaybeChecks
+        { onNothingFn = ( [ "Result" ], "Err" ), onJustFn = ( [ "Result" ], "Ok" ) }
+        checkInfo
+
+
+fromMaybeChecks : { onNothingFn : ( ModuleName, String ), onJustFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+fromMaybeChecks config checkInfo =
+    case secondArg checkInfo of
+        Just maybeArg ->
+            firstThatConstructsJust
+                [ \() ->
+                    case sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable) maybeArg of
+                        Determined _ ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on Nothing will result in " ++ qualifiedToString (qualify config.onNothingFn checkInfo) ++ " with the given first value"
+                                    , details = [ "You can replace this call by " ++ qualifiedToString (qualify config.onNothingFn checkInfo) ++ " with the given first value." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify config.onNothingFn checkInfo))
+                                        :: keepOnlyFix
+                                            { parentRange = checkInfo.parentRange
+                                            , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                            }
+                                    )
+                                )
+
+                        Undetermined ->
+                            Nothing
+                , \() ->
+                    case sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable) maybeArg of
+                        Determined justCalls ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on a just maybe will result in " ++ qualifiedToString (qualify config.onJustFn checkInfo) ++ " with the value inside"
+                                    , details = [ "You can replace this call by " ++ qualifiedToString (qualify config.onJustFn checkInfo) ++ " with the value inside the given just maybe." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range maybeArg }
+                                        ++ List.map
+                                            (\justCall ->
+                                                Fix.replaceRangeBy justCall.fnRange
+                                                    (qualifiedToString (qualify config.onJustFn checkInfo))
+                                            )
+                                            justCalls
+                                    )
+                                )
+
+                        Undetermined ->
+                            Nothing
+                ]
+                ()
+
+        Nothing ->
+            Nothing
+
+
+wrapperFromMaybeCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperFromMaybeCompositionChecks wrapper checkInfo =
+    case ( checkInfo.earlier.fn, checkInfo.later.args ) of
+        ( ( [ "Maybe" ], "Just" ), _ :: [] ) ->
+            let
+                wrapFn : ( ModuleName, String )
+                wrapFn =
+                    ( wrapper.moduleName, wrapper.wrap.fnName )
+            in
+            Just
+                { info =
+                    { message = qualifiedToString checkInfo.later.fn ++ " on a just maybe will result in " ++ qualifiedToString (qualify wrapFn checkInfo) ++ " with the value inside"
+                    , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapFn checkInfo) ++ "." ]
+                    }
+                , fix =
+                    [ Fix.removeRange checkInfo.later.removeRange
+                    , Fix.replaceRangeBy checkInfo.earlier.range (qualifiedToString (qualify wrapFn checkInfo))
+                    ]
+                }
+
+        _ ->
+            Nothing
 
 
 pipelineChecks :

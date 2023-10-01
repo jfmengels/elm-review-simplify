@@ -11,6 +11,8 @@
 - `Set.foldl/r (\_ soFar -> soFar) initial set` to `initial`
 - `String.foldl/r f initial ""` to `initial`
 - `String.foldl/r (\_ soFar -> soFar) initial string` to `initial`
+- `Result.fromMaybe x (Just a)` to `Ok a`
+- `Result.fromMaybe x Nothing` to `Err x`
 - the same operations for `Json.Decode.map` as for e.g. `Task.map` and `Result.map`
 - the same operations for `Json.Decode.map2-8` as for e.g. `Task.mapN` and `Result.mapN`
 - the same operations for `Json.Decode.andThen` as for e.g. `Task.andThen` and `Result.andThen`
