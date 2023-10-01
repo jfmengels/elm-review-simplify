@@ -1045,6 +1045,16 @@ All of these also apply for `Sub`.
     Json.Decode.map f (Json.Decode.succeed a)
     --> Json.Decode.succeed (f a)
 
+    -- the following simplifications for map3 work for all Json.Decode.mapN
+    Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) (Json.Decode.succeed c)
+    --> Json.Decode.succeed (f a b c)
+
+    Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) thirdDecoder
+    --> Json.Decode.fail x
+
+    Json.Decode.map3 f firstDecoder (Json.Decode.fail x) thirdDecoder
+    --> Json.Decode.map2 f firstDecoder (Json.Decode.fail x)
+
     Json.Decode.andThen f (Json.Decode.fail x)
     --> Json.Decode.fail x
 
@@ -2672,6 +2682,13 @@ functionCallChecks =
         , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceChecks ) )
         , ( ( [ "Json", "Decode" ], "oneOf" ), ( 1, oneOfChecks ) )
         , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapChecks ) )
+        , ( ( [ "Json", "Decode" ], "map2" ), ( 3, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map3" ), ( 4, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map4" ), ( 5, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map5" ), ( 6, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map6" ), ( 7, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map7" ), ( 8, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map8" ), ( 9, jsonDecodeMapNChecks ) )
         , ( ( [ "Json", "Decode" ], "andThen" ), ( 2, jsonDecodeAndThenChecks ) )
         , ( ( [ "Html", "Attributes" ], "classList" ), ( 1, htmlAttributesClassListChecks ) )
         , ( ( [ "Parser" ], "oneOf" ), ( 1, oneOfChecks ) )
@@ -7599,6 +7616,15 @@ jsonDecodeMapChecks checkInfo =
 jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 jsonDecodeMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap checkInfo
+
+
+jsonDecodeMapNChecks : CheckInfo -> Maybe (Error {})
+jsonDecodeMapNChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperMapNChecks jsonDecoderWithSucceedAsWrap checkInfo
+        , \() -> mapNOrFirstEmptyConstructionChecks jsonDecoderWithSucceedAsWrap checkInfo
+        ]
+        ()
 
 
 jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})
