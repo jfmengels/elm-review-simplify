@@ -7875,8 +7875,7 @@ nonEmptiableWrapperAndThenAlwaysChecks wrapper checkInfo =
 
 type alias TypeProperties properties =
     { properties
-        | moduleName : ModuleName
-        , represents : String
+        | represents : String
     }
 
 
@@ -8056,8 +8055,7 @@ emptyAsString qualifyResources emptiable =
 
 randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) })
 randomGeneratorWrapper =
-    { moduleName = [ "Random" ]
-    , represents = "random generator"
+    { represents = "random generator"
     , wrap =
         { description = A "constant generator"
         , fn = ( [ "Random" ], "constant" )
@@ -8074,8 +8072,7 @@ maybeWithJustAsWrap :
     EmptiableProperties
         (WrapperProperties { mapFn : ( ModuleName, String ) })
 maybeWithJustAsWrap =
-    { moduleName = [ "Maybe" ]
-    , represents = "maybe"
+    { represents = "maybe"
     , empty =
         { description = Constant "Nothing"
         , is =
@@ -8105,8 +8102,7 @@ resultWithOkAsWrap :
         , mapFn : ( ModuleName, String )
         }
 resultWithOkAsWrap =
-    { moduleName = [ "Result" ]
-    , represents = "result"
+    { represents = "result"
     , wrap =
         { description = An "okay result"
         , fn = ( [ "Result" ], "Ok" )
@@ -8133,8 +8129,7 @@ resultWithErrAsWrap :
         , mapFn : ( ModuleName, String )
         }
 resultWithErrAsWrap =
-    { moduleName = [ "Result" ]
-    , represents = "result"
+    { represents = "result"
     , wrap =
         { description = An "error"
         , fn = ( [ "Result" ], "Err" )
@@ -8161,8 +8156,7 @@ taskWithSucceedAsWrap :
         , mapFn : ( ModuleName, String )
         }
 taskWithSucceedAsWrap =
-    { moduleName = [ "Task" ]
-    , represents = "task"
+    { represents = "task"
     , wrap =
         { description = A "succeeding task"
         , fn = ( [ "Task" ], "succeed" )
@@ -8189,8 +8183,7 @@ taskWithFailAsWrap :
         , mapFn : ( ModuleName, String )
         }
 taskWithFailAsWrap =
-    { moduleName = [ "Task" ]
-    , represents = "task"
+    { represents = "task"
     , wrap =
         { description = A "failing task"
         , fn = ( [ "Task" ], "fail" )
@@ -8217,8 +8210,7 @@ jsonDecoderWithSucceedAsWrap :
         , mapFn : ( ModuleName, String )
         }
 jsonDecoderWithSucceedAsWrap =
-    { moduleName = [ "Json", "Decode" ]
-    , represents = "json decoder"
+    { represents = "json decoder"
     , wrap =
         { description = A "succeeding decoder"
         , fn = ( [ "Json", "Decode" ], "succeed" )
@@ -8238,8 +8230,7 @@ jsonDecoderWithSucceedAsWrap =
 
 listCollection : CollectionProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) }))
 listCollection =
-    { moduleName = [ "List" ]
-    , represents = "list"
+    { represents = "list"
     , empty =
         { description = Constant "[]"
         , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
@@ -8288,8 +8279,7 @@ listDetermineLength resources expressionNode =
 
 stringCollection : CollectionProperties (WrapperProperties (FromListProperties {}))
 stringCollection =
-    { moduleName = [ "String" ]
-    , represents = "string"
+    { represents = "string"
     , empty =
         { description = Constant emptyStringAsString
         , asString = \_ -> emptyStringAsString
@@ -8325,8 +8315,7 @@ stringDetermineLength expression =
 
 arrayCollection : CollectionProperties (FromListProperties (IndexableProperties {}))
 arrayCollection =
-    { moduleName = [ "Array" ]
-    , represents = "array"
+    { represents = "array"
     , empty =
         { description = Constant (qualifiedToString ( [ "Array" ], "empty" ))
         , is =
@@ -8393,8 +8382,7 @@ arrayDetermineSize resources expressionNode =
 
 setCollection : CollectionProperties (WrapperProperties (FromListProperties {}))
 setCollection =
-    { moduleName = [ "Set" ]
-    , represents = "set"
+    { represents = "set"
     , empty =
         { description = Constant (qualifiedToString ( [ "Set" ], "empty" ))
         , is =
@@ -8471,8 +8459,7 @@ setDetermineSize resources expressionNode =
 
 dictCollection : CollectionProperties (FromListProperties {})
 dictCollection =
-    { moduleName = [ "Dict" ]
-    , represents = "dict"
+    { represents = "dict"
     , empty =
         { description = Constant (qualifiedToString ( [ "Dict" ], "empty" ))
         , is =
@@ -8546,8 +8533,7 @@ dictDetermineSize resources expressionNode =
 
 cmdCollection : EmptiableProperties {}
 cmdCollection =
-    { moduleName = [ "Platform", "Cmd" ]
-    , represents = "command"
+    { represents = "command"
     , empty =
         { description =
             Constant "Cmd.none"
@@ -8563,8 +8549,7 @@ cmdCollection =
 
 subCollection : EmptiableProperties {}
 subCollection =
-    { moduleName = [ "Platform", "Sub" ]
-    , represents = "subscription"
+    { represents = "subscription"
     , empty =
         { description =
             Constant "Sub.none"
