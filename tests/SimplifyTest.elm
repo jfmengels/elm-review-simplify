@@ -198,7 +198,7 @@ a = List.foldl (always identity) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10720,7 +10720,7 @@ a = List.foldl (always identity) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10736,7 +10736,7 @@ a = List.foldl (\\_ -> identity) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10752,7 +10752,7 @@ a = List.foldl (\\_ a -> a) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10768,7 +10768,7 @@ a = List.foldl (always <| \\a -> a) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -10784,11 +10784,27 @@ a = List.foldl (always identity) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always x
+"""
+                        ]
+        , test "should replace List.foldl (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which list is supplied next." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always
 """
                         ]
         , test "should replace List.foldl f x (Set.toList set) by Set.foldl f x set" <|
@@ -11683,7 +11699,7 @@ a = List.foldr (always identity) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11699,7 +11715,7 @@ a = List.foldr (\\_ -> identity) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11715,7 +11731,7 @@ a = List.foldr (\\_ a -> a) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11731,7 +11747,7 @@ a = List.foldr (always <| \\a -> a) x list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -11747,11 +11763,27 @@ a = List.foldr (always identity) x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always x
+"""
+                        ]
+        , test "should replace List.foldr (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which list is supplied next." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always
 """
                         ]
         , test "should replace List.foldr (always identity) initial data extraData by initial extraArgument" <|
@@ -11763,7 +11795,7 @@ a = List.foldr (always identity) initial data extraArgument
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                            , details = [ "You can replace this call by the initial accumulator." ]
+                            , details = [ "You can replace this call by the given initial accumulator." ]
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
