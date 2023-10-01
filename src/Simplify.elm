@@ -383,6 +383,13 @@ Destructuring using case expressions
     String.slice -1 -2 str
     --> ""
 
+    -- The following simplifications for String.foldl also work for String.foldr
+    String.foldl f initial ""
+    --> initial
+
+    String.foldl (\_ soFar -> soFar) initial string
+    --> initial
+
 
 ### Maybes
 
