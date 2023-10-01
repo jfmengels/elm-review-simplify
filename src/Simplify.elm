@@ -6024,7 +6024,7 @@ listFilterMapCompositionChecks checkInfo =
     mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) } checkInfo
 
 
-emptiableWrapperFilterMapChecks : EmptiableProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableWrapperFilterMapChecks : EmptiableProperties (WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) }) -> CheckInfo -> Maybe (Error {})
 emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
     firstThatConstructsJust
         [ \() ->
@@ -6037,7 +6037,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( emptiableWrapper.moduleName, "map" ) checkInfo))
+                                (qualifiedToString (qualify emptiableWrapper.mapFn checkInfo))
                                 :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) justCalls
                             )
                         )
@@ -6069,7 +6069,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                 Undetermined ->
                     Nothing
         , \() ->
-            mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = ( emptiableWrapper.moduleName, "map" ) } checkInfo
+            mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = emptiableWrapper.mapFn } checkInfo
         , \() ->
             Maybe.andThen
                 (\listArg -> callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo)
