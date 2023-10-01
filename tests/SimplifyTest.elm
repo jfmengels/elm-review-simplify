@@ -20961,6 +20961,7 @@ a = Set.singleton x
                         ]
         ]
 
+
 setFoldlTests : Test
 setFoldlTests =
     describe "Set.foldl"
@@ -21049,6 +21050,7 @@ a = always
                         ]
         ]
 
+
 setFoldrTests : Test
 setFoldrTests =
     describe "Set.foldr"
@@ -21136,6 +21138,8 @@ a = always
 """
                         ]
         ]
+
+
 
 -- Dict
 
