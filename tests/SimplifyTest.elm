@@ -23908,6 +23908,7 @@ a = Task.sequence [ a, Task.fail x]
         ]
 
 
+
 -- Parser
 
 
@@ -23968,11 +23969,13 @@ a = x
 
 -- Json.Decode
 
+
 jsonDecodeTests : Test
 jsonDecodeTests =
     Test.describe "Json.Decode"
         [ jsonDecodeMapTests
         ]
+
 
 jsonDecodeMapTests : Test
 jsonDecodeMapTests =
@@ -24220,6 +24223,7 @@ a = Json.Decode.succeed << f
 """
                         ]
         ]
+
 
 jsonDecodeOneOfTests : Test
 jsonDecodeOneOfTests =
