@@ -1045,6 +1045,16 @@ All of these also apply for `Sub`.
     Json.Decode.map f (Json.Decode.succeed a)
     --> Json.Decode.succeed (f a)
 
+    -- the following simplifications for map3 work for all Json.Decode.mapN
+    Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) (Json.Decode.succeed c)
+    --> Json.Decode.succeed (f a b c)
+
+    Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) thirdDecoder
+    --> Json.Decode.fail x
+
+    Json.Decode.map3 f firstDecoder (Json.Decode.fail x) thirdDecoder
+    --> Json.Decode.map2 f firstDecoder (Json.Decode.fail x)
+
     Json.Decode.andThen f (Json.Decode.fail x)
     --> Json.Decode.fail x
 
@@ -2561,10 +2571,10 @@ functionCallChecks =
         , ( ( [ "Maybe" ], "andThen" ), ( 2, maybeAndThenChecks ) )
         , ( ( [ "Maybe" ], "withDefault" ), ( 2, withDefaultChecks maybeWithJustAsWrap ) )
         , ( ( [ "Result" ], "map" ), ( 2, resultMapChecks ) )
-        , ( ( [ "Result" ], "map2" ), ( 3, resultMapNChecks { n = 2 } ) )
-        , ( ( [ "Result" ], "map3" ), ( 4, resultMapNChecks { n = 3 } ) )
-        , ( ( [ "Result" ], "map4" ), ( 5, resultMapNChecks { n = 4 } ) )
-        , ( ( [ "Result" ], "map5" ), ( 6, resultMapNChecks { n = 5 } ) )
+        , ( ( [ "Result" ], "map2" ), ( 3, resultMapNChecks ) )
+        , ( ( [ "Result" ], "map3" ), ( 4, resultMapNChecks ) )
+        , ( ( [ "Result" ], "map4" ), ( 5, resultMapNChecks ) )
+        , ( ( [ "Result" ], "map5" ), ( 6, resultMapNChecks ) )
         , ( ( [ "Result" ], "mapError" ), ( 2, resultMapErrorChecks ) )
         , ( ( [ "Result" ], "andThen" ), ( 2, resultAndThenChecks ) )
         , ( ( [ "Result" ], "withDefault" ), ( 2, withDefaultChecks resultWithOkAsWrap ) )
@@ -2662,16 +2672,23 @@ functionCallChecks =
         , ( ( [ "Platform", "Sub" ], "batch" ), ( 1, subAndCmdBatchChecks subCollection ) )
         , ( ( [ "Platform", "Sub" ], "map" ), ( 2, emptiableMapChecks subCollection ) )
         , ( ( [ "Task" ], "map" ), ( 2, taskMapChecks ) )
-        , ( ( [ "Task" ], "map2" ), ( 3, taskMapNChecks { n = 2 } ) )
-        , ( ( [ "Task" ], "map3" ), ( 4, taskMapNChecks { n = 3 } ) )
-        , ( ( [ "Task" ], "map4" ), ( 5, taskMapNChecks { n = 4 } ) )
-        , ( ( [ "Task" ], "map5" ), ( 6, taskMapNChecks { n = 5 } ) )
+        , ( ( [ "Task" ], "map2" ), ( 3, taskMapNChecks ) )
+        , ( ( [ "Task" ], "map3" ), ( 4, taskMapNChecks ) )
+        , ( ( [ "Task" ], "map4" ), ( 5, taskMapNChecks ) )
+        , ( ( [ "Task" ], "map5" ), ( 6, taskMapNChecks ) )
         , ( ( [ "Task" ], "andThen" ), ( 2, taskAndThenChecks ) )
         , ( ( [ "Task" ], "mapError" ), ( 2, taskMapErrorChecks ) )
         , ( ( [ "Task" ], "onError" ), ( 2, taskOnErrorChecks ) )
         , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceChecks ) )
         , ( ( [ "Json", "Decode" ], "oneOf" ), ( 1, oneOfChecks ) )
         , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapChecks ) )
+        , ( ( [ "Json", "Decode" ], "map2" ), ( 3, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map3" ), ( 4, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map4" ), ( 5, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map5" ), ( 6, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map6" ), ( 7, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map7" ), ( 8, jsonDecodeMapNChecks ) )
+        , ( ( [ "Json", "Decode" ], "map8" ), ( 9, jsonDecodeMapNChecks ) )
         , ( ( [ "Json", "Decode" ], "andThen" ), ( 2, jsonDecodeAndThenChecks ) )
         , ( ( [ "Html", "Attributes" ], "classList" ), ( 1, htmlAttributesClassListChecks ) )
         , ( ( [ "Parser" ], "oneOf" ), ( 1, oneOfChecks ) )
@@ -4928,11 +4945,11 @@ resultMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks resultWithOkAsWrap checkInfo
 
 
-resultMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
-resultMapNChecks config checkInfo =
+resultMapNChecks : CheckInfo -> Maybe (Error {})
+resultMapNChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> wrapperMapNChecks config resultWithOkAsWrap checkInfo
-        , \() -> mapNOrFirstEmptyConstructionChecks config resultWithOkAsWrap checkInfo
+        [ \() -> wrapperMapNChecks resultWithOkAsWrap checkInfo
+        , \() -> mapNOrFirstEmptyConstructionChecks resultWithOkAsWrap checkInfo
         ]
         ()
 
@@ -6811,9 +6828,9 @@ For example given `resultWithOkAsWrap`:
 This is pretty similar to `wrapperSequenceChecks` where we look at arguments instead of list elements.
 
 -}
-wrapperMapNChecks : { n : Int } -> WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
-wrapperMapNChecks config wrapper checkInfo =
-    if List.length checkInfo.argsAfterFirst == config.n then
+wrapperMapNChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+wrapperMapNChecks wrapper checkInfo =
+    if List.length checkInfo.argsAfterFirst == (checkInfo.argCount - 1) then
         -- fully applied
         case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) checkInfo.argsAfterFirst of
             Just wraps ->
@@ -6892,19 +6909,17 @@ This is pretty similar to `sequenceOrFirstEmptyChecks` where we look at argument
 
 -}
 mapNOrFirstEmptyConstructionChecks :
-    { n : Int }
-    ->
-        WrapperProperties
-            { otherProperties
-                | empty :
-                    { empty
-                        | is : ModuleNameLookupTable -> Node Expression -> Bool
-                        , description : Description
-                    }
-            }
+    WrapperProperties
+        { otherProperties
+            | empty :
+                { empty
+                    | is : ModuleNameLookupTable -> Node Expression -> Bool
+                    , description : Description
+                }
+        }
     -> CheckInfo
     -> Maybe (Error {})
-mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
+mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
     case findMapAndAllBefore (getEmptyExpressionNode checkInfo.lookupTable emptiable) checkInfo.argsAfterFirst of
         -- no empty arg found
         Nothing ->
@@ -6917,7 +6932,7 @@ mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
                     let
                         replacement : { description : String, fix : List Fix }
                         replacement =
-                            case config.n - List.length checkInfo.argsAfterFirst of
+                            case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) of
                                 -- fully applied
                                 0 ->
                                     { description = descriptionForDefinite "the first" emptiable.empty.description
@@ -6965,7 +6980,7 @@ mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
                         keptArgCount =
                             List.length emptyAndBefore.before + 1
                     in
-                    if keptArgCount == config.n then
+                    if keptArgCount == (checkInfo.argCount - 1) then
                         -- last arg is empty
                         Nothing
 
@@ -6986,7 +7001,7 @@ mapNOrFirstEmptyConstructionChecks config emptiable checkInfo =
 
                             replacement : { description : String, fix : List Fix }
                             replacement =
-                                case config.n - List.length checkInfo.argsAfterFirst of
+                                case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) of
                                     -- fully applied
                                     0 ->
                                         { fix =
@@ -7246,11 +7261,11 @@ taskMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks taskWithSucceedAsWrap checkInfo
 
 
-taskMapNChecks : { n : Int } -> CheckInfo -> Maybe (Error {})
-taskMapNChecks config checkInfo =
+taskMapNChecks : CheckInfo -> Maybe (Error {})
+taskMapNChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> wrapperMapNChecks config taskWithSucceedAsWrap checkInfo
-        , \() -> mapNOrFirstEmptyConstructionChecks config taskWithSucceedAsWrap checkInfo
+        [ \() -> wrapperMapNChecks taskWithSucceedAsWrap checkInfo
+        , \() -> mapNOrFirstEmptyConstructionChecks taskWithSucceedAsWrap checkInfo
         ]
         ()
 
@@ -7601,6 +7616,15 @@ jsonDecodeMapChecks checkInfo =
 jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 jsonDecodeMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap checkInfo
+
+
+jsonDecodeMapNChecks : CheckInfo -> Maybe (Error {})
+jsonDecodeMapNChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperMapNChecks jsonDecoderWithSucceedAsWrap checkInfo
+        , \() -> mapNOrFirstEmptyConstructionChecks jsonDecoderWithSucceedAsWrap checkInfo
+        ]
+        ()
 
 
 jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})

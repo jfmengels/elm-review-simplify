@@ -23974,6 +23974,7 @@ jsonDecodeTests : Test
 jsonDecodeTests =
     Test.describe "Json.Decode"
         [ jsonDecodeMapTests
+        , jsonDecodeMapNTests
         , jsonDecodeAndThenTests
         , jsonDecodeOneOfTests
         ]
@@ -24222,6 +24223,226 @@ a = Json.Decode.map f << Json.Decode.succeed
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
 a = Json.Decode.succeed << f
+"""
+                        ]
+        ]
+
+
+jsonDecodeMapNTests : Test
+jsonDecodeMapNTests =
+    -- testing behavior only with representatives for 2-8
+    describe "Json.Decode.mapN"
+        [ test "should not report Json.Decode.map3 with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3
+b = Json.Decode.map3 f
+c = Json.Decode.map3 f decoder0
+d = Json.Decode.map3 f decoder0 decoder1
+e = Json.Decode.map3 f decoder0 decoder1 decoder2
+f = Json.Decode.map3 f (Json.Decode.succeed h) decoder1 decoder2 -- because this is a code style choice
+f = Json.Decode.map3 f (Json.Decode.succeed h)
+g = Json.Decode.map3 f decoder0 decoder1 (Json.Decode.fail x) -- because decoder0/1 can have an earlier failing decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) (Json.Decode.succeed c) by Json.Decode.succeed (f a b c)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) (Json.Decode.succeed c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where each json decoder is a succeeding decoder will result in Json.Decode.succeed on the values inside"
+                            , details = [ "You can replace this call by Json.Decode.succeed with the function applied to the values inside each succeeding decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.succeed (f a b c)
+"""
+                        ]
+        , test "should replace c |> g |> Json.Decode.succeed |> Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) by (c |> g) |> f a b |> Json.Decode.succeed" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = c |> g |> Json.Decode.succeed |> Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where each json decoder is a succeeding decoder will result in Json.Decode.succeed on the values inside"
+                            , details = [ "You can replace this call by Json.Decode.succeed with the function applied to the values inside each succeeding decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = (c |> g) |> f a b |> Json.Decode.succeed
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) <| Json.Decode.succeed <| g <| c by Json.Decode.succeed <| f a b <| (g <| c)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.succeed b) <| Json.Decode.succeed <| g <| c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where each json decoder is a succeeding decoder will result in Json.Decode.succeed on the values inside"
+                            , details = [ "You can replace this call by Json.Decode.succeed with the function applied to the values inside each succeeding decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.succeed <| f a b <| (g <| c)
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) decoder2 by (Json.Decode.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) decoder2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where we know the first failing decoder will result in that failing decoder"
+                            , details = [ "You can replace this call by the first failing decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = (Json.Decode.fail x)
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) by always (Json.Decode.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where we know the first failing decoder will result in that failing decoder"
+                            , details = [ "You can replace this call by always with the first failing decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = always (Json.Decode.fail x)
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f (Json.Decode.fail x) decoder1 decoder2 by (Json.Decode.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.fail x) decoder1 decoder2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where we know the first failing decoder will result in that failing decoder"
+                            , details = [ "You can replace this call by the first failing decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = (Json.Decode.fail x)
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f (Json.Decode.fail x) decoder1 by always (Json.Decode.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.fail x) decoder1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where we know the first failing decoder will result in that failing decoder"
+                            , details = [ "You can replace this call by always with the first failing decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = always (Json.Decode.fail x)
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f (Json.Decode.fail x) by (\\_ _ -> (Json.Decode.fail x))" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f (Json.Decode.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 where we know the first failing decoder will result in that failing decoder"
+                            , details = [ "You can replace this call by \\_ _ -> with the first failing decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = (\\_ _ -> (Json.Decode.fail x))
+"""
+                        ]
+        , test "should replace Json.Decode.map3 f decoder0 (Json.Decode.fail x) decoder2 by Json.Decode.map2 f decoder0 (Json.Decode.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map3 f decoder0 (Json.Decode.fail x) decoder2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map3 with a failing decoder early will ignore later arguments"
+                            , details = [ "You can replace this call by Json.Decode.map2 with the same arguments until the first failing decoder." ]
+                            , under = "Json.Decode.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map2 f decoder0 (Json.Decode.fail x)
+"""
+                        ]
+        , test "should replace Json.Decode.map4 f decoder0 (Json.Decode.fail x) decoder3 by always (Json.Decode.map2 f decoder0 (Json.Decode.fail x))" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map4 f decoder0 (Json.Decode.fail x) decoder3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map4 with a failing decoder early will ignore later arguments"
+                            , details = [ "You can replace this call by always with Json.Decode.map2 with the same arguments until the first failing decoder." ]
+                            , under = "Json.Decode.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = always (Json.Decode.map2 f decoder0 (Json.Decode.fail x))
+"""
+                        ]
+        , test "should replace Json.Decode.map4 f decoder0 (Json.Decode.fail x) by (\\_ _ -> Json.Decode.map2 f decoder0 (Json.Decode.fail x))" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map4 f decoder0 (Json.Decode.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map4 with a failing decoder early will ignore later arguments"
+                            , details = [ "You can replace this call by \\_ _ -> with Json.Decode.map2 with the same arguments until the first failing decoder." ]
+                            , under = "Json.Decode.map4"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = (\\_ _ -> Json.Decode.map2 f decoder0 (Json.Decode.fail x))
 """
                         ]
         ]
