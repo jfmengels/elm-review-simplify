@@ -5043,30 +5043,18 @@ listConcatChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificFunctionCall ( [ "List" ], "map" ) checkInfo.lookupTable checkInfo.firstArg of
-                Just listMapArg ->
-                    let
-                        combinedFn : ( ModuleName, String )
-                        combinedFn =
-                            ( [ "List" ], "concatMap" )
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString ( [ "List" ], "map" ) ++ " and " ++ qualifiedToString checkInfo.fn ++ " can be combined using " ++ qualifiedToString combinedFn
-                            , details = [ qualifiedToString combinedFn ++ " is meant for this exact purpose and will also be faster." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = listMapArg.nodeRange }
-                                ++ [ Fix.replaceRangeBy listMapArg.fnRange
-                                        (qualifiedToString (qualify combinedFn checkInfo))
-                                   ]
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
+            groupingOnSpecificFnCallCanBeCombinedCheck
+                { specificFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+                checkInfo
         ]
         ()
+
+
+listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listConcatCompositionChecks checkInfo =
+    groupingOnSpecificFnCallCanBeCombinedCompositionCheck
+        { specificFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+        checkInfo
 
 
 irrelevantEmptyElementInGivenListArgCheck :
@@ -5157,40 +5145,6 @@ operationWithIdentityCanBeReplacedChecks config checkInfo =
 
     else
         Nothing
-
-
-listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listConcatCompositionChecks checkInfo =
-    mapToOperationCanBeCombinedCompositionChecks
-        { mapFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
-        checkInfo
-
-
-{-| Turn `map f >> yourOperation` into `combinedOperation f`.
-
-Can be used to for example
-turn `map f >> sequence` into `traverse f`
-or `map f >> Maybe.Extra.values` into `List.filterMap f`.
-
--}
-mapToOperationCanBeCombinedCompositionChecks : { mapFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-mapToOperationCanBeCombinedCompositionChecks config checkInfo =
-    case ( checkInfo.earlier.fn == config.mapFn, checkInfo.earlier.args ) of
-        ( True, _ :: [] ) ->
-            Just
-                { info =
-                    { message = qualifiedToString config.mapFn ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " can be combined using " ++ qualifiedToString config.combinedFn
-                    , details = [ qualifiedToString config.combinedFn ++ " is meant for this exact purpose and will also be faster." ]
-                    }
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.earlier.fnRange
-                        (qualifiedToString (qualify config.combinedFn checkInfo))
-                    , Fix.removeRange checkInfo.later.removeRange
-                    ]
-                }
-
-        _ ->
-            Nothing
 
 
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
