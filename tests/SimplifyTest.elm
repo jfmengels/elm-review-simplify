@@ -13346,7 +13346,7 @@ a = List.sortWith fn
 b = List.sortWith fn list
 b = List.sortWith (always fn) list
 b = List.sortWith (always (always fn)) list
-e = List.sortWith << List.sortWith f
+e = List.sortWith f (List.sortWith f list) -- because e.g. List.sortWith (\\_ _ -> LT) is equivalent to List.reverse
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -13660,40 +13660,6 @@ a = List.sortWith (always (\\_ -> LT))
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.reverse
-"""
-                        ]
-        , test "should replace List.sortWith f (List.sortWith f list) by (List.sortWith f list)" <|
-            \() ->
-                """module A exposing (..)
-a = List.sortWith f (List.sortWith f list)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sortWith after equivalent List.sortWith"
-                            , details = [ "You can remove this additional operation." ]
-                            , under = "List.sortWith"
-                            }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = (List.sortWith f list)
-"""
-                        ]
-        , test "should replace List.sortWith f << List.sortWith f by List.sortWith f" <|
-            \() ->
-                """module A exposing (..)
-a = List.sortWith f << List.sortWith f
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sortWith after equivalent List.sortWith"
-                            , details = [ "You can remove this additional operation." ]
-                            , under = "List.sortWith"
-                            }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.sortWith f
 """
                         ]
         ]

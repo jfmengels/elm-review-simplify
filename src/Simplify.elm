@@ -694,11 +694,17 @@ Destructuring using case expressions
     List.reverse (List.reverse list)
     --> list
 
+    List.sort (List.sort list)
+    --> List.sort list
+
     List.sortBy (always a) list
     --> list
 
     List.sortBy identity list
     --> List.sort list
+
+    List.sortBy f (List.sortBy f list)
+    --> List.sortBy f list
 
     List.sortWith (\_ _ -> LT) list
     --> List.reverse list
@@ -716,8 +722,6 @@ Destructuring using case expressions
     List.sort [ a ]
     --> [ a ]
 
-    List.sort (List.sort list)
-    --> List.sort list
 
     -- same for up to List.map5 when any list is empty
     List.map2 f xs []
@@ -2799,7 +2803,6 @@ compositionIntoChecks =
         , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
         , ( ( [ "List" ], "sort" ), listSortCompositionChecks )
         , ( ( [ "List" ], "sortBy" ), listSortByCompositionChecks )
-        , ( ( [ "List" ], "sortWith" ), listSortWithCompositionChecks )
         , ( ( [ "List" ], "map" ), listMapCompositionChecks )
         , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
         , ( ( [ "List" ], "intersperse" ), listIntersperseCompositionChecks )
@@ -6737,14 +6740,8 @@ listSortWithChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
         ()
-
-
-listSortWithCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listSortWithCompositionChecks checkInfo =
-    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 2 } checkInfo
 
 
 listTakeChecks : CheckInfo -> Maybe (Error {})
