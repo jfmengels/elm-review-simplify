@@ -989,7 +989,7 @@ All of these also apply for `Sub`.
     --> task
 
     Task.andThen (\a -> Task.succeed b) task
-    --> Task.map (\a -> b) x
+    --> Task.map (\a -> b) task
 
     Task.mapError identity task
     --> task
