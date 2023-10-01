@@ -10791,6 +10791,22 @@ a = List.foldl (always identity) x
 a = always x
 """
                         ]
+        , test "should replace List.foldl (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which list is supplied next." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always
+"""
+                        ]
         , test "should replace List.foldl f x (Set.toList set) by Set.foldl f x set" <|
             \() ->
                 """module A exposing (..)
@@ -11752,6 +11768,22 @@ a = List.foldr (always identity) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always x
+"""
+                        ]
+        , test "should replace List.foldr (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which list is supplied next." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always
 """
                         ]
         , test "should replace List.foldr (always identity) initial data extraData by initial extraArgument" <|
