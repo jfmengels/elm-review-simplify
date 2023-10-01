@@ -9,8 +9,8 @@
 - `String.concat (List.intersperse str strings)` to `String.join str strings`
 - `Set.foldl/r f initial Set.empty` to `initial`
 - `Set.foldl/r (\_ soFar -> soFar) initial set` to `initial`
-- `String.foldl/r f initial Set.empty` to `initial`
-- `String.foldl/r (\_ soFar -> soFar) initial set` to `initial`
+- `String.foldl/r f initial ""` to `initial`
+- `String.foldl/r (\_ soFar -> soFar) initial string` to `initial`
 
 ## [2.1.2] - 2023-09-28
 
