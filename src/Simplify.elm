@@ -7384,7 +7384,7 @@ sequenceOrFirstEmptyChecks emptiable checkInfo =
             Nothing
 
 
-wrapperSequenceChecks : WrapperProperties { otherProperties | mapFnName : String } -> CheckInfo -> Maybe (Error {})
+wrapperSequenceChecks : WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
 wrapperSequenceChecks wrapper checkInfo =
     firstThatConstructsJust
         [ \() ->
@@ -7401,13 +7401,9 @@ wrapperSequenceChecks wrapper checkInfo =
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just singletonList ->
                     let
-                        mapFn : ( ModuleName, String )
-                        mapFn =
-                            ( wrapper.moduleName, wrapper.mapFnName )
-
                         replacement : QualifyResources a -> String
                         replacement qualifyResources =
-                            qualifiedToString (qualify mapFn qualifyResources)
+                            qualifiedToString (qualify wrapper.mapFn qualifyResources)
                                 ++ " "
                                 ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) qualifyResources)
                     in
@@ -7454,18 +7450,14 @@ wrapperSequenceChecks wrapper checkInfo =
         ()
 
 
-mappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFnName : String } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+mappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 mappableSequenceCompositionChecks mappable checkInfo =
     case checkInfo.earlier.fn of
         ( [ "List" ], "singleton" ) ->
             let
-                mapFn : ( ModuleName, String )
-                mapFn =
-                    ( mappable.moduleName, mappable.mapFnName )
-
                 replacement : QualifyResources a -> String
                 replacement qualifyResources =
-                    qualifiedToString (qualify mapFn qualifyResources)
+                    qualifiedToString (qualify mappable.mapFn qualifyResources)
                         ++ " "
                         ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) qualifyResources)
             in
@@ -8062,7 +8054,7 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties { mapFnName : String })
+randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) })
 randomGeneratorWrapper =
     { moduleName = [ "Random" ]
     , represents = "random generator"
@@ -8074,13 +8066,13 @@ randomGeneratorWrapper =
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) lookupTable expr)
         }
     , empty = { invalid = () }
-    , mapFnName = "map"
+    , mapFn = ( [ "Random" ], "map" )
     }
 
 
 maybeWithJustAsWrap :
     EmptiableProperties
-        (WrapperProperties { mapFnName : String })
+        (WrapperProperties { mapFn : ( ModuleName, String ) })
 maybeWithJustAsWrap =
     { moduleName = [ "Maybe" ]
     , represents = "maybe"
@@ -8100,7 +8092,7 @@ maybeWithJustAsWrap =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
         }
-    , mapFnName = "map"
+    , mapFn = ( [ "Maybe" ], "map" )
     }
 
 
@@ -8110,7 +8102,7 @@ resultWithOkAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
-        , mapFnName : String
+        , mapFn : ( ModuleName, String )
         }
 resultWithOkAsWrap =
     { moduleName = [ "Result" ]
@@ -8128,7 +8120,7 @@ resultWithOkAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
         }
-    , mapFnName = "map"
+    , mapFn = ( [ "Result" ], "map" )
     }
 
 
@@ -8164,7 +8156,7 @@ taskWithSucceedAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
-        , mapFnName : String
+        , mapFn : ( ModuleName, String )
         }
 taskWithSucceedAsWrap =
     { moduleName = [ "Task" ]
@@ -8182,7 +8174,7 @@ taskWithSucceedAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "fail" ) lookupTable expr)
         }
-    , mapFnName = "map"
+    , mapFn = ( [ "Task" ], "map" )
     }
 
 
@@ -8192,7 +8184,7 @@ taskWithFailAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
-        , mapFnName : String
+        , mapFn : ( ModuleName, String )
         }
 taskWithFailAsWrap =
     { moduleName = [ "Task" ]
@@ -8210,7 +8202,7 @@ taskWithFailAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "succeed" ) lookupTable expr)
         }
-    , mapFnName = "mapError"
+    , mapFn = ( [ "Task" ], "mapError" )
     }
 
 
@@ -8220,7 +8212,7 @@ jsonDecoderWithSucceedAsWrap :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
             }
-        , mapFnName : String
+        , mapFn : ( ModuleName, String )
         }
 jsonDecoderWithSucceedAsWrap =
     { moduleName = [ "Json", "Decode" ]
@@ -8238,11 +8230,11 @@ jsonDecoderWithSucceedAsWrap =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
         }
-    , mapFnName = "map"
+    , mapFn = ( [ "Json", "Decode" ], "map" )
     }
 
 
-listCollection : CollectionProperties (WrapperProperties (FromListProperties { mapFnName : String }))
+listCollection : CollectionProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) }))
 listCollection =
     { moduleName = [ "List" ]
     , represents = "list"
@@ -8260,7 +8252,7 @@ listCollection =
             \lookupTable expr ->
                 Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
         }
-    , mapFnName = "map"
+    , mapFn = ( [ "List" ], "map" )
     , fromListLiteralRange = \_ expr -> AstHelpers.getListLiteralRange expr
     , fromListLiteralDescription = "list literal"
     , literalUnionLeftElementsStayOnTheLeft = True
@@ -8831,7 +8823,7 @@ getValueWithNodeRange getValue expressionNode =
 
 
 wrapperAndThenChecks :
-    WrapperProperties { otherProperties | mapFnName : String }
+    WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) }
     -> CheckInfo
     -> Maybe (Error {})
 wrapperAndThenChecks wrapper checkInfo =
@@ -8877,19 +8869,14 @@ wrapperAndThenChecks wrapper checkInfo =
                     checkInfo.firstArg
             of
                 Determined wrapCalls ->
-                    let
-                        mapFn : ( ModuleName, String )
-                        mapFn =
-                            ( wrapper.moduleName, wrapper.mapFnName )
-                    in
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString mapFn ++ " with the function returning the value inside"
-                            , details = [ "You can replace this call by " ++ qualifiedToString mapFn ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
+                            , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify mapFn checkInfo))
+                                (qualifiedToString (qualify wrapper.mapFn checkInfo))
                                 :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
                             )
                         )
