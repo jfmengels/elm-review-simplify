@@ -23974,6 +23974,7 @@ jsonDecodeTests : Test
 jsonDecodeTests =
     Test.describe "Json.Decode"
         [ jsonDecodeMapTests
+        , jsonDecodeOneOfTests
         ]
 
 
