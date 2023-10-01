@@ -5777,7 +5777,9 @@ stringSimplificationTests =
         , stringReverseTests
         , stringSliceTests
         , stringRightTests
-        , stringLeftTests, stringFoldlTests, stringFoldrTests
+        , stringLeftTests
+        , stringFoldlTests
+        , stringFoldrTests
         ]
 
 
@@ -7549,6 +7551,7 @@ a = ""
                         ]
         ]
 
+
 stringFoldlTests : Test
 stringFoldlTests =
     describe "String.foldl"
@@ -7707,6 +7710,7 @@ a = always
 """
                         ]
         ]
+
 
 
 -- LIST
