@@ -6032,8 +6032,8 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" )
-                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString ( emptiableWrapper.moduleName, "map" ) ++ "." ]
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as " ++ qualifiedToString emptiableWrapper.mapFn
+                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString emptiableWrapper.mapFn ++ "." ]
                             }
                             checkInfo.fnRange
                             (Fix.replaceRangeBy checkInfo.fnRange
