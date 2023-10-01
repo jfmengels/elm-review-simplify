@@ -7,6 +7,8 @@
 - `List.sortBy f (List.sortBy f list)` to `List.sortBy f list`
 - `String.concat (List.repeat n str)` to `String.repeat n str`
 - `String.concat (List.intersperse str strings)` to `String.join str strings`
+- `Set.foldl/r f initial Set.empty` to `initial`
+- `Set.foldl/r (\_ soFar -> soFar) initial set` to `initial`
 
 ## [2.1.2] - 2023-09-28
 
