@@ -872,6 +872,13 @@ Destructuring using case expressions
     Set.partition (always True) set
     --> ( set, Set.empty )
 
+    -- The following simplifications for Set.foldl also work for Set.foldr
+    Set.foldl f initial Set.empty
+    --> initial
+
+    Set.foldl (\_ soFar -> soFar) initial set
+    --> initial
+
 
 ### Dict
 
@@ -2594,6 +2601,8 @@ functionCallChecks =
         , ( ( [ "Set" ], "diff" ), ( 2, collectionDiffChecks setCollection ) )
         , ( ( [ "Set" ], "union" ), ( 2, collectionUnionChecks setCollection ) )
         , ( ( [ "Set" ], "insert" ), ( 2, collectionInsertChecks setCollection ) )
+        , ( ( [ "Set" ], "foldl" ), ( 3, setFoldlChecks ) )
+        , ( ( [ "Set" ], "foldr" ), ( 3, setFoldrChecks ) )
         , ( ( [ "Dict" ], "isEmpty" ), ( 1, collectionIsEmptyChecks dictCollection ) )
         , ( ( [ "Dict" ], "fromList" ), ( 1, dictFromListChecks ) )
         , ( ( [ "Dict" ], "toList" ), ( 1, emptiableToListChecks dictCollection ) )
@@ -7058,6 +7067,133 @@ setFromListCompositionChecks checkInfo =
         , \() -> inversesCompositionCheck ( [ "Set" ], "toList" ) checkInfo
         ]
         ()
+
+
+setFoldlChecks : CheckInfo -> Maybe (Error {})
+setFoldlChecks checkInfo =
+    emptiableFoldChecks setCollection checkInfo
+
+
+setFoldrChecks : CheckInfo -> Maybe (Error {})
+setFoldrChecks checkInfo =
+    emptiableFoldChecks setCollection checkInfo
+
+
+{-| The folding/reducing check
+
+    fold f initial empty --> initial
+
+so for example
+
+    List.Extra.indexedFoldl f initial empty --> initial
+
+    Graph.Tree.levelOrder f initial Graph.Tree.empty --> initial
+
+    Graph.fold f initial empty --> initial
+
+but also functions like
+
+    Either.foldl foldOnLeft initial (Either.Right r) --> initial
+
+    Effects.apply f initial Effects.none
+
+Any other argument order is not supported:
+
+    Maybe.Extra.unwrap initial f Nothing
+    -- not simplified
+
+    Result.Extra.unwrap initial f (Err x)
+    -- not simplified
+
+    RemoteData.unwrap initial f (Err x)
+    -- not simplified
+
+-}
+emptiableFoldChecks :
+    TypeProperties
+        { otherProperties
+            | empty :
+                { empty
+                    | is : ModuleNameLookupTable -> Node Expression -> Bool
+                    , description : Description
+                }
+        }
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableFoldChecks emptiable checkInfo =
+    firstThatConstructsJust
+        [ \() -> foldToUnchangedAccumulatorCheck emptiable checkInfo
+        , \() ->
+            case checkInfo.argsAfterFirst of
+                initialArg :: emptiableArg :: [] ->
+                    if emptiable.empty.is checkInfo.lookupTable emptiableArg then
+                        Just
+                            (returnsArgError
+                                (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
+                                { argRepresents = "initial accumulator"
+                                , arg = initialArg
+                                }
+                                checkInfo
+                            )
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+        ]
+        ()
+
+
+foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorCheck typeProperties checkInfo =
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+        Just reduceAlwaysResult ->
+            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
+                let
+                    replacement : { description : String, fix : List Fix }
+                    replacement =
+                        case checkInfo.argsAfterFirst of
+                            -- fold (\_ -> identity)
+                            [] ->
+                                { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo))
+                                    ]
+                                }
+
+                            -- fold (\_ -> identity) initial
+                            _ :: [] ->
+                                { description = "`always` with the given initial accumulator"
+                                , fix =
+                                    [ Fix.replaceRangeBy
+                                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo))
+                                    ]
+                                }
+
+                            -- fully applied
+                            initialArg :: _ :: _ ->
+                                { description = "the given initial accumulator"
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                }
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                        , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        replacement.fix
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 dictFromListChecks : CheckInfo -> Maybe (Error {})

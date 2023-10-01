@@ -19125,6 +19125,8 @@ setSimplificationTests =
         , setDiffTests
         , setUnionTests
         , setInsertTests
+        , setFoldlTests
+        , setFoldrTests
         ]
 
 
@@ -20959,7 +20961,181 @@ a = Set.singleton x
                         ]
         ]
 
+setFoldlTests : Test
+setFoldlTests =
+    describe "Set.foldl"
+        [ test "should not report Set.foldl used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldl
+b = Set.foldl (\\el soFar -> soFar - el)
+c = Set.foldl (\\el soFar -> soFar - el) 20
+d = Set.foldl (\\el soFar -> soFar - el) 20 set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.foldl f initial Set.empty by initial" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldl f initial Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldl on Set.empty will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "Set.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = initial
+"""
+                        ]
+        , test "should replace Set.foldl (always identity) initial set by initial" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldl (always identity) initial set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "Set.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = initial
+"""
+                        ]
+        , test "should replace Set.foldl (always identity) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldl (always identity) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "Set.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = always initial
+"""
+                        ]
+        , test "should replace Set.foldl (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldl (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which set is supplied next." ]
+                            , under = "Set.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = always
+"""
+                        ]
+        ]
 
+setFoldrTests : Test
+setFoldrTests =
+    describe "Set.foldr"
+        [ test "should not report Set.foldr used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr
+b = Set.foldr (\\el soFar -> soFar - el)
+c = Set.foldr (\\el soFar -> soFar - el) 20
+d = Set.foldr (\\el soFar -> soFar - el) 20 set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.foldr f initial Set.empty by initial" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr f initial Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr on Set.empty will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = initial
+"""
+                        ]
+        , test "should replace Set.foldr (always identity) initial set by initial" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr (always identity) initial set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = initial
+"""
+                        ]
+        , test "should replace Set.foldr (always identity) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr (always identity) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = always initial
+"""
+                        ]
+        , test "should replace Set.foldr (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which set is supplied next." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = always
+"""
+                        ]
+        ]
 
 -- Dict
 
