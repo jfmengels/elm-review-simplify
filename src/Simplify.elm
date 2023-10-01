@@ -299,6 +299,9 @@ Destructuring using case expressions
     String.concat (List.repeat n str)
     --> String.repeat n str
 
+    String.concat (List.intersperse str strings)
+    --> String.join str strings
+
     String.append "" str
     --> str
 
@@ -4493,15 +4496,27 @@ stringConcatChecks checkInfo =
             groupingOnSpecificFnCallCanBeCombinedCheck
                 { specificFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
                 checkInfo
+        , \() ->
+            groupingOnSpecificFnCallCanBeCombinedCheck
+                { specificFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
+                checkInfo
         ]
         ()
 
 
 stringConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringConcatCompositionChecks checkInfo =
-    groupingOnSpecificFnCallCanBeCombinedCompositionCheck
-        { specificFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
-        checkInfo
+    firstThatConstructsJust
+        [ \() ->
+            groupingOnSpecificFnCallCanBeCombinedCompositionCheck
+                { specificFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
+                checkInfo
+        , \() ->
+            groupingOnSpecificFnCallCanBeCombinedCompositionCheck
+                { specificFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
+                checkInfo
+        ]
+        ()
 
 
 stringWordsChecks : CheckInfo -> Maybe (Error {})

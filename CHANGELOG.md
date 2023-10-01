@@ -6,6 +6,7 @@
 - `List.sort (List.sort list)` to `List.sort list`
 - `List.sortBy f (List.sortBy f list)` to `List.sortBy f list`
 - `String.concat (List.repeat n str)` to `String.repeat n str`
+- `String.concat (List.intersperse str strings)` to `String.join str strings`
 
 ## [2.1.2] - 2023-09-28
 
