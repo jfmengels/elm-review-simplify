@@ -8087,8 +8087,8 @@ a = List.concat (List.map f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.concat can be combined using List.concatMap"
-                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.concat on List.map can be combined into List.concatMap"
+                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8103,8 +8103,8 @@ a = List.concat <| List.map f <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.concat can be combined using List.concatMap"
-                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.concat on List.map can be combined into List.concatMap"
+                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8119,8 +8119,8 @@ a = x |> List.map f |> List.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.concat can be combined using List.concatMap"
-                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.concat on List.map can be combined into List.concatMap"
+                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8453,8 +8453,8 @@ a = List.map f >> List.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.concat can be combined using List.concatMap"
-                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.concat on List.map can be combined into List.concatMap"
+                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8469,8 +8469,8 @@ a = List.concat << List.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.concat can be combined using List.concatMap"
-                            , details = [ "List.concatMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.concat on List.map can be combined into List.concatMap"
+                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
