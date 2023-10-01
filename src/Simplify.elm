@@ -4970,7 +4970,7 @@ mapWrapErrorInfo mapFn wrapper =
     let
         wrapFnInErrorInfo : String
         wrapFnInErrorInfo =
-            qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources)
+            qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources)
     in
     { message = qualifiedToString mapFn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
     , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " itself." ]
@@ -6307,20 +6307,15 @@ wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -
 wrapperRepeatChecks wrapper checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just 1 ->
-            let
-                wrapFn : ( ModuleName, String )
-                wrapFn =
-                    ( wrapper.moduleName, wrapper.wrap.fnName )
-            in
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.nameForSize ++ " 1 will result in " ++ qualifiedToString wrapFn
-                    , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ "." ]
+                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.nameForSize ++ " 1 will result in " ++ qualifiedToString wrapper.wrap.fn
+                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy
                         (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                        (qualifiedToString (qualify wrapFn checkInfo))
+                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                     ]
                 )
 
@@ -6843,13 +6838,9 @@ wrapperMapNChecks wrapper checkInfo =
         case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) checkInfo.argsAfterFirst of
             Just wraps ->
                 let
-                    wrapFn : ( ModuleName, String )
-                    wrapFn =
-                        ( wrapper.moduleName, wrapper.wrap.fnName )
-
                     wrapFnDescription : String
                     wrapFnDescription =
-                        qualifiedToString (qualify wrapFn defaultQualifyResources)
+                        qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources)
                 in
                 Just
                     (Rule.errorWithFix
@@ -6865,17 +6856,17 @@ wrapperMapNChecks wrapper checkInfo =
                             ++ (case checkInfo.callStyle of
                                     Pipe LeftToRight ->
                                         [ Fix.insertAt checkInfo.parentRange.end
-                                            (" |> " ++ qualifiedToString (qualify wrapFn checkInfo))
+                                            (" |> " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                                         ]
 
                                     Pipe RightToLeft ->
                                         [ Fix.insertAt checkInfo.parentRange.start
-                                            (qualifiedToString (qualify wrapFn checkInfo) ++ " <| ")
+                                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " <| ")
                                         ]
 
                                     Application ->
                                         [ Fix.insertAt checkInfo.parentRange.end ")"
-                                        , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapFn checkInfo) ++ " (")
+                                        , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " (")
                                         ]
                                )
                         )
@@ -7395,18 +7386,13 @@ sequenceOrFirstEmptyChecks emptiable checkInfo =
 
 wrapperSequenceChecks : WrapperProperties { otherProperties | mapFnName : String } -> CheckInfo -> Maybe (Error {})
 wrapperSequenceChecks wrapper checkInfo =
-    let
-        wrapFn : ( ModuleName, String )
-        wrapFn =
-            ( wrapper.moduleName, wrapper.wrap.fnName )
-    in
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck
                 { on = checkInfo.firstArg
                 , resultAsString =
                     \res ->
-                        qualifiedToString (qualify wrapFn res)
+                        qualifiedToString (qualify wrapper.wrap.fn res)
                             ++ " []"
                 }
                 listCollection
@@ -7446,13 +7432,13 @@ wrapperSequenceChecks wrapper checkInfo =
                         Just wraps ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on a list where each element is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " on the values inside"
-                                    , details = [ "You can replace this call by " ++ qualifiedToString wrapFn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " on a list where each element is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " on the values inside"
+                                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.replaceRangeBy
                                         checkInfo.fnRange
-                                        (qualifiedToString (qualify wrapFn checkInfo))
+                                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                                         :: List.concatMap
                                             (\wrap -> keepOnlyFix { parentRange = wrap.nodeRange, keep = Node.range wrap.value })
                                             wraps
@@ -7964,7 +7950,7 @@ type alias IndexableProperties otherProperties =
 
 type alias ConstructWithOneArgProperties =
     { description : Description
-    , fnName : String
+    , fn : ( ModuleName, String )
     , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
     }
 
@@ -8082,7 +8068,7 @@ randomGeneratorWrapper =
     , represents = "random generator"
     , wrap =
         { description = A "constant generator"
-        , fnName = "constant"
+        , fn = ( [ "Random" ], "constant" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) lookupTable expr)
@@ -8109,7 +8095,7 @@ maybeWithJustAsWrap =
         }
     , wrap =
         { description = A "just maybe"
-        , fnName = "Just"
+        , fn = ( [ "Maybe" ], "Just" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
@@ -8131,7 +8117,7 @@ resultWithOkAsWrap =
     , represents = "result"
     , wrap =
         { description = An "okay result"
-        , fnName = "Ok"
+        , fn = ( [ "Result" ], "Ok" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
@@ -8158,7 +8144,7 @@ resultWithErrAsWrap =
     , represents = "result"
     , wrap =
         { description = An "error"
-        , fnName = "Err"
+        , fn = ( [ "Result" ], "Err" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
@@ -8185,7 +8171,7 @@ taskWithSucceedAsWrap =
     , represents = "task"
     , wrap =
         { description = A "succeeding task"
-        , fnName = "succeed"
+        , fn = ( [ "Task" ], "succeed" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "succeed" ) lookupTable expr)
@@ -8213,7 +8199,7 @@ taskWithFailAsWrap =
     , represents = "task"
     , wrap =
         { description = A "failing task"
-        , fnName = "fail"
+        , fn = ( [ "Task" ], "fail" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "fail" ) lookupTable expr)
@@ -8241,7 +8227,7 @@ jsonDecoderWithSucceedAsWrap =
     , represents = "json decoder"
     , wrap =
         { description = A "succeeding decoder"
-        , fnName = "succeed"
+        , fn = ( [ "Json", "Decode" ], "succeed" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
@@ -8269,7 +8255,7 @@ listCollection =
     , determineSize = listDetermineLength
     , wrap =
         { description = A "singleton list"
-        , fnName = "singleton"
+        , fn = ( [ "List" ], "singleton" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
@@ -8319,7 +8305,7 @@ stringCollection =
     , determineSize = \_ (Node _ expr) -> stringDetermineLength expr
     , wrap =
         { description = A "single-char string"
-        , fnName = "fromChar"
+        , fn = ( [ "String" ], "fromChar" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromChar" ) lookupTable expr)
@@ -8428,7 +8414,7 @@ setCollection =
     , determineSize = setDetermineSize
     , wrap =
         { description = A "singleton set"
-        , fnName = "singleton"
+        , fn = ( [ "Set" ], "singleton" )
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expr)
@@ -8679,20 +8665,20 @@ mapWrapChecks wrapper checkInfo =
                                 Pipe LeftToRight ->
                                     [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
                                     , Fix.insertAt mappingArgRange.end
-                                        (" |> " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo))
+                                        (" |> " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                                     ]
                                         ++ removeWrapCalls
 
                                 Pipe RightToLeft ->
                                     Fix.replaceRangeBy
                                         { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " <| ")
+                                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " <| ")
                                         :: removeWrapCalls
 
                                 Application ->
                                     [ Fix.replaceRangeBy
                                         { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                        (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo) ++ " (")
+                                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " (")
                                     , Fix.insertAt checkInfo.parentRange.end ")"
                                     ]
                                         ++ removeWrapCalls
@@ -8711,18 +8697,13 @@ wrapToMapCompositionChecks :
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 wrapToMapCompositionChecks wrapper checkInfo =
-    let
-        wrapFn : ( ModuleName, String )
-        wrapFn =
-            ( wrapper.moduleName, wrapper.wrap.fnName )
-    in
-    case ( checkInfo.earlier.fn == wrapFn, checkInfo.later.args ) of
+    case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
         ( True, (Node mapperFunctionRange _) :: _ ) ->
             Just
                 { info = mapWrapErrorInfo checkInfo.later.fn wrapper
                 , fix =
                     [ Fix.replaceRangeBy checkInfo.later.range
-                        (qualifiedToString (qualify wrapFn checkInfo))
+                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                     , Fix.replaceRangeBy checkInfo.earlier.range
                         (checkInfo.extractSourceCode mapperFunctionRange)
                     ]
@@ -8751,15 +8732,15 @@ nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
                 (case secondArg checkInfo of
                     Nothing ->
                         Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value will always result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value will always result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
+                            , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the value produced by the mapper function." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
                                 (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
                                     ++ " ("
-                                    ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
+                                    ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -8770,13 +8751,13 @@ nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
 
                     Just _ ->
                         Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with that value"
-                            , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value produced by the mapper function." ]
+                            { message = qualifiedToString checkInfo.fn ++ " with a function that always maps to the same value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
+                            , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the value produced by the mapper function." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)
+                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo)
                                     ++ " "
                                     ++ leftParenIfRequired
                                 )
@@ -8799,11 +8780,11 @@ mapAlwaysCompositionChecks wrapper checkInfo =
         ( ( ( [ "Basics" ], "always" ), [] ), [] ) ->
             Just
                 { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName )
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
+                    { message = qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString wrapper.wrap.fn
+                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
                     }
                 , fix =
-                    compositionReplaceByFnFix ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo
+                    compositionReplaceByFnFix wrapper.wrap.fn checkInfo
                 }
 
         _ ->
@@ -8877,11 +8858,11 @@ wrapperAndThenChecks wrapper checkInfo =
                 Nothing ->
                     Nothing
         , \() ->
-            case AstHelpers.getSpecificValueOrFunction ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFunction wrapper.wrap.fn checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) defaultQualifyResources))
+                            (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources))
                             wrapper
                             checkInfo
                         )
@@ -9020,7 +9001,7 @@ unwrapToMaybeChecks emptiableWrapper checkInfo =
 
 wrapToMaybeCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapToMaybeCompositionChecks wrapper checkInfo =
-    if checkInfo.earlier.fn == ( wrapper.moduleName, wrapper.wrap.fnName ) then
+    if checkInfo.earlier.fn == wrapper.wrap.fn then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
@@ -9124,19 +9105,14 @@ wrapperFromMaybeCompositionChecks : WrapperProperties otherProperties -> Composi
 wrapperFromMaybeCompositionChecks wrapper checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.later.args ) of
         ( ( [ "Maybe" ], "Just" ), _ :: [] ) ->
-            let
-                wrapFn : ( ModuleName, String )
-                wrapFn =
-                    ( wrapper.moduleName, wrapper.wrap.fnName )
-            in
             Just
                 { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " on a just maybe will result in " ++ qualifiedToString (qualify wrapFn checkInfo) ++ " with the value inside"
-                    , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapFn checkInfo) ++ "." ]
+                    { message = qualifiedToString checkInfo.later.fn ++ " on a just maybe will result in " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " with the value inside"
+                    , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ "." ]
                     }
                 , fix =
                     [ Fix.removeRange checkInfo.later.removeRange
-                    , Fix.replaceRangeBy checkInfo.earlier.range (qualifiedToString (qualify wrapFn checkInfo))
+                    , Fix.replaceRangeBy checkInfo.earlier.range (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                     ]
                 }
 
@@ -9287,16 +9263,11 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 
 compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
-    let
-        wrapFn : ( ModuleName, String )
-        wrapFn =
-            ( wrapper.moduleName, wrapper.wrap.fnName )
-    in
-    if checkInfo.earlier.fn == wrapFn then
+    if checkInfo.earlier.fn == wrapper.wrap.fn then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the given " ++ wrapper.represents
-                , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapFn defaultQualifyResources) ++ "." ]
+                , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources) ++ "." ]
                 }
             , fix = [ Fix.removeRange checkInfo.later.removeRange ]
             }
@@ -9752,12 +9723,12 @@ wrapperFromListSingletonChecks wrapper checkInfo =
         Just listSingleton ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside the singleton list." ]
+                    { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside"
+                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside the singleton list." ]
                     }
                     checkInfo.fnRange
                     (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingleton.element
-                        ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo)) ]
+                        ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify wrapper.wrap.fn checkInfo)) ]
                     )
                 )
 
@@ -9768,11 +9739,11 @@ wrapperFromListSingletonCompositionChecks wrapper checkInfo =
         ( [ "List" ], "singleton" ) ->
             Just
                 { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ " with the value inside"
-                    , details = [ "You can replace this call by " ++ qualifiedToString ( wrapper.moduleName, wrapper.wrap.fnName ) ++ "." ]
+                    { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside"
+                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
                     }
                 , fix =
-                    compositionReplaceByFnFix ( wrapper.moduleName, wrapper.wrap.fnName ) checkInfo
+                    compositionReplaceByFnFix wrapper.wrap.fn checkInfo
                 }
 
         _ ->
