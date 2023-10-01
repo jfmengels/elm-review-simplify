@@ -23974,6 +23974,7 @@ jsonDecodeTests : Test
 jsonDecodeTests =
     Test.describe "Json.Decode"
         [ jsonDecodeMapTests
+        , jsonDecodeAndThenTests
         , jsonDecodeOneOfTests
         ]
 
@@ -24221,6 +24222,164 @@ a = Json.Decode.map f << Json.Decode.succeed
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
 a = Json.Decode.succeed << f
+"""
+                        ]
+        ]
+
+
+jsonDecodeAndThenTests : Test
+jsonDecodeAndThenTests =
+    describe "Json.Decode.andThen"
+        [ test "should not report Json.Decode.andThen used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen
+b = Json.Decode.andThen f
+c = Json.Decode.andThen f decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Json.Decode.andThen f (Json.Decode.fail x) by (Json.Decode.fail x)" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen f (Json.Decode.fail x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen on a failing decoder will result in the given failing decoder"
+                            , details = [ "You can replace this call by the given failing decoder." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = (Json.Decode.fail x)
+"""
+                        ]
+        , test "should not report Json.Decode.andThen (always (Json.Decode.fail x)) decoder" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen (always (Json.Decode.fail x)) decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Json.Decode.andThen Json.Decode.succeed decoder by decoder" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen Json.Decode.succeed decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen with a function equivalent to Json.Decode.succeed will always return the same given json decoder"
+                            , details = [ "You can replace this call by the json decoder itself." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = decoder
+"""
+                        ]
+        , test "should replace Json.Decode.andThen (\\b -> Json.Decode.succeed c) decoder by Json.Decode.map (\\b -> c) decoder" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen (\\b -> Json.Decode.succeed c) decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen with a function that always returns a succeeding decoder is the same as Json.Decode.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Json.Decode.map with the function returning the value inside the succeeding decoder." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map (\\b -> c) decoder
+"""
+                        ]
+        , test "should replace Json.Decode.andThen (\\b -> let y = 1 in Json.Decode.succeed y) decoder by Json.Decode.map (\\b -> let y = 1 in y) decoder" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen (\\b -> let y = 1 in Json.Decode.succeed y) decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen with a function that always returns a succeeding decoder is the same as Json.Decode.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Json.Decode.map with the function returning the value inside the succeeding decoder." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map (\\b -> let y = 1 in y) decoder
+"""
+                        ]
+        , test "should replace Json.Decode.andThen (\\b -> if cond then Json.Decode.succeed b else Json.Decode.succeed c) decoder by Json.Decode.map (\\b -> if cond then b else c) decoder" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen (\\b -> if cond then Json.Decode.succeed b else Json.Decode.succeed c) decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen with a function that always returns a succeeding decoder is the same as Json.Decode.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Json.Decode.map with the function returning the value inside the succeeding decoder." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map (\\b -> if cond then b else c) decoder
+"""
+                        ]
+        , test "should not report Json.Decode.andThen (\\b -> if cond then Json.Decode.succeed b else Json.Decode.fail c) decoder" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen (\\b -> if cond then Json.Decode.succeed b else Json.Decode.fail c) decoder
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Json.Decode.andThen f (Json.Decode.succeed a) by f a" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen f (Json.Decode.succeed a)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen on a succeeding decoder is the same as applying the function to the value from the succeeding decoder"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the succeeding decoder." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = f a
+"""
+                        ]
+        , test "should replace Json.Decode.succeed a |> Json.Decode.andThen f by a |> f" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.succeed a |> Json.Decode.andThen f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen on a succeeding decoder is the same as applying the function to the value from the succeeding decoder"
+                            , details = [ "You can replace this call by the function directly applied to the value inside the succeeding decoder." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = a |> f
 """
                         ]
         ]

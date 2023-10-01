@@ -12,6 +12,7 @@
 - `String.foldl/r f initial ""` to `initial`
 - `String.foldl/r (\_ soFar -> soFar) initial string` to `initial`
 - the same operations for `Json.Decode.map` as for e.g. `Task.map` and `Result.map`
+- the same operations for `Json.Decode.andThen` as for e.g. `Task.andThen` and `Result.andThen`
 
 ## [2.1.2] - 2023-09-28
 

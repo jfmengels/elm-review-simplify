@@ -989,7 +989,7 @@ All of these also apply for `Sub`.
     --> task
 
     Task.andThen (\a -> Task.succeed b) task
-    --> Task.map (\a -> b) x
+    --> Task.map (\a -> b) task
 
     Task.mapError identity task
     --> task
@@ -1044,6 +1044,18 @@ All of these also apply for `Sub`.
 
     Json.Decode.map f (Json.Decode.succeed a)
     --> Json.Decode.succeed (f a)
+
+    Json.Decode.andThen f (Json.Decode.fail x)
+    --> Json.Decode.fail x
+
+    Json.Decode.andThen f (Json.Decode.succeed a)
+    --> f a
+
+    Json.Decode.andThen Json.Decode.succeed decoder
+    --> decoder
+
+    Json.Decode.andThen (\a -> Json.Decode.succeed b) decoder
+    --> Json.Decode.map (\a -> b) decoder
 
     Json.Decode.oneOf [ a ]
     --> a
@@ -2660,6 +2672,7 @@ functionCallChecks =
         , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceChecks ) )
         , ( ( [ "Json", "Decode" ], "oneOf" ), ( 1, oneOfChecks ) )
         , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapChecks ) )
+        , ( ( [ "Json", "Decode" ], "andThen" ), ( 2, jsonDecodeAndThenChecks ) )
         , ( ( [ "Html", "Attributes" ], "classList" ), ( 1, htmlAttributesClassListChecks ) )
         , ( ( [ "Parser" ], "oneOf" ), ( 1, oneOfChecks ) )
         , ( ( [ "Parser", "Advanced" ], "oneOf" ), ( 1, oneOfChecks ) )
@@ -7588,6 +7601,18 @@ jsonDecodeMapChecks checkInfo =
 jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 jsonDecodeMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap checkInfo
+
+
+jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})
+jsonDecodeAndThenChecks checkInfo =
+    firstThatConstructsJust
+        [ \() ->
+            Maybe.andThen
+                (\taskArg -> callOnEmptyReturnsEmptyCheck taskArg jsonDecoderWithSucceedAsWrap checkInfo)
+                (secondArg checkInfo)
+        , \() -> wrapperAndThenChecks jsonDecoderWithSucceedAsWrap checkInfo
+        ]
+        ()
 
 
 
