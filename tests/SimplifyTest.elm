@@ -5778,6 +5778,8 @@ stringSimplificationTests =
         , stringSliceTests
         , stringRightTests
         , stringLeftTests
+        , stringFoldlTests
+        , stringFoldrTests
         ]
 
 
@@ -7545,6 +7547,166 @@ a = String.right n ""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ""
+"""
+                        ]
+        ]
+
+
+stringFoldlTests : Test
+stringFoldlTests =
+    describe "String.foldl"
+        [ test "should not report String.foldl used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldl
+b = String.foldl (\\el soFar -> soFar - el)
+c = String.foldl (\\el soFar -> soFar - el) 20
+d = String.foldl (\\el soFar -> soFar - el) 20 string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.foldl f initial \"\" by initial" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldl f initial ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldl on \"\" will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "String.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = initial
+"""
+                        ]
+        , test "should replace String.foldl (always identity) initial string by initial" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldl (always identity) initial string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "String.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = initial
+"""
+                        ]
+        , test "should replace String.foldl (always identity) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldl (always identity) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "String.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always initial
+"""
+                        ]
+        , test "should replace String.foldl (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldl (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which string is supplied next." ]
+                            , under = "String.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always
+"""
+                        ]
+        ]
+
+
+stringFoldrTests : Test
+stringFoldrTests =
+    describe "String.foldr"
+        [ test "should not report String.foldr used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldr
+b = String.foldr (\\el soFar -> soFar - el)
+c = String.foldr (\\el soFar -> soFar - el) 20
+d = String.foldr (\\el soFar -> soFar - el) 20 string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.foldr f initial \"\" by initial" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldr f initial ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldr on \"\" will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "String.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = initial
+"""
+                        ]
+        , test "should replace String.foldr (always identity) initial string by initial" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldr (always identity) initial string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "String.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = initial
+"""
+                        ]
+        , test "should replace String.foldr (always identity) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldr (always identity) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "String.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always initial
+"""
+                        ]
+        , test "should replace String.foldr (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+a = String.foldr (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which string is supplied next." ]
+                            , under = "String.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always
 """
                         ]
         ]

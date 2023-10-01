@@ -383,6 +383,13 @@ Destructuring using case expressions
     String.slice -1 -2 str
     --> ""
 
+    -- The following simplifications for String.foldl also work for String.foldr
+    String.foldl f initial ""
+    --> initial
+
+    String.foldl (\_ soFar -> soFar) initial string
+    --> initial
+
 
 ### Maybes
 
@@ -2627,6 +2634,8 @@ functionCallChecks =
         , ( ( [ "String" ], "left" ), ( 2, stringLeftChecks ) )
         , ( ( [ "String" ], "right" ), ( 2, stringRightChecks ) )
         , ( ( [ "String" ], "append" ), ( 2, collectionUnionChecks stringCollection ) )
+        , ( ( [ "String" ], "foldl" ), ( 3, stringFoldlChecks ) )
+        , ( ( [ "String" ], "foldr" ), ( 3, stringFoldrChecks ) )
         , ( ( [ "Platform", "Cmd" ], "batch" ), ( 1, subAndCmdBatchChecks cmdCollection ) )
         , ( ( [ "Platform", "Cmd" ], "map" ), ( 2, emptiableMapChecks cmdCollection ) )
         , ( ( [ "Platform", "Sub" ], "batch" ), ( 1, subAndCmdBatchChecks subCollection ) )
@@ -4847,6 +4856,16 @@ stringReplaceChecks checkInfo =
 
         Nothing ->
             Nothing
+
+
+stringFoldlChecks : CheckInfo -> Maybe (Error {})
+stringFoldlChecks checkInfo =
+    emptiableFoldChecks stringCollection checkInfo
+
+
+stringFoldrChecks : CheckInfo -> Maybe (Error {})
+stringFoldrChecks checkInfo =
+    emptiableFoldChecks stringCollection checkInfo
 
 
 
