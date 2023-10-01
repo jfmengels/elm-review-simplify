@@ -18105,6 +18105,7 @@ resultTests =
         , resultAndThenTests
         , resultWithDefaultTests
         , resultToMaybeTests
+        , resultFromMaybeTests
         ]
 
 
@@ -19294,6 +19295,101 @@ a = Err >> Result.toMaybe
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always Nothing
+"""
+                        ]
+        ]
+
+
+resultFromMaybeTests : Test
+resultFromMaybeTests =
+    describe "Result.fromMaybe"
+        [ test "should not report Result.toMaybe used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = Result.fromMaybe
+a1 = Result.fromMaybe x
+a2 = Result.fromMaybe x result
+a3 = Result.fromMaybe Nothing result
+a4 = Result.fromMaybe (Just a) result
+a5 = Result.fromMaybe (Err x) result
+a6 = Result.fromMaybe (Ok a) result
+a7 = Result.fromMaybe << Just
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Nothing |> Result.fromMaybe x by Err x" <|
+            \() ->
+                """module A exposing (..)
+a = Nothing |> Result.fromMaybe x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.fromMaybe on Nothing will result in Err with the given first value"
+                            , details = [ "You can replace this call by Err with the given first value." ]
+                            , under = "Result.fromMaybe"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err x
+"""
+                        ]
+        , test "should replace a |> Just |> Result.fromMaybe x by a |> Ok" <|
+            \() ->
+                """module A exposing (..)
+a = b |> Just |> Result.fromMaybe x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.fromMaybe on a just maybe will result in Ok with the value inside"
+                            , details = [ "You can replace this call by Ok with the value inside the given just maybe." ]
+                            , under = "Result.fromMaybe"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> Ok
+"""
+                        ]
+        , test "should replace Result.fromMaybe x <| if cond then Just a else Just b by if cond then Ok a else Ok b" <|
+            \() ->
+                """module A exposing (..)
+a =
+    Result.fromMaybe x <| 
+        if cond then
+            Just b
+        
+        else
+            Just c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.fromMaybe on a just maybe will result in Ok with the value inside"
+                            , details = [ "You can replace this call by Ok with the value inside the given just maybe." ]
+                            , under = "Result.fromMaybe"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    if cond then
+            Ok b
+        
+        else
+            Ok c
+"""
+                        ]
+        , test "should replace Result.fromMaybe x << Just by Ok" <|
+            \() ->
+                """module A exposing (..)
+a = Result.fromMaybe x << Just
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.fromMaybe on a just maybe will result in Ok with the value inside"
+                            , details = [ "You can replace this call by Ok." ]
+                            , under = "Result.fromMaybe"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok
 """
                         ]
         ]
