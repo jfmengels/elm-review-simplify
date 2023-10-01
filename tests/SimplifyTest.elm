@@ -24227,6 +24227,7 @@ a = Json.Decode.succeed << f
                         ]
         ]
 
+
 jsonDecodeMapNTests : Test
 jsonDecodeMapNTests =
     -- testing behavior only with representatives for 2-8
@@ -24445,6 +24446,7 @@ a = (\\_ _ -> Json.Decode.map2 f decoder0 (Json.Decode.fail x))
 """
                         ]
         ]
+
 
 jsonDecodeAndThenTests : Test
 jsonDecodeAndThenTests =
