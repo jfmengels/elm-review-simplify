@@ -5981,6 +5981,54 @@ a = String.concat << List.repeat n
 a = String.repeat n
 """
                         ]
+        , test "should replace String.concat (List.intersperse str strings) by (String.join str strings)" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat (List.intersperse str strings)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on List.intersperse can be combined into String.join"
+                            , details = [ "You can replace these two operations by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.join str strings)
+"""
+                        ]
+        , test "should replace str |> List.intersperse str |> String.concat by str |> String.join str" <|
+            \() ->
+                """module A exposing (..)
+a = str |> List.intersperse str |> String.concat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on List.intersperse can be combined into String.join"
+                            , details = [ "You can replace these two operations by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str |> String.join str
+"""
+                        ]
+        , test "should replace String.concat << List.intersperse str by String.join str" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat << List.intersperse str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on List.intersperse can be combined into String.join"
+                            , details = [ "You can replace these two operations by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.join str
+"""
+                        ]
         ]
 
 
