@@ -11,6 +11,7 @@
 - `Set.foldl/r (\_ soFar -> soFar) initial set` to `initial`
 - `String.foldl/r f initial ""` to `initial`
 - `String.foldl/r (\_ soFar -> soFar) initial string` to `initial`
+- the same operations for `Json.Decode.map` as for e.g. `Task.map` and `Result.map`
 
 ## [2.1.2] - 2023-09-28
 

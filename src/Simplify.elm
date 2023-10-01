@@ -1036,6 +1036,15 @@ All of these also apply for `Sub`.
 
 ### Json.Decode
 
+    Json.Decode.map identity decoder
+    --> decoder
+
+    Json.Decode.map f (Json.Decode.fail x)
+    --> Json.Decode.fail x
+
+    Json.Decode.map f (Json.Decode.succeed a)
+    --> Json.Decode.succeed (f a)
+
     Json.Decode.oneOf [ a ]
     --> a
 
@@ -2650,6 +2659,7 @@ functionCallChecks =
         , ( ( [ "Task" ], "onError" ), ( 2, taskOnErrorChecks ) )
         , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceChecks ) )
         , ( ( [ "Json", "Decode" ], "oneOf" ), ( 1, oneOfChecks ) )
+        , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapChecks ) )
         , ( ( [ "Html", "Attributes" ], "classList" ), ( 1, htmlAttributesClassListChecks ) )
         , ( ( [ "Parser" ], "oneOf" ), ( 1, oneOfChecks ) )
         , ( ( [ "Parser", "Advanced" ], "oneOf" ), ( 1, oneOfChecks ) )
@@ -2837,6 +2847,7 @@ compositionIntoChecks =
         , ( ( [ "Task" ], "map" ), taskMapCompositionChecks )
         , ( ( [ "Task" ], "mapError" ), taskMapErrorCompositionChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
+        , ( ( [ "Json", "Decode" ], "map" ), jsonDecodeMapCompositionChecks )
         , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
         ]
 
@@ -7562,6 +7573,24 @@ htmlAttributesClassListChecks checkInfo =
 
 
 
+-- JSON.DECODE
+
+
+jsonDecodeMapChecks : CheckInfo -> Maybe (Error {})
+jsonDecodeMapChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> emptiableMapChecks jsonDecoderWithSucceedAsWrap checkInfo
+        , \() -> mapWrapChecks jsonDecoderWithSucceedAsWrap checkInfo
+        ]
+        ()
+
+
+jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+jsonDecodeMapCompositionChecks checkInfo =
+    wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap checkInfo
+
+
+
 -- PARSER
 
 
@@ -8139,6 +8168,34 @@ taskWithFailAsWrap =
                 isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "succeed" ) lookupTable expr)
         }
     , mapFnName = "mapError"
+    }
+
+
+jsonDecoderWithSucceedAsWrap :
+    WrapperProperties
+        { empty :
+            { description : Description
+            , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
+        , mapFnName : String
+        }
+jsonDecoderWithSucceedAsWrap =
+    { moduleName = [ "Json", "Decode" ]
+    , represents = "json decoder"
+    , wrap =
+        { description = A "succeeding decoder"
+        , fnName = "succeed"
+        , getValue =
+            \lookupTable expr ->
+                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
+        }
+    , empty =
+        { description = A "failing decoder"
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificFunctionCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
+        }
+    , mapFnName = "map"
     }
 
 
