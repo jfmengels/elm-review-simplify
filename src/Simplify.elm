@@ -4822,12 +4822,7 @@ stringReverseCompositionChecks checkInfo =
 stringSliceChecks : CheckInfo -> Maybe (Error {})
 stringSliceChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\stringArg ->
-                    callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo
-                )
-                (thirdArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
         , \() ->
             case secondArg checkInfo of
                 Just endArg ->
@@ -4900,10 +4895,7 @@ stringSliceChecks checkInfo =
 stringLeftChecks : CheckInfo -> Maybe (Error {})
 stringLeftChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\wrapperArg -> callOnEmptyReturnsEmptyCheck wrapperArg stringCollection checkInfo)
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -4951,10 +4943,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
 stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\stringArg -> callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo)
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -5051,15 +5040,15 @@ stringRepeatChecks checkInfo =
 
 stringReplaceChecks : CheckInfo -> Maybe (Error {})
 stringReplaceChecks checkInfo =
-    case secondArg checkInfo of
-        Just replacementArg ->
-            firstThatConstructsJust
-                [ \() ->
-                    Maybe.andThen
-                        (\stringArg ->
-                            firstThatConstructsJust
-                                [ \() -> callOnEmptyReturnsEmptyCheck stringArg stringCollection checkInfo
-                                , \() ->
+    firstThatConstructsJust
+        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
+        , \() ->
+            case secondArg checkInfo of
+                Just replacementArg ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            Maybe.andThen
+                                (\stringArg ->
                                     case ( checkInfo.firstArg, stringArg ) of
                                         ( Node _ (Expression.Literal toReplace), Node _ (Expression.Literal third) ) ->
                                             if not (String.contains "\u{000D}" toReplace) && not (String.contains toReplace third) then
@@ -5077,27 +5066,27 @@ stringReplaceChecks checkInfo =
 
                                         _ ->
                                             Nothing
-                                ]
-                                ()
-                        )
-                        (thirdArg checkInfo)
-                , \() ->
-                    case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
-                        Normalize.ConfirmedEquality ->
-                            Just
-                                (alwaysReturnsLastArgError
-                                    (qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal")
-                                    { represents = "string" }
-                                    checkInfo
                                 )
+                                (thirdArg checkInfo)
+                        , \() ->
+                            case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
+                                Normalize.ConfirmedEquality ->
+                                    Just
+                                        (alwaysReturnsLastArgError
+                                            (qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal")
+                                            { represents = "string" }
+                                            checkInfo
+                                        )
 
-                        _ ->
-                            Nothing
-                ]
-                ()
+                                _ ->
+                                    Nothing
+                        ]
+                        ()
 
-        Nothing ->
-            Nothing
+                Nothing ->
+                    Nothing
+        ]
+        ()
 
 
 stringFoldlChecks : CheckInfo -> Maybe (Error {})
@@ -5223,7 +5212,7 @@ resultMapErrorCompositionChecks checkInfo =
 listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
+        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
         , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
@@ -5383,12 +5372,7 @@ operationWithIdentityCanBeReplacedChecks config checkInfo =
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\listArg ->
-                    callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                )
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         , \() -> operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) } checkInfo
         ]
         ()
@@ -5456,16 +5440,17 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
 
 listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks checkInfo =
-    case secondArg checkInfo of
-        Just listArg ->
-            firstThatConstructsJust
-                [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                , \() -> callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
-                ]
-                ()
+    firstThatConstructsJust
+        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
+        , \() ->
+            case secondArg checkInfo of
+                Just listArg ->
+                    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
 
-        Nothing ->
-            Nothing
+                Nothing ->
+                    Nothing
+        ]
+        ()
 
 
 listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -6350,10 +6335,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                     Nothing
         , \() ->
             mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = emptiableWrapper.mapFn } checkInfo
-        , \() ->
-            Maybe.andThen
-                (\listArg -> callOnEmptyReturnsEmptyCheck listArg emptiableWrapper checkInfo)
-                (secondArg checkInfo)
+        , \() -> callOnEmptyReturnsEmptyCheck emptiableWrapper checkInfo
         ]
         ()
 
@@ -6561,12 +6543,7 @@ arrayInitializeChecks checkInfo =
 arrayIndexedMapChecks : CheckInfo -> Maybe (Error {})
 arrayIndexedMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\arrayArg ->
-                    callOnEmptyReturnsEmptyCheck arrayArg arrayCollection checkInfo
-                )
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck arrayCollection checkInfo
         , \() -> operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "Array" ], "map" ) } checkInfo
         ]
         ()
@@ -6734,10 +6711,7 @@ indexAccessChecks collection checkInfo n =
 setChecks : CollectionProperties (FromListProperties (IndexableProperties {})) -> CheckInfo -> Maybe (Error {})
 setChecks collection checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg collection checkInfo)
-                (thirdArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck collection checkInfo
         , \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just n ->
@@ -6807,7 +6781,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableReverseChecks emptiable checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg emptiable checkInfo
+        [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
         , \() -> removeAlongWithOtherFunctionCheck checkInfo
         ]
         ()
@@ -6834,7 +6808,7 @@ listReverseCompositionChecks checkInfo =
 listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg listCollection checkInfo
+        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         , \() -> callOnSingletonListDoesNotChangeItCheck checkInfo.firstArg checkInfo
         , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
@@ -6943,14 +6917,11 @@ fullyAppliedLastArg callInfo =
 listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
+        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
+        , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    firstThatConstructsJust
-                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                        , \() -> callOnSingletonListDoesNotChangeItCheck listArg checkInfo
-                        ]
-                        ()
+                    callOnSingletonListDoesNotChangeItCheck listArg checkInfo
 
                 Nothing ->
                     Nothing
@@ -6981,14 +6952,11 @@ listSortByCompositionChecks checkInfo =
 listSortWithChecks : CheckInfo -> Maybe (Error {})
 listSortWithChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
+        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
+        , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    firstThatConstructsJust
-                        [ \() -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo
-                        , \() -> callOnSingletonListDoesNotChangeItCheck listArg checkInfo
-                        ]
-                        ()
+                    callOnSingletonListDoesNotChangeItCheck listArg checkInfo
 
                 Nothing ->
                     Nothing
@@ -7058,10 +7026,7 @@ listTakeChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
-            Maybe.andThen
-                (\listArg -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo)
-                maybeListArg
+        , \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         ]
         ()
 
@@ -7081,10 +7046,7 @@ listDropChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
-            Maybe.andThen
-                (\listArg -> callOnEmptyReturnsEmptyCheck listArg listCollection checkInfo)
-                (secondArg checkInfo)
+        , \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         ]
         ()
 
@@ -7561,10 +7523,7 @@ taskMapNChecks checkInfo =
 taskAndThenChecks : CheckInfo -> Maybe (Error {})
 taskAndThenChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\taskArg -> callOnEmptyReturnsEmptyCheck taskArg taskWithSucceedAsWrap checkInfo)
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck taskWithSucceedAsWrap checkInfo
         , \() -> wrapperAndThenChecks taskWithSucceedAsWrap checkInfo
         ]
         ()
@@ -7587,10 +7546,7 @@ taskMapErrorCompositionChecks checkInfo =
 taskOnErrorChecks : CheckInfo -> Maybe (Error {})
 taskOnErrorChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\taskArg -> callOnEmptyReturnsEmptyCheck taskArg taskWithFailAsWrap checkInfo)
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck taskWithFailAsWrap checkInfo
         , \() -> wrapperAndThenChecks taskWithFailAsWrap checkInfo
         ]
         ()
@@ -7902,10 +7858,7 @@ jsonDecodeMapNChecks checkInfo =
 jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})
 jsonDecodeAndThenChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\taskArg -> callOnEmptyReturnsEmptyCheck taskArg jsonDecoderWithSucceedAsWrap checkInfo)
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck jsonDecoderWithSucceedAsWrap checkInfo
         , \() -> wrapperAndThenChecks jsonDecoderWithSucceedAsWrap checkInfo
         ]
         ()
@@ -8862,10 +8815,7 @@ emptiableMapChecks :
 emptiableMapChecks emptiable checkInfo =
     firstThatConstructsJust
         [ \() -> mapIdentityChecks emptiable checkInfo
-        , \() ->
-            Maybe.andThen
-                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
-                (secondArg checkInfo)
+        , \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
         ]
         ()
 
@@ -9063,10 +9013,7 @@ emptiableAndThenChecks :
     -> Maybe (Error {})
 emptiableAndThenChecks emptiable checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
         , \() ->
             case constructs (sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
@@ -9169,12 +9116,7 @@ maybeAndThenChecks checkInfo =
 resultAndThenChecks : CheckInfo -> Maybe (Error {})
 resultAndThenChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\resultArg ->
-                    callOnEmptyReturnsEmptyCheck resultArg resultWithOkAsWrap checkInfo
-                )
-                (secondArg checkInfo)
+        [ \() -> callOnEmptyReturnsEmptyCheck resultWithOkAsWrap checkInfo
         , \() -> wrapperAndThenChecks resultWithOkAsWrap checkInfo
         ]
         ()
@@ -9574,19 +9516,18 @@ callOnDoesNotChangeItCheck constructable constructableArg checkInfo =
 
 
 callOnEmptyReturnsEmptyCheck :
-    Node Expression
-    ->
-        { a
-            | empty :
-                { empty
-                    | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : Description
-                }
-        }
+    { a
+        | empty :
+            { empty
+                | is : ModuleNameLookupTable -> Node Expression -> Bool
+                , description : Description
+            }
+    }
     -> CheckInfo
     -> Maybe (Error {})
-callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo =
-    callOnDoesNotChangeItCheck emptiable.empty emptiableArg checkInfo
+callOnEmptyReturnsEmptyCheck emptiable checkInfo =
+    Maybe.andThen (\emptiableArg -> callOnDoesNotChangeItCheck emptiable.empty emptiableArg checkInfo)
+        (fullyAppliedLastArg checkInfo)
 
 
 callOnEmptyReturnsCheck :
@@ -9774,10 +9715,7 @@ emptiableFilterChecks emptiable checkInfo =
             secondArg checkInfo
     in
     firstThatConstructsJust
-        [ \() ->
-            Maybe.andThen
-                (\emptiableArg -> callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo)
-                maybeEmptiableArg
+        [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
@@ -9804,9 +9742,7 @@ emptiableFilterChecks emptiable checkInfo =
 
 collectionRemoveChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection checkInfo =
-    Maybe.andThen
-        (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
-        (secondArg checkInfo)
+    callOnEmptyReturnsEmptyCheck collection checkInfo
 
 
 collectionIntersectChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -9823,10 +9759,7 @@ collectionIntersectChecks collection checkInfo =
 
             else
                 Nothing
-        , \() ->
-            Maybe.andThen
-                (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
-                (secondArg checkInfo)
+        , \() -> callOnEmptyReturnsEmptyCheck collection checkInfo
         ]
         ()
 
