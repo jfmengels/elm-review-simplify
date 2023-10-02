@@ -9582,7 +9582,7 @@ onWrapAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
     if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
         Just
             (compositionAlwaysReturnsIncomingError
-                (qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
+                (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
                 checkInfo
             )
 
