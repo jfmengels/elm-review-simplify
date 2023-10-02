@@ -2639,10 +2639,10 @@ functionCallChecks =
         , ( ( [ "List" ], "sortWith" ), ( 2, listSortWithChecks ) )
         , ( ( [ "List" ], "take" ), ( 2, listTakeChecks ) )
         , ( ( [ "List" ], "drop" ), ( 2, listDropChecks ) )
-        , ( ( [ "List" ], "map2" ), ( 3, emptiableMapNChecks { n = 2 } listCollection ) )
-        , ( ( [ "List" ], "map3" ), ( 4, emptiableMapNChecks { n = 3 } listCollection ) )
-        , ( ( [ "List" ], "map4" ), ( 5, emptiableMapNChecks { n = 4 } listCollection ) )
-        , ( ( [ "List" ], "map5" ), ( 6, emptiableMapNChecks { n = 5 } listCollection ) )
+        , ( ( [ "List" ], "map2" ), ( 3, emptiableMapNChecks listCollection ) )
+        , ( ( [ "List" ], "map3" ), ( 4, emptiableMapNChecks listCollection ) )
+        , ( ( [ "List" ], "map4" ), ( 5, emptiableMapNChecks listCollection ) )
+        , ( ( [ "List" ], "map5" ), ( 6, emptiableMapNChecks listCollection ) )
         , ( ( [ "List" ], "unzip" ), ( 1, listUnzipChecks ) )
         , ( ( [ "Array" ], "toList" ), ( 1, arrayToListChecks ) )
         , ( ( [ "Array" ], "fromList" ), ( 1, arrayFromListChecks ) )
@@ -5124,7 +5124,7 @@ maybeMapNChecks : CheckInfo -> Maybe (Error {})
 maybeMapNChecks checkInfo =
     firstThatConstructsJust
         [ \() -> wrapperMapNChecks maybeWithJustAsWrap checkInfo
-        , \() -> emptiableMapNChecks { n = checkInfo.argCount - 1 } maybeWithJustAsWrap checkInfo
+        , \() -> emptiableMapNChecks maybeWithJustAsWrap checkInfo
         ]
         ()
 
@@ -7015,13 +7015,13 @@ listDropChecks checkInfo =
         ()
 
 
-emptiableMapNChecks : { n : Int } -> EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-emptiableMapNChecks { n } emptiable checkInfo =
+emptiableMapNChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableMapNChecks emptiable checkInfo =
     if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         let
             callReplacement : QualifyResources a -> String
             callReplacement resources =
-                multiAlways (n - List.length checkInfo.argsAfterFirst) (emptyAsString resources emptiable) resources
+                multiAlways (checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst)) (emptyAsString resources emptiable) resources
         in
         Just
             (Rule.errorWithFix
