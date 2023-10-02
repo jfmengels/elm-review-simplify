@@ -11039,21 +11039,6 @@ returnsArgError usingSituation config checkInfo =
         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.arg })
 
 
-multiAlways : Int -> String -> QualifyResources a -> String
-multiAlways alwaysCount alwaysResultExpressionAsString qualifyResources =
-    case alwaysCount of
-        0 ->
-            alwaysResultExpressionAsString
-
-        1 ->
-            qualifiedToString (qualify ( [ "Basics" ], "always" ) qualifyResources)
-                ++ " "
-                ++ alwaysResultExpressionAsString
-
-        alwaysCountPositive ->
-            "(\\" ++ String.repeat alwaysCountPositive "_ " ++ "-> " ++ alwaysResultExpressionAsString ++ ")"
-
-
 {-| Use in combination with
 `findMapNeighboring` where finding returns a record containing the element's Range
 Works for patterns and expressions.
