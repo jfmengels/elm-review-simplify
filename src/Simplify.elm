@@ -4926,26 +4926,25 @@ stringJoinChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
         , \checkInfo ->
-            case Node.value checkInfo.firstArg of
-                Expression.Literal "" ->
-                    let
-                        replacementFn : ( ModuleName, String )
-                        replacementFn =
-                            ( [ "String" ], "concat" )
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with separator \"\" is the same as " ++ qualifiedToString replacementFn
-                            , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                                (qualifiedToString (qualify replacementFn checkInfo))
-                            ]
-                        )
+            if stringCollection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+                let
+                    replacementFn : ( ModuleName, String )
+                    replacementFn =
+                        ( [ "String" ], "concat" )
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with separator \"\" is the same as " ++ qualifiedToString replacementFn
+                        , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                            (qualifiedToString (qualify replacementFn checkInfo))
+                        ]
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
         ]
 
 
@@ -4954,17 +4953,21 @@ stringRepeatChecks =
     firstThatConstructsJust
         [ \checkInfo ->
             case secondArg checkInfo of
-                Just (Node _ (Expression.Literal "")) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
-                            , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
-                        )
+                Just stringArg ->
+                    if stringCollection.empty.is checkInfo.lookupTable stringArg then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
+                                , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+                            )
 
-                _ ->
+                    else
+                        Nothing
+
+                Nothing ->
                     Nothing
         , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
