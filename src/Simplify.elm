@@ -783,6 +783,9 @@ Destructuring using case expressions
     Array.toList Array.empty
     --> []
 
+    Array.toList (Array.repeat n a)
+    --> List.repeat n a
+
     Array.map f Array.empty -- same for Array.filter
     --> Array.empty
 
@@ -6486,13 +6489,70 @@ arrayToListChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection checkInfo
         , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" ) checkInfo
+        , \() ->
+            let
+                specificFn : ( ModuleName, String )
+                specificFn =
+                    ( [ "Array" ], "repeat" )
+            in
+            case AstHelpers.getSpecificFunctionCall specificFn checkInfo.lookupTable checkInfo.firstArg of
+                Just arrayRepeatCall ->
+                    let
+                        combinedFn : ( ModuleName, String )
+                        combinedFn =
+                            ( [ "List" ], "repeat" )
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ qualifiedToString specificFn ++ " can be combined into " ++ qualifiedToString combinedFn
+                            , details = [ "You can replace these two operations by " ++ qualifiedToString combinedFn ++ " with the same arguments given to " ++ qualifiedToString specificFn ++ " which is meant for this exact purpose." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy arrayRepeatCall.fnRange
+                                (qualifiedToString (qualify combinedFn checkInfo))
+                                :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = arrayRepeatCall.nodeRange }
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
         ]
         ()
 
 
 arrayToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 arrayToListCompositionChecks checkInfo =
-    inversesCompositionCheck ( [ "Array" ], "fromList" ) checkInfo
+    firstThatConstructsJust
+        [ \() -> inversesCompositionCheck ( [ "Array" ], "fromList" ) checkInfo
+        , \() ->
+            let
+                specificFn : ( ModuleName, String )
+                specificFn =
+                    ( [ "Array" ], "repeat" )
+            in
+            if checkInfo.earlier.fn == specificFn then
+                let
+                    combinedFn : ( ModuleName, String )
+                    combinedFn =
+                        ( [ "List" ], "repeat" )
+                in
+                Just
+                    { info =
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ qualifiedToString specificFn ++ " can be combined into " ++ qualifiedToString combinedFn
+                        , details = [ "You can replace these two operations by " ++ qualifiedToString combinedFn ++ " with the same arguments given to " ++ qualifiedToString specificFn ++ " which is meant for this exact purpose." ]
+                        }
+                    , fix =
+                        [ Fix.replaceRangeBy
+                            checkInfo.earlier.fnRange
+                            (qualifiedToString (qualify combinedFn checkInfo))
+                        , Fix.removeRange checkInfo.later.removeRange
+                        ]
+                    }
+
+            else
+                Nothing
+        ]
+        ()
 
 
 arrayToIndexedListChecks : CheckInfo -> Maybe (Error {})
