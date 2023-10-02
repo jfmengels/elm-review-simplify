@@ -2877,10 +2877,12 @@ compositionIntoChecks =
         , ( ( [ "Tuple" ], "first" ), tupleFirstCompositionChecks )
         , ( ( [ "Tuple" ], "second" ), tupleSecondCompositionChecks )
         , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
+        , ( ( [ "Maybe" ], "withDefault" ), wrapperWithDefaultChecks maybeWithJustAsWrap )
         , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
         , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
         , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
         , ( ( [ "Result" ], "fromMaybe" ), wrapperFromMaybeCompositionChecks resultWithOkAsWrap )
+        , ( ( [ "Result" ], "withDefault" ), wrapperWithDefaultChecks resultWithOkAsWrap )
         , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
         , ( ( [ "List" ], "sort" ), listSortCompositionChecks )
         , ( ( [ "List" ], "sortBy" ), listSortByCompositionChecks )
@@ -9083,6 +9085,20 @@ withDefaultChecks emptiable checkInfo =
                 (secondArg checkInfo)
         ]
         ()
+
+
+wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperWithDefaultChecks wrapper checkInfo =
+    case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
+        ( True, _ :: [] ) ->
+            Just
+                (compositionAlwaysReturnsIncomingError
+                    (qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
+                    checkInfo
+                )
+
+        _ ->
+            Nothing
 
 
 emptiableWithDefaultChecks :

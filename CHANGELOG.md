@@ -20,6 +20,8 @@
 - `Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)` to `Tuple.first (Tuple.mapFirst changeFirst tuple)`
 - `Tuple.second (Tuple.mapFirst changeSecond tuple)` to `Tuple.second tuple`
 - `Tuple.second (Tuple.mapBoth changeFirst changeSecond tuple)` to `Tuple.second (Tuple.mapSecond changeSecond tuple)`
+- `Maybe.withDefault a << Just` to `identity`
+- `Result.withDefault a << Ok` to `identity`
 
 ## [2.1.2] - 2023-09-28
 
