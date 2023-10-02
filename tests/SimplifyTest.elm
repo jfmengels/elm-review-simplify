@@ -14637,7 +14637,7 @@ a = List.map2 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map2 with any list being [] will result in []"
+                            { message = "List.map2 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map2"
                             }
@@ -14653,7 +14653,7 @@ a = List.map2 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map2 with any list being [] will result in []"
+                            { message = "List.map2 with any list being [] will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map2"
                             }
@@ -14669,7 +14669,7 @@ a = List.map2 f list0 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map2 with any list being [] will result in []"
+                            { message = "List.map2 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map2"
                             }
@@ -14703,7 +14703,7 @@ a = List.map3 f [] list1 list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map3"
                             }
@@ -14719,7 +14719,7 @@ a = List.map3 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map3"
                             }
@@ -14735,7 +14735,7 @@ a = List.map3 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will always result in []"
                             , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map3"
                             }
@@ -14751,7 +14751,7 @@ a = List.map3 f list0 [] list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map3"
                             }
@@ -14767,7 +14767,7 @@ a = List.map3 f list0 list1 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map3 with any list being [] will result in []"
+                            { message = "List.map3 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map3"
                             }
@@ -14802,7 +14802,7 @@ a = List.map4 f [] list1 list2 list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -14818,7 +14818,7 @@ a = List.map4 f [] list1 list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map4"
                             }
@@ -14834,7 +14834,7 @@ a = List.map4 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map4"
                             }
@@ -14850,7 +14850,7 @@ a = List.map4 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by (\\_ _ _ -> [])." ]
                             , under = "List.map4"
                             }
@@ -14866,7 +14866,7 @@ a = List.map4 f list0 [] list2 list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -14882,7 +14882,7 @@ a = List.map4 f list0 list1 [] list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -14898,7 +14898,7 @@ a = List.map4 f list0 list1 list2 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map4 with any list being [] will result in []"
+                            { message = "List.map4 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map4"
                             }
@@ -14934,7 +14934,7 @@ a = List.map5 f [] list1 list2 list3 list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -14950,7 +14950,7 @@ a = List.map5 f [] list1 list2 list3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by always []." ]
                             , under = "List.map5"
                             }
@@ -14966,7 +14966,7 @@ a = List.map5 f [] list1 list2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by (\\_ _ -> [])." ]
                             , under = "List.map5"
                             }
@@ -14982,7 +14982,7 @@ a = List.map5 f [] list1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by (\\_ _ _ -> [])." ]
                             , under = "List.map5"
                             }
@@ -14998,7 +14998,7 @@ a = List.map5 f []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by (\\_ _ _ _ -> [])." ]
                             , under = "List.map5"
                             }
@@ -15014,7 +15014,7 @@ a = List.map5 f list0 [] list2 list3 list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -15030,7 +15030,7 @@ a = List.map5 f list0 list1 [] list3 list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -15046,7 +15046,7 @@ a = List.map5 f list0 list1 list2 [] list4
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -15062,7 +15062,7 @@ a = List.map5 f list0 list1 list2 list3 []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map5 with any list being [] will result in []"
+                            { message = "List.map5 with any list being [] will always result in []"
                             , details = [ "You can replace this call by []." ]
                             , under = "List.map5"
                             }
@@ -18058,7 +18058,7 @@ a = Maybe.map3 f Nothing maybe1 maybe2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            { message = "Maybe.map3 with any maybe being Nothing will always result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.map3"
                             }
@@ -18074,7 +18074,7 @@ a = Maybe.map3 f Nothing maybe1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            { message = "Maybe.map3 with any maybe being Nothing will always result in Nothing"
                             , details = [ "You can replace this call by always Nothing." ]
                             , under = "Maybe.map3"
                             }
@@ -18090,7 +18090,7 @@ a = Maybe.map3 f Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            { message = "Maybe.map3 with any maybe being Nothing will always result in Nothing"
                             , details = [ "You can replace this call by (\\_ _ -> Nothing)." ]
                             , under = "Maybe.map3"
                             }
@@ -18106,7 +18106,7 @@ a = Maybe.map3 f maybe0 Nothing maybe2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            { message = "Maybe.map3 with any maybe being Nothing will always result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.map3"
                             }
@@ -18122,7 +18122,7 @@ a = Maybe.map3 f maybe0 maybe1 Nothing
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            { message = "Maybe.map3 with any maybe being Nothing will always result in Nothing"
                             , details = [ "You can replace this call by Nothing." ]
                             , under = "Maybe.map3"
                             }

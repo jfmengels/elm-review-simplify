@@ -7006,18 +7006,11 @@ listDropChecks checkInfo =
 emptiableMapNChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
     if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
-        let
-            callReplacement : QualifyResources a -> String
-            callReplacement resources =
-                multiAlways (checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst)) (emptyAsString resources emptiable) resources
-        in
         Just
-            (Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.asString defaultQualifyResources ++ " will result in " ++ emptiable.empty.asString defaultQualifyResources
-                , details = [ "You can replace this call by " ++ callReplacement defaultQualifyResources ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange (callReplacement checkInfo) ]
+            (alwaysResultsInUnparenthesizedConstantError
+                (qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.asString defaultQualifyResources)
+                { replacement = emptiable.empty.asString }
+                checkInfo
             )
 
     else
