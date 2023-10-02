@@ -4738,7 +4738,7 @@ stringFromListChecks : CheckInfo -> Maybe (Error {})
 stringFromListChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> emptyStringAsString }
+            callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString }
                 listCollection
                 checkInfo
         , \() -> wrapperFromListSingletonChecks stringCollection checkInfo
@@ -4759,7 +4759,7 @@ stringFromListCompositionChecks checkInfo =
 stringConcatChecks : CheckInfo -> Maybe (Error {})
 stringConcatChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> emptyStringAsString } listCollection checkInfo
+        [ \() -> callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection checkInfo
         , \() ->
             groupingOnSpecificFnCallCanBeCombinedCheck
                 { specificFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
@@ -4789,14 +4789,14 @@ stringConcatCompositionChecks checkInfo =
 
 stringWordsChecks : CheckInfo -> Maybe (Error {})
 stringWordsChecks checkInfo =
-    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" }
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString }
         stringCollection
         checkInfo
 
 
 stringLinesChecks : CheckInfo -> Maybe (Error {})
 stringLinesChecks checkInfo =
-    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" }
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString }
         stringCollection
         checkInfo
 
@@ -4975,11 +4975,7 @@ stringJoinChecks : CheckInfo -> Maybe (Error {})
 stringJoinChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            Maybe.andThen
-                (\listArg ->
-                    callOnEmptyReturnsCheck { on = listArg, resultAsString = \_ -> emptyStringAsString } listCollection checkInfo
-                )
-                (secondArg checkInfo)
+            callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.Literal "" ->
@@ -5486,7 +5482,7 @@ listHeadChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
+            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() ->
             Maybe.map
                 (\listArgHead ->
@@ -5546,7 +5542,7 @@ listTailChecks checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = listArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
+            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() ->
             case Node.value (AstHelpers.removeParens listArg) of
                 Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
@@ -5795,7 +5791,7 @@ listMemberChecks checkInfo =
             firstThatConstructsJust
                 [ \() ->
                     callOnEmptyReturnsCheck
-                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                        { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
                         listCollection
                         checkInfo
                 , \() ->
@@ -5889,7 +5885,7 @@ listSumChecks : CheckInfo -> Maybe (Error {})
 listSumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "0" } listCollection checkInfo
+            callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
         ]
         ()
@@ -5904,7 +5900,7 @@ listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "1" } listCollection checkInfo
+            callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
         ]
         ()
@@ -5919,7 +5915,7 @@ listMinimumChecks : CheckInfo -> Maybe (Error {})
 listMinimumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
+            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
         ]
         ()
@@ -5934,7 +5930,7 @@ listMaximumChecks : CheckInfo -> Maybe (Error {})
 listMaximumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
+            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
         , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
         ]
         ()
@@ -6172,14 +6168,10 @@ emptiableAllChecks emptiable checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            Maybe.andThen
-                (\listArg ->
-                    callOnEmptyReturnsCheck
-                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
-                        emptiable
-                        checkInfo
-                )
-                maybeEmptiableArg
+            callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
+                emptiable
+                checkInfo
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
@@ -6237,7 +6229,7 @@ emptiableAnyChecks emptiable checkInfo =
             Maybe.andThen
                 (\listArg ->
                     callOnEmptyReturnsCheck
-                        { on = listArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                        { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
                         emptiable
                         checkInfo
                 )
@@ -6539,7 +6531,7 @@ arrayToListCompositionChecks checkInfo =
 
 arrayToIndexedListChecks : CheckInfo -> Maybe (Error {})
 arrayToIndexedListChecks checkInfo =
-    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = listCollection.empty.asString } arrayCollection checkInfo
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection checkInfo
 
 
 arrayFromListChecks : CheckInfo -> Maybe (Error {})
@@ -6680,7 +6672,7 @@ getChecks collection checkInfo =
         [ \() ->
             case checkInfo.secondArg of
                 Just arg ->
-                    callOnEmptyReturnsCheck { on = arg, resultAsString = maybeWithJustAsWrap.empty.asString }
+                    callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString }
                         collection
                         checkInfo
 
@@ -7357,7 +7349,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
 
 listUnzipChecks : CheckInfo -> Maybe (Error {})
 listUnzipChecks checkInfo =
-    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "( [], [] )" } listCollection checkInfo
+    callOnEmptyReturnsCheck { resultAsString = \_ -> "( [], [] )" } listCollection checkInfo
 
 
 setFromListChecks : CheckInfo -> Maybe (Error {})
@@ -7527,9 +7519,7 @@ subAndCmdBatchChecks :
 subAndCmdBatchChecks batchable checkInfo =
     firstThatConstructsJust
         [ \() ->
-            callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = batchable.empty.asString }
-                listCollection
-                checkInfo
+            callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
         , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg batchable checkInfo
         ]
@@ -7688,11 +7678,8 @@ wrapperSequenceChecks wrapper checkInfo =
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck
-                { on = checkInfo.firstArg
-                , resultAsString =
-                    \res ->
-                        qualifiedToString (qualify wrapper.wrap.fn res)
-                            ++ " []"
+                { resultAsString =
+                    \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
                 }
                 listCollection
                 checkInfo
@@ -9267,7 +9254,7 @@ unwrapToMaybeChecks emptiableWrapper checkInfo =
         [ \() -> callOnWrapReturnsJustItsValue emptiableWrapper checkInfo
         , \() ->
             callOnEmptyReturnsCheck
-                { on = checkInfo.firstArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
+                { resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
                 emptiableWrapper
                 checkInfo
         ]
@@ -9603,9 +9590,7 @@ callOnEmptyReturnsEmptyCheck emptiableArg emptiable checkInfo =
 
 
 callOnEmptyReturnsCheck :
-    { on : Node Expression
-    , resultAsString : QualifyResources {} -> String
-    }
+    { resultAsString : QualifyResources {} -> String }
     ->
         { a
             | empty :
@@ -9617,25 +9602,30 @@ callOnEmptyReturnsCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsCheck config collection checkInfo =
-    if collection.empty.is checkInfo.lookupTable config.on then
-        let
-            resultDescription : String
-            resultDescription =
-                config.resultAsString defaultQualifyResources
-        in
-        Just
-            (Rule.errorWithFix
-                { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
-                , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy checkInfo.parentRange
-                    (config.resultAsString (extractQualifyResources checkInfo))
-                ]
-            )
+    case fullyAppliedLastArg checkInfo of
+        Just lastArg ->
+            if collection.empty.is checkInfo.lookupTable lastArg then
+                let
+                    resultDescription : String
+                    resultDescription =
+                        config.resultAsString defaultQualifyResources
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
+                        , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (config.resultAsString (extractQualifyResources checkInfo))
+                        ]
+                    )
 
-    else
-        Nothing
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 {-| This operation is equivalent to identity when called on a wrapped value.
@@ -9993,14 +9983,10 @@ collectionInsertChecks collection checkInfo =
 
 collectionMemberChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection checkInfo =
-    Maybe.andThen
-        (\collectionArg ->
-            callOnEmptyReturnsCheck
-                { on = collectionArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
-                collection
-                checkInfo
-        )
-        (secondArg checkInfo)
+    callOnEmptyReturnsCheck
+        { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+        collection
+        checkInfo
 
 
 collectionIsEmptyChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -10045,10 +10031,7 @@ collectionSizeChecks collection checkInfo =
 
 collectionFromListChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection checkInfo =
-    callOnEmptyReturnsCheck
-        { on = checkInfo.firstArg
-        , resultAsString = collection.empty.asString
-        }
+    callOnEmptyReturnsCheck { resultAsString = collection.empty.asString }
         listCollection
         checkInfo
 
@@ -10100,7 +10083,7 @@ emptiableToListChecks :
     -> CheckInfo
     -> Maybe (Error {})
 emptiableToListChecks collection checkInfo =
-    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = \_ -> "[]" } collection checkInfo
+    callOnEmptyReturnsCheck { resultAsString = \_ -> "[]" } collection checkInfo
 
 
 collectionPartitionChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -10112,17 +10095,10 @@ collectionPartitionChecks collection checkInfo =
     in
     firstThatConstructsJust
         [ \() ->
-            case secondArg checkInfo of
-                Just collectionArg ->
-                    callOnEmptyReturnsCheck
-                        { on = collectionArg
-                        , resultAsString = \res -> "( " ++ collection.empty.asString res ++ ", " ++ collection.empty.asString res ++ " )"
-                        }
-                        collection
-                        checkInfo
-
-                Nothing ->
-                    Nothing
+            callOnEmptyReturnsCheck
+                { resultAsString = \res -> "( " ++ collection.empty.asString res ++ ", " ++ collection.empty.asString res ++ " )" }
+                collection
+                checkInfo
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
