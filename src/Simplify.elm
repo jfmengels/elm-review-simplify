@@ -5213,7 +5213,7 @@ listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
         , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
@@ -5863,9 +5863,8 @@ listKnownElements lookupTable expressionNode =
 listSumChecks : CheckInfo -> Maybe (Error {})
 listSumChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
+        [ \() -> callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
+        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
         ]
         ()
 
@@ -5878,9 +5877,8 @@ sumCompositionChecks wrapper checkInfo =
 listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
+        [ \() -> callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo
+        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
         ]
         ()
 
@@ -7462,9 +7460,8 @@ subAndCmdBatchChecks :
     -> Maybe (Error {})
 subAndCmdBatchChecks batchable checkInfo =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
+        [ \() -> callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection checkInfo
+        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
         , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg batchable checkInfo
         ]
         ()
@@ -9118,10 +9115,7 @@ withDefaultChecks :
 withDefaultChecks emptiable checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableWithDefaultChecks emptiable checkInfo
-        , \() ->
-            Maybe.andThen
-                (\subjectArg -> callOnWrapReturnsItsValue subjectArg emptiable checkInfo)
-                (secondArg checkInfo)
+        , \() -> callOnWrapReturnsItsValue emptiable checkInfo
         ]
         ()
 
@@ -9562,29 +9556,32 @@ Use together with `onWrapAlwaysReturnsIncomingCompositionCheck`
 
 -}
 callOnWrapReturnsItsValue :
-    Node Expression
-    ->
-        { otherProperties
-            | wrap : ConstructWithOneArgProperties
-        }
+    { otherProperties
+        | wrap : ConstructWithOneArgProperties
+    }
     -> CheckInfo
     -> Maybe (Error {})
-callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
-    case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
-        Undetermined ->
-            Nothing
+callOnWrapReturnsItsValue wrapper checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just wrapperArg ->
+            case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
+                Undetermined ->
+                    Nothing
 
-        Determined wraps ->
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in the value inside"
-                    , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range withWrapArg }
-                        ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
-                    )
-                )
+                Determined wraps ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the value inside"
+                            , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
+                                ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
+                            )
+                        )
+
+        Nothing ->
+            Nothing
 
 
 {-| This operation is equivalent to identity when called on a wrapped value.
