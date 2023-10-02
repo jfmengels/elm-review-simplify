@@ -6141,11 +6141,6 @@ listAllChecks checkInfo =
 
 emptiableAllChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableAllChecks emptiable checkInfo =
-    let
-        maybeEmptiableArg : Maybe (Node Expression)
-        maybeEmptiableArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck
@@ -6199,21 +6194,12 @@ listAnyChecks checkInfo =
 
 emptiableAnyChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableAnyChecks emptiable checkInfo =
-    let
-        maybeEmptiableArg : Maybe (Node Expression)
-        maybeEmptiableArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
-            Maybe.andThen
-                (\listArg ->
-                    callOnEmptyReturnsCheck
-                        { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
-                        emptiable
-                        checkInfo
-                )
-                maybeEmptiableArg
+            callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                emptiable
+                checkInfo
         , \() ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined False ->
@@ -6638,14 +6624,9 @@ getChecks : EmptiableProperties (IndexableProperties otherProperties) -> CheckIn
 getChecks collection checkInfo =
     firstThatConstructsJust
         [ \() ->
-            case checkInfo.secondArg of
-                Just arg ->
-                    callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString }
-                        collection
-                        checkInfo
-
-                Nothing ->
-                    Nothing
+            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString }
+                collection
+                checkInfo
         , \() ->
             Evaluate.getInt checkInfo checkInfo.firstArg
                 |> Maybe.andThen (indexAccessChecks collection checkInfo)
@@ -6987,11 +6968,6 @@ listSortWithChecks checkInfo =
 
 listTakeChecks : CheckInfo -> Maybe (Error {})
 listTakeChecks checkInfo =
-    let
-        maybeListArg : Maybe (Node Expression)
-        maybeListArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -9684,11 +9660,6 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck config wrapper checkInfo =
 
 emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable checkInfo =
-    let
-        maybeEmptiableArg : Maybe (Node Expression)
-        maybeEmptiableArg =
-            secondArg checkInfo
-    in
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
         , \() ->
