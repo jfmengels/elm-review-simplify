@@ -780,6 +780,9 @@ Destructuring using case expressions
     Array.toList (Array.fromList list)
     --> list
 
+    Array.toList Array.empty
+    --> []
+
     Array.map f Array.empty -- same for Array.filter
     --> Array.empty
 
@@ -6480,7 +6483,11 @@ listRepeatChecks checkInfo =
 
 arrayToListChecks : CheckInfo -> Maybe (Error {})
 arrayToListChecks checkInfo =
-    onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" ) checkInfo
+    firstThatConstructsJust
+        [ \() -> callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection checkInfo
+        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" ) checkInfo
+        ]
+        ()
 
 
 arrayToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
