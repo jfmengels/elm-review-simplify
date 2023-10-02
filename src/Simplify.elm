@@ -4805,7 +4805,7 @@ stringReverseChecks : CheckInfo -> Maybe (Error {})
 stringReverseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableReverseChecks stringCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck checkInfo.firstArg stringCollection checkInfo
+        , \() -> callOnWrappedDoesNotChangeItCheck stringCollection checkInfo
         ]
         ()
 
@@ -5442,13 +5442,7 @@ listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
         ]
         ()
 
@@ -6791,7 +6785,7 @@ listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableReverseChecks listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
         ]
         ()
 
@@ -6809,7 +6803,7 @@ listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
         , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
         ()
@@ -6918,13 +6912,7 @@ listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
         , \() ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
@@ -6953,13 +6941,7 @@ listSortWithChecks : CheckInfo -> Maybe (Error {})
 listSortWithChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
-
-                Nothing ->
-                    Nothing
+        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
         , \() ->
             let
                 alwaysAlwaysOrder : Maybe Order
@@ -9465,14 +9447,18 @@ compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
         Nothing
 
 
-callOnWrappedDoesNotChangeItCheck : Node Expression -> WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
-callOnWrappedDoesNotChangeItCheck wrapperArg wrapper checkInfo =
-    callOnDoesNotChangeItCheck
-        { description = wrapper.wrap.description
-        , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
-        }
-        wrapperArg
-        checkInfo
+callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+callOnWrappedDoesNotChangeItCheck wrapper checkInfo =
+    Maybe.andThen
+        (\wrapperArg ->
+            callOnDoesNotChangeItCheck
+                { description = wrapper.wrap.description
+                , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
+                }
+                wrapperArg
+                checkInfo
+        )
+        (fullyAppliedLastArg checkInfo)
 
 
 callOnDoesNotChangeItCheck :
