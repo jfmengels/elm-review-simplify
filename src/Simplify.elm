@@ -6791,7 +6791,7 @@ listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks checkInfo =
     firstThatConstructsJust
         [ \() -> emptiableReverseChecks listCollection checkInfo
-        , \() -> callOnSingletonListDoesNotChangeItCheck checkInfo.firstArg checkInfo
+        , \() -> callOnWrappedDoesNotChangeItCheck checkInfo.firstArg listCollection checkInfo
         ]
         ()
 
@@ -6809,7 +6809,7 @@ listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnSingletonListDoesNotChangeItCheck checkInfo.firstArg checkInfo
+        , \() -> callOnWrappedDoesNotChangeItCheck checkInfo.firstArg listCollection checkInfo
         , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
         ]
         ()
@@ -6921,7 +6921,7 @@ listSortByChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    callOnSingletonListDoesNotChangeItCheck listArg checkInfo
+                    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
 
                 Nothing ->
                     Nothing
@@ -6956,7 +6956,7 @@ listSortWithChecks checkInfo =
         , \() ->
             case secondArg checkInfo of
                 Just listArg ->
-                    callOnSingletonListDoesNotChangeItCheck listArg checkInfo
+                    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
 
                 Nothing ->
                     Nothing
@@ -9463,11 +9463,6 @@ compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
 
     else
         Nothing
-
-
-callOnSingletonListDoesNotChangeItCheck : Node Expression -> CheckInfo -> Maybe (Error {})
-callOnSingletonListDoesNotChangeItCheck listArg checkInfo =
-    callOnWrappedDoesNotChangeItCheck listArg listCollection checkInfo
 
 
 callOnWrappedDoesNotChangeItCheck : Node Expression -> WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
