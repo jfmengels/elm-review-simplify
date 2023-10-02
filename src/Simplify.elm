@@ -5823,7 +5823,7 @@ listMinimumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
         ]
         ()
 
@@ -5833,7 +5833,7 @@ listMaximumChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
             callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
         ]
         ()
 
@@ -9160,7 +9160,7 @@ unwrapToMaybeChecks :
     -> Maybe (Error {})
 unwrapToMaybeChecks emptiableWrapper checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnWrapReturnsJustItsValue checkInfo.firstArg emptiableWrapper checkInfo
+        [ \() -> callOnWrapReturnsJustItsValue emptiableWrapper checkInfo
         , \() ->
             callOnEmptyReturnsCheck
                 { on = checkInfo.firstArg, resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
@@ -9615,31 +9615,34 @@ onWrapAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
 
 
 callOnWrapReturnsJustItsValue :
-    Node Expression
-    ->
-        { otherProperties
-            | wrap : ConstructWithOneArgProperties
-        }
+    { otherProperties
+        | wrap : ConstructWithOneArgProperties
+    }
     -> CheckInfo
     -> Maybe (Error {})
-callOnWrapReturnsJustItsValue withWrapArg withWrap checkInfo =
-    case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
-        Determined wraps ->
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
-                    , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
-                        :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
-                        ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
-                           ]
-                    )
-                )
+callOnWrapReturnsJustItsValue withWrap checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just withWrapArg ->
+            case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
+                Determined wraps ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
+                            , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
+                                :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
+                                ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
+                                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
+                                   ]
+                            )
+                        )
 
-        Undetermined ->
+                Undetermined ->
+                    Nothing
+
+        Nothing ->
             Nothing
 
 
