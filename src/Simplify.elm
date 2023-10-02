@@ -9170,25 +9170,10 @@ unwrapToMaybeChecks emptiableWrapper checkInfo =
         ()
 
 
-wrapToMaybeCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapToMaybeCompositionChecks wrapper checkInfo =
-    if checkInfo.earlier.fn == wrapper.wrap.fn then
-        Just
-            { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
-                , details = [ "You can replace this call by Just." ]
-                }
-            , fix = compositionReplaceByFnFix ( [ "Maybe" ], "Just" ) checkInfo
-            }
-
-    else
-        Nothing
-
-
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultToMaybeCompositionChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> wrapToMaybeCompositionChecks resultWithOkAsWrap checkInfo
+        [ \() -> onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } resultWithOkAsWrap checkInfo
         , \() ->
             case checkInfo.earlier.fn of
                 ( [ "Result" ], "Err" ) ->
@@ -9644,6 +9629,21 @@ callOnWrapReturnsJustItsValue withWrap checkInfo =
 
         Nothing ->
             Nothing
+
+
+onWrapAlwaysReturnsJustIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+onWrapAlwaysReturnsJustIncomingCompositionCheck config wrapper checkInfo =
+    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
+        Just
+            { info =
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
+                , details = [ "You can replace this call by Just." ]
+                }
+            , fix = compositionReplaceByFnFix ( [ "Maybe" ], "Just" ) checkInfo
+            }
+
+    else
+        Nothing
 
 
 emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})

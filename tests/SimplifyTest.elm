@@ -19483,7 +19483,7 @@ a = Ok >> Result.toMaybe
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Result.toMaybe on an okay result will result in Just the value inside"
+                            { message = "Result.toMaybe on an okay result will always result in Just the value inside"
                             , details = [ "You can replace this call by Just." ]
                             , under = "Result.toMaybe"
                             }
