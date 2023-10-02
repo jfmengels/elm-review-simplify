@@ -17664,6 +17664,7 @@ maybeTests : Test
 maybeTests =
     describe "Maybe"
         [ maybeMapTests
+        , maybeMapNTests
         , maybeAndThenTests
         , maybeWithDefaultTests
         ]
@@ -17985,6 +17986,151 @@ a = f >> Just >> g
                         ]
         ]
 
+maybeMapNTests : Test
+maybeMapNTests =
+    -- testing behavior only with representatives for 2-5
+    Test.describe "Maybe.mapN"
+        [ test "should not report Task.map3 with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = Maybe.map2
+a1 = Maybe.map2 f
+a2 = Maybe.map2 f maybe0
+a3 = Maybe.map2 f maybe0 maybe1
+a4 = Maybe.map2 f (Just a) maybe1 -- because this is a code style choice
+a5 = Maybe.map2 f (Just a)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Maybe.map3 f (Just a) (Just b) (Just c) by Just (f a b c)" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f (Just a) (Just b) (Just c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 where each maybe is a just maybe will result in Just on the values inside"
+                            , details = [ "You can replace this call by Just with the function applied to the values inside each just maybe." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just (f a b c)
+"""
+                        ]
+        , test "should replace c |> g |> Just |> Maybe.map3 f (Just a) (Just b) by (c |> g) |> f a b |> Just" <|
+            \() ->
+                """module A exposing (..)
+a = c |> g |> Just |> Maybe.map3 f (Just a) (Just b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 where each maybe is a just maybe will result in Just on the values inside"
+                            , details = [ "You can replace this call by Just with the function applied to the values inside each just maybe." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (c |> g) |> f a b |> Just
+"""
+                        ]
+        , test "should replace Maybe.map3 f (Just a) (Just b) <| Just <| g <| c by Just <| f a b <| (g <| c)" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f (Just a) (Just b) <| Just <| g <| c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 where each maybe is a just maybe will result in Just on the values inside"
+                            , details = [ "You can replace this call by Just with the function applied to the values inside each just maybe." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just <| f a b <| (g <| c)
+"""
+                        ]
+        , test "should replace Maybe.map3 f Nothing maybe1 maybe2 by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f Nothing maybe1 maybe2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace Maybe.map3 f Nothing maybe1 by always Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f Nothing maybe1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            , details = [ "You can replace this call by always Nothing." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always Nothing
+"""
+                        ]
+        , test "should replace Maybe.map3 f Nothing maybe1 by (\\_ _ -> Nothing)" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f Nothing
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            , details = [ "You can replace this call by (\\_ _ -> Nothing)." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\_ _ -> Nothing)
+"""
+                        ]
+        , test "should replace Maybe.map3 f maybe0 Nothing maybe2 by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f maybe0 Nothing maybe2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        , test "should replace Maybe.map3 f maybe0 maybe1 Nothing by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.map3 f maybe0 maybe1 Nothing
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map3 with any maybe being Nothing will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Maybe.map3"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
+        ]
 
 maybeAndThenTests : Test
 maybeAndThenTests =
