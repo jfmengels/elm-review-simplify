@@ -18134,6 +18134,7 @@ maybeWithDefaultTests =
             \() ->
                 """module A exposing (..)
 a = Maybe.withDefault x y
+b = Maybe.withDefault << Just
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -18215,6 +18216,22 @@ a = y |> Just |> Maybe.withDefault x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = y
+"""
+                        ]
+        , test "should replace Maybe.withDefault a << Just by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.withDefault b << Just
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.withDefault on a just maybe will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
@@ -19216,6 +19233,7 @@ resultWithDefaultTests =
             \() ->
                 """module A exposing (..)
 a = Result.withDefault x y
+b = Result.withDefault << Ok
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -19297,6 +19315,22 @@ a = y |> Ok |> Result.withDefault x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = y
+"""
+                        ]
+        , test "should replace Result.withDefault a << Ok by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Result.withDefault b << Ok
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.withDefault on an okay result will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
