@@ -4820,7 +4820,7 @@ stringSliceChecks checkInfo =
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError "String.slice with equal start and end index"
-                                        { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                        { replacement = \_ -> emptyStringAsString }
                                         checkInfo
                                     )
 
@@ -4835,7 +4835,7 @@ stringSliceChecks checkInfo =
                                                 0 ->
                                                     Just
                                                         (alwaysResultsInUnparenthesizedConstantError "String.slice with end index 0"
-                                                            { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                            { replacement = \_ -> emptyStringAsString }
                                                             checkInfo
                                                         )
 
@@ -4848,14 +4848,14 @@ stringSliceChecks checkInfo =
                                                         if startInt >= 0 && endInt >= 0 then
                                                             Just
                                                                 (alwaysResultsInUnparenthesizedConstantError "String.slice with a start index greater than the end index"
-                                                                    { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                                    { replacement = \_ -> emptyStringAsString }
                                                                     checkInfo
                                                                 )
 
                                                         else if startInt <= -1 && endInt <= -1 then
                                                             Just
                                                                 (alwaysResultsInUnparenthesizedConstantError "String.slice with a negative start index closer to the right than the negative end index"
-                                                                    { replacement = \_ -> emptyStringAsString, lastArg = thirdArg checkInfo }
+                                                                    { replacement = \_ -> emptyStringAsString }
                                                                     checkInfo
                                                                 )
 
@@ -4895,7 +4895,6 @@ stringLeftChecks checkInfo =
                         { int = length
                         , intDescription = "length"
                         , replacement = \_ -> emptyStringAsString
-                        , lastArg = secondArg checkInfo
                         }
                         checkInfo
 
@@ -4909,7 +4908,6 @@ callWithNonPositiveIntCanBeReplacedByCheck :
     { int : number
     , intDescription : String
     , replacement : QualifyResources {} -> String
-    , lastArg : Maybe a
     }
     -> CheckInfo
     -> Maybe (Error {})
@@ -4926,7 +4924,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
         in
         Just
             (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription)
-                { replacement = config.replacement, lastArg = config.lastArg }
+                { replacement = config.replacement }
                 checkInfo
             )
 
@@ -4948,7 +4946,6 @@ stringRightChecks checkInfo =
                         { int = length
                         , intDescription = "length"
                         , replacement = \_ -> emptyStringAsString
-                        , lastArg = secondArg checkInfo
                         }
                         checkInfo
 
@@ -5029,7 +5026,6 @@ stringRepeatChecks checkInfo =
                                 { int = intValue
                                 , intDescription = "length"
                                 , replacement = \_ -> emptyStringAsString
-                                , lastArg = secondArg checkInfo
                                 }
                                 checkInfo
                         ]
@@ -5974,9 +5970,7 @@ listFoldAnyDirectionChecks checkInfo =
                                 in
                                 alwaysResultsInUnparenthesizedConstantError
                                     (qualifiedToString checkInfo.fn ++ " with (" ++ operation.two ++ ") and the initial accumulator " ++ determiningAsString)
-                                    { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) res)
-                                    , lastArg = thirdArg checkInfo
-                                    }
+                                    { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) res) }
                                     checkInfo
 
                             else
@@ -6113,9 +6107,7 @@ emptiableAllChecks emptiable checkInfo =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res)
-                            , lastArg = maybeEmptiableArg
-                            }
+                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
                             checkInfo
                         )
 
@@ -6177,9 +6169,7 @@ emptiableAnyChecks emptiable checkInfo =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res)
-                            , lastArg = maybeEmptiableArg
-                            }
+                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
                             checkInfo
                         )
 
@@ -6281,7 +6271,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
-                            { replacement = emptiableWrapper.empty.asString, lastArg = secondArg checkInfo }
+                            { replacement = emptiableWrapper.empty.asString }
                             checkInfo
                         )
 
@@ -6514,7 +6504,6 @@ emptiableRepeatChecks collection checkInfo =
                 { int = intValue
                 , intDescription = collection.nameForSize
                 , replacement = collection.empty.asString
-                , lastArg = secondArg checkInfo
                 }
                 checkInfo
 
@@ -6615,7 +6604,7 @@ indexAccessChecks collection checkInfo n =
     if n < 0 then
         Just
             (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with negative index")
-                { replacement = maybeWithJustAsWrap.empty.asString, lastArg = secondArg checkInfo }
+                { replacement = maybeWithJustAsWrap.empty.asString }
                 checkInfo
             )
 
@@ -6978,7 +6967,6 @@ listTakeChecks checkInfo =
                         { int = length
                         , intDescription = "length"
                         , replacement = \_ -> "[]"
-                        , lastArg = maybeListArg
                         }
                         checkInfo
 
@@ -7984,7 +7972,6 @@ randomListChecks checkInfo =
                                 { replacement =
                                     \res -> qualifiedToString (qualify ( [ "Random" ], "constant" ) res) ++ " []"
                                 , replacementNeedsParens = True
-                                , lastArg = maybeElementGeneratorArg
                                 }
                                 checkInfo
                             )
@@ -9012,9 +8999,7 @@ emptiableAndThenChecks emptiable checkInfo =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.asString defaultQualifyResources)
-                            { replacement = emptiable.empty.asString
-                            , lastArg = secondArg checkInfo
-                            }
+                            { replacement = emptiable.empty.asString }
                             checkInfo
                         )
 
@@ -9730,9 +9715,7 @@ emptiableFilterChecks emptiable checkInfo =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = emptiable.empty.asString
-                            , lastArg = maybeEmptiableArg
-                            }
+                            { replacement = emptiable.empty.asString }
                             checkInfo
                         )
 
@@ -9778,9 +9761,7 @@ collectionDiffChecks collection checkInfo =
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
                         (qualifiedToString checkInfo.fn ++ " on " ++ collectionEmptyAsString)
-                        { replacement = collection.empty.asString
-                        , lastArg = maybeCollectionArg
-                        }
+                        { replacement = collection.empty.asString }
                         checkInfo
                     )
 
@@ -10896,17 +10877,13 @@ use `alwaysResultsInConstantError` with `replacementNeedsParens = True`.
 -}
 alwaysResultsInUnparenthesizedConstantError :
     String
-    ->
-        { replacement : QualifyResources {} -> String
-        , lastArg : Maybe arg
-        }
+    -> { replacement : QualifyResources {} -> String }
     -> CheckInfo
     -> Error {}
 alwaysResultsInUnparenthesizedConstantError usingSituation config checkInfo =
     alwaysResultsInConstantError usingSituation
         { replacement = config.replacement
         , replacementNeedsParens = False
-        , lastArg = config.lastArg
         }
         checkInfo
 
@@ -10924,7 +10901,6 @@ alwaysResultsInConstantError :
     ->
         { replacement : QualifyResources {} -> String
         , replacementNeedsParens : Bool
-        , lastArg : Maybe arg
         }
     -> CheckInfo
     -> Error {}
@@ -10940,15 +10916,20 @@ alwaysResultsInConstantError usingSituation config checkInfo =
 
         replacement : QualifyResources {} -> String
         replacement =
-            case config.lastArg of
-                Just _ ->
+            case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) of
+                -- fully applied
+                0 ->
                     config.replacement
 
-                Nothing ->
-                    \resources ->
-                        qualifiedToString (qualify ( [ "Basics" ], "always" ) resources)
-                            ++ " "
-                            ++ addNecessaryParens (config.replacement resources)
+                -- one arg curried
+                1 ->
+                    \res ->
+                        qualifiedToString (qualify ( [ "Basics" ], "always" ) res) ++ " " ++ addNecessaryParens (config.replacement res)
+
+                -- multiple args curried
+                atLeast2 ->
+                    \res ->
+                        "(\\" ++ String.repeat atLeast2 "_ " ++ "-> " ++ config.replacement res ++ ")"
     in
     Rule.errorWithFix
         { message = usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
