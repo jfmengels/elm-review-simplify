@@ -9449,16 +9449,11 @@ compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
 
 callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
 callOnWrappedDoesNotChangeItCheck wrapper checkInfo =
-    Maybe.andThen
-        (\wrapperArg ->
-            callOnDoesNotChangeItCheck
-                { description = wrapper.wrap.description
-                , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
-                }
-                wrapperArg
-                checkInfo
-        )
-        (fullyAppliedLastArg checkInfo)
+    callOnDoesNotChangeItCheck
+        { description = wrapper.wrap.description
+        , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
+        }
+        checkInfo
 
 
 callOnDoesNotChangeItCheck :
@@ -9466,33 +9461,37 @@ callOnDoesNotChangeItCheck :
         | description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
     }
-    -> Node Expression
     -> CheckInfo
     -> Maybe (Error {})
-callOnDoesNotChangeItCheck constructable constructableArg checkInfo =
-    let
-        getConstructable : Node Expression -> Maybe ()
-        getConstructable expressionNode =
-            if constructable.is checkInfo.lookupTable expressionNode then
-                Just ()
+callOnDoesNotChangeItCheck constructable checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just constructableArg ->
+            let
+                getConstructable : Node Expression -> Maybe ()
+                getConstructable expressionNode =
+                    if constructable.is checkInfo.lookupTable expressionNode then
+                        Just ()
 
-            else
-                Nothing
-    in
-    case sameInAllBranches getConstructable constructableArg of
-        Determined _ ->
-            Just
-                (Rule.errorWithFix
-                    (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
-                    checkInfo.fnRange
-                    (keepOnlyFix
-                        { parentRange = checkInfo.parentRange
-                        , keep = Node.range constructableArg
-                        }
-                    )
-                )
+                    else
+                        Nothing
+            in
+            case sameInAllBranches getConstructable constructableArg of
+                Determined _ ->
+                    Just
+                        (Rule.errorWithFix
+                            (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
+                            checkInfo.fnRange
+                            (keepOnlyFix
+                                { parentRange = checkInfo.parentRange
+                                , keep = Node.range constructableArg
+                                }
+                            )
+                        )
 
-        Undetermined ->
+                Undetermined ->
+                    Nothing
+
+        Nothing ->
             Nothing
 
 
@@ -9507,8 +9506,7 @@ callOnEmptyReturnsEmptyCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck emptiable checkInfo =
-    Maybe.andThen (\emptiableArg -> callOnDoesNotChangeItCheck emptiable.empty emptiableArg checkInfo)
-        (fullyAppliedLastArg checkInfo)
+    callOnDoesNotChangeItCheck emptiable.empty checkInfo
 
 
 callOnEmptyReturnsCheck :
