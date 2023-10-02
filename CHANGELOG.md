@@ -31,6 +31,8 @@
 - `List.maximum << List.singleton` to `Just`
 - `Maybe.map2 f firstMaybe Nothing` to `Nothing` (same for all Maybe.mapN)
 - `Maybe.map2 f (Just a) (Just b)` to `Just (f a b)` (same for all Maybe.mapN)
+- `Array.foldl f initial Array.empty` to `initial` (same for `Array.foldr`)
+- `Array.foldl (\_ soFar -> soFar) initial array` to `initial` (same for `Array.foldr`)
 
 ## [2.1.2] - 2023-09-28
 
