@@ -36,6 +36,10 @@
 - `Array.toIndexedList Array.empty` to `[]`
 - `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
 
+Bug fixes:
+- Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
+- Fixed an issue where `Set.intersect Set.empty` would be fixed to `Set.empty`
+
 ## [2.1.2] - 2023-09-28
 
 Lots of new simplifications, especially for `Array` and `Task`.
