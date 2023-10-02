@@ -5943,8 +5943,8 @@ a = String.concat (List.repeat n str)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.concat on List.repeat can be combined into String.repeat"
-                            , details = [ "You can replace these two operations by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            { message = "List.repeat, then String.concat can be combined into String.repeat"
+                            , details = [ "You can replace this call by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5959,8 +5959,8 @@ a = str |> List.repeat n |> String.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.concat on List.repeat can be combined into String.repeat"
-                            , details = [ "You can replace these two operations by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            { message = "List.repeat, then String.concat can be combined into String.repeat"
+                            , details = [ "You can replace this call by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5975,8 +5975,8 @@ a = String.concat << List.repeat n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.concat on List.repeat can be combined into String.repeat"
-                            , details = [ "You can replace these two operations by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            { message = "List.repeat, then String.concat can be combined into String.repeat"
+                            , details = [ "You can replace this composition by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5991,8 +5991,8 @@ a = String.concat (List.intersperse str strings)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.concat on List.intersperse can be combined into String.join"
-                            , details = [ "You can replace these two operations by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            { message = "List.intersperse, then String.concat can be combined into String.join"
+                            , details = [ "You can replace this call by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6007,8 +6007,8 @@ a = str |> List.intersperse str |> String.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.concat on List.intersperse can be combined into String.join"
-                            , details = [ "You can replace these two operations by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            { message = "List.intersperse, then String.concat can be combined into String.join"
+                            , details = [ "You can replace this call by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6023,8 +6023,8 @@ a = String.concat << List.intersperse str
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.concat on List.intersperse can be combined into String.join"
-                            , details = [ "You can replace these two operations by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            { message = "List.intersperse, then String.concat can be combined into String.join"
+                            , details = [ "You can replace this composition by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8313,8 +8313,8 @@ a = List.concat (List.map f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concat on List.map can be combined into List.concatMap"
-                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            { message = "List.map, then List.concat can be combined into List.concatMap"
+                            , details = [ "You can replace this call by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8329,8 +8329,8 @@ a = List.concat <| List.map f <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concat on List.map can be combined into List.concatMap"
-                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            { message = "List.map, then List.concat can be combined into List.concatMap"
+                            , details = [ "You can replace this call by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8345,8 +8345,8 @@ a = x |> List.map f |> List.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concat on List.map can be combined into List.concatMap"
-                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            { message = "List.map, then List.concat can be combined into List.concatMap"
+                            , details = [ "You can replace this call by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8679,8 +8679,8 @@ a = List.map f >> List.concat
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concat on List.map can be combined into List.concatMap"
-                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            { message = "List.map, then List.concat can be combined into List.concatMap"
+                            , details = [ "You can replace this composition by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8695,8 +8695,8 @@ a = List.concat << List.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.concat on List.map can be combined into List.concatMap"
-                            , details = [ "You can replace these two operations by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            { message = "List.map, then List.concat can be combined into List.concatMap"
+                            , details = [ "You can replace this composition by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15737,8 +15737,8 @@ a = b |> Array.repeat n |> Array.toList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.toList on Array.repeat can be combined into List.repeat"
-                            , details = [ "You can replace these two operations by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
+                            { message = "Array.repeat, then Array.toList can be combined into List.repeat"
+                            , details = [ "You can replace this call by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
                             , under = "Array.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -15755,8 +15755,8 @@ a = Array.repeat n >> Array.toList
                     |> Review.Test.run (rule defaults)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.toList on Array.repeat can be combined into List.repeat"
-                            , details = [ "You can replace these two operations by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
+                            { message = "Array.repeat, then Array.toList can be combined into List.repeat"
+                            , details = [ "You can replace this composition by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
                             , under = "Array.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
