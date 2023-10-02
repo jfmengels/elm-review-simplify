@@ -33,6 +33,8 @@
 - `Maybe.map2 f (Just a) (Just b)` to `Just (f a b)` (same for all Maybe.mapN)
 - `Array.foldl f initial Array.empty` to `initial` (same for `Array.foldr`)
 - `Array.foldl (\_ soFar -> soFar) initial array` to `initial` (same for `Array.foldr`)
+- `Array.toIndexedList Array.empty` to `[]`
+- `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
 
 ## [2.1.2] - 2023-09-28
 
