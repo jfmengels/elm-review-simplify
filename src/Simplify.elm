@@ -4226,84 +4226,83 @@ and_isRightSimplifiableError checkInfo =
 
 
 equalityChecks : Bool -> OperatorCheckInfo -> Maybe (Error {})
-equalityChecks isEqual checkInfo =
-    if Evaluate.getBoolean checkInfo checkInfo.right == Determined isEqual then
-        Just
-            (Rule.errorWithFix
-                { message = "Unnecessary comparison with boolean"
-                , details = [ "The result of the expression will be the same with or without the comparison." ]
-                }
-                (errorToRightRange checkInfo)
-                [ Fix.removeRange (fixToRightRange checkInfo) ]
-            )
+equalityChecks isEqual =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            findMap
+                (\side ->
+                    if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Unnecessary comparison with boolean"
+                                , details = [ "The result of the expression will be the same with or without the comparison." ]
+                                }
+                                side.errorRange
+                                [ Fix.removeRange side.removeRange ]
+                            )
 
-    else if Evaluate.getBoolean checkInfo checkInfo.left == Determined isEqual then
-        Just
-            (Rule.errorWithFix
-                { message = "Unnecessary comparison with boolean"
-                , details = [ "The result of the expression will be the same with or without the comparison." ]
-                }
-                (errorToLeftRange checkInfo)
-                [ Fix.removeRange (fixToLeftRange checkInfo) ]
-            )
-
-    else
-        case
-            Maybe.map2 Tuple.pair
-                (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
-                (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
-        of
-            Just ( leftNot, rightNot ) ->
-                Just
-                    (Rule.errorWithFix
-                        { message = "Unnecessary negation on both sides"
-                        , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
-                        }
-                        checkInfo.parentRange
-                        [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
-                    )
-
-            _ ->
-                let
-                    inferred : Infer.Inferred
-                    inferred =
-                        Tuple.first checkInfo.inferredConstants
-
-                    normalizeAndInfer : Node Expression -> Node Expression
-                    normalizeAndInfer expressionNode =
-                        let
-                            normalizedExpressionNode : Node Expression
-                            normalizedExpressionNode =
-                                Normalize.normalize checkInfo expressionNode
-                        in
-                        case Infer.get (Node.value normalizedExpressionNode) inferred of
-                            Just expr ->
-                                Node Range.emptyRange expr
-
-                            Nothing ->
-                                normalizedExpressionNode
-
-                    normalizedLeft : Node Expression
-                    normalizedLeft =
-                        normalizeAndInfer checkInfo.left
-
-                    normalizedRight : Node Expression
-                    normalizedRight =
-                        normalizeAndInfer checkInfo.right
-                in
-                case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
-                    Normalize.ConfirmedEquality ->
-                        if checkInfo.expectNaN then
-                            Nothing
-
-                        else
-                            Just (comparisonError isEqual checkInfo)
-
-                    Normalize.ConfirmedInequality ->
-                        Just (comparisonError (not isEqual) checkInfo)
-
-                    Normalize.Unconfirmed ->
+                    else
                         Nothing
+                )
+                (operationToSides checkInfo)
+        , \checkInfo ->
+            case
+                Maybe.map2 Tuple.pair
+                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
+                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
+            of
+                Just ( leftNot, rightNot ) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Unnecessary negation on both sides"
+                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            }
+                            checkInfo.parentRange
+                            [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
+                        )
+
+                _ ->
+                    let
+                        inferred : Infer.Inferred
+                        inferred =
+                            Tuple.first checkInfo.inferredConstants
+
+                        normalizeAndInfer : Node Expression -> Node Expression
+                        normalizeAndInfer expressionNode =
+                            let
+                                normalizedExpressionNode : Node Expression
+                                normalizedExpressionNode =
+                                    Normalize.normalize checkInfo expressionNode
+                            in
+                            case Infer.get (Node.value normalizedExpressionNode) inferred of
+                                Just expr ->
+                                    Node Range.emptyRange expr
+
+                                Nothing ->
+                                    normalizedExpressionNode
+
+                        normalizedLeft : Node Expression
+                        normalizedLeft =
+                            normalizeAndInfer checkInfo.left
+
+                        normalizedRight : Node Expression
+                        normalizedRight =
+                            normalizeAndInfer checkInfo.right
+                    in
+                    case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
+                        Normalize.ConfirmedEquality ->
+                            if checkInfo.expectNaN then
+                                Nothing
+
+                            else
+                                Just (comparisonError isEqual checkInfo)
+
+                        Normalize.ConfirmedInequality ->
+                            Just (comparisonError (not isEqual) checkInfo)
+
+                        Normalize.Unconfirmed ->
+                            Nothing
+        ]
 
 
 alwaysSameDetails : List String
