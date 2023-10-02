@@ -6404,8 +6404,8 @@ callFromCanBeCombinedCheck config checkInfo =
         Just fromFnCall ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on " ++ qualifiedToString config.fromFn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                    , details = [ "You can replace these two operations by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
+                    { message = qualifiedToString config.fromFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                    , details = [ "You can replace this call by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy
@@ -6433,8 +6433,8 @@ compositionFromCanBeCombinedCheck config checkInfo =
     if checkInfo.earlier.fn == config.fromFn then
         Just
             { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ qualifiedToString config.fromFn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                , details = [ "You can replace these two operations by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
+                { message = qualifiedToString config.fromFn ++ ", then " ++ qualifiedToString checkInfo.later.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                , details = [ "You can replace this composition by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
                 }
             , fix =
                 [ Fix.replaceRangeBy
