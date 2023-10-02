@@ -414,6 +414,13 @@ Destructuring using case expressions
     Maybe.map f (Just x)
     --> Just (f x)
 
+    -- the following simplifications for map2 work for all Maybe.mapN
+    Maybe.map2 f firstMaybe Nothing
+    --> Nothing
+
+    Maybe.map2 f (Just a) (Just b)
+    --> Just (f a b)
+
     Maybe.andThen f Nothing
     --> Nothing
 
@@ -2586,6 +2593,10 @@ functionCallChecks =
         , ( ( [ "Tuple" ], "second" ), ( 1, tupleSecondChecks ) )
         , ( ( [ "Tuple" ], "pair" ), ( 2, tuplePairChecks ) )
         , ( ( [ "Maybe" ], "map" ), ( 2, maybeMapChecks ) )
+        , ( ( [ "Maybe" ], "map2" ), ( 3, maybeMapNChecks ) )
+        , ( ( [ "Maybe" ], "map3" ), ( 4, maybeMapNChecks ) )
+        , ( ( [ "Maybe" ], "map4" ), ( 5, maybeMapNChecks ) )
+        , ( ( [ "Maybe" ], "map5" ), ( 6, maybeMapNChecks ) )
         , ( ( [ "Maybe" ], "andThen" ), ( 2, maybeAndThenChecks ) )
         , ( ( [ "Maybe" ], "withDefault" ), ( 2, withDefaultChecks maybeWithJustAsWrap ) )
         , ( ( [ "Result" ], "map" ), ( 2, resultMapChecks ) )
@@ -5107,6 +5118,15 @@ maybeMapChecks checkInfo =
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks checkInfo =
     wrapToMapCompositionChecks maybeWithJustAsWrap checkInfo
+
+
+maybeMapNChecks : CheckInfo -> Maybe (Error {})
+maybeMapNChecks checkInfo =
+    firstThatConstructsJust
+        [ \() -> wrapperMapNChecks maybeWithJustAsWrap checkInfo
+        , \() -> emptiableMapNChecks { n = checkInfo.argCount - 1 } maybeWithJustAsWrap checkInfo
+        ]
+        ()
 
 
 
