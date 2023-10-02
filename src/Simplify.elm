@@ -5758,12 +5758,12 @@ arrayToIndexedListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorI
 arrayToIndexedListMapCompositionCheck checkInfo =
     case ( checkInfo.earlier.fn, checkInfo.later.args ) of
         ( ( [ "Array" ], "toIndexedList" ), elementMappingArg :: [] ) ->
-            let
-                combinedFn : ( ModuleName, String )
-                combinedFn =
-                    ( [ "Array" ], "toList" )
-            in
             if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
+                let
+                    combinedFn : ( ModuleName, String )
+                    combinedFn =
+                        ( [ "Array" ], "toList" )
+                in
                 Just
                     { info =
                         { message = qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], "second" ) ++ " is the same as " ++ qualifiedToString combinedFn
