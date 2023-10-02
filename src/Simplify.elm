@@ -6711,8 +6711,8 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
                         Just element ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element in the " ++ collection.fromListLiteralDescription
-                                    , details = [ "You can move the replacement argument directly into the " ++ collection.fromListLiteralDescription ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element in the " ++ collection.fromListLiteral.description
+                                    , details = [ "You can move the replacement argument directly into the " ++ collection.fromListLiteral.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg }
@@ -8105,8 +8105,10 @@ type alias WrapperProperties otherProperties =
 type alias FromListProperties otherProperties =
     TypeProperties
         { otherProperties
-            | fromListLiteralRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
-            , fromListLiteralDescription : String
+            | fromListLiteral :
+                { description : String
+                , getListRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
+                }
             , unionLeftElementsStayOnTheLeft : Bool
         }
 
@@ -8429,8 +8431,10 @@ listCollection =
                 Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
         }
     , mapFn = ( [ "List" ], "map" )
-    , fromListLiteralRange = \_ expr -> AstHelpers.getListLiteralRange expr
-    , fromListLiteralDescription = "list literal"
+    , fromListLiteral =
+        { description = "list literal"
+        , getListRange = \_ expr -> AstHelpers.getListLiteralRange expr
+        }
     , unionLeftElementsStayOnTheLeft = True
     }
 
@@ -8479,11 +8483,13 @@ stringCollection =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromChar" ) lookupTable expr)
         }
-    , fromListLiteralRange =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
-    , fromListLiteralDescription = "String.fromList call"
+    , fromListLiteral =
+        { description = "String.fromList call"
+        , getListRange =
+            \lookupTable expr ->
+                AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
+                    |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
+        }
     , unionLeftElementsStayOnTheLeft = True
     }
 
@@ -8515,11 +8521,13 @@ arrayCollection =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\arrayFromListCall -> AstHelpers.getListLiteral arrayFromListCall.firstArg)
-    , fromListLiteralRange =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
-    , fromListLiteralDescription = "Array.fromList call"
+    , fromListLiteral =
+        { description = "Array.fromList call"
+        , getListRange =
+            \lookupTable expr ->
+                AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
+                    |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
+        }
     , unionLeftElementsStayOnTheLeft = True
     }
 
@@ -8584,11 +8592,13 @@ setCollection =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expr)
         }
-    , fromListLiteralRange =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
-    , fromListLiteralDescription = "Set.fromList call"
+    , fromListLiteral =
+        { description = "Set.fromList call"
+        , getListRange =
+            \lookupTable expr ->
+                AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
+                    |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
+        }
     , unionLeftElementsStayOnTheLeft = True
     }
 
@@ -8653,11 +8663,13 @@ dictCollection =
                 qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
         }
     , size = { description = "size", determine = dictDetermineSize }
-    , fromListLiteralRange =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
-    , fromListLiteralDescription = "Dict.fromList call"
+    , fromListLiteral =
+        { description = "Dict.fromList call"
+        , getListRange =
+            \lookupTable expr ->
+                AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
+                    |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
+        }
     , unionLeftElementsStayOnTheLeft = False
     }
 
@@ -9802,14 +9814,14 @@ collectionUnionWithLiteralsChecks :
         }
     -> Maybe (Error {})
 collectionUnionWithLiteralsChecks collection checkInfo =
-    case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.second of
+    case collection.fromListLiteral.getListRange checkInfo.lookupTable checkInfo.second of
         Just literalListRangeSecond ->
-            case collection.fromListLiteralRange checkInfo.lookupTable checkInfo.first of
+            case collection.fromListLiteral.getListRange checkInfo.lookupTable checkInfo.first of
                 Just literalListRangeFirst ->
                     Just
                         (Rule.errorWithFix
-                            { message = checkInfo.operation ++ " on " ++ collection.fromListLiteralDescription ++ "s can be turned into a single " ++ collection.fromListLiteralDescription
-                            , details = [ "Try moving all the elements into a single " ++ collection.fromListLiteralDescription ++ "." ]
+                            { message = checkInfo.operation ++ " on " ++ collection.fromListLiteral.description ++ "s can be turned into a single " ++ collection.fromListLiteral.description
+                            , details = [ "Try moving all the elements into a single " ++ collection.fromListLiteral.description ++ "." ]
                             }
                             checkInfo.operationRange
                             (if collection.unionLeftElementsStayOnTheLeft then
