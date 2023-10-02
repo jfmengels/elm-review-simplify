@@ -8107,7 +8107,7 @@ type alias FromListProperties otherProperties =
         { otherProperties
             | fromListLiteralRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
             , fromListLiteralDescription : String
-            , literalUnionLeftElementsStayOnTheLeft : Bool
+            , unionLeftElementsStayOnTheLeft : Bool
         }
 
 
@@ -8431,7 +8431,7 @@ listCollection =
     , mapFn = ( [ "List" ], "map" )
     , fromListLiteralRange = \_ expr -> AstHelpers.getListLiteralRange expr
     , fromListLiteralDescription = "list literal"
-    , literalUnionLeftElementsStayOnTheLeft = True
+    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -8484,7 +8484,7 @@ stringCollection =
             AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
     , fromListLiteralDescription = "String.fromList call"
-    , literalUnionLeftElementsStayOnTheLeft = True
+    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -8520,7 +8520,7 @@ arrayCollection =
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
     , fromListLiteralDescription = "Array.fromList call"
-    , literalUnionLeftElementsStayOnTheLeft = True
+    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -8589,7 +8589,7 @@ setCollection =
             AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
     , fromListLiteralDescription = "Set.fromList call"
-    , literalUnionLeftElementsStayOnTheLeft = True
+    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -8658,7 +8658,7 @@ dictCollection =
             AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
     , fromListLiteralDescription = "Dict.fromList call"
-    , literalUnionLeftElementsStayOnTheLeft = False
+    , unionLeftElementsStayOnTheLeft = False
     }
 
 
@@ -9812,7 +9812,7 @@ collectionUnionWithLiteralsChecks collection checkInfo =
                             , details = [ "Try moving all the elements into a single " ++ collection.fromListLiteralDescription ++ "." ]
                             }
                             checkInfo.operationRange
-                            (if collection.literalUnionLeftElementsStayOnTheLeft then
+                            (if collection.unionLeftElementsStayOnTheLeft then
                                 keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.second }
                                     ++ [ Fix.insertAt
                                             (rangeWithoutBoundaries literalListRangeSecond).start
