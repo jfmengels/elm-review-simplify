@@ -8193,6 +8193,22 @@ a = [ b ] |> List.concat
 a = b
 """
                         ]
+        , test "should replace List.concat << List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.concat on a singleton list will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         , test "should report List.concat that only contains list literals" <|
             \() ->
                 """module A exposing (..)
@@ -10650,6 +10666,22 @@ a = List.sum [ a ]
 a = a
 """
                         ]
+        , test "should replace List.sum << List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sum on a singleton list will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         ]
 
 
@@ -10702,6 +10734,22 @@ a = List.product [ a ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = a
+"""
+                        ]
+        , test "should replace List.product << List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.product << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a singleton list will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
@@ -22715,6 +22763,22 @@ a = Cmd.batch [ b ]
 a = b
 """
                         ]
+        , test "should replace Cmd.batch << List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Cmd.batch on a singleton list will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Cmd.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         , test "should replace Cmd.batch [ b, Cmd.none ] by Cmd.batch [ b ]" <|
             \() ->
                 """module A exposing (..)
@@ -22876,6 +22940,22 @@ a = Sub.batch [ f n ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f n)
+"""
+                        ]
+        , test "should replace Sub.batch << List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Sub.batch on a singleton list will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         , test "should replace Sub.batch [ b, Sub.none ] by Sub.batch []" <|
