@@ -10838,6 +10838,22 @@ a = List.minimum (if c then [ a ] else [ b ])
 a = Just (if c then a else b)
 """
                         ]
+        , test "should replace List.minimum << List.singleton by Just" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.minimum on a singleton list will always result in Just the value inside"
+                            , details = [ "You can replace this call by Just." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just
+"""
+                        ]
         ]
 
 
@@ -10890,6 +10906,22 @@ a = List.maximum [ a ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Just a
+"""
+                        ]
+        , test "should replace List.maximum << List.singleton by Just" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.maximum on a singleton list will always result in Just the value inside"
+                            , details = [ "You can replace this call by Just." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just
 """
                         ]
         ]

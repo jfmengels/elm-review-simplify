@@ -2892,6 +2892,8 @@ compositionIntoChecks =
         , ( ( [ "List" ], "concat" ), listConcatCompositionChecks )
         , ( ( [ "List" ], "sum" ), sumCompositionChecks listCollection )
         , ( ( [ "List" ], "product" ), productCompositionChecks listCollection )
+        , ( ( [ "List" ], "minimum" ), minimumCompositionChecks listCollection )
+        , ( ( [ "List" ], "maximum" ), maximumCompositionChecks listCollection )
         , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
         , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
@@ -5828,6 +5830,11 @@ listMinimumChecks checkInfo =
         ()
 
 
+minimumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+minimumCompositionChecks wrapper checkInfo =
+    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
+
+
 listMaximumChecks : CheckInfo -> Maybe (Error {})
 listMaximumChecks checkInfo =
     firstThatConstructsJust
@@ -5836,6 +5843,11 @@ listMaximumChecks checkInfo =
         , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
         ]
         ()
+
+
+maximumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+maximumCompositionChecks wrapper checkInfo =
+    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
 
 
 listFoldlChecks : CheckInfo -> Maybe (Error {})
