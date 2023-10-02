@@ -9089,16 +9089,7 @@ withDefaultChecks emptiable checkInfo =
 
 wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapperWithDefaultChecks wrapper checkInfo =
-    case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
-        ( True, _ :: [] ) ->
-            Just
-                (compositionAlwaysReturnsIncomingError
-                    (qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
-                    checkInfo
-                )
-
-        _ ->
-            Nothing
+    onWrapperAlwaysReturnsIncomingCompositionCheck { operationArgCount = 2 } wrapper checkInfo
 
 
 emptiableWithDefaultChecks :
@@ -9534,6 +9525,19 @@ callOnEmptyReturnsCheck config collection checkInfo =
         Nothing
 
 
+{-| This operation is equivalent to identity when called on a wrapped value.
+
+    operation (wrap a) --> a
+
+For example
+
+    List.sum [ a ] --> a
+
+    Cmd.batch [ a ] --> a
+
+Use together with `onWrapperAlwaysReturnsIncomingCompositionCheck`
+
+-}
 callOnWrapReturnsItsValue :
     Node Expression
     ->
@@ -9558,6 +9562,32 @@ callOnWrapReturnsItsValue withWrapArg withWrap checkInfo =
                         ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
                     )
                 )
+
+
+{-| This operation is equivalent to identity when called on a wrapped value.
+
+    operation << wrap --> identity
+
+For example
+
+    List.sum << List.singleton --> identity
+
+    Cmd.batch << List.singleton --> identity
+
+Use together with `callOnWrapReturnsItsValue`.
+
+-}
+onWrapperAlwaysReturnsIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+onWrapperAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
+    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
+        Just
+            (compositionAlwaysReturnsIncomingError
+                (qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
+                checkInfo
+            )
+
+    else
+        Nothing
 
 
 callOnWrapReturnsJustItsValue :
