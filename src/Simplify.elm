@@ -10778,10 +10778,10 @@ Use `returnsArgError` with the given last arg as `arg` when the last arg is alre
 alwaysReturnsLastArgError :
     String
     -> { b | represents : String }
-    -> QualifyResources { a | fnRange : Range, parentRange : Range, argCount : Int, argsAfterFirst : List (Node Expression) }
+    -> QualifyResources { a | fnRange : Range, parentRange : Range, argCount : Int, firstArg : Node Expression, argsAfterFirst : List (Node Expression) }
     -> Error {}
 alwaysReturnsLastArgError usingSpecificSituation config checkInfo =
-    case List.drop (checkInfo.argCount - 2) checkInfo.argsAfterFirst |> List.head of
+    case fullyAppliedLastArg checkInfo of
         Just lastArg ->
             returnsArgError usingSpecificSituation { arg = lastArg, argRepresents = config.represents } checkInfo
 
