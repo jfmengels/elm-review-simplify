@@ -3091,12 +3091,11 @@ offsetInStringToLocation config =
 
 
 plusChecks : OperatorCheckInfo -> Maybe (Error {})
-plusChecks checkInfo =
+plusChecks =
     firstThatConstructsJust
         [ addingZeroCheck
         , addingOppositesCheck
         ]
-        checkInfo
 
 
 addingZeroCheck : OperatorCheckInfo -> Maybe (Error {})
@@ -3853,8 +3852,8 @@ toggleCompositionChecks checkInfo =
 
 
 basicsNegateChecks : CheckInfo -> Maybe (Error {})
-basicsNegateChecks checkInfo =
-    removeAlongWithOtherFunctionCheck checkInfo
+basicsNegateChecks =
+    removeAlongWithOtherFunctionCheck
 
 
 
@@ -4543,14 +4542,13 @@ tupleFirstCompositionChecks =
 
 
 tupleSecondChecks : CheckInfo -> Maybe (Error {})
-tupleSecondChecks checkInfo =
+tupleSecondChecks =
     tuplePartChecks
         { part = TupleSecond
         , description = "second"
         , mapFn = ( [ "Tuple" ], "mapSecond" )
         , mapUnrelatedFn = ( [ "Tuple" ], "mapFirst" )
         }
-        checkInfo
 
 
 tupleSecondCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -4760,42 +4758,36 @@ stringConcatCompositionChecks =
 
 
 stringWordsChecks : CheckInfo -> Maybe (Error {})
-stringWordsChecks checkInfo =
-    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString }
-        stringCollection
-        checkInfo
+stringWordsChecks =
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } stringCollection
 
 
 stringLinesChecks : CheckInfo -> Maybe (Error {})
-stringLinesChecks checkInfo =
-    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString }
-        stringCollection
-        checkInfo
+stringLinesChecks =
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } stringCollection
 
 
 stringReverseChecks : CheckInfo -> Maybe (Error {})
-stringReverseChecks checkInfo =
+stringReverseChecks =
     firstThatConstructsJust
-        [ \() -> emptiableReverseChecks stringCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck stringCollection checkInfo
+        [ emptiableReverseChecks stringCollection
+        , callOnWrappedDoesNotChangeItCheck stringCollection
         ]
-        ()
 
 
 stringReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-stringReverseCompositionChecks checkInfo =
+stringReverseCompositionChecks =
     firstThatConstructsJust
-        [ \() -> compositionAfterWrapIsUnnecessaryCheck stringCollection checkInfo
-        , \() -> toggleCompositionChecks checkInfo
+        [ compositionAfterWrapIsUnnecessaryCheck stringCollection
+        , toggleCompositionChecks
         ]
-        ()
 
 
 stringSliceChecks : CheckInfo -> Maybe (Error {})
-stringSliceChecks checkInfo =
+stringSliceChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck stringCollection
+        , \checkInfo ->
             case secondArg checkInfo of
                 Just endArg ->
                     firstThatConstructsJust
@@ -4861,14 +4853,13 @@ stringSliceChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 stringLeftChecks : CheckInfo -> Maybe (Error {})
-stringLeftChecks checkInfo =
+stringLeftChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck stringCollection
+        , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
@@ -4881,7 +4872,6 @@ stringLeftChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 callWithNonPositiveIntCanBeReplacedByCheck :
@@ -4913,10 +4903,10 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
 
 
 stringRightChecks : CheckInfo -> Maybe (Error {})
-stringRightChecks checkInfo =
+stringRightChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck stringCollection
+        , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
@@ -4929,15 +4919,13 @@ stringRightChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 stringJoinChecks : CheckInfo -> Maybe (Error {})
-stringJoinChecks checkInfo =
+stringJoinChecks =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
+        , \checkInfo ->
             case Node.value checkInfo.firstArg of
                 Expression.Literal "" ->
                     let
@@ -4959,13 +4947,12 @@ stringJoinChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
-stringRepeatChecks checkInfo =
+stringRepeatChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case secondArg checkInfo of
                 Just (Node _ (Expression.Literal "")) ->
                     Just
@@ -4979,7 +4966,7 @@ stringRepeatChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just intValue ->
                     firstThatConstructsJust
@@ -5007,14 +4994,13 @@ stringRepeatChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 stringReplaceChecks : CheckInfo -> Maybe (Error {})
-stringReplaceChecks checkInfo =
+stringReplaceChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck stringCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck stringCollection
+        , \checkInfo ->
             case secondArg checkInfo of
                 Just replacementArg ->
                     firstThatConstructsJust
@@ -5058,17 +5044,16 @@ stringReplaceChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 stringFoldlChecks : CheckInfo -> Maybe (Error {})
-stringFoldlChecks checkInfo =
-    emptiableFoldChecks stringCollection checkInfo
+stringFoldlChecks =
+    emptiableFoldChecks stringCollection
 
 
 stringFoldrChecks : CheckInfo -> Maybe (Error {})
-stringFoldrChecks checkInfo =
-    emptiableFoldChecks stringCollection checkInfo
+stringFoldrChecks =
+    emptiableFoldChecks stringCollection
 
 
 
@@ -5076,26 +5061,24 @@ stringFoldrChecks checkInfo =
 
 
 maybeMapChecks : CheckInfo -> Maybe (Error {})
-maybeMapChecks checkInfo =
+maybeMapChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks maybeWithJustAsWrap checkInfo
-        , \() -> mapWrapChecks maybeWithJustAsWrap checkInfo
+        [ emptiableMapChecks maybeWithJustAsWrap
+        , mapWrapChecks maybeWithJustAsWrap
         ]
-        ()
 
 
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-maybeMapCompositionChecks checkInfo =
-    wrapToMapCompositionChecks maybeWithJustAsWrap checkInfo
+maybeMapCompositionChecks =
+    wrapToMapCompositionChecks maybeWithJustAsWrap
 
 
 maybeMapNChecks : CheckInfo -> Maybe (Error {})
-maybeMapNChecks checkInfo =
+maybeMapNChecks =
     firstThatConstructsJust
-        [ \() -> wrapperMapNChecks maybeWithJustAsWrap checkInfo
-        , \() -> emptiableMapNChecks maybeWithJustAsWrap checkInfo
+        [ wrapperMapNChecks maybeWithJustAsWrap
+        , emptiableMapNChecks maybeWithJustAsWrap
         ]
-        ()
 
 
 
@@ -5103,26 +5086,24 @@ maybeMapNChecks checkInfo =
 
 
 resultMapChecks : CheckInfo -> Maybe (Error {})
-resultMapChecks checkInfo =
+resultMapChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks resultWithOkAsWrap checkInfo
-        , \() -> mapWrapChecks resultWithOkAsWrap checkInfo
+        [ emptiableMapChecks resultWithOkAsWrap
+        , mapWrapChecks resultWithOkAsWrap
         ]
-        ()
 
 
 resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-resultMapCompositionChecks checkInfo =
-    wrapToMapCompositionChecks resultWithOkAsWrap checkInfo
+resultMapCompositionChecks =
+    wrapToMapCompositionChecks resultWithOkAsWrap
 
 
 resultMapNChecks : CheckInfo -> Maybe (Error {})
-resultMapNChecks checkInfo =
+resultMapNChecks =
     firstThatConstructsJust
-        [ \() -> wrapperMapNChecks resultWithOkAsWrap checkInfo
-        , \() -> mapNOrFirstEmptyConstructionChecks resultWithOkAsWrap checkInfo
+        [ wrapperMapNChecks resultWithOkAsWrap
+        , mapNOrFirstEmptyConstructionChecks resultWithOkAsWrap
         ]
-        ()
 
 
 mapWrapErrorInfo :
@@ -5141,19 +5122,18 @@ mapWrapErrorInfo mapFn wrapper =
 
 
 resultMapErrorChecks : CheckInfo -> Maybe (Error {})
-resultMapErrorChecks checkInfo =
+resultMapErrorChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks resultWithErrAsWrap checkInfo
-        , \() -> mapWrapChecks resultWithErrAsWrap checkInfo
+        [ emptiableMapChecks resultWithErrAsWrap
+        , mapWrapChecks resultWithErrAsWrap
         ]
-        ()
 
 
 resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-resultMapErrorCompositionChecks checkInfo =
+resultMapErrorCompositionChecks =
     firstThatConstructsJust
-        [ \() -> wrapToMapCompositionChecks resultWithErrAsWrap checkInfo
-        , \() ->
+        [ wrapToMapCompositionChecks resultWithErrAsWrap
+        , \checkInfo ->
             case checkInfo.later.args of
                 _ :: [] ->
                     case checkInfo.earlier.fn of
@@ -5174,7 +5154,6 @@ resultMapErrorCompositionChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 
@@ -5182,12 +5161,12 @@ resultMapErrorCompositionChecks checkInfo =
 
 
 listConcatChecks : CheckInfo -> Maybe (Error {})
-listConcatChecks checkInfo =
+listConcatChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
-        , \() -> callOnListWithIrrelevantEmptyElement listCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck listCollection
+        , callOnWrapReturnsItsValue listCollection
+        , callOnListWithIrrelevantEmptyElement listCollection
+        , \checkInfo ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
                     case list of
@@ -5231,24 +5210,18 @@ listConcatChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
-            callFromCanBeCombinedCheck
-                { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
-                checkInfo
+        , callFromCanBeCombinedCheck
+            { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
         ]
-        ()
 
 
 listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listConcatCompositionChecks checkInfo =
+listConcatCompositionChecks =
     firstThatConstructsJust
-        [ \() ->
-            compositionFromCanBeCombinedCheck
-                { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
-                checkInfo
-        , \() -> onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection checkInfo
+        [ compositionFromCanBeCombinedCheck
+            { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+        , onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection
         ]
-        ()
 
 
 callOnListWithIrrelevantEmptyElement :
@@ -5306,14 +5279,12 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
 
 listConcatMapChecks : CheckInfo -> Maybe (Error {})
-listConcatMapChecks checkInfo =
+listConcatMapChecks =
     firstThatConstructsJust
-        [ \() ->
-            operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "concat" ) } checkInfo
-        , \() -> emptiableAndThenChecks listCollection checkInfo
-        , \() -> wrapperAndThenChecks listCollection checkInfo
+        [ operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "concat" ) }
+        , emptiableAndThenChecks listCollection
+        , wrapperAndThenChecks listCollection
         ]
-        ()
 
 
 {-| Turn `yourFn identity` into `replacementFn`. If `replacementFn` should be `identity`, use `alwaysReturnsLastArgError` instead
@@ -5345,12 +5316,11 @@ operationWithIdentityCanBeReplacedChecks config checkInfo =
 
 
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
-listIndexedMapChecks checkInfo =
+listIndexedMapChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) } checkInfo
+        [ callOnEmptyReturnsEmptyCheck listCollection
+        , operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) }
         ]
-        ()
 
 
 {-| Map where the usual map function has an extra argument with special information.
@@ -5414,30 +5384,23 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
 
 
 listIntersperseChecks : CheckInfo -> Maybe (Error {})
-listIntersperseChecks checkInfo =
+listIntersperseChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
+        [ callOnEmptyReturnsEmptyCheck listCollection
+        , callOnWrappedDoesNotChangeItCheck listCollection
         ]
-        ()
 
 
 listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listIntersperseCompositionChecks checkInfo =
-    compositionAfterWrapIsUnnecessaryCheck listCollection checkInfo
+listIntersperseCompositionChecks =
+    compositionAfterWrapIsUnnecessaryCheck listCollection
 
 
 listHeadChecks : CheckInfo -> Maybe (Error {})
-listHeadChecks checkInfo =
-    let
-        listArg : Node Expression
-        listArg =
-            checkInfo.firstArg
-    in
+listHeadChecks =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
+        , \checkInfo ->
             Maybe.map
                 (\listArgHead ->
                     Rule.errorWithFix
@@ -5445,15 +5408,14 @@ listHeadChecks checkInfo =
                         , details = [ "You can replace this call by Just the first list element." ]
                         }
                         checkInfo.fnRange
-                        (replaceBySubExpressionFix (Node.range listArg) listArgHead
+                        (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listArgHead
                             ++ [ Fix.replaceRangeBy checkInfo.fnRange
                                     (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
                                ]
                         )
                 )
-                (getListHead checkInfo.lookupTable listArg)
+                (getListHead checkInfo.lookupTable checkInfo.firstArg)
         ]
-        ()
 
 
 getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
@@ -5474,48 +5436,45 @@ getListHead lookupTable expressionNode =
                     Nothing
 
 
-listTailChecks : CheckInfo -> Maybe (Error {})
-listTailChecks checkInfo =
-    let
-        listArg : Node Expression
-        listArg =
-            checkInfo.firstArg
+listTailExistsError : List Fix -> CheckInfo -> Error {}
+listTailExistsError replaceListArgByTailFix checkInfo =
+    Rule.errorWithFix
+        { message = qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
+        , details = [ "You can replace this call by Just the list elements after the first." ]
+        }
+        checkInfo.fnRange
+        (replaceListArgByTailFix
+            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+               ]
+        )
 
-        listTailExistsError : List Fix -> Error {}
-        listTailExistsError replaceListArgByTailFix =
-            Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
-                , details = [ "You can replace this call by Just the list elements after the first." ]
-                }
-                checkInfo.fnRange
-                (replaceListArgByTailFix
-                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
-                       ]
-                )
-    in
+
+listTailChecks : CheckInfo -> Maybe (Error {})
+listTailChecks =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() ->
-            case Node.value (AstHelpers.removeParens listArg) of
+        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
+        , \checkInfo ->
+            case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
                 Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
                     Just
                         (listTailExistsError
                             [ Fix.removeRange { start = headRange.start, end = tailFirstRange.start }
                             ]
+                            checkInfo
                         )
 
                 Expression.OperatorApplication "::" _ _ tail ->
                     Just
                         (listTailExistsError
-                            (replaceBySubExpressionFix (Node.range listArg) tail)
+                            (replaceBySubExpressionFix (Node.range checkInfo.firstArg) tail)
+                            checkInfo
                         )
 
                 _ ->
                     Nothing
-        , \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+        , \checkInfo ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (Rule.errorWithFix
@@ -5532,18 +5491,16 @@ listTailChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 listMapChecks : CheckInfo -> Maybe (Error {})
-listMapChecks checkInfo =
+listMapChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks listCollection checkInfo
-        , \() -> listMapOnSingletonCheck checkInfo
-        , \() -> dictToListMapChecks checkInfo
-        , \() -> arrayToIndexedListToListMapChecks checkInfo
+        [ emptiableMapChecks listCollection
+        , listMapOnSingletonCheck
+        , dictToListMapChecks
+        , arrayToIndexedListToListMapChecks
         ]
-        ()
 
 
 listMapOnSingletonCheck : CheckInfo -> Maybe (Error {})
@@ -5667,13 +5624,12 @@ arrayToIndexedListToListMapChecks listMapCheckInfo =
 
 
 listMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listMapCompositionChecks checkInfo =
+listMapCompositionChecks =
     firstThatConstructsJust
-        [ \() -> wrapToMapCompositionChecks listCollection checkInfo
-        , \() -> dictToListIntoListMapCompositionCheck checkInfo
-        , \() -> arrayToIndexedListMapCompositionCheck checkInfo
+        [ wrapToMapCompositionChecks listCollection
+        , dictToListIntoListMapCompositionCheck
+        , arrayToIndexedListMapCompositionCheck
         ]
-        ()
 
 
 dictToListIntoListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -5730,86 +5686,87 @@ arrayToIndexedListMapCompositionCheck checkInfo =
 
 
 listMemberChecks : CheckInfo -> Maybe (Error {})
-listMemberChecks checkInfo =
-    case secondArg checkInfo of
-        Just listArg ->
-            let
-                needleArg : Node Expression
-                needleArg =
-                    checkInfo.firstArg
+listMemberChecks =
+    firstThatConstructsJust
+        [ callOnEmptyReturnsCheck
+            { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+            listCollection
+        , \checkInfo ->
+            case secondArg checkInfo of
+                Just listArg ->
+                    let
+                        needleArg : Node Expression
+                        needleArg =
+                            checkInfo.firstArg
 
-                needleRange : Range
-                needleRange =
-                    Node.range needleArg
-            in
-            firstThatConstructsJust
-                [ \() ->
-                    callOnEmptyReturnsCheck
-                        { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
-                        listCollection
-                        checkInfo
-                , \() ->
-                    if checkInfo.expectNaN then
-                        Nothing
+                        needleRange : Range
+                        needleRange =
+                            Node.range needleArg
+                    in
+                    firstThatConstructsJust
+                        [ \() ->
+                            if checkInfo.expectNaN then
+                                Nothing
 
-                    else
-                        let
-                            needleArgNormalized : Node Expression
-                            needleArgNormalized =
-                                Normalize.normalize checkInfo needleArg
+                            else
+                                let
+                                    needleArgNormalized : Node Expression
+                                    needleArgNormalized =
+                                        Normalize.normalize checkInfo needleArg
 
-                            isNeedle : Node Expression -> Bool
-                            isNeedle element =
-                                Normalize.compareWithoutNormalization
-                                    (Normalize.normalize checkInfo element)
-                                    needleArgNormalized
-                                    == Normalize.ConfirmedEquality
-                        in
-                        if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
-                            Just
-                                (resultsInConstantError
-                                    (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
-                                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res))
-                                    checkInfo
-                                )
+                                    isNeedle : Node Expression -> Bool
+                                    isNeedle element =
+                                        Normalize.compareWithoutNormalization
+                                            (Normalize.normalize checkInfo element)
+                                            needleArgNormalized
+                                            == Normalize.ConfirmedEquality
+                                in
+                                if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
+                                    Just
+                                        (resultsInConstantError
+                                            (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
+                                            (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res))
+                                            checkInfo
+                                        )
 
-                        else
-                            Nothing
-                , \() ->
-                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                        Just single ->
-                            let
-                                elementRange : Range
-                                elementRange =
-                                    Node.range single.element
-                            in
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on an list with a single element is the same as directly checking for equality"
-                                    , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (List.concat
-                                        [ keepOnlyFix
-                                            { parentRange = checkInfo.parentRange
-                                            , keep = Range.combine [ needleRange, elementRange ]
+                                else
+                                    Nothing
+                        , \() ->
+                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                                Just single ->
+                                    let
+                                        elementRange : Range
+                                        elementRange =
+                                            Node.range single.element
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " on an list with a single element is the same as directly checking for equality"
+                                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
                                             }
-                                        , [ Fix.replaceRangeBy
-                                                (rangeBetweenExclusive ( needleRange, elementRange ))
-                                                " == "
-                                          ]
-                                        , parenthesizeIfNeededFix single.element
-                                        ]
-                                    )
-                                )
+                                            checkInfo.fnRange
+                                            (List.concat
+                                                [ keepOnlyFix
+                                                    { parentRange = checkInfo.parentRange
+                                                    , keep = Range.combine [ needleRange, elementRange ]
+                                                    }
+                                                , [ Fix.replaceRangeBy
+                                                        (rangeBetweenExclusive ( needleRange, elementRange ))
+                                                        " == "
+                                                  ]
+                                                , parenthesizeIfNeededFix single.element
+                                                ]
+                                            )
+                                        )
 
-                        Nothing ->
-                            Nothing
-                ]
-                ()
+                                Nothing ->
+                                    Nothing
+                        ]
+                        ()
 
-        Nothing ->
-            Nothing
+                Nothing ->
+                    Nothing
+        ]
 
 
 listKnownElements : ModuleNameLookupTable -> Node Expression -> List (Node Expression)
@@ -5836,78 +5793,72 @@ listKnownElements lookupTable expressionNode =
 
 
 listSumChecks : CheckInfo -> Maybe (Error {})
-listSumChecks checkInfo =
+listSumChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
+        , callOnWrapReturnsItsValue listCollection
         ]
-        ()
 
 
 sumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-sumCompositionChecks wrapper checkInfo =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
+sumCompositionChecks wrapper =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper
 
 
 listProductChecks : CheckInfo -> Maybe (Error {})
-listProductChecks checkInfo =
+listProductChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
+        , callOnWrapReturnsItsValue listCollection
         ]
-        ()
 
 
 productCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-productCompositionChecks wrapper checkInfo =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
+productCompositionChecks wrapper =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper
 
 
 listMinimumChecks : CheckInfo -> Maybe (Error {})
-listMinimumChecks checkInfo =
+listMinimumChecks =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
+        , callOnWrapReturnsJustItsValue listCollection
         ]
-        ()
 
 
 minimumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-minimumCompositionChecks wrapper checkInfo =
-    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
+minimumCompositionChecks wrapper =
+    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper
 
 
 listMaximumChecks : CheckInfo -> Maybe (Error {})
-listMaximumChecks checkInfo =
+listMaximumChecks =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection checkInfo
-        , \() -> callOnWrapReturnsJustItsValue listCollection checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
+        , callOnWrapReturnsJustItsValue listCollection
         ]
-        ()
 
 
 maximumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-maximumCompositionChecks wrapper checkInfo =
-    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
+maximumCompositionChecks wrapper =
+    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper
 
 
 listFoldlChecks : CheckInfo -> Maybe (Error {})
-listFoldlChecks checkInfo =
-    listFoldAnyDirectionChecks checkInfo
+listFoldlChecks =
+    listFoldAnyDirectionChecks
 
 
 listFoldrChecks : CheckInfo -> Maybe (Error {})
-listFoldrChecks checkInfo =
-    listFoldAnyDirectionChecks checkInfo
+listFoldrChecks =
+    listFoldAnyDirectionChecks
 
 
 listFoldAnyDirectionChecks : CheckInfo -> Maybe (Error {})
-listFoldAnyDirectionChecks checkInfo =
+listFoldAnyDirectionChecks =
     firstThatConstructsJust
-        [ \() -> emptiableFoldChecks listCollection checkInfo
-        , \() ->
+        [ emptiableFoldChecks listCollection
+        , \checkInfo ->
             case secondArg checkInfo of
                 Nothing ->
                     Nothing
@@ -6073,17 +6024,16 @@ listFoldAnyDirectionChecks checkInfo =
                         ]
                         ()
         ]
-        ()
 
 
 listFoldlCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listFoldlCompositionChecks checkInfo =
-    foldAndSetToListCompositionChecks checkInfo
+listFoldlCompositionChecks =
+    foldAndSetToListCompositionChecks
 
 
 listFoldrCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listFoldrCompositionChecks checkInfo =
-    foldAndSetToListCompositionChecks checkInfo
+listFoldrCompositionChecks =
+    foldAndSetToListCompositionChecks
 
 
 foldAndSetToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -6107,19 +6057,17 @@ foldAndSetToListCompositionChecks checkInfo =
 
 
 listAllChecks : CheckInfo -> Maybe (Error {})
-listAllChecks checkInfo =
-    emptiableAllChecks listCollection checkInfo
+listAllChecks =
+    emptiableAllChecks listCollection
 
 
 emptiableAllChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-emptiableAllChecks emptiable checkInfo =
+emptiableAllChecks emptiable =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
-                emptiable
-                checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck
+            { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
+            emptiable
+        , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     Just
@@ -6132,14 +6080,13 @@ emptiableAllChecks emptiable checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 listAnyChecks : CheckInfo -> Maybe (Error {})
-listAnyChecks checkInfo =
+listAnyChecks =
     firstThatConstructsJust
-        [ \() -> emptiableAnyChecks listCollection checkInfo
-        , \() ->
+        [ emptiableAnyChecks listCollection
+        , \checkInfo ->
             case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
                 Nothing ->
                     Nothing
@@ -6161,18 +6108,15 @@ listAnyChecks checkInfo =
                             )
                         )
         ]
-        ()
 
 
 emptiableAnyChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-emptiableAnyChecks emptiable checkInfo =
+emptiableAnyChecks emptiable =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
-                emptiable
-                checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck
+            { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+            emptiable
+        , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined False ->
                     Just
@@ -6185,15 +6129,14 @@ emptiableAnyChecks emptiable checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 listFilterMapChecks : CheckInfo -> Maybe (Error {})
-listFilterMapChecks checkInfo =
+listFilterMapChecks =
     firstThatConstructsJust
-        [ \() -> callOnListWithIrrelevantEmptyElement maybeWithJustAsWrap checkInfo
-        , \() -> emptiableWrapperFilterMapChecks listCollection checkInfo
-        , \() ->
+        [ callOnListWithIrrelevantEmptyElement maybeWithJustAsWrap
+        , emptiableWrapperFilterMapChecks listCollection
+        , \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 case secondArg checkInfo of
                     Just listArg ->
@@ -6230,18 +6173,17 @@ listFilterMapChecks checkInfo =
             else
                 Nothing
         ]
-        ()
 
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listFilterMapCompositionChecks checkInfo =
-    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) } checkInfo
+listFilterMapCompositionChecks =
+    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) }
 
 
 emptiableWrapperFilterMapChecks : EmptiableProperties (WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) }) -> CheckInfo -> Maybe (Error {})
-emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
+emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case constructs (sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
@@ -6258,7 +6200,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
 
                 Undetermined ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
@@ -6270,7 +6212,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
@@ -6282,11 +6224,9 @@ emptiableWrapperFilterMapChecks emptiableWrapper checkInfo =
 
                 Undetermined ->
                     Nothing
-        , \() ->
-            mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = emptiableWrapper.mapFn } checkInfo
-        , \() -> callOnEmptyReturnsEmptyCheck emptiableWrapper checkInfo
+        , mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = emptiableWrapper.mapFn }
+        , callOnEmptyReturnsEmptyCheck emptiableWrapper
         ]
-        ()
 
 
 mapToOperationWithIdentityCanBeCombinedToOperationChecks : { mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
@@ -6442,75 +6382,66 @@ listRangeChecks checkInfo =
 
 
 listRepeatChecks : CheckInfo -> Maybe (Error {})
-listRepeatChecks checkInfo =
+listRepeatChecks =
     firstThatConstructsJust
-        [ \() -> emptiableRepeatChecks listCollection checkInfo
-        , \() -> wrapperRepeatChecks listCollection checkInfo
+        [ emptiableRepeatChecks listCollection
+        , wrapperRepeatChecks listCollection
         ]
-        ()
 
 
 arrayToListChecks : CheckInfo -> Maybe (Error {})
-arrayToListChecks checkInfo =
+arrayToListChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection checkInfo
-        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" ) checkInfo
-        , \() ->
-            callFromCanBeCombinedCheck
-                { fromFn = ( [ "Array" ], "repeat" ), combinedFn = ( [ "List" ], "repeat" ) }
-                checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection
+        , onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" )
+        , callFromCanBeCombinedCheck
+            { fromFn = ( [ "Array" ], "repeat" ), combinedFn = ( [ "List" ], "repeat" ) }
         ]
-        ()
 
 
 arrayToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-arrayToListCompositionChecks checkInfo =
+arrayToListCompositionChecks =
     firstThatConstructsJust
-        [ \() -> inversesCompositionCheck ( [ "Array" ], "fromList" ) checkInfo
-        , \() ->
-            compositionFromCanBeCombinedCheck
-                { fromFn = ( [ "Array" ], "repeat" ), combinedFn = ( [ "List" ], "repeat" ) }
-                checkInfo
+        [ inversesCompositionCheck ( [ "Array" ], "fromList" )
+        , compositionFromCanBeCombinedCheck
+            { fromFn = ( [ "Array" ], "repeat" ), combinedFn = ( [ "List" ], "repeat" ) }
         ]
-        ()
 
 
 arrayToIndexedListChecks : CheckInfo -> Maybe (Error {})
-arrayToIndexedListChecks checkInfo =
-    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection checkInfo
+arrayToIndexedListChecks =
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection
 
 
 arrayFromListChecks : CheckInfo -> Maybe (Error {})
-arrayFromListChecks checkInfo =
+arrayFromListChecks =
     firstThatConstructsJust
-        [ \() -> collectionFromListChecks arrayCollection checkInfo
-        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "toList" ) checkInfo
+        [ collectionFromListChecks arrayCollection
+        , onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "toList" )
         ]
-        ()
 
 
 arrayFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-arrayFromListCompositionChecks checkInfo =
-    inversesCompositionCheck ( [ "Array" ], "toList" ) checkInfo
+arrayFromListCompositionChecks =
+    inversesCompositionCheck ( [ "Array" ], "toList" )
 
 
 arrayRepeatChecks : CheckInfo -> Maybe (Error {})
-arrayRepeatChecks checkInfo =
-    emptiableRepeatChecks arrayCollection checkInfo
+arrayRepeatChecks =
+    emptiableRepeatChecks arrayCollection
 
 
 arrayInitializeChecks : CheckInfo -> Maybe (Error {})
-arrayInitializeChecks checkInfo =
-    emptiableRepeatChecks arrayCollection checkInfo
+arrayInitializeChecks =
+    emptiableRepeatChecks arrayCollection
 
 
 arrayIndexedMapChecks : CheckInfo -> Maybe (Error {})
-arrayIndexedMapChecks checkInfo =
+arrayIndexedMapChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck arrayCollection checkInfo
-        , \() -> operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "Array" ], "map" ) } checkInfo
+        [ callOnEmptyReturnsEmptyCheck arrayCollection
+        , operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "Array" ], "map" ) }
         ]
-        ()
 
 
 emptiableRepeatChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
@@ -6552,12 +6483,11 @@ wrapperRepeatChecks wrapper checkInfo =
 
 
 arrayLengthChecks : CheckInfo -> Maybe (Error {})
-arrayLengthChecks checkInfo =
+arrayLengthChecks =
     firstThatConstructsJust
-        [ \() -> collectionSizeChecks arrayCollection checkInfo
-        , \() -> arrayLengthOnArrayRepeatOrInitializeChecks checkInfo
+        [ collectionSizeChecks arrayCollection
+        , arrayLengthOnArrayRepeatOrInitializeChecks
         ]
-        ()
 
 
 arrayLengthOnArrayRepeatOrInitializeChecks : CheckInfo -> Maybe (Error {})
@@ -6598,27 +6528,23 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
 
 
 arrayFoldlChecks : CheckInfo -> Maybe (Error {})
-arrayFoldlChecks checkInfo =
-    emptiableFoldChecks arrayCollection checkInfo
+arrayFoldlChecks =
+    emptiableFoldChecks arrayCollection
 
 
 arrayFoldrChecks : CheckInfo -> Maybe (Error {})
-arrayFoldrChecks checkInfo =
-    emptiableFoldChecks arrayCollection checkInfo
+arrayFoldrChecks =
+    emptiableFoldChecks arrayCollection
 
 
 getChecks : EmptiableProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-getChecks collection checkInfo =
+getChecks collection =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString }
-                collection
-                checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } collection
+        , \checkInfo ->
             Evaluate.getInt checkInfo checkInfo.firstArg
                 |> Maybe.andThen (indexAccessChecks collection checkInfo)
         ]
-        ()
 
 
 indexAccessChecks : IndexableProperties otherProperties -> CheckInfo -> Int -> Maybe (Error {})
@@ -6668,10 +6594,10 @@ indexAccessChecks collection checkInfo n =
 
 
 setChecks : CollectionProperties (EmptiableProperties (FromListProperties (IndexableProperties otherProperties))) -> CheckInfo -> Maybe (Error {})
-setChecks collection checkInfo =
+setChecks collection =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck collection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck collection
+        , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just n ->
                     if n < 0 then
@@ -6693,7 +6619,6 @@ setChecks collection checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 setOnKnownElementChecks :
@@ -6738,45 +6663,41 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
 
 
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-emptiableReverseChecks emptiable checkInfo =
+emptiableReverseChecks emptiable =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
-        , \() -> removeAlongWithOtherFunctionCheck checkInfo
+        [ callOnEmptyReturnsEmptyCheck emptiable
+        , removeAlongWithOtherFunctionCheck
         ]
-        ()
 
 
 listReverseChecks : CheckInfo -> Maybe (Error {})
-listReverseChecks checkInfo =
+listReverseChecks =
     firstThatConstructsJust
-        [ \() -> emptiableReverseChecks listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
+        [ emptiableReverseChecks listCollection
+        , callOnWrappedDoesNotChangeItCheck listCollection
         ]
-        ()
 
 
 listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listReverseCompositionChecks checkInfo =
+listReverseCompositionChecks =
     firstThatConstructsJust
-        [ \() -> compositionAfterWrapIsUnnecessaryCheck listCollection checkInfo
-        , \() -> toggleCompositionChecks checkInfo
+        [ compositionAfterWrapIsUnnecessaryCheck listCollection
+        , toggleCompositionChecks
         ]
-        ()
 
 
 listSortChecks : CheckInfo -> Maybe (Error {})
-listSortChecks checkInfo =
+listSortChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
-        , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
+        [ callOnEmptyReturnsEmptyCheck listCollection
+        , callOnWrappedDoesNotChangeItCheck listCollection
+        , operationDoesNotChangeResultOfOperationCheck
         ]
-        ()
 
 
 listSortCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listSortCompositionChecks checkInfo =
-    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 1 } checkInfo
+listSortCompositionChecks =
+    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 1 }
 
 
 {-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
@@ -6874,11 +6795,11 @@ fullyAppliedLastArg callInfo =
 
 
 listSortByChecks : CheckInfo -> Maybe (Error {})
-listSortByChecks checkInfo =
+listSortByChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck listCollection
+        , callOnWrappedDoesNotChangeItCheck listCollection
+        , \checkInfo ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
@@ -6890,24 +6811,22 @@ listSortByChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
-            operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "sort" ) } checkInfo
-        , \() -> operationDoesNotChangeResultOfOperationCheck checkInfo
+        , operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "sort" ) }
+        , operationDoesNotChangeResultOfOperationCheck
         ]
-        ()
 
 
 listSortByCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listSortByCompositionChecks checkInfo =
-    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 2 } checkInfo
+listSortByCompositionChecks =
+    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 2 }
 
 
 listSortWithChecks : CheckInfo -> Maybe (Error {})
-listSortWithChecks checkInfo =
+listSortWithChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
-        , \() -> callOnWrappedDoesNotChangeItCheck listCollection checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck listCollection
+        , callOnWrappedDoesNotChangeItCheck listCollection
+        , \checkInfo ->
             let
                 alwaysAlwaysOrder : Maybe Order
                 alwaysAlwaysOrder =
@@ -6950,13 +6869,12 @@ listSortWithChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 listTakeChecks : CheckInfo -> Maybe (Error {})
-listTakeChecks checkInfo =
+listTakeChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
                     callWithNonPositiveIntCanBeReplacedByCheck
@@ -6968,15 +6886,14 @@ listTakeChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
+        , callOnEmptyReturnsEmptyCheck listCollection
         ]
-        ()
 
 
 listDropChecks : CheckInfo -> Maybe (Error {})
-listDropChecks checkInfo =
+listDropChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 0 ->
                     Just
@@ -6988,9 +6905,8 @@ listDropChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
+        , callOnEmptyReturnsEmptyCheck listCollection
         ]
-        ()
 
 
 emptiableMapNChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -7252,37 +7168,35 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
 
 
 listUnzipChecks : CheckInfo -> Maybe (Error {})
-listUnzipChecks checkInfo =
-    callOnEmptyReturnsCheck { resultAsString = \_ -> "( [], [] )" } listCollection checkInfo
+listUnzipChecks =
+    callOnEmptyReturnsCheck { resultAsString = \_ -> "( [], [] )" } listCollection
 
 
 setFromListChecks : CheckInfo -> Maybe (Error {})
-setFromListChecks checkInfo =
+setFromListChecks =
     firstThatConstructsJust
-        [ \() -> collectionFromListChecks setCollection checkInfo
-        , \() -> wrapperFromListSingletonChecks setCollection checkInfo
-        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Set" ], "toList" ) checkInfo
+        [ collectionFromListChecks setCollection
+        , wrapperFromListSingletonChecks setCollection
+        , onCallToInverseReturnsItsArgumentCheck ( [ "Set" ], "toList" )
         ]
-        ()
 
 
 setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-setFromListCompositionChecks checkInfo =
+setFromListCompositionChecks =
     firstThatConstructsJust
-        [ \() -> wrapperFromListSingletonCompositionChecks setCollection checkInfo
-        , \() -> inversesCompositionCheck ( [ "Set" ], "toList" ) checkInfo
+        [ wrapperFromListSingletonCompositionChecks setCollection
+        , inversesCompositionCheck ( [ "Set" ], "toList" )
         ]
-        ()
 
 
 setFoldlChecks : CheckInfo -> Maybe (Error {})
-setFoldlChecks checkInfo =
-    emptiableFoldChecks setCollection checkInfo
+setFoldlChecks =
+    emptiableFoldChecks setCollection
 
 
 setFoldrChecks : CheckInfo -> Maybe (Error {})
-setFoldrChecks checkInfo =
-    emptiableFoldChecks setCollection checkInfo
+setFoldrChecks =
+    emptiableFoldChecks setCollection
 
 
 {-| The folding/reducing check
@@ -7326,10 +7240,10 @@ emptiableFoldChecks :
         }
     -> CheckInfo
     -> Maybe (Error {})
-emptiableFoldChecks emptiable checkInfo =
+emptiableFoldChecks emptiable =
     firstThatConstructsJust
-        [ \() -> foldToUnchangedAccumulatorCheck emptiable checkInfo
-        , \() ->
+        [ foldToUnchangedAccumulatorCheck emptiable
+        , \checkInfo ->
             case checkInfo.argsAfterFirst of
                 initialArg :: emptiableArg :: [] ->
                     if emptiable.empty.is checkInfo.lookupTable emptiableArg then
@@ -7348,7 +7262,6 @@ emptiableFoldChecks emptiable checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -7403,35 +7316,33 @@ foldToUnchangedAccumulatorCheck typeProperties checkInfo =
 
 
 dictFromListChecks : CheckInfo -> Maybe (Error {})
-dictFromListChecks checkInfo =
+dictFromListChecks =
     firstThatConstructsJust
-        [ \() -> collectionFromListChecks dictCollection checkInfo
-        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "Dict" ], "toList" ) checkInfo
+        [ collectionFromListChecks dictCollection
+        , onCallToInverseReturnsItsArgumentCheck ( [ "Dict" ], "toList" )
         ]
-        ()
 
 
 dictFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-dictFromListCompositionChecks checkInfo =
-    inversesCompositionCheck ( [ "Dict" ], "toList" ) checkInfo
+dictFromListCompositionChecks =
+    inversesCompositionCheck ( [ "Dict" ], "toList" )
 
 
 subAndCmdBatchChecks :
     EmptiableProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
-subAndCmdBatchChecks batchable checkInfo =
+subAndCmdBatchChecks batchable =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection checkInfo
-        , \() -> callOnWrapReturnsItsValue listCollection checkInfo
-        , \() -> callOnListWithIrrelevantEmptyElement batchable checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
+        , callOnWrapReturnsItsValue listCollection
+        , callOnListWithIrrelevantEmptyElement batchable
         ]
-        ()
 
 
 batchCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-batchCompositionChecks checkInfo =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection checkInfo
+batchCompositionChecks =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection
 
 
 
@@ -7439,72 +7350,66 @@ batchCompositionChecks checkInfo =
 
 
 taskMapChecks : CheckInfo -> Maybe (Error {})
-taskMapChecks checkInfo =
+taskMapChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks taskWithSucceedAsWrap checkInfo
-        , \() -> mapWrapChecks taskWithSucceedAsWrap checkInfo
+        [ emptiableMapChecks taskWithSucceedAsWrap
+        , mapWrapChecks taskWithSucceedAsWrap
         ]
-        ()
 
 
 taskMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-taskMapCompositionChecks checkInfo =
-    wrapToMapCompositionChecks taskWithSucceedAsWrap checkInfo
+taskMapCompositionChecks =
+    wrapToMapCompositionChecks taskWithSucceedAsWrap
 
 
 taskMapNChecks : CheckInfo -> Maybe (Error {})
-taskMapNChecks checkInfo =
+taskMapNChecks =
     firstThatConstructsJust
-        [ \() -> wrapperMapNChecks taskWithSucceedAsWrap checkInfo
-        , \() -> mapNOrFirstEmptyConstructionChecks taskWithSucceedAsWrap checkInfo
+        [ wrapperMapNChecks taskWithSucceedAsWrap
+        , mapNOrFirstEmptyConstructionChecks taskWithSucceedAsWrap
         ]
-        ()
 
 
 taskAndThenChecks : CheckInfo -> Maybe (Error {})
-taskAndThenChecks checkInfo =
+taskAndThenChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck taskWithSucceedAsWrap checkInfo
-        , \() -> wrapperAndThenChecks taskWithSucceedAsWrap checkInfo
+        [ callOnEmptyReturnsEmptyCheck taskWithSucceedAsWrap
+        , wrapperAndThenChecks taskWithSucceedAsWrap
         ]
-        ()
 
 
 taskMapErrorChecks : CheckInfo -> Maybe (Error {})
-taskMapErrorChecks checkInfo =
+taskMapErrorChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks taskWithFailAsWrap checkInfo
-        , \() -> mapWrapChecks taskWithFailAsWrap checkInfo
+        [ emptiableMapChecks taskWithFailAsWrap
+        , mapWrapChecks taskWithFailAsWrap
         ]
-        ()
 
 
 taskMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-taskMapErrorCompositionChecks checkInfo =
-    wrapToMapCompositionChecks taskWithFailAsWrap checkInfo
+taskMapErrorCompositionChecks =
+    wrapToMapCompositionChecks taskWithFailAsWrap
 
 
 taskOnErrorChecks : CheckInfo -> Maybe (Error {})
-taskOnErrorChecks checkInfo =
+taskOnErrorChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck taskWithFailAsWrap checkInfo
-        , \() -> wrapperAndThenChecks taskWithFailAsWrap checkInfo
+        [ callOnEmptyReturnsEmptyCheck taskWithFailAsWrap
+        , wrapperAndThenChecks taskWithFailAsWrap
         ]
-        ()
 
 
 taskSequenceChecks : CheckInfo -> Maybe (Error {})
-taskSequenceChecks checkInfo =
+taskSequenceChecks =
     firstThatConstructsJust
-        [ \() -> wrapperSequenceChecks taskWithSucceedAsWrap checkInfo
-        , \() -> sequenceOrFirstEmptyChecks taskWithSucceedAsWrap checkInfo
+        [ wrapperSequenceChecks taskWithSucceedAsWrap
+        , sequenceOrFirstEmptyChecks taskWithSucceedAsWrap
         ]
-        ()
 
 
 taskSequenceCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-taskSequenceCompositionChecks checkInfo =
-    mappableSequenceCompositionChecks taskWithSucceedAsWrap checkInfo
+taskSequenceCompositionChecks =
+    mappableSequenceCompositionChecks taskWithSucceedAsWrap
 
 
 sequenceOrFirstEmptyChecks :
@@ -7571,16 +7476,14 @@ sequenceOrFirstEmptyChecks emptiable checkInfo =
 
 
 wrapperSequenceChecks : WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
-wrapperSequenceChecks wrapper checkInfo =
+wrapperSequenceChecks wrapper =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck
-                { resultAsString =
-                    \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
-                }
-                listCollection
-                checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck
+            { resultAsString =
+                \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
+            }
+            listCollection
+        , \checkInfo ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just singletonList ->
                     let
@@ -7604,7 +7507,7 @@ wrapperSequenceChecks wrapper checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just list ->
                     case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) list of
@@ -7630,7 +7533,6 @@ wrapperSequenceChecks wrapper checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 mappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -7660,36 +7562,33 @@ mappableSequenceCompositionChecks mappable checkInfo =
 -- HTML.ATTRIBUTES
 
 
-htmlAttributesClassListChecks : CheckInfo -> Maybe (Error {})
-htmlAttributesClassListChecks checkInfo =
-    let
-        listArg : Node Expression
-        listArg =
-            checkInfo.firstArg
-
-        getTupleWithSpecificSecond : Bool -> Node Expression -> Maybe { range : Range, first : Node Expression }
-        getTupleWithSpecificSecond specificBool expressionNode =
-            case AstHelpers.getTuple2Literal expressionNode of
-                Just tuple ->
-                    case AstHelpers.getSpecificBool specificBool checkInfo.lookupTable tuple.second of
-                        Just _ ->
-                            Just { range = tuple.range, first = tuple.first }
-
-                        Nothing ->
-                            Nothing
+getTupleWithSpecificSecond : Bool -> Node Expression -> ModuleNameLookupTable -> Maybe { range : Range, first : Node Expression }
+getTupleWithSpecificSecond specificBool expressionNode lookupTable =
+    case AstHelpers.getTuple2Literal expressionNode of
+        Just tuple ->
+            case AstHelpers.getSpecificBool specificBool lookupTable tuple.second of
+                Just _ ->
+                    Just { range = tuple.range, first = tuple.first }
 
                 Nothing ->
                     Nothing
 
-        htmlAttributesClassListFalseElementError : { message : String, details : List String }
-        htmlAttributesClassListFalseElementError =
-            { message = "In a " ++ qualifiedToString checkInfo.fn ++ ", a tuple paired with False can be removed"
-            , details = [ "You can remove the tuple list element where the second part is False." ]
-            }
-    in
+        Nothing ->
+            Nothing
+
+
+htmlAttributesClassListFalseElementError : CheckInfo -> { message : String, details : List String }
+htmlAttributesClassListFalseElementError checkInfo =
+    { message = "In a " ++ qualifiedToString checkInfo.fn ++ ", a tuple paired with False can be removed"
+    , details = [ "You can remove the tuple list element where the second part is False." ]
+    }
+
+
+htmlAttributesClassListChecks : CheckInfo -> Maybe (Error {})
+htmlAttributesClassListChecks =
     firstThatConstructsJust
-        [ \() ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+        [ \checkInfo ->
+            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                 Just single ->
                     case AstHelpers.getTuple2Literal single.element of
                         Just tuple ->
@@ -7707,7 +7606,7 @@ htmlAttributesClassListChecks checkInfo =
                                                 , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the String from the single tuple list element." ]
                                                 }
                                                 checkInfo.fnRange
-                                                (replaceBySubExpressionFix (Node.range listArg) tuple.first
+                                                (replaceBySubExpressionFix (Node.range checkInfo.firstArg) tuple.first
                                                     ++ [ Fix.replaceRangeBy checkInfo.fnRange
                                                             (qualifiedToString (qualify replacementFn checkInfo))
                                                        ]
@@ -7716,9 +7615,9 @@ htmlAttributesClassListChecks checkInfo =
 
                                     else
                                         Just
-                                            (Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
                                                 checkInfo.fnRange
-                                                [ Fix.replaceRangeBy (Node.range listArg) "[]" ]
+                                                [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) "[]" ]
                                             )
 
                                 Nothing ->
@@ -7729,13 +7628,13 @@ htmlAttributesClassListChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
-            case AstHelpers.getListLiteral listArg of
+        , \checkInfo ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just (tuple0 :: tuple1 :: tuple2Up) ->
-                    case findMapNeighboring (getTupleWithSpecificSecond False) (tuple0 :: tuple1 :: tuple2Up) of
+                    case findMapNeighboring (\el -> getTupleWithSpecificSecond False el checkInfo.lookupTable) (tuple0 :: tuple1 :: tuple2Up) of
                         Just classPart ->
                             Just
-                                (Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
                                     checkInfo.fnRange
                                     (listLiteralElementRemoveFix classPart)
                                 )
@@ -7745,13 +7644,13 @@ htmlAttributesClassListChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
-            case AstHelpers.getCollapsedCons listArg of
+        , \checkInfo ->
+            case AstHelpers.getCollapsedCons checkInfo.firstArg of
                 Just classParts ->
-                    case findMapNeighboring (getTupleWithSpecificSecond False) classParts.consed of
+                    case findMapNeighboring (\el -> getTupleWithSpecificSecond False el checkInfo.lookupTable) classParts.consed of
                         Just classPart ->
                             Just
-                                (Rule.errorWithFix htmlAttributesClassListFalseElementError
+                                (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
                                     checkInfo.fnRange
                                     (collapsedConsRemoveElementFix
                                         { toRemove = classPart
@@ -7766,7 +7665,6 @@ htmlAttributesClassListChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 
@@ -7774,35 +7672,32 @@ htmlAttributesClassListChecks checkInfo =
 
 
 jsonDecodeMapChecks : CheckInfo -> Maybe (Error {})
-jsonDecodeMapChecks checkInfo =
+jsonDecodeMapChecks =
     firstThatConstructsJust
-        [ \() -> emptiableMapChecks jsonDecoderWithSucceedAsWrap checkInfo
-        , \() -> mapWrapChecks jsonDecoderWithSucceedAsWrap checkInfo
+        [ emptiableMapChecks jsonDecoderWithSucceedAsWrap
+        , mapWrapChecks jsonDecoderWithSucceedAsWrap
         ]
-        ()
 
 
 jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-jsonDecodeMapCompositionChecks checkInfo =
-    wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap checkInfo
+jsonDecodeMapCompositionChecks =
+    wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap
 
 
 jsonDecodeMapNChecks : CheckInfo -> Maybe (Error {})
-jsonDecodeMapNChecks checkInfo =
+jsonDecodeMapNChecks =
     firstThatConstructsJust
-        [ \() -> wrapperMapNChecks jsonDecoderWithSucceedAsWrap checkInfo
-        , \() -> mapNOrFirstEmptyConstructionChecks jsonDecoderWithSucceedAsWrap checkInfo
+        [ wrapperMapNChecks jsonDecoderWithSucceedAsWrap
+        , mapNOrFirstEmptyConstructionChecks jsonDecoderWithSucceedAsWrap
         ]
-        ()
 
 
 jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})
-jsonDecodeAndThenChecks checkInfo =
+jsonDecodeAndThenChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck jsonDecoderWithSucceedAsWrap checkInfo
-        , \() -> wrapperAndThenChecks jsonDecoderWithSucceedAsWrap checkInfo
+        [ callOnEmptyReturnsEmptyCheck jsonDecoderWithSucceedAsWrap
+        , wrapperAndThenChecks jsonDecoderWithSucceedAsWrap
         ]
-        ()
 
 
 
@@ -7901,14 +7796,9 @@ randomWeightedChecks checkInfo =
 
 
 randomListChecks : CheckInfo -> Maybe (Error {})
-randomListChecks checkInfo =
-    let
-        maybeElementGeneratorArg : Maybe (Node Expression)
-        maybeElementGeneratorArg =
-            secondArg checkInfo
-    in
+randomListChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just 1 ->
                     Just
@@ -7949,8 +7839,8 @@ randomListChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
-            case maybeElementGeneratorArg of
+        , \checkInfo ->
+            case secondArg checkInfo of
                 Just elementGeneratorArg ->
                     case AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) checkInfo.lookupTable elementGeneratorArg of
                         Just constantCall ->
@@ -7987,31 +7877,28 @@ randomListChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 randomMapChecks : CheckInfo -> Maybe (Error {})
-randomMapChecks checkInfo =
+randomMapChecks =
     firstThatConstructsJust
-        [ \() -> mapIdentityChecks randomGeneratorWrapper checkInfo
-        , \() -> mapWrapChecks randomGeneratorWrapper checkInfo
-        , \() -> nonEmptiableWrapperMapAlwaysChecks randomGeneratorWrapper checkInfo
+        [ mapIdentityChecks randomGeneratorWrapper
+        , mapWrapChecks randomGeneratorWrapper
+        , nonEmptiableWrapperMapAlwaysChecks randomGeneratorWrapper
         ]
-        ()
 
 
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-randomMapCompositionChecks checkInfo =
-    wrapperMapCompositionChecks randomGeneratorWrapper checkInfo
+randomMapCompositionChecks =
+    wrapperMapCompositionChecks randomGeneratorWrapper
 
 
 randomAndThenChecks : CheckInfo -> Maybe (Error {})
-randomAndThenChecks checkInfo =
+randomAndThenChecks =
     firstThatConstructsJust
-        [ \() -> wrapperAndThenChecks randomGeneratorWrapper checkInfo
-        , \() -> nonEmptiableWrapperAndThenAlwaysChecks randomGeneratorWrapper checkInfo
+        [ wrapperAndThenChecks randomGeneratorWrapper
+        , nonEmptiableWrapperAndThenAlwaysChecks randomGeneratorWrapper
         ]
-        ()
 
 
 nonEmptiableWrapperAndThenAlwaysChecks :
@@ -8536,23 +8423,23 @@ arrayDetermineSize :
     Infer.Resources a
     -> Node Expression
     -> Maybe CollectionSize
-arrayDetermineSize resources expressionNode =
+arrayDetermineSize resources =
     firstThatConstructsJust
-        [ \() ->
+        [ \expressionNode ->
             case AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     listDetermineLength resources fromListCall.firstArg
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
@@ -8560,7 +8447,7 @@ arrayDetermineSize resources expressionNode =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
@@ -8569,7 +8456,6 @@ arrayDetermineSize resources expressionNode =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 setCollection : CollectionProperties (EmptiableProperties (WrapperProperties (FromListProperties {})))
@@ -8607,23 +8493,23 @@ setDetermineSize :
     Infer.Resources a
     -> Node Expression
     -> Maybe CollectionSize
-setDetermineSize resources expressionNode =
+setDetermineSize resources =
     firstThatConstructsJust
-        [ \() ->
+        [ \expressionNode ->
             case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 1)
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
@@ -8647,7 +8533,6 @@ setDetermineSize resources expressionNode =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 dictCollection : CollectionProperties (EmptiableProperties (FromListProperties {}))
@@ -8678,16 +8563,16 @@ dictDetermineSize :
     Infer.Resources a
     -> Node Expression
     -> Maybe CollectionSize
-dictDetermineSize resources expressionNode =
-    findMap (\f -> f ())
-        [ \() ->
+dictDetermineSize resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
             case AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "singleton" ) resources.lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
@@ -8699,7 +8584,7 @@ dictDetermineSize resources expressionNode =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \expressionNode ->
             case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
@@ -8768,12 +8653,11 @@ emptiableMapChecks :
         }
     -> CheckInfo
     -> Maybe (Error {})
-emptiableMapChecks emptiable checkInfo =
+emptiableMapChecks emptiable =
     firstThatConstructsJust
-        [ \() -> mapIdentityChecks emptiable checkInfo
-        , \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
+        [ mapIdentityChecks emptiable
+        , callOnEmptyReturnsEmptyCheck emptiable
         ]
-        ()
 
 
 mapIdentityChecks :
@@ -8794,12 +8678,11 @@ mapIdentityChecks mappable checkInfo =
 
 
 wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperMapCompositionChecks wrapper checkInfo =
+wrapperMapCompositionChecks wrapper =
     firstThatConstructsJust
-        [ \() -> wrapToMapCompositionChecks wrapper checkInfo
-        , \() -> mapAlwaysCompositionChecks wrapper checkInfo
+        [ wrapToMapCompositionChecks wrapper
+        , mapAlwaysCompositionChecks wrapper
         ]
-        ()
 
 
 mapWrapChecks :
@@ -8967,10 +8850,10 @@ emptiableAndThenChecks :
     }
     -> CheckInfo
     -> Maybe (Error {})
-emptiableAndThenChecks emptiable checkInfo =
+emptiableAndThenChecks emptiable =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck emptiable
+        , \checkInfo ->
             case constructs (sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
@@ -8983,7 +8866,6 @@ emptiableAndThenChecks emptiable checkInfo =
                 Undetermined ->
                     Nothing
         ]
-        ()
 
 
 getValueWithNodeRange :
@@ -8999,9 +8881,9 @@ wrapperAndThenChecks :
     WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) }
     -> CheckInfo
     -> Maybe (Error {})
-wrapperAndThenChecks wrapper checkInfo =
+wrapperAndThenChecks wrapper =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case secondArg checkInfo of
                 Just maybeArg ->
                     case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) maybeArg of
@@ -9022,7 +8904,7 @@ wrapperAndThenChecks wrapper checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getSpecificValueOrFunction wrapper.wrap.fn checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
@@ -9034,7 +8916,7 @@ wrapperAndThenChecks wrapper checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case
                 constructs
                     (sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable) expr))
@@ -9057,25 +8939,22 @@ wrapperAndThenChecks wrapper checkInfo =
                 Undetermined ->
                     Nothing
         ]
-        ()
 
 
 maybeAndThenChecks : CheckInfo -> Maybe (Error {})
-maybeAndThenChecks checkInfo =
+maybeAndThenChecks =
     firstThatConstructsJust
-        [ \() -> wrapperAndThenChecks maybeWithJustAsWrap checkInfo
-        , \() -> emptiableAndThenChecks maybeWithJustAsWrap checkInfo
+        [ wrapperAndThenChecks maybeWithJustAsWrap
+        , emptiableAndThenChecks maybeWithJustAsWrap
         ]
-        ()
 
 
 resultAndThenChecks : CheckInfo -> Maybe (Error {})
-resultAndThenChecks checkInfo =
+resultAndThenChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck resultWithOkAsWrap checkInfo
-        , \() -> wrapperAndThenChecks resultWithOkAsWrap checkInfo
+        [ callOnEmptyReturnsEmptyCheck resultWithOkAsWrap
+        , wrapperAndThenChecks resultWithOkAsWrap
         ]
-        ()
 
 
 withDefaultChecks :
@@ -9089,17 +8968,16 @@ withDefaultChecks :
         }
     -> CheckInfo
     -> Maybe (Error {})
-withDefaultChecks emptiable checkInfo =
+withDefaultChecks emptiable =
     firstThatConstructsJust
-        [ \() -> emptiableWithDefaultChecks emptiable checkInfo
-        , \() -> callOnWrapReturnsItsValue emptiable checkInfo
+        [ emptiableWithDefaultChecks emptiable
+        , callOnWrapReturnsItsValue emptiable
         ]
-        ()
 
 
 wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperWithDefaultChecks wrapper checkInfo =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 2 } wrapper checkInfo
+wrapperWithDefaultChecks wrapper =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 2 } wrapper
 
 
 emptiableWithDefaultChecks :
@@ -9144,23 +9022,20 @@ unwrapToMaybeChecks :
         }
     -> CheckInfo
     -> Maybe (Error {})
-unwrapToMaybeChecks emptiableWrapper checkInfo =
+unwrapToMaybeChecks emptiableWrapper =
     firstThatConstructsJust
-        [ \() -> callOnWrapReturnsJustItsValue emptiableWrapper checkInfo
-        , \() ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
-                emptiableWrapper
-                checkInfo
+        [ callOnWrapReturnsJustItsValue emptiableWrapper
+        , callOnEmptyReturnsCheck
+            { resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
+            emptiableWrapper
         ]
-        ()
 
 
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-resultToMaybeCompositionChecks checkInfo =
+resultToMaybeCompositionChecks =
     firstThatConstructsJust
-        [ \() -> onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } resultWithOkAsWrap checkInfo
-        , \() ->
+        [ onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } resultWithOkAsWrap
+        , \checkInfo ->
             case checkInfo.earlier.fn of
                 ( [ "Result" ], "Err" ) ->
                     Just
@@ -9180,14 +9055,12 @@ resultToMaybeCompositionChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 resultFromMaybeChecks : CheckInfo -> Maybe (Error {})
-resultFromMaybeChecks checkInfo =
+resultFromMaybeChecks =
     fromMaybeChecks
         { onNothingFn = ( [ "Result" ], "Err" ), onJustFn = ( [ "Result" ], "Ok" ) }
-        checkInfo
 
 
 fromMaybeChecks : { onNothingFn : ( ModuleName, String ), onJustFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
@@ -9271,12 +9144,11 @@ pipelineChecks :
     , direction : LeftOrRightDirection
     }
     -> Maybe (Error {})
-pipelineChecks checkInfo =
+pipelineChecks =
     firstThatConstructsJust
-        [ \() -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
-        , \() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
+        [ \checkInfo -> pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
+        , \checkInfo -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg }
         ]
-        ()
 
 
 fullyAppliedLambdaInPipelineChecks : { nodeRange : Range, firstArgument : Node Expression, function : Node Expression } -> Maybe (Error {})
@@ -9419,12 +9291,11 @@ compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
 
 
 callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
-callOnWrappedDoesNotChangeItCheck wrapper checkInfo =
+callOnWrappedDoesNotChangeItCheck wrapper =
     callOnDoesNotChangeItCheck
         { description = wrapper.wrap.description
         , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
         }
-        checkInfo
 
 
 callOnDoesNotChangeItCheck :
@@ -9476,8 +9347,8 @@ callOnEmptyReturnsEmptyCheck :
     }
     -> CheckInfo
     -> Maybe (Error {})
-callOnEmptyReturnsEmptyCheck emptiable checkInfo =
-    callOnDoesNotChangeItCheck emptiable.empty checkInfo
+callOnEmptyReturnsEmptyCheck emptiable =
+    callOnDoesNotChangeItCheck emptiable.empty
 
 
 callOnEmptyReturnsCheck :
@@ -9661,10 +9532,10 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck config wrapper checkInfo =
 
 
 emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-emptiableFilterChecks emptiable checkInfo =
+emptiableFilterChecks emptiable =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck emptiable checkInfo
-        , \() ->
+        [ callOnEmptyReturnsEmptyCheck emptiable
+        , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     Just
@@ -9685,18 +9556,17 @@ emptiableFilterChecks emptiable checkInfo =
                 Undetermined ->
                     Nothing
         ]
-        ()
 
 
 collectionRemoveChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionRemoveChecks collection checkInfo =
-    callOnEmptyReturnsEmptyCheck collection checkInfo
+collectionRemoveChecks collection =
+    callOnEmptyReturnsEmptyCheck collection
 
 
 collectionIntersectChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionIntersectChecks collection checkInfo =
+collectionIntersectChecks collection =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
@@ -9707,41 +9577,31 @@ collectionIntersectChecks collection checkInfo =
 
             else
                 Nothing
-        , \() -> callOnEmptyReturnsEmptyCheck collection checkInfo
+        , callOnEmptyReturnsEmptyCheck collection
         ]
-        ()
 
 
 collectionDiffChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionDiffChecks collection checkInfo =
-    let
-        maybeCollectionArg : Maybe (Node Expression)
-        maybeCollectionArg =
-            secondArg checkInfo
-
-        collectionEmptyAsString : String
-        collectionEmptyAsString =
-            emptyAsString checkInfo collection
-    in
+collectionDiffChecks collection =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
-                        (qualifiedToString checkInfo.fn ++ " on " ++ collectionEmptyAsString)
+                        (qualifiedToString checkInfo.fn ++ " on " ++ emptyAsString checkInfo collection)
                         { replacement = collection.empty.asString }
                         checkInfo
                     )
 
             else
                 Nothing
-        , \() ->
-            case maybeCollectionArg of
+        , \checkInfo ->
+            case secondArg checkInfo of
                 Just collectionArg ->
                     if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Diffing a " ++ collection.represents ++ " with " ++ collectionEmptyAsString ++ " will result in the " ++ collection.represents ++ " itself"
+                                { message = "Diffing a " ++ collection.represents ++ " with " ++ emptyAsString checkInfo collection ++ " will result in the " ++ collection.represents ++ " itself"
                                 , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
                                 }
                                 checkInfo.fnRange
@@ -9754,13 +9614,12 @@ collectionDiffChecks collection checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 collectionUnionChecks : CollectionProperties (EmptiableProperties (FromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
-collectionUnionChecks collection checkInfo =
+collectionUnionChecks collection =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysReturnsLastArgError
@@ -9771,7 +9630,7 @@ collectionUnionChecks collection checkInfo =
 
             else
                 Nothing
-        , \() ->
+        , \checkInfo ->
             case secondArg checkInfo of
                 Just secondArg_ ->
                     if collection.empty.is checkInfo.lookupTable secondArg_ then
@@ -9798,7 +9657,6 @@ collectionUnionChecks collection checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 collectionUnionWithLiteralsChecks :
@@ -9873,11 +9731,10 @@ collectionInsertChecks collection checkInfo =
 
 
 collectionMemberChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionMemberChecks collection checkInfo =
+collectionMemberChecks collection =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
         collection
-        checkInfo
 
 
 collectionIsEmptyChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
@@ -9921,10 +9778,8 @@ collectionSizeChecks collection checkInfo =
 
 
 collectionFromListChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionFromListChecks collection checkInfo =
-    callOnEmptyReturnsCheck { resultAsString = collection.empty.asString }
-        listCollection
-        checkInfo
+collectionFromListChecks collection =
+    callOnEmptyReturnsCheck { resultAsString = collection.empty.asString } listCollection
 
 
 wrapperFromListSingletonChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -9973,24 +9828,17 @@ emptiableToListChecks :
     }
     -> CheckInfo
     -> Maybe (Error {})
-emptiableToListChecks collection checkInfo =
-    callOnEmptyReturnsCheck { resultAsString = \_ -> "[]" } collection checkInfo
+emptiableToListChecks collection =
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } collection
 
 
 collectionPartitionChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionPartitionChecks collection checkInfo =
-    let
-        collectionEmptyAsString : String
-        collectionEmptyAsString =
-            emptyAsString checkInfo collection
-    in
+collectionPartitionChecks collection =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> "( " ++ collection.empty.asString res ++ ", " ++ collection.empty.asString res ++ " )" }
-                collection
-                checkInfo
-        , \() ->
+        [ callOnEmptyReturnsCheck
+            { resultAsString = \res -> "( " ++ collection.empty.asString res ++ ", " ++ collection.empty.asString res ++ " )" }
+            collection
+        , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
                     case secondArg checkInfo of
@@ -10002,7 +9850,7 @@ collectionPartitionChecks collection checkInfo =
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
-                                    , Fix.insertAt listArgRange.end (", " ++ collectionEmptyAsString ++ " )")
+                                    , Fix.insertAt listArgRange.end (", " ++ emptyAsString checkInfo collection ++ " )")
                                     ]
                                 )
 
@@ -10018,7 +9866,7 @@ collectionPartitionChecks collection checkInfo =
                             checkInfo.fnRange
                             (case secondArg checkInfo of
                                 Just listArg ->
-                                    [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ collectionEmptyAsString ++ ", ")
+                                    [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ emptyAsString checkInfo collection ++ ", ")
                                     , Fix.insertAt (Node.range listArg).end " )"
                                     ]
 
@@ -10027,7 +9875,7 @@ collectionPartitionChecks collection checkInfo =
                                         ("("
                                             ++ qualifiedToString (qualify ( [ "Tuple" ], "pair" ) checkInfo)
                                             ++ " "
-                                            ++ collectionEmptyAsString
+                                            ++ emptyAsString checkInfo collection
                                             ++ ")"
                                         )
                                     ]
@@ -10037,7 +9885,6 @@ collectionPartitionChecks collection checkInfo =
                 Undetermined ->
                     Nothing
         ]
-        ()
 
 
 type CollectionSize
@@ -10163,9 +10010,9 @@ targetIfKeyword ifExpressionRange =
 ifChecks :
     IfCheckInfo
     -> Maybe { errors : Error {}, rangesToIgnore : RangeDict () }
-ifChecks checkInfo =
+ifChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case Evaluate.getBoolean checkInfo checkInfo.condition of
                 Determined determinedConditionResultIsTrue ->
                     let
@@ -10190,7 +10037,7 @@ ifChecks checkInfo =
 
                 Undetermined ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case ( Evaluate.getBoolean checkInfo checkInfo.trueBranch, Evaluate.getBoolean checkInfo checkInfo.falseBranch ) of
                 ( Determined True, Determined False ) ->
                     Just
@@ -10222,7 +10069,7 @@ ifChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case Normalize.compare checkInfo checkInfo.trueBranch checkInfo.falseBranch of
                 Normalize.ConfirmedEquality ->
                     Just
@@ -10239,7 +10086,6 @@ ifChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 
@@ -10834,12 +10680,11 @@ alwaysResultsInUnparenthesizedConstantError :
     -> { replacement : QualifyResources {} -> String }
     -> CheckInfo
     -> Error {}
-alwaysResultsInUnparenthesizedConstantError usingSituation config checkInfo =
+alwaysResultsInUnparenthesizedConstantError usingSituation config =
     alwaysResultsInConstantError usingSituation
         { replacement = config.replacement
         , replacementNeedsParens = False
         }
-        checkInfo
 
 
 {-| Regardless of what the next incoming value will be, the result is already determined to be a given constant.
