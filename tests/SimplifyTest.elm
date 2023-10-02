@@ -15530,6 +15530,24 @@ e = Array.toList << (f << Array.fromList)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace Array.toList Array.empty by []" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toList Array.empty
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList on Array.empty will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = []
+"""
+                        ]
         , test "should replace x |> f |> Array.fromList |> Array.toList by x |> f" <|
             \() ->
                 """module A exposing (..)
