@@ -6519,7 +6519,7 @@ emptiableRepeatChecks collection checkInfo =
         Just intValue ->
             callWithNonPositiveIntCanBeReplacedByCheck
                 { int = intValue
-                , intDescription = collection.nameForSize
+                , intDescription = collection.size.description
                 , replacement = collection.empty.asString
                 }
                 checkInfo
@@ -6534,7 +6534,7 @@ wrapperRepeatChecks wrapper checkInfo =
         Just 1 ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.nameForSize ++ " 1 will result in " ++ qualifiedToString wrapper.wrap.fn
+                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.size.description ++ " 1 will result in " ++ qualifiedToString wrapper.wrap.fn
                     , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
                     }
                     checkInfo.fnRange
@@ -8130,8 +8130,10 @@ type alias ConstructWithOneArgProperties =
 type alias CollectionProperties otherProperties =
     EmptiableProperties
         { otherProperties
-            | nameForSize : String
-            , determineSize : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
+            | size :
+                { description : String
+                , determine : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
+                }
         }
 
 
@@ -8415,8 +8417,10 @@ listCollection =
         , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
         , asString = \_ -> "[]"
         }
-    , nameForSize = "length"
-    , determineSize = listDetermineLength
+    , size =
+        { description = "length"
+        , determine = listDetermineLength
+        }
     , wrap =
         { description = A "singleton list"
         , fn = ( [ "List" ], "singleton" )
@@ -8464,8 +8468,10 @@ stringCollection =
         , asString = \_ -> emptyStringAsString
         , is = \_ (Node _ expr) -> expr == Expression.Literal ""
         }
-    , nameForSize = "length"
-    , determineSize = \_ (Node _ expr) -> stringDetermineLength expr
+    , size =
+        { description = "length"
+        , determine = \_ (Node _ expr) -> stringDetermineLength expr
+        }
     , wrap =
         { description = A "single-char string"
         , fn = ( [ "String" ], "fromChar" )
@@ -8504,8 +8510,7 @@ arrayCollection =
             \resources ->
                 qualifiedToString (qualify ( [ "Array" ], "empty" ) resources)
         }
-    , nameForSize = "length"
-    , determineSize = arrayDetermineSize
+    , size = { description = "length", determine = arrayDetermineSize }
     , literalElements =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
@@ -8571,8 +8576,7 @@ setCollection =
             \resources ->
                 qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
         }
-    , nameForSize = "size"
-    , determineSize = setDetermineSize
+    , size = { description = "size", determine = setDetermineSize }
     , wrap =
         { description = A "singleton set"
         , fn = ( [ "Set" ], "singleton" )
@@ -8648,8 +8652,7 @@ dictCollection =
             \resources ->
                 qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
         }
-    , nameForSize = "size"
-    , determineSize = dictDetermineSize
+    , size = { description = "size", determine = dictDetermineSize }
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
@@ -9867,7 +9870,7 @@ collectionMemberChecks collection checkInfo =
 
 collectionIsEmptyChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
-    case collection.determineSize (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
                 (resultsInConstantError
@@ -9890,12 +9893,12 @@ collectionIsEmptyChecks collection checkInfo =
 
 collectionSizeChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
-    case collection.determineSize (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly size) ->
             Just
                 (Rule.errorWithFix
-                    { message = "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
-                    , details = [ "The " ++ collection.nameForSize ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
+                    { message = "The " ++ collection.size.description ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
+                    , details = [ "The " ++ collection.size.description ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange (String.fromInt size) ]
