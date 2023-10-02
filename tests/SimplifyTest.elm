@@ -21526,7 +21526,9 @@ setIntersectTests =
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.intersect set set
+a0 = Set.intersect
+a1 = Set.intersect set0
+a2 = Set.intersect set0 set1
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -21539,13 +21541,31 @@ a = Set.intersect Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.intersect on Set.empty will result in Set.empty"
+                            { message = "Set.intersect on Set.empty will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.empty
+"""
+                        ]
+        , test "should replace Set.intersect Set.empty by always Set.empty" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.intersect Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.intersect on Set.empty will always result in Set.empty"
+                            , details = [ "You can replace this call by always Set.empty." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = always Set.empty
 """
                         ]
         , test "should replace Set.intersect set Set.empty by Set.empty" <|
@@ -22882,13 +22902,31 @@ a = Dict.intersect Dict.empty dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.intersect on Dict.empty will result in Dict.empty"
+                            { message = "Dict.intersect on Dict.empty will always result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.intersect Dict.empty by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.intersect Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.intersect on Dict.empty will always result in Dict.empty"
+                            , details = [ "You can replace this call by always Dict.empty." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always Dict.empty
 """
                         ]
         , test "should replace Dict.intersect dict Dict.empty by Dict.empty" <|

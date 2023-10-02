@@ -9812,7 +9812,17 @@ collectionRemoveChecks collection checkInfo =
 collectionIntersectChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection checkInfo =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsEmptyCheck checkInfo.firstArg collection checkInfo
+        [ \() ->
+            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+                Just
+                    (alwaysResultsInUnparenthesizedConstantError
+                        (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.asString defaultQualifyResources)
+                        { replacement = collection.empty.asString }
+                        checkInfo
+                    )
+
+            else
+                Nothing
         , \() ->
             Maybe.andThen
                 (\collectionArg -> callOnEmptyReturnsEmptyCheck collectionArg collection checkInfo)
