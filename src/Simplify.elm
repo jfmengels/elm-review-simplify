@@ -9611,6 +9611,19 @@ onWrapAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
         Nothing
 
 
+{-| This operation is equivalent to Just when called on a wrapped value.
+
+    operation (wrap a) --> Just a
+
+For example
+
+    List.minimum [ a ] --> Just a
+
+    Result.toMaybe (Ok a) --> Just a
+
+Use together with `callOnWrapReturnsJustItsValue`.
+
+-}
 callOnWrapReturnsJustItsValue :
     { otherProperties
         | wrap : ConstructWithOneArgProperties
@@ -9643,6 +9656,19 @@ callOnWrapReturnsJustItsValue withWrap checkInfo =
             Nothing
 
 
+{-| This operation is equivalent to Just when called on a wrapped value.
+
+    operation << wrap --> Just
+
+For example
+
+    List.minimum << List.singleton --> Just
+
+    Result.toMaybe << Ok --> Just
+
+Use together with `callOnWrapReturnsJustItsValue`.
+
+-}
 onWrapAlwaysReturnsJustIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 onWrapAlwaysReturnsJustIncomingCompositionCheck config wrapper checkInfo =
     if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
