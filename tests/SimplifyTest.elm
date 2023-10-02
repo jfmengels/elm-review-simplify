@@ -17986,6 +17986,7 @@ a = f >> Just >> g
                         ]
         ]
 
+
 maybeMapNTests : Test
 maybeMapNTests =
     -- testing behavior only with representatives for 2-5
@@ -18131,6 +18132,7 @@ a = Nothing
 """
                         ]
         ]
+
 
 maybeAndThenTests : Test
 maybeAndThenTests =
