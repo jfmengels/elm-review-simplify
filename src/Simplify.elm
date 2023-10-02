@@ -3359,9 +3359,9 @@ divisionChecks checkInfo =
 
 
 intDivideChecks : OperatorCheckInfo -> Maybe (Error {})
-intDivideChecks checkInfo =
+intDivideChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case AstHelpers.getUncomputedNumberValue checkInfo.right of
                 Just rightNumber ->
                     if rightNumber == 1 then
@@ -3392,7 +3392,7 @@ intDivideChecks checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
                 Just
                     (Rule.errorWithFix
@@ -3409,13 +3409,12 @@ intDivideChecks checkInfo =
             else
                 Nothing
         ]
-        ()
 
 
 plusplusChecks : OperatorCheckInfo -> Maybe (Error {})
-plusplusChecks checkInfo =
+plusplusChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
                 ( Expression.Literal "", Expression.Literal _ ) ->
                     Just
@@ -3443,7 +3442,7 @@ plusplusChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getListLiteral checkInfo.left of
                 Just [] ->
                     Just
@@ -3459,7 +3458,7 @@ plusplusChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getListLiteral checkInfo.right of
                 Just [] ->
                     Just
@@ -3475,7 +3474,7 @@ plusplusChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             collectionUnionWithLiteralsChecks listCollection
                 { lookupTable = checkInfo.lookupTable
                 , extractSourceCode = checkInfo.extractSourceCode
@@ -3485,7 +3484,7 @@ plusplusChecks checkInfo =
                 , operationRange = checkInfo.operatorRange
                 , operation = "++"
                 }
-        , \() ->
+        , \checkInfo ->
             collectionUnionWithLiteralsChecks stringCollection
                 { lookupTable = checkInfo.lookupTable
                 , extractSourceCode = checkInfo.extractSourceCode
@@ -3495,7 +3494,7 @@ plusplusChecks checkInfo =
                 , operationRange = checkInfo.operatorRange
                 , operation = "++"
                 }
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
                 Just leftListSingleton ->
                     if checkInfo.isOnTheRightSideOfPlusPlus then
@@ -3517,7 +3516,6 @@ plusplusChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 concatenateEmptyErrorInfo : { represents : String, emptyDescription : String } -> { message : String, details : List String }
@@ -3528,9 +3526,9 @@ concatenateEmptyErrorInfo config =
 
 
 consChecks : OperatorCheckInfo -> Maybe (Error {})
-consChecks checkInfo =
+consChecks =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             case Node.value checkInfo.right of
                 Expression.ListExpr tailElements ->
                     let
@@ -3563,7 +3561,7 @@ consChecks checkInfo =
 
                 _ ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.right of
                 Just tailSingleton ->
                     Just
@@ -3589,7 +3587,6 @@ consChecks checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 {-| Chaining two operations that are inverses of each other and therefore cancel each other out.
@@ -3865,13 +3862,12 @@ basicsNegateChecks checkInfo =
 
 
 basicsNotChecks : CheckInfo -> Maybe (Error {})
-basicsNotChecks checkInfo =
+basicsNotChecks =
     firstThatConstructsJust
         [ notOnKnownBoolCheck
         , removeAlongWithOtherFunctionCheck
         , isNotOnBooleanOperatorCheck
         ]
-        checkInfo
 
 
 notOnKnownBoolCheck : CheckInfo -> Maybe (Error {})
@@ -3959,13 +3955,12 @@ isNegatableOperator op =
 
 
 orChecks : OperatorCheckInfo -> Maybe (Error {})
-orChecks operatorCheckInfo =
+orChecks =
     firstThatConstructsJust
-        [ \() -> or_isLeftSimplifiableError operatorCheckInfo
-        , \() -> or_isRightSimplifiableError operatorCheckInfo
-        , \() -> findSimilarConditionsError operatorCheckInfo
+        [ or_isLeftSimplifiableError
+        , or_isRightSimplifiableError
+        , findSimilarConditionsError
         ]
-        ()
 
 
 type RedundantConditionResolution
@@ -4149,13 +4144,12 @@ or_isRightSimplifiableError checkInfo =
 
 
 andChecks : OperatorCheckInfo -> Maybe (Error {})
-andChecks operatorCheckInfo =
+andChecks =
     firstThatConstructsJust
-        [ \() -> and_isLeftSimplifiableError operatorCheckInfo
-        , \() -> and_isRightSimplifiableError operatorCheckInfo
-        , \() -> findSimilarConditionsError operatorCheckInfo
+        [ and_isLeftSimplifiableError
+        , and_isRightSimplifiableError
+        , findSimilarConditionsError
         ]
-        ()
 
 
 and_isLeftSimplifiableError : OperatorCheckInfo -> Maybe (Error {})
@@ -4509,28 +4503,25 @@ tuplePairChecks checkInfo =
 
 
 tupleFirstChecks : CheckInfo -> Maybe (Error {})
-tupleFirstChecks checkInfo =
+tupleFirstChecks =
     tuplePartChecks
         { part = TupleFirst
         , description = "first"
         , mapUnrelatedFn = ( [ "Tuple" ], "mapSecond" )
         , mapFn = ( [ "Tuple" ], "mapFirst" )
         }
-        checkInfo
 
 
 tupleFirstCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-tupleFirstCompositionChecks checkInfo =
+tupleFirstCompositionChecks =
     firstThatConstructsJust
-        [ \() ->
-            tuplePartCompositionChecks
-                { part = TupleFirst
-                , description = "first"
-                , mapUnrelatedFn = ( [ "Tuple" ], "mapSecond" )
-                , mapFn = ( [ "Tuple" ], "mapFirst" )
-                }
-                checkInfo
-        , \() ->
+        [ tuplePartCompositionChecks
+            { part = TupleFirst
+            , description = "first"
+            , mapUnrelatedFn = ( [ "Tuple" ], "mapSecond" )
+            , mapFn = ( [ "Tuple" ], "mapFirst" )
+            }
+        , \checkInfo ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
                     Just
@@ -4549,7 +4540,6 @@ tupleFirstCompositionChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 tupleSecondChecks : CheckInfo -> Maybe (Error {})
@@ -4564,17 +4554,15 @@ tupleSecondChecks checkInfo =
 
 
 tupleSecondCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-tupleSecondCompositionChecks checkInfo =
+tupleSecondCompositionChecks =
     firstThatConstructsJust
-        [ \() ->
-            tuplePartCompositionChecks
-                { part = TupleSecond
-                , description = "second"
-                , mapFn = ( [ "Tuple" ], "mapSecond" )
-                , mapUnrelatedFn = ( [ "Tuple" ], "mapFirst" )
-                }
-                checkInfo
-        , \() ->
+        [ tuplePartCompositionChecks
+            { part = TupleSecond
+            , description = "second"
+            , mapFn = ( [ "Tuple" ], "mapSecond" )
+            , mapUnrelatedFn = ( [ "Tuple" ], "mapFirst" )
+            }
+        , \checkInfo ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Tuple" ], "pair" ), _ :: [] ) ->
                     Just
@@ -4586,7 +4574,6 @@ tupleSecondCompositionChecks checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 type TuplePart
@@ -4602,9 +4589,9 @@ tuplePartChecks :
     }
     -> CheckInfo
     -> Maybe (Error {})
-tuplePartChecks partConfig checkInfo =
+tuplePartChecks partConfig =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             Maybe.map
                 (\tuple ->
                     Rule.errorWithFix
@@ -4623,7 +4610,7 @@ tuplePartChecks partConfig checkInfo =
                         )
                 )
                 (AstHelpers.getTuple2 checkInfo.firstArg checkInfo.lookupTable)
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getSpecificFunctionCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
                 Just mapSecondCall ->
                     case mapSecondCall.argsAfterFirst of
@@ -4642,7 +4629,7 @@ tuplePartChecks partConfig checkInfo =
 
                 Nothing ->
                     Nothing
-        , \() ->
+        , \checkInfo ->
             case AstHelpers.getSpecificFunctionCall ( [ "Tuple" ], "mapBoth" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just tupleMapBothCall ->
                     case tupleMapBothCall.argsAfterFirst of
@@ -4675,16 +4662,15 @@ tuplePartChecks partConfig checkInfo =
                 Nothing ->
                     Nothing
         ]
-        ()
 
 
 tuplePartCompositionChecks :
     { part : TuplePart, description : String, mapFn : ( ModuleName, String ), mapUnrelatedFn : ( ModuleName, String ) }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-tuplePartCompositionChecks partConfig checkInfo =
+tuplePartCompositionChecks partConfig =
     firstThatConstructsJust
-        [ \() ->
+        [ \checkInfo ->
             if checkInfo.earlier.fn == partConfig.mapUnrelatedFn then
                 Just
                     { info =
@@ -4696,7 +4682,7 @@ tuplePartCompositionChecks partConfig checkInfo =
 
             else
                 Nothing
-        , \() ->
+        , \checkInfo ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                 ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: _ :: [] ) ->
                     Just
@@ -4723,7 +4709,6 @@ tuplePartCompositionChecks partConfig checkInfo =
                 _ ->
                     Nothing
         ]
-        ()
 
 
 
@@ -4731,66 +4716,47 @@ tuplePartCompositionChecks partConfig checkInfo =
 
 
 stringToListChecks : CheckInfo -> Maybe (Error {})
-stringToListChecks checkInfo =
-    onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "fromList" ) checkInfo
+stringToListChecks =
+    onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "fromList" )
 
 
 stringToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-stringToListCompositionChecks checkInfo =
-    inversesCompositionCheck ( [ "String" ], "fromList" ) checkInfo
+stringToListCompositionChecks =
+    inversesCompositionCheck ( [ "String" ], "fromList" )
 
 
 stringFromListChecks : CheckInfo -> Maybe (Error {})
-stringFromListChecks checkInfo =
+stringFromListChecks =
     firstThatConstructsJust
-        [ \() ->
-            callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString }
-                listCollection
-                checkInfo
-        , \() -> wrapperFromListSingletonChecks stringCollection checkInfo
-        , \() -> onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "toList" ) checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
+        , wrapperFromListSingletonChecks stringCollection
+        , onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "toList" )
         ]
-        ()
 
 
 stringFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-stringFromListCompositionChecks checkInfo =
+stringFromListCompositionChecks =
     firstThatConstructsJust
-        [ \() -> wrapperFromListSingletonCompositionChecks stringCollection checkInfo
-        , \() -> inversesCompositionCheck ( [ "String" ], "toList" ) checkInfo
+        [ wrapperFromListSingletonCompositionChecks stringCollection
+        , inversesCompositionCheck ( [ "String" ], "toList" )
         ]
-        ()
 
 
 stringConcatChecks : CheckInfo -> Maybe (Error {})
-stringConcatChecks checkInfo =
+stringConcatChecks =
     firstThatConstructsJust
-        [ \() -> callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection checkInfo
-        , \() ->
-            callFromCanBeCombinedCheck
-                { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
-                checkInfo
-        , \() ->
-            callFromCanBeCombinedCheck
-                { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
-                checkInfo
+        [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
+        , callFromCanBeCombinedCheck { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
+        , callFromCanBeCombinedCheck { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
         ]
-        ()
 
 
 stringConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-stringConcatCompositionChecks checkInfo =
+stringConcatCompositionChecks =
     firstThatConstructsJust
-        [ \() ->
-            compositionFromCanBeCombinedCheck
-                { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
-                checkInfo
-        , \() ->
-            compositionFromCanBeCombinedCheck
-                { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
-                checkInfo
+        [ compositionFromCanBeCombinedCheck { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
+        , compositionFromCanBeCombinedCheck { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
         ]
-        ()
 
 
 stringWordsChecks : CheckInfo -> Maybe (Error {})
