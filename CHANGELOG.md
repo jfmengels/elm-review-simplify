@@ -34,6 +34,7 @@
 - `Array.foldl f initial Array.empty` to `initial` (same for `Array.foldr`)
 - `Array.foldl (\_ soFar -> soFar) initial array` to `initial` (same for `Array.foldr`)
 - `Array.toList Array.empty` to `[]`
+- `Array.toList (Array.repeat n a)` to `List.repeat n a`
 - `Array.toIndexedList Array.empty` to `[]`
 - `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
 

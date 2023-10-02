@@ -15728,6 +15728,42 @@ import Array
 a = (f >> g)
 """
                         ]
+        , test "should replace a |> Array.repeat n |> Array.toList by a |> List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = b |> Array.repeat n |> Array.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList on Array.repeat can be combined into List.repeat"
+                            , details = [ "You can replace these two operations by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = b |> List.repeat n
+"""
+                        ]
+        , test "should replace Array.repeat n >> Array.toList by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.repeat n >> Array.toList
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList on Array.repeat can be combined into List.repeat"
+                            , details = [ "You can replace these two operations by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
+                            , under = "Array.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = List.repeat n
+"""
+                        ]
         ]
 
 
