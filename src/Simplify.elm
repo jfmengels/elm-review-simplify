@@ -4605,7 +4605,7 @@ tuplePartChecks partConfig checkInfo =
             case AstHelpers.getSpecificFunctionCall ( [ "Tuple" ], "mapBoth" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just tupleMapBothCall ->
                     case tupleMapBothCall.argsAfterFirst of
-                        secondMapperArg :: tuple :: [] ->
+                        secondMapperArg :: _ :: [] ->
                             Just
                                 (Rule.errorWithFix
                                     { message = qualifiedToString ( [ "Tuple" ], "mapBoth" ) ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
@@ -4657,7 +4657,7 @@ tuplePartCompositionChecks partConfig checkInfo =
                 Nothing
         , \() ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: secondMapperArg :: [] ) ->
+                ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: _ :: [] ) ->
                     Just
                         { info =
                             { message = qualifiedToString ( [ "Tuple" ], "mapBoth" ) ++ " before " ++ qualifiedToString checkInfo.later.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
