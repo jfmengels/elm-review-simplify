@@ -5214,7 +5214,7 @@ listConcatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue listCollection checkInfo
-        , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnListWithIrrelevantEmptyElement checkInfo.firstArg listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
@@ -5279,7 +5279,7 @@ listConcatCompositionChecks checkInfo =
         ()
 
 
-irrelevantEmptyElementInGivenListArgCheck :
+callOnListWithIrrelevantEmptyElement :
     Node Expression
     ->
         { otherProperties
@@ -5291,7 +5291,7 @@ irrelevantEmptyElementInGivenListArgCheck :
         }
     -> CheckInfo
     -> Maybe (Error {})
-irrelevantEmptyElementInGivenListArgCheck listArg emptiableElement checkInfo =
+callOnListWithIrrelevantEmptyElement listArg emptiableElement checkInfo =
     case AstHelpers.getListLiteral listArg of
         Just list ->
             case findMapNeighboring (getEmpty checkInfo.lookupTable emptiableElement) list of
@@ -6236,7 +6236,7 @@ listFilterMapChecks checkInfo =
                 case secondArg checkInfo of
                     Just listArg ->
                         firstThatConstructsJust
-                            [ \() -> irrelevantEmptyElementInGivenListArgCheck listArg maybeWithJustAsWrap checkInfo
+                            [ \() -> callOnListWithIrrelevantEmptyElement listArg maybeWithJustAsWrap checkInfo
                             , \() ->
                                 case AstHelpers.getListLiteral listArg of
                                     Just list ->
@@ -7462,7 +7462,7 @@ subAndCmdBatchChecks batchable checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue listCollection checkInfo
-        , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg batchable checkInfo
+        , \() -> callOnListWithIrrelevantEmptyElement checkInfo.firstArg batchable checkInfo
         ]
         ()
 
