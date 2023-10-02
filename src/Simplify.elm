@@ -846,6 +846,13 @@ Destructuring using case expressions
     Array.set 100 x (Array.fromList [ a, b, c ])
     --> Array.fromList [ a, b, c ]
 
+    -- The following simplifications for Array.foldl also work for Array.foldr
+    Array.foldl f initial Array.empty
+    --> initial
+
+    Array.foldl (\_ soFar -> soFar) initial array
+    --> initial
+
 
 ### Sets
 
@@ -2656,6 +2663,8 @@ functionCallChecks =
         , ( ( [ "Array" ], "append" ), ( 2, collectionUnionChecks arrayCollection ) )
         , ( ( [ "Array" ], "get" ), ( 2, getChecks arrayCollection ) )
         , ( ( [ "Array" ], "set" ), ( 3, setChecks arrayCollection ) )
+        , ( ( [ "Array" ], "foldl" ), ( 3, arrayFoldlChecks ) )
+        , ( ( [ "Array" ], "foldr" ), ( 3, arrayFoldrChecks ) )
         , ( ( [ "Set" ], "map" ), ( 2, emptiableMapChecks setCollection ) )
         , ( ( [ "Set" ], "filter" ), ( 2, emptiableFilterChecks setCollection ) )
         , ( ( [ "Set" ], "remove" ), ( 2, collectionRemoveChecks setCollection ) )
@@ -6578,6 +6587,16 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
 
         Nothing ->
             Nothing
+
+
+arrayFoldlChecks : CheckInfo -> Maybe (Error {})
+arrayFoldlChecks checkInfo =
+    emptiableFoldChecks arrayCollection checkInfo
+
+
+arrayFoldrChecks : CheckInfo -> Maybe (Error {})
+arrayFoldrChecks checkInfo =
+    emptiableFoldChecks arrayCollection checkInfo
 
 
 getChecks : EmptiableProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})

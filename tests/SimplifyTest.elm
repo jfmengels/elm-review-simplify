@@ -15430,6 +15430,8 @@ arrayTests =
         , arrayAppendTests
         , arrayGetTests
         , arraySetTests
+        , arrayFoldlTests
+        , arrayFoldrTests
         ]
 
 
@@ -17651,6 +17653,184 @@ a = Array.set 100 x (Array.fromList [ b, c, d ])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = (Array.fromList [ b, c, d ])
+"""
+                        ]
+        ]
+
+
+arrayFoldlTests : Test
+arrayFoldlTests =
+    describe "Array.foldl"
+        [ test "should not report Array.foldl used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldl
+b = Array.foldl (\\el soFar -> soFar - el)
+c = Array.foldl (\\el soFar -> soFar - el) 20
+d = Array.foldl (\\el soFar -> soFar - el) 20 array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.foldl f initial Array.empty by initial" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldl f initial Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldl on Array.empty will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = initial
+"""
+                        ]
+        , test "should replace Array.foldl (always identity) initial array by initial" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldl (always identity) initial array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = initial
+"""
+                        ]
+        , test "should replace Array.foldl (always identity) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldl (always identity) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always initial
+"""
+                        ]
+        , test "should replace Array.foldl (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldl (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which array is supplied next." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always
+"""
+                        ]
+        ]
+
+
+arrayFoldrTests : Test
+arrayFoldrTests =
+    describe "Array.foldr"
+        [ test "should not report Array.foldr used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldr
+b = Array.foldr (\\el soFar -> soFar - el)
+c = Array.foldr (\\el soFar -> soFar - el) 20
+d = Array.foldr (\\el soFar -> soFar - el) 20 array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.foldr f initial Array.empty by initial" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldr f initial Array.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldr on Array.empty will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = initial
+"""
+                        ]
+        , test "should replace Array.foldr (always identity) initial array by initial" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldr (always identity) initial array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = initial
+"""
+                        ]
+        , test "should replace Array.foldr (always identity) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldr (always identity) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always initial
+"""
+                        ]
+        , test "should replace Array.foldr (always identity) by always" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.foldr (always identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which array is supplied next." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = always
 """
                         ]
         ]
