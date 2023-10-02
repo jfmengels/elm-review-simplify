@@ -4767,12 +4767,12 @@ stringConcatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection checkInfo
         , \() ->
-            groupingOnSpecificFnCallCanBeCombinedCheck
-                { specificFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
+            callFromCanBeCombinedCheck
+                { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
                 checkInfo
         , \() ->
-            groupingOnSpecificFnCallCanBeCombinedCheck
-                { specificFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
+            callFromCanBeCombinedCheck
+                { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
                 checkInfo
         ]
         ()
@@ -4782,12 +4782,12 @@ stringConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFi
 stringConcatCompositionChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            groupingOnSpecificFnCallCanBeCombinedCompositionCheck
-                { specificFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
+            compositionFromCanBeCombinedCheck
+                { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
                 checkInfo
         , \() ->
-            groupingOnSpecificFnCallCanBeCombinedCompositionCheck
-                { specificFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
+            compositionFromCanBeCombinedCheck
+                { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
                 checkInfo
         ]
         ()
@@ -5266,8 +5266,8 @@ listConcatChecks checkInfo =
                 _ ->
                     Nothing
         , \() ->
-            groupingOnSpecificFnCallCanBeCombinedCheck
-                { specificFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+            callFromCanBeCombinedCheck
+                { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
                 checkInfo
         ]
         ()
@@ -5277,8 +5277,8 @@ listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatCompositionChecks checkInfo =
     firstThatConstructsJust
         [ \() ->
-            groupingOnSpecificFnCallCanBeCombinedCompositionCheck
-                { specificFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+            compositionFromCanBeCombinedCheck
+                { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
                 checkInfo
         , \() -> onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection checkInfo
         ]
@@ -6382,7 +6382,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks config check
             Nothing
 
 
-{-| Simplify this grouping operation on a given call to `specificFn` to a given `combinedFn`.
+{-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`.
 
 Examples:
 
@@ -6392,26 +6392,26 @@ Examples:
   - `Animation.loop (List.repeat n x) --> Animation.repeat n x` using [`mdgriffith/elm-style-animation`](https://package.elm-lang.org/packages/mdgriffith/elm-style-animation/4.0.0/)
   - `FormattedText.concat (List.intersperse s list) --> FormattedText.join s list` using [`NoRedInk/elm-formatted-text-19`](https://package.elm-lang.org/packages/NoRedInk/elm-formatted-text-19/1.0.0/)
 
-Use in combination with `groupingOnSpecificFnCallCanBeCombinedCompositionCheck`
+Use in combination with `compositionFromCanBeCombinedCheck`
 
 -}
-groupingOnSpecificFnCallCanBeCombinedCheck :
-    { specificFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
+callFromCanBeCombinedCheck :
+    { fromFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
     -> CheckInfo
     -> Maybe (Error {})
-groupingOnSpecificFnCallCanBeCombinedCheck config checkInfo =
-    case AstHelpers.getSpecificFunctionCall config.specificFn checkInfo.lookupTable checkInfo.firstArg of
-        Just specificFnCall ->
+callFromCanBeCombinedCheck config checkInfo =
+    case AstHelpers.getSpecificFunctionCall config.fromFn checkInfo.lookupTable checkInfo.firstArg of
+        Just fromFnCall ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on " ++ qualifiedToString config.specificFn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                    , details = [ "You can replace these two operations by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.specificFn ++ " which is meant for this exact purpose." ]
+                    { message = qualifiedToString checkInfo.fn ++ " on " ++ qualifiedToString config.fromFn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                    , details = [ "You can replace these two operations by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy
-                        specificFnCall.fnRange
+                        fromFnCall.fnRange
                         (qualifiedToString (qualify config.combinedFn checkInfo))
-                        :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = specificFnCall.nodeRange }
+                        :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = fromFnCall.nodeRange }
                     )
                 )
 
@@ -6419,22 +6419,22 @@ groupingOnSpecificFnCallCanBeCombinedCheck config checkInfo =
             Nothing
 
 
-{-| Simplify this grouping operation after a given call to `specificFn` to a given `combinedFn`,
+{-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`,
 like `List.concat << List.map f --> List.concatMap f`.
 
-Use in combination with `groupingOnSpecificFnCallCanBeCombinedCheck` (where you will also find more examples).
+Use in combination with `callFromCanBeCombinedCheck` (where you will also find more examples).
 
 -}
-groupingOnSpecificFnCallCanBeCombinedCompositionCheck :
-    { specificFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
+compositionFromCanBeCombinedCheck :
+    { fromFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-groupingOnSpecificFnCallCanBeCombinedCompositionCheck config checkInfo =
-    if checkInfo.earlier.fn == config.specificFn then
+compositionFromCanBeCombinedCheck config checkInfo =
+    if checkInfo.earlier.fn == config.fromFn then
         Just
             { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ qualifiedToString config.specificFn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                , details = [ "You can replace these two operations by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.specificFn ++ " which is meant for this exact purpose." ]
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ qualifiedToString config.fromFn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                , details = [ "You can replace these two operations by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
                 }
             , fix =
                 [ Fix.replaceRangeBy
