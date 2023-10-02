@@ -8476,7 +8476,7 @@ stringCollection =
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+                |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
     , fromListLiteralDescription = "String.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = True
     }
@@ -8509,7 +8509,7 @@ arrayCollection =
     , literalElements =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteral firstArg)
+                |> Maybe.andThen (\arrayFromListCall -> AstHelpers.getListLiteral arrayFromListCall.firstArg)
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
@@ -8583,7 +8583,7 @@ setCollection =
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+                |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
     , fromListLiteralDescription = "Set.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = True
     }
@@ -8653,7 +8653,7 @@ dictCollection =
     , fromListLiteralRange =
         \lookupTable expr ->
             AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
-                |> Maybe.andThen (\{ firstArg } -> AstHelpers.getListLiteralRange firstArg)
+                |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
     , fromListLiteralDescription = "Dict.fromList call"
     , literalUnionLeftElementsStayOnTheLeft = False
     }
