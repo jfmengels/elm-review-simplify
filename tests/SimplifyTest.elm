@@ -9220,15 +9220,22 @@ listMapTests =
         [ test "should not report List.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.map
-b = List.map f
-c = List.map f x
-d = List.map f (Dict.fromList dict)
-e = List.map (\\( a, b ) -> a + b) (Dict.fromList dict)
-f = List.map (f >> Tuple.first) (Dict.fromList dict)
-d = List.map f << Dict.fromList
-e = List.map (\\( a, b ) -> a + b) << Dict.fromList
-f = List.map (f >> Tuple.first) << Dict.fromList
+import Array
+import Dict
+a0 = List.map
+a1 = List.map f
+a2 = List.map f x
+a3 = List.map f (Dict.fromList dict)
+a4 = List.map (\\( a, b ) -> a + b) (Dict.fromList dict)
+a5 = List.map (f >> Tuple.first) (Dict.fromList dict)
+a6 = List.map f << Dict.fromList
+a7 = List.map (\\( a, b ) -> a + b) << Dict.fromList
+a8 = List.map (f >> Tuple.first) << Dict.fromList
+a9 = List.map f (Array.toIndexedList array)
+a10 = List.map (\\( a, b ) -> a) (Array.toIndexedList array)
+a11 = List.map Tuple.first (Array.toIndexedList array)
+a12 = List.map (f >> Tuple.second) (Array.toIndexedList array)
+a13 = List.map Tuple.first << Array.toIndexedList
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -9720,6 +9727,78 @@ a = Dict.toList dict |> List.map Tuple.first
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = dict |> Dict.keys
+"""
+                        ]
+        , test "should replace array |> Array.toIndexedList |> List.map Tuple.second by array |> Array.toList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = array |> Array.toIndexedList |> List.map Tuple.second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
+                            , details = [ "You can replace this call by Array.toList on the array given to Array.toIndexedList which is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array |> Array.toList
+"""
+                        ]
+        , test "should replace array |> Array.toIndexedList |> List.map (\\( _, part1 ) -> part1) by array |> Array.toList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = array |> Array.toIndexedList |> List.map (\\( _, part1 ) -> part1)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
+                            , details = [ "You can replace this call by Array.toList on the array given to Array.toIndexedList which is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = array |> Array.toList
+"""
+                        ]
+        , test "should replace Array.toIndexedList >> List.map Tuple.second by Array.toList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toIndexedList >> List.map Tuple.second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
+                            , details = [ "You can replace this composition by Array.toList which is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.toList
+"""
+                        ]
+        , test "should replace Array.toIndexedList >> List.map (\\( _, part1 ) -> part1) by Array.toList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toIndexedList >> List.map (\\( _, part1 ) -> part1)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
+                            , details = [ "You can replace this composition by Array.toList which is meant for this exact purpose and will also be faster." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.toList
 """
                         ]
         ]
@@ -15419,6 +15498,7 @@ arrayTests : Test
 arrayTests =
     describe "Array"
         [ arrayToListTests
+        , arrayToIndexedListTests
         , arrayFromListTests
         , arrayMapTests
         , arrayIndexedMapTests
@@ -15628,6 +15708,39 @@ a = (Array.toList >> f >> g) << Array.fromList
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = (f >> g)
+"""
+                        ]
+        ]
+
+
+arrayToIndexedListTests : Test
+arrayToIndexedListTests =
+    describe "Array.toIndexedMap"
+        [ test "should not report Array.toList that contains a variable" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a0 = Array.toIndexedList
+a1 = Array.toIndexedList array
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Array.toIndexedList Array.empty by []" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.toIndexedList Array.empty
+"""
+                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList on Array.empty will result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "Array.toIndexedList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = []
 """
                         ]
         ]

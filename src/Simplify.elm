@@ -853,6 +853,12 @@ Destructuring using case expressions
     Array.foldl (\_ soFar -> soFar) initial array
     --> initial
 
+    Array.toIndexedList Array.empty
+    --> []
+
+    List.map Tuple.second (Array.toIndexedList array)
+    --> Array.toList array
+
 
 ### Sets
 
@@ -2652,6 +2658,7 @@ functionCallChecks =
         , ( ( [ "List" ], "map5" ), ( 6, emptiableMapNChecks listCollection ) )
         , ( ( [ "List" ], "unzip" ), ( 1, listUnzipChecks ) )
         , ( ( [ "Array" ], "toList" ), ( 1, arrayToListChecks ) )
+        , ( ( [ "Array" ], "toIndexedList" ), ( 1, arrayToIndexedListChecks ) )
         , ( ( [ "Array" ], "fromList" ), ( 1, arrayFromListChecks ) )
         , ( ( [ "Array" ], "map" ), ( 2, emptiableMapChecks arrayCollection ) )
         , ( ( [ "Array" ], "indexedMap" ), ( 2, arrayIndexedMapChecks ) )
@@ -5584,6 +5591,7 @@ listMapChecks checkInfo =
         [ \() -> emptiableMapChecks listCollection checkInfo
         , \() -> listMapOnSingletonCheck checkInfo
         , \() -> dictToListMapChecks checkInfo
+        , \() -> arrayToIndexedListToListMapChecks checkInfo
         ]
         ()
 
@@ -5672,11 +5680,48 @@ dictToListMapChecks listMapCheckInfo =
             Nothing
 
 
+arrayToIndexedListToListMapChecks : CheckInfo -> Maybe (Error {})
+arrayToIndexedListToListMapChecks listMapCheckInfo =
+    case secondArg listMapCheckInfo of
+        Just listArgument ->
+            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "toIndexedList" ) listMapCheckInfo.lookupTable listArgument of
+                Just arrayToIndexedList ->
+                    if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+                        let
+                            combinedFn : ( ModuleName, String )
+                            combinedFn =
+                                ( [ "Array" ], "toList" )
+                        in
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], "second" ) ++ " is the same as " ++ qualifiedToString combinedFn
+                                , details = [ "You can replace this call by " ++ qualifiedToString combinedFn ++ " on the array given to " ++ qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ " which is meant for this exact purpose and will also be faster." ]
+                                }
+                                listMapCheckInfo.fnRange
+                                (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range arrayToIndexedList.firstArg }
+                                    ++ [ Fix.replaceRangeBy
+                                            (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
+                                            (qualifiedToString (qualify combinedFn listMapCheckInfo))
+                                       ]
+                                )
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
 listMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listMapCompositionChecks checkInfo =
     firstThatConstructsJust
         [ \() -> wrapToMapCompositionChecks listCollection checkInfo
         , \() -> dictToListIntoListMapCompositionCheck checkInfo
+        , \() -> arrayToIndexedListMapCompositionCheck checkInfo
         ]
         ()
 
@@ -5701,6 +5746,31 @@ dictToListIntoListMapCompositionCheck checkInfo =
 
             else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
                 Just (error { tuplePart = "second", toEntryAspectList = "values" })
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+arrayToIndexedListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+arrayToIndexedListMapCompositionCheck checkInfo =
+    case ( checkInfo.earlier.fn, checkInfo.later.args ) of
+        ( ( [ "Array" ], "toIndexedList" ), elementMappingArg :: [] ) ->
+            if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
+                let
+                    combinedFn : ( ModuleName, String )
+                    combinedFn =
+                        ( [ "Array" ], "toList" )
+                in
+                Just
+                    { info =
+                        { message = qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], "second" ) ++ " is the same as " ++ qualifiedToString combinedFn
+                        , details = [ "You can replace this composition by " ++ qualifiedToString combinedFn ++ " which is meant for this exact purpose and will also be faster." ]
+                        }
+                    , fix = compositionReplaceByFnFix combinedFn checkInfo
+                    }
 
             else
                 Nothing
@@ -6465,6 +6535,11 @@ arrayToListChecks checkInfo =
 arrayToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 arrayToListCompositionChecks checkInfo =
     inversesCompositionCheck ( [ "Array" ], "fromList" ) checkInfo
+
+
+arrayToIndexedListChecks : CheckInfo -> Maybe (Error {})
+arrayToIndexedListChecks checkInfo =
+    callOnEmptyReturnsCheck { on = checkInfo.firstArg, resultAsString = listCollection.empty.asString } arrayCollection checkInfo
 
 
 arrayFromListChecks : CheckInfo -> Maybe (Error {})
