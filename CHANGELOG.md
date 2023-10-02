@@ -27,6 +27,8 @@
 - `List.concat << List.singleton` to `identity`
 - `Platform.Cmd.batch << List.singleton` to `identity`
 - `Platform.Sub.batch << List.singleton` to `identity`
+- `List.minimum << List.singleton` to `Just`
+- `List.maximum << List.singleton` to `Just`
 
 ## [2.1.2] - 2023-09-28
 
