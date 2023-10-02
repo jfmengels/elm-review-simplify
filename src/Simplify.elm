@@ -5214,7 +5214,7 @@ listConcatChecks checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsEmptyCheck listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue listCollection checkInfo
-        , \() -> callOnListWithIrrelevantEmptyElement checkInfo.firstArg listCollection checkInfo
+        , \() -> callOnListWithIrrelevantEmptyElement listCollection checkInfo
         , \() ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
@@ -5280,30 +5280,33 @@ listConcatCompositionChecks checkInfo =
 
 
 callOnListWithIrrelevantEmptyElement :
-    Node Expression
-    ->
-        { otherProperties
-            | empty :
-                { empty
-                    | description : Description
-                    , is : ModuleNameLookupTable -> Node Expression -> Bool
-                }
-        }
+    { otherProperties
+        | empty :
+            { empty
+                | description : Description
+                , is : ModuleNameLookupTable -> Node Expression -> Bool
+            }
+    }
     -> CheckInfo
     -> Maybe (Error {})
-callOnListWithIrrelevantEmptyElement listArg emptiableElement checkInfo =
-    case AstHelpers.getListLiteral listArg of
-        Just list ->
-            case findMapNeighboring (getEmpty checkInfo.lookupTable emptiableElement) list of
-                Just emptyLiteralAndNeighbors ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
-                            , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the list does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
-                            }
-                            emptyLiteralAndNeighbors.found.range
-                            (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
-                        )
+callOnListWithIrrelevantEmptyElement emptiableElement checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just listArg ->
+            case AstHelpers.getListLiteral listArg of
+                Just list ->
+                    case findMapNeighboring (getEmpty checkInfo.lookupTable emptiableElement) list of
+                        Just emptyLiteralAndNeighbors ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
+                                    , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the list does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
+                                    }
+                                    emptyLiteralAndNeighbors.found.range
+                                    (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
+                                )
+
+                        Nothing ->
+                            Nothing
 
                 Nothing ->
                     Nothing
@@ -6230,42 +6233,38 @@ emptiableAnyChecks emptiable checkInfo =
 listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks checkInfo =
     firstThatConstructsJust
-        [ \() -> emptiableWrapperFilterMapChecks listCollection checkInfo
+        [ \() -> callOnListWithIrrelevantEmptyElement maybeWithJustAsWrap checkInfo
+        , \() -> emptiableWrapperFilterMapChecks listCollection checkInfo
         , \() ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 case secondArg checkInfo of
                     Just listArg ->
-                        firstThatConstructsJust
-                            [ \() -> callOnListWithIrrelevantEmptyElement listArg maybeWithJustAsWrap checkInfo
-                            , \() ->
-                                case AstHelpers.getListLiteral listArg of
-                                    Just list ->
-                                        case
-                                            traverse
-                                                (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
-                                                list
-                                        of
-                                            Just justCalls ->
-                                                Just
-                                                    (Rule.errorWithFix
-                                                        { message = "Unnecessary use of " ++ qualifiedToString checkInfo.fn ++ " identity"
-                                                        , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
-                                                        }
-                                                        checkInfo.fnRange
-                                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
-                                                            ++ List.concatMap
-                                                                (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
-                                                                justCalls
-                                                        )
-                                                    )
-
-                                            Nothing ->
-                                                Nothing
+                        case AstHelpers.getListLiteral listArg of
+                            Just list ->
+                                case
+                                    traverse
+                                        (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
+                                        list
+                                of
+                                    Just justCalls ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "Unnecessary use of " ++ qualifiedToString checkInfo.fn ++ " identity"
+                                                , details = [ "All of the elements in the list are `Just`s, which can be simplified by removing all of the `Just`s." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
+                                                    ++ List.concatMap
+                                                        (\just -> keepOnlyFix { parentRange = just.nodeRange, keep = Node.range just.firstArg })
+                                                        justCalls
+                                                )
+                                            )
 
                                     Nothing ->
                                         Nothing
-                            ]
-                            ()
+
+                            Nothing ->
+                                Nothing
 
                     Nothing ->
                         Nothing
@@ -7462,7 +7461,7 @@ subAndCmdBatchChecks batchable checkInfo =
     firstThatConstructsJust
         [ \() -> callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection checkInfo
         , \() -> callOnWrapReturnsItsValue listCollection checkInfo
-        , \() -> callOnListWithIrrelevantEmptyElement checkInfo.firstArg batchable checkInfo
+        , \() -> callOnListWithIrrelevantEmptyElement batchable checkInfo
         ]
         ()
 
