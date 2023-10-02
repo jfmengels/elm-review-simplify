@@ -2890,6 +2890,8 @@ compositionIntoChecks =
         , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
         , ( ( [ "List" ], "intersperse" ), listIntersperseCompositionChecks )
         , ( ( [ "List" ], "concat" ), listConcatCompositionChecks )
+        , ( ( [ "List" ], "sum" ), sumCompositionChecks listCollection )
+        , ( ( [ "List" ], "product" ), productCompositionChecks listCollection )
         , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
         , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
         , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
@@ -2899,6 +2901,8 @@ compositionIntoChecks =
         , ( ( [ "Task" ], "map" ), taskMapCompositionChecks )
         , ( ( [ "Task" ], "mapError" ), taskMapErrorCompositionChecks )
         , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
+        , ( ( [ "Platform", "Cmd" ], "batch" ), batchCompositionChecks )
+        , ( ( [ "Platform", "Sub" ], "batch" ), batchCompositionChecks )
         , ( ( [ "Json", "Decode" ], "map" ), jsonDecodeMapCompositionChecks )
         , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
         ]
@@ -5246,9 +5250,14 @@ listConcatChecks checkInfo =
 
 listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatCompositionChecks checkInfo =
-    groupingOnSpecificFnCallCanBeCombinedCompositionCheck
-        { specificFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
-        checkInfo
+    firstThatConstructsJust
+        [ \() ->
+            groupingOnSpecificFnCallCanBeCombinedCompositionCheck
+                { specificFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+                checkInfo
+        , \() -> onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection checkInfo
+        ]
+        ()
 
 
 irrelevantEmptyElementInGivenListArgCheck :
@@ -5789,6 +5798,11 @@ listSumChecks checkInfo =
         ()
 
 
+sumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+sumCompositionChecks wrapper checkInfo =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
+
+
 listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks checkInfo =
     firstThatConstructsJust
@@ -5797,6 +5811,11 @@ listProductChecks checkInfo =
         , \() -> callOnWrapReturnsItsValue checkInfo.firstArg listCollection checkInfo
         ]
         ()
+
+
+productCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+productCompositionChecks wrapper checkInfo =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper checkInfo
 
 
 listMinimumChecks : CheckInfo -> Maybe (Error {})
@@ -7408,6 +7427,11 @@ subAndCmdBatchChecks batchable checkInfo =
         , \() -> irrelevantEmptyElementInGivenListArgCheck checkInfo.firstArg batchable checkInfo
         ]
         ()
+
+
+batchCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+batchCompositionChecks checkInfo =
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection checkInfo
 
 
 

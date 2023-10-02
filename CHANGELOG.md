@@ -22,6 +22,11 @@
 - `Tuple.second (Tuple.mapBoth changeFirst changeSecond tuple)` to `Tuple.second (Tuple.mapSecond changeSecond tuple)`
 - `Maybe.withDefault a << Just` to `identity`
 - `Result.withDefault a << Ok` to `identity`
+- `List.sum << List.singleton` to `identity`
+- `List.product << List.singleton` to `identity`
+- `List.concat << List.singleton` to `identity`
+- `Platform.Cmd.batch << List.singleton` to `identity`
+- `Platform.Sub.batch << List.singleton` to `identity`
 
 ## [2.1.2] - 2023-09-28
 
