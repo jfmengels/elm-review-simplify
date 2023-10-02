@@ -9089,7 +9089,7 @@ withDefaultChecks emptiable checkInfo =
 
 wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapperWithDefaultChecks wrapper checkInfo =
-    onWrapperAlwaysReturnsIncomingCompositionCheck { operationArgCount = 2 } wrapper checkInfo
+    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 2 } wrapper checkInfo
 
 
 emptiableWithDefaultChecks :
@@ -9535,7 +9535,7 @@ For example
 
     Cmd.batch [ a ] --> a
 
-Use together with `onWrapperAlwaysReturnsIncomingCompositionCheck`
+Use together with `onWrapAlwaysReturnsIncomingCompositionCheck`
 
 -}
 callOnWrapReturnsItsValue :
@@ -9577,8 +9577,8 @@ For example
 Use together with `callOnWrapReturnsItsValue`.
 
 -}
-onWrapperAlwaysReturnsIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-onWrapperAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
+onWrapAlwaysReturnsIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+onWrapAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
     if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
         Just
             (compositionAlwaysReturnsIncomingError
