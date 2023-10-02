@@ -16,6 +16,10 @@
 - the same operations for `Json.Decode.map` as for e.g. `Task.map` and `Result.map`
 - the same operations for `Json.Decode.map2-8` as for e.g. `Task.mapN` and `Result.mapN`
 - the same operations for `Json.Decode.andThen` as for e.g. `Task.andThen` and `Result.andThen`
+- `Tuple.first (Tuple.mapSecond changeFirst tuple)` to `Tuple.first tuple`
+- `Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)` to `Tuple.first (Tuple.mapFirst changeFirst tuple)`
+- `Tuple.second (Tuple.mapFirst changeSecond tuple)` to `Tuple.second tuple`
+- `Tuple.second (Tuple.mapBoth changeFirst changeSecond tuple)` to `Tuple.second (Tuple.mapSecond changeSecond tuple)`
 
 ## [2.1.2] - 2023-09-28
 

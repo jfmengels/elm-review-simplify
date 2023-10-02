@@ -15138,6 +15138,70 @@ a = Tuple.first << (first |> f |> Tuple.pair)
 a = always (first |> f)
 """
                         ]
+        , test "should replace Tuple.mapSecond changeSecond tuple |> Tuple.first by tuple |> Tuple.first" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.mapSecond changeSecond tuple |> Tuple.first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Tuple.mapSecond before Tuple.first"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the Tuple.mapSecond call by the unchanged tuple." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = tuple |> Tuple.first
+"""
+                        ]
+        , test "should replace Tuple.first << Tuple.mapSecond changeSecond by Tuple.first" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first << Tuple.mapSecond changeSecond
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Tuple.mapSecond before Tuple.first"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can remove the Tuple.mapSecond call." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Tuple.first
+"""
+                        ]
+        , test "should replace Tuple.mapBoth changeFirst changeSecond tuple |> Tuple.first by Tuple.mapFirst changeFirst tuple |> Tuple.first" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.mapBoth changeFirst changeSecond tuple |> Tuple.first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.mapBoth before Tuple.first is the same as Tuple.mapFirst"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the Tuple.mapBoth call by Tuple.mapFirst with the same first mapping and tuple." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Tuple.mapFirst changeFirst tuple |> Tuple.first
+"""
+                        ]
+        , test "should replace Tuple.first << Tuple.mapBoth changeFirst changeSecond by Tuple.first << Tuple.mapFirst changeFirst" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first << Tuple.mapBoth changeFirst changeSecond
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.mapBoth before Tuple.first is the same as Tuple.mapFirst"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the Tuple.mapBoth call by Tuple.mapFirst with the same first mapping." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Tuple.first << Tuple.mapFirst changeFirst
+"""
+                        ]
         ]
 
 
@@ -15198,6 +15262,70 @@ a = Tuple.second << (second |> f |> Tuple.pair)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
+"""
+                        ]
+        , test "should replace Tuple.mapFirst changeSecond tuple |> Tuple.second by tuple |> Tuple.second" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.mapFirst changeSecond tuple |> Tuple.second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Tuple.mapFirst before Tuple.second"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the Tuple.mapFirst call by the unchanged tuple." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = tuple |> Tuple.second
+"""
+                        ]
+        , test "should replace Tuple.second << Tuple.mapFirst changeSecond by Tuple.second" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.second << Tuple.mapFirst changeSecond
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Tuple.mapFirst before Tuple.second"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can remove the Tuple.mapFirst call." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Tuple.second
+"""
+                        ]
+        , test "should replace Tuple.mapBoth changeFirst changeSecond tuple |> Tuple.second by Tuple.mapFirst changeFirst tuple |> Tuple.second" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.mapBoth changeFirst changeSecond tuple |> Tuple.second
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.mapBoth before Tuple.second is the same as Tuple.mapSecond"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the Tuple.mapBoth call by Tuple.mapSecond with the same second mapping and tuple." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Tuple.mapSecond changeSecond tuple |> Tuple.second
+"""
+                        ]
+        , test "should replace Tuple.second << Tuple.mapBoth changeFirst changeSecond by Tuple.second << Tuple.mapSecond changeSecond" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.second << Tuple.mapBoth changeFirst changeSecond
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Tuple.mapBoth before Tuple.second is the same as Tuple.mapSecond"
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the Tuple.mapBoth call by Tuple.mapSecond with the same second mapping." ]
+                            , under = "Tuple.second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Tuple.second << Tuple.mapSecond changeSecond
 """
                         ]
         ]
