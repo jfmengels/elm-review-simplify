@@ -8996,17 +8996,6 @@ operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
         Nothing
 
 
-{-| The last argument of a fully applied function (the given `argCount` specifies what is considered "fully applied").
-
-For example, `fullyAppliedLastArg` on `Array.set 3 "Hitagi"` would return `Nothing`
-while `fullyAppliedLastArg` on `Array.set 3 "Hitagi" arr` would return `Just arr`.
-
--}
-fullyAppliedLastArg : { callInfo | firstArg : Node Expression, argsAfterFirst : List (Node Expression), argCount : Int } -> Maybe (Node Expression)
-fullyAppliedLastArg callInfo =
-    List.drop (callInfo.argCount - 1) (callInfo.firstArg :: callInfo.argsAfterFirst) |> List.head
-
-
 compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 compositionAfterWrapIsUnnecessaryCheck wrapper =
     unnecessaryCompositionAfterCheck wrapper.wrap
@@ -9161,6 +9150,17 @@ unnecessaryCompositionAfterCheck construct checkInfo =
 
     else
         Nothing
+
+
+{-| The last argument of a fully applied function (the given `argCount` specifies what is considered "fully applied").
+
+For example, `fullyAppliedLastArg` on `Array.set 3 "Hitagi"` would return `Nothing`
+while `fullyAppliedLastArg` on `Array.set 3 "Hitagi" arr` would return `Just arr`.
+
+-}
+fullyAppliedLastArg : { callInfo | firstArg : Node Expression, argsAfterFirst : List (Node Expression), argCount : Int } -> Maybe (Node Expression)
+fullyAppliedLastArg callInfo =
+    List.drop (callInfo.argCount - 1) (callInfo.firstArg :: callInfo.argsAfterFirst) |> List.head
 
 
 onlyLastArgIsCurried : { function | args : List (Node Expression), argCount : Int } -> Bool
