@@ -2943,11 +2943,6 @@ compositionIntoChecks =
         ]
 
 
-toggleCallChecks : CheckInfo -> Maybe (Error {})
-toggleCallChecks checkInfo =
-    onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
-
-
 findOperatorRange :
     { extractSourceCode : Range -> String
     , commentRanges : List Range
@@ -3514,6 +3509,16 @@ consChecks =
         ]
 
 
+toggleCallChecks : CheckInfo -> Maybe (Error {})
+toggleCallChecks checkInfo =
+    onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
+
+
+toggleCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+toggleCompositionChecks checkInfo =
+    inversesCompositionCheck checkInfo.later.fn checkInfo
+
+
 {-| Chaining two operations that are inverses of each other and therefore cancel each other out.
 For example
 
@@ -3766,11 +3771,6 @@ getFullComposition expressionNode =
 
         _ ->
             Nothing
-
-
-toggleCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-toggleCompositionChecks checkInfo =
-    inversesCompositionCheck checkInfo.later.fn checkInfo
 
 
 
