@@ -3033,8 +3033,8 @@ addingZeroCheck checkInfo =
             if AstHelpers.getUncomputedNumberValue side.node == Just 0 then
                 Just
                     (Rule.errorWithFix
-                        { message = "Unnecessary addition with 0"
-                        , details = [ "Adding 0 does not change the value of the number." ]
+                        { message = "Unnecessary adding 0"
+                        , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " number you added 0 to." ]
                         }
                         (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
@@ -3056,8 +3056,8 @@ addingOppositesCheck checkInfo =
             Normalize.ConfirmedEquality ->
                 Just
                     (Rule.errorWithFix
-                        { message = "Addition always results in 0"
-                        , details = [ "These two expressions have an equal absolute value but an opposite sign. This means adding them they will cancel out to 0." ]
+                        { message = "Adding opposite numbers will result in 0"
+                        , details = [ "Adding two numbers with an equal absolute value and an opposite sign will cancel each other out. You can replace this operation by 0." ]
                         }
                         checkInfo.parentRange
                         [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
@@ -3075,8 +3075,8 @@ minusChecks checkInfo =
     if AstHelpers.getUncomputedNumberValue checkInfo.right == Just 0 then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary subtraction with 0"
-                , details = [ "Subtracting 0 does not change the value of the number." ]
+                { message = "Unnecessary subtracting 0"
+                , details = [ "You can replace this operation by the left number you subtracted 0 from." ]
                 }
                 checkInfo.operatorRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.left })
@@ -3085,8 +3085,8 @@ minusChecks checkInfo =
     else if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary subtracting from 0"
-                , details = [ "You can negate the expression on the right like `-n`." ]
+                { message = "Subtracting from 0 is the same as negating"
+                , details = [ "You can replace this operation by the negated right number you subtracted from 0, like `-n`." ]
                 }
                 checkInfo.operatorRange
                 (replaceBySubExpressionFix checkInfo.parentRange checkInfo.right
@@ -3108,8 +3108,8 @@ checkIfMinusResultsInZero checkInfo =
             Normalize.ConfirmedEquality ->
                 Just
                     (Rule.errorWithFix
-                        { message = "Subtraction always results in 0"
-                        , details = [ "These two expressions have the same value, which means they will cancel add when subtracting one by the other." ]
+                        { message = "Subtracting equal numbers will result in 0"
+                        , details = [ "You can replace this operation by 0." ]
                         }
                         checkInfo.parentRange
                         [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
@@ -3169,10 +3169,10 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
         (operationSides checkInfo)
 
 
-operationSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression }
+operationSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression, otherDescription : String }
 operationSides checkInfo =
-    [ { node = checkInfo.left, otherNode = checkInfo.right }
-    , { node = checkInfo.right, otherNode = checkInfo.left }
+    [ { node = checkInfo.left, otherNode = checkInfo.right, otherDescription = "right" }
+    , { node = checkInfo.right, otherNode = checkInfo.left, otherDescription = "left" }
     ]
 
 
@@ -4183,7 +4183,7 @@ listConditions operatorToLookFor redundantConditionResolution expressionNode =
             [ ( redundantConditionResolution, expressionNode ) ]
 
 
-orSideChecks : { node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+orSideChecks : { side | node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
 orSideChecks side checkInfo =
     case Evaluate.getBoolean checkInfo side.node of
         Determined True ->
@@ -4218,7 +4218,7 @@ andChecks =
         ]
 
 
-andSideChecks : { node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+andSideChecks : { side | node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
 andSideChecks side checkInfo =
     case Evaluate.getBoolean checkInfo side.node of
         Determined True ->

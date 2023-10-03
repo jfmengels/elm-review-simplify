@@ -2229,8 +2229,8 @@ a = n + 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary addition with 0"
-                            , details = [ "Adding 0 does not change the value of the number." ]
+                            { message = "Unnecessary adding 0"
+                            , details = [ "You can replace this operation by the left number you added 0 to." ]
                             , under = "+ 0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2245,8 +2245,8 @@ a = n + 0.0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary addition with 0"
-                            , details = [ "Adding 0 does not change the value of the number." ]
+                            { message = "Unnecessary adding 0"
+                            , details = [ "You can replace this operation by the left number you added 0 to." ]
                             , under = "+ 0.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2261,8 +2261,8 @@ a = 0 + n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary addition with 0"
-                            , details = [ "Adding 0 does not change the value of the number." ]
+                            { message = "Unnecessary adding 0"
+                            , details = [ "You can replace this operation by the right number you added 0 to." ]
                             , under = "0 +"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2277,8 +2277,8 @@ a = n + (-n)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Addition always results in 0"
-                            , details = [ "These two expressions have an equal absolute value but an opposite sign. This means adding them they will cancel out to 0." ]
+                            { message = "Adding opposite numbers will result in 0"
+                            , details = [ "Adding two numbers with an equal absolute value and an opposite sign will cancel each other out. You can replace this operation by 0." ]
                             , under = "n + (-n)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2293,8 +2293,8 @@ a = -n + n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Addition always results in 0"
-                            , details = [ "These two expressions have an equal absolute value but an opposite sign. This means adding them they will cancel out to 0." ]
+                            { message = "Adding opposite numbers will result in 0"
+                            , details = [ "Adding two numbers with an equal absolute value and an opposite sign will cancel each other out. You can replace this operation by 0." ]
                             , under = "-n + n"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2330,8 +2330,8 @@ a = n - 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary subtraction with 0"
-                            , details = [ "Subtracting 0 does not change the value of the number." ]
+                            { message = "Unnecessary subtracting 0"
+                            , details = [ "You can replace this operation by the left number you subtracted 0 from." ]
                             , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2346,8 +2346,8 @@ a = n - 0.0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary subtraction with 0"
-                            , details = [ "Subtracting 0 does not change the value of the number." ]
+                            { message = "Unnecessary subtracting 0"
+                            , details = [ "You can replace this operation by the left number you subtracted 0 from." ]
                             , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2362,8 +2362,8 @@ a = 0 - n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary subtracting from 0"
-                            , details = [ "You can negate the expression on the right like `-n`." ]
+                            { message = "Subtracting from 0 is the same as negating"
+                            , details = [ "You can replace this operation by the negated right number you subtracted from 0, like `-n`." ]
                             , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2378,8 +2378,8 @@ a = 0 - List.length list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary subtracting from 0"
-                            , details = [ "You can negate the expression on the right like `-n`." ]
+                            { message = "Subtracting from 0 is the same as negating"
+                            , details = [ "You can replace this operation by the negated right number you subtracted from 0, like `-n`." ]
                             , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2394,8 +2394,8 @@ a = n - n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Subtraction always results in 0"
-                            , details = [ "These two expressions have the same value, which means they will cancel add when subtracting one by the other." ]
+                            { message = "Subtracting equal numbers will result in 0"
+                            , details = [ "You can replace this operation by 0." ]
                             , under = "n - n"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
