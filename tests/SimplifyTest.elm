@@ -3267,7 +3267,23 @@ a = not x == not y
                             , under = "=="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  x ==  y
+a = x == y
+"""
+                        ]
+        , test "should simplify (x |> f |> not) == (y |> g |> not) to (x |> f) == (y |> g)" <|
+            \() ->
+                """module A exposing (..)
+a = (x |> f |> not) == (y |> g |> not)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary `not` on both sides of (==)"
+                            , details = [ "You can replace the bool on each side by the value given to `not`." ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (x |> f) == (y |> g)
 """
                         ]
         , test "should simplify not x /= not y to x /= y" <|
@@ -3283,7 +3299,7 @@ a = not x /= not y
                             , under = "/="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a =  x /=  y
+a = x /= y
 """
                         ]
         , test "should simplify x == x to True" <|

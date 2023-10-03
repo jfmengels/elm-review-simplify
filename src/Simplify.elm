@@ -3751,14 +3751,16 @@ equalityChecks isEqual =
                     (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
                     (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
             of
-                Just ( leftNot, rightNot ) ->
+                Just ( leftNotCall, rightNotCall ) ->
                     Just
                         (Rule.errorWithFix
                             { message = "Unnecessary `not` on both sides of (" ++ checkInfo.operator ++ ")"
                             , details = [ "You can replace the bool on each side by the value given to `not`." ]
                             }
                             checkInfo.operatorRange
-                            [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
+                            (replaceBySubExpressionFix leftNotCall.nodeRange leftNotCall.firstArg
+                                ++ replaceBySubExpressionFix rightNotCall.nodeRange rightNotCall.firstArg
+                            )
                         )
 
                 _ ->
