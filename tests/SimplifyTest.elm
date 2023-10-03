@@ -1052,11 +1052,6 @@ booleanTests =
         ]
 
 
-alwaysSameDetails : List String
-alwaysSameDetails =
-    [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
-    ]
-
 sameThingOnBothSidesDetails : String -> List String
 sameThingOnBothSidesDetails value =
     [ "Based on the values and/or the context, we can determine the result. You can replace this operation by " ++ value ++ "."
@@ -1081,8 +1076,11 @@ a = True || x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison is always True"
-                            , details = alwaysSameDetails
+                            { message = "(||) with any side being True will result in True"
+                            , details =
+                                [ "You can replace this operation by True."
+                                , "Maybe you have hardcoded a value or mistyped a condition?"
+                                ]
                             , under = "True || x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1097,8 +1095,11 @@ a = x || True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison is always True"
-                            , details = alwaysSameDetails
+                            { message = "(||) with any side being True will result in True"
+                            , details =
+                                [ "You can replace this operation by True."
+                                , "Maybe you have hardcoded a value or mistyped a condition?"
+                                ]
                             , under = "x || True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1161,8 +1162,11 @@ a = (True) || x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison is always True"
-                            , details = alwaysSameDetails
+                            { message = "(||) with any side being True will result in True"
+                            , details =
+                                [ "You can replace this operation by True."
+                                , "Maybe you have hardcoded a value or mistyped a condition?"
+                                ]
                             , under = "(True) || x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1370,8 +1374,11 @@ a = False && x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison is always False"
-                            , details = alwaysSameDetails
+                            { message = "(&&) with any side being False will result in False"
+                            , details =
+                                [ "You can replace this operation by False."
+                                , "Maybe you have hardcoded a value or mistyped a condition?"
+                                ]
                             , under = "False && x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1386,8 +1393,11 @@ a = x && False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison is always False"
-                            , details = alwaysSameDetails
+                            { message = "(&&) with any side being False will result in False"
+                            , details =
+                                [ "You can replace this operation by False."
+                                , "Maybe you have hardcoded a value or mistyped a condition?"
+                                ]
                             , under = "x && False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4973,8 +4983,11 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison is always False"
-                            , details = alwaysSameDetails
+                            { message = "(&&) with any side being False will result in False"
+                            , details =
+                                [ "You can replace this operation by False."
+                                , "Maybe you have hardcoded a value or mistyped a condition?"
+                                ]
                             , under = "a && b"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

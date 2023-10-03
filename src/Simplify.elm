@@ -3809,12 +3809,6 @@ equalityChecks isEqual =
         ]
 
 
-alwaysSameDetails : List String
-alwaysSameDetails =
-    [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
-    ]
-
-
 
 -- COMPARISONS
 
@@ -4156,8 +4150,11 @@ orSideChecks side checkInfo =
         Determined True ->
             Just
                 (Rule.errorWithFix
-                    { message = "Comparison is always True"
-                    , details = alwaysSameDetails
+                    { message = "(||) with any side being True will result in True"
+                    , details =
+                        [ "You can replace this operation by True."
+                        , "Maybe you have hardcoded a value or mistyped a condition?"
+                        ]
                     }
                     checkInfo.parentRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
@@ -4201,8 +4198,11 @@ andSideChecks side checkInfo =
         Determined False ->
             Just
                 (Rule.errorWithFix
-                    { message = "Comparison is always False"
-                    , details = alwaysSameDetails
+                    { message = "(&&) with any side being False will result in False"
+                    , details =
+                        [ "You can replace this operation by False."
+                        , "Maybe you have hardcoded a value or mistyped a condition?"
+                        ]
                     }
                     checkInfo.parentRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
