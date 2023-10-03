@@ -3341,14 +3341,14 @@ plusplusChecks =
 
 appendEmptyCheck :
     { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
-    -> EmptiableProperties otherProperties
+    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> OperatorCheckInfo
     -> Maybe (Error {})
 appendEmptyCheck side collection checkInfo =
     if collection.empty.is checkInfo.lookupTable side.node then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary appending " ++ collection.empty.asString defaultQualifyResources
+                { message = "Unnecessary appending " ++ descriptionForIndefinite collection.empty.description
                 , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ collection.represents ++ "." ]
                 }
                 checkInfo.operatorRange
@@ -4949,7 +4949,7 @@ listConcatCompositionChecks =
 
 
 callOnListWithIrrelevantEmptyElement :
-    { otherProperties | empty : TypeSubsetProperties empty }
+    EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 callOnListWithIrrelevantEmptyElement emptiableElement checkInfo =
@@ -5779,7 +5779,7 @@ listAllChecks =
     emptiableAllChecks listCollection
 
 
-emptiableAllChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAllChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableAllChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -5828,7 +5828,7 @@ listAnyChecks =
         ]
 
 
-emptiableAnyChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAnyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableAnyChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -5898,7 +5898,7 @@ listFilterMapCompositionChecks =
     mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) }
 
 
-emptiableWrapperFilterMapChecks : EmptiableProperties (WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) }) -> CheckInfo -> Maybe (Error {})
+emptiableWrapperFilterMapChecks : WrapperProperties (EmptiableProperties ConstantProperties { otherProperties | mapFn : ( ModuleName, String ) }) -> CheckInfo -> Maybe (Error {})
 emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -6162,7 +6162,7 @@ arrayIndexedMapChecks =
         ]
 
 
-emptiableRepeatChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableRepeatChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 emptiableRepeatChecks collection checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
@@ -6255,7 +6255,7 @@ arrayFoldrChecks =
     emptiableFoldChecks arrayCollection
 
 
-getChecks : EmptiableProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+getChecks : IndexableProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
 getChecks collection =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } collection
@@ -6311,7 +6311,7 @@ indexAccessChecks collection checkInfo n =
                 Nothing
 
 
-setChecks : CollectionProperties (EmptiableProperties (FromListProperties (IndexableProperties otherProperties))) -> CheckInfo -> Maybe (Error {})
+setChecks : CollectionProperties (IndexableProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
 setChecks collection =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck collection
@@ -6380,7 +6380,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
             Nothing
 
 
-emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableReverseChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableReverseChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
@@ -6533,7 +6533,7 @@ listDropChecks =
         ]
 
 
-emptiableMapNChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableMapNChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
     if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         Just
@@ -6638,7 +6638,7 @@ This is pretty similar to `sequenceOrFirstEmptyChecks` where we look at argument
 
 -}
 mapNOrFirstEmptyConstructionChecks :
-    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
+    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
@@ -6847,7 +6847,7 @@ Any other argument order is not supported:
 
 -}
 emptiableFoldChecks :
-    TypeProperties { otherProperties | empty : TypeSubsetProperties empty }
+    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 emptiableFoldChecks emptiable =
@@ -6939,7 +6939,7 @@ dictFromListCompositionChecks =
 
 
 subAndCmdBatchChecks :
-    EmptiableProperties otherProperties
+    EmptiableProperties ConstantProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 subAndCmdBatchChecks batchable =
@@ -7023,7 +7023,7 @@ taskSequenceCompositionChecks =
 
 
 sequenceOrFirstEmptyChecks :
-    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
+    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 sequenceOrFirstEmptyChecks emptiable checkInfo =
@@ -7548,12 +7548,12 @@ type alias TypeProperties properties =
     }
 
 
-{-| Properties of a type that can hold some data or none.
+{-| Properties of a type that either holds some data or is "empty" with the given properties.
 -}
-type alias EmptiableProperties otherProperties =
+type alias EmptiableProperties empty otherProperties =
     TypeProperties
         { otherProperties
-            | empty : ConstantProperties
+            | empty : empty
         }
 
 
@@ -7566,10 +7566,7 @@ it is impossible to have one type that has both `EmptiableProperties` and `NonEm
 
 -}
 type alias NonEmptiableProperties otherProperties =
-    TypeProperties
-        { otherProperties
-            | empty : { invalid : () }
-        }
+    EmptiableProperties { invalid : () } otherProperties
 
 
 {-| Properties of a type that has a construction function that takes one value.
@@ -7648,7 +7645,7 @@ type alias ConstantProperties =
 
 getEmpty :
     ModuleNameLookupTable
-    -> { otherProperties | empty : TypeSubsetProperties empty }
+    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> Node Expression
     -> Maybe { range : Range }
 getEmpty lookupTable emptiable expressionNode =
@@ -7661,7 +7658,7 @@ getEmpty lookupTable emptiable expressionNode =
 
 getEmptyExpressionNode :
     ModuleNameLookupTable
-    -> { otherProperties | empty : TypeSubsetProperties empty }
+    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> Node Expression
     -> Maybe (Node Expression)
 getEmptyExpressionNode lookupTable emptiable expressionNode =
@@ -7738,7 +7735,7 @@ extractInferResources resources =
     }
 
 
-emptyAsString : QualifyResources a -> { emptiable | empty : { empty | asString : QualifyResources {} -> String } } -> String
+emptyAsString : QualifyResources a -> EmptiableProperties ConstantProperties otherProperties -> String
 emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
@@ -7763,6 +7760,7 @@ randomGeneratorWrapper =
 
 maybeWithJustAsWrap :
     EmptiableProperties
+        ConstantProperties
         (WrapperProperties { mapFn : ( ModuleName, String ) })
 maybeWithJustAsWrap =
     { represents = "maybe"
@@ -7791,9 +7789,10 @@ maybeWithJustAsWrap =
 
 resultWithOkAsWrap :
     WrapperProperties
-        { empty : ConstructWithOneArgProperties
-        , mapFn : ( ModuleName, String )
-        }
+        (EmptiableProperties
+            ConstructWithOneArgProperties
+            { mapFn : ( ModuleName, String ) }
+        )
 resultWithOkAsWrap =
     { represents = "result"
     , wrap = resultOkayConstruct
@@ -7830,9 +7829,10 @@ resultErrorConstruct =
 
 resultWithErrAsWrap :
     WrapperProperties
-        { empty : ConstructWithOneArgProperties
-        , mapFn : ( ModuleName, String )
-        }
+        (EmptiableProperties
+            ConstructWithOneArgProperties
+            { mapFn : ( ModuleName, String ) }
+        )
 resultWithErrAsWrap =
     { represents = "result"
     , wrap = resultErrorConstruct
@@ -7843,9 +7843,10 @@ resultWithErrAsWrap =
 
 taskWithSucceedAsWrap :
     WrapperProperties
-        { empty : ConstructWithOneArgProperties
-        , mapFn : ( ModuleName, String )
-        }
+        (EmptiableProperties
+            ConstructWithOneArgProperties
+            { mapFn : ( ModuleName, String ) }
+        )
 taskWithSucceedAsWrap =
     { represents = "task"
     , wrap = taskSucceedingConstruct
@@ -7882,9 +7883,10 @@ taskFailingConstruct =
 
 taskWithFailAsWrap :
     WrapperProperties
-        { empty : ConstructWithOneArgProperties
-        , mapFn : ( ModuleName, String )
-        }
+        (EmptiableProperties
+            ConstructWithOneArgProperties
+            { mapFn : ( ModuleName, String ) }
+        )
 taskWithFailAsWrap =
     { represents = "task"
     , wrap = taskFailingConstruct
@@ -7895,9 +7897,10 @@ taskWithFailAsWrap =
 
 jsonDecoderWithSucceedAsWrap :
     WrapperProperties
-        { empty : ConstructWithOneArgProperties
-        , mapFn : ( ModuleName, String )
-        }
+        (EmptiableProperties
+            ConstructWithOneArgProperties
+            { mapFn : ( ModuleName, String ) }
+        )
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
     , wrap = jsonDecoderSucceedingConstruct
@@ -7932,7 +7935,7 @@ jsonDecoderFailingConstruct =
     }
 
 
-listCollection : CollectionProperties (EmptiableProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) })))
+listCollection : CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) })))
 listCollection =
     { represents = "list"
     , empty = listEmptyConstant
@@ -7996,7 +7999,7 @@ listDetermineLength resources expressionNode =
             Nothing
 
 
-stringCollection : CollectionProperties (WrapperProperties (EmptiableProperties (FromListProperties {})))
+stringCollection : CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {})))
 stringCollection =
     { represents = "string"
     , empty = stringEmptyConstant
@@ -8047,7 +8050,7 @@ stringDetermineLength expression =
             Nothing
 
 
-arrayCollection : CollectionProperties (EmptiableProperties (FromListProperties (IndexableProperties {})))
+arrayCollection : CollectionProperties (FromListProperties (IndexableProperties (EmptiableProperties ConstantProperties {})))
 arrayCollection =
     { represents = "array"
     , empty =
@@ -8114,7 +8117,7 @@ arrayDetermineSize resources =
         ]
 
 
-setCollection : CollectionProperties (EmptiableProperties (WrapperProperties (FromListProperties {})))
+setCollection : CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties {})))
 setCollection =
     { represents = "set"
     , empty =
@@ -8198,7 +8201,7 @@ setDetermineSize resources =
         ]
 
 
-dictCollection : CollectionProperties (EmptiableProperties (FromListProperties {}))
+dictCollection : CollectionProperties (EmptiableProperties ConstantProperties (FromListProperties {}))
 dictCollection =
     { represents = "dict"
     , empty =
@@ -8273,7 +8276,7 @@ dictDetermineSize resources =
         ]
 
 
-cmdCollection : EmptiableProperties {}
+cmdCollection : EmptiableProperties ConstantProperties {}
 cmdCollection =
     { represents = "command"
     , empty =
@@ -8289,7 +8292,7 @@ cmdCollection =
     }
 
 
-subCollection : EmptiableProperties {}
+subCollection : EmptiableProperties ConstantProperties {}
 subCollection =
     { represents = "subscription"
     , empty =
@@ -8306,7 +8309,7 @@ subCollection =
 
 
 emptiableMapChecks :
-    TypeProperties { otherProperties | empty : TypeSubsetProperties empty }
+    EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 emptiableMapChecks emptiable =
@@ -8501,9 +8504,7 @@ mapAlwaysCompositionChecks wrapper checkInfo =
 
 
 emptiableAndThenChecks :
-    { otherProperties
-        | empty : ConstantProperties
-    }
+    EmptiableProperties ConstantProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 emptiableAndThenChecks emptiable =
@@ -8614,7 +8615,7 @@ resultAndThenChecks =
 
 
 withDefaultChecks :
-    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
+    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 withDefaultChecks emptiable =
@@ -8630,7 +8631,7 @@ wrapperWithDefaultChecks wrapper =
 
 
 emptiableWithDefaultChecks :
-    { otherProperties | empty : TypeSubsetProperties empty }
+    EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 emptiableWithDefaultChecks emptiable checkInfo =
@@ -8655,7 +8656,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
 
 
 unwrapToMaybeChecks :
-    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
+    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 unwrapToMaybeChecks emptiableWrapper =
@@ -9038,7 +9039,7 @@ unnecessaryCallOnCheck constructable checkInfo =
 
 
 unnecessaryCallOnEmptyCheck :
-    { otherProperties | empty : TypeSubsetProperties empty }
+    EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 unnecessaryCallOnEmptyCheck emptiable =
@@ -9047,7 +9048,7 @@ unnecessaryCallOnEmptyCheck emptiable =
 
 callOnEmptyReturnsCheck :
     { resultAsString : QualifyResources {} -> String }
-    -> { otherProperties | empty : TypeSubsetProperties empty }
+    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsCheck config collection checkInfo =
@@ -9093,13 +9094,7 @@ Use together with `unnecessaryCallOnEmptyCheck`
 
 -}
 unnecessaryCompositionAfterEmptyCheck :
-    { a
-        | empty :
-            { empty
-                | description : Description
-                , fn : ( ModuleName, String )
-            }
-    }
+    EmptiableProperties ConstructWithOneArgProperties otherProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 unnecessaryCompositionAfterEmptyCheck emptiable =
@@ -9285,7 +9280,7 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
         Nothing
 
 
-emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableFilterChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
@@ -9312,12 +9307,12 @@ emptiableFilterChecks emptiable =
         ]
 
 
-collectionRemoveChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection =
     unnecessaryCallOnEmptyCheck collection
 
 
-collectionIntersectChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionIntersectChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionIntersectChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9335,7 +9330,7 @@ collectionIntersectChecks collection =
         ]
 
 
-collectionDiffChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9370,7 +9365,7 @@ collectionDiffChecks collection =
         ]
 
 
-collectionUnionChecks : CollectionProperties (EmptiableProperties (FromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : CollectionProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9460,7 +9455,7 @@ collectionUnionWithLiteralsChecks operationInfo collection checkInfo =
             Nothing
 
 
-collectionInsertChecks : CollectionProperties (EmptiableProperties (WrapperProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -9485,14 +9480,14 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
         collection
 
 
-collectionIsEmptyChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
@@ -9532,7 +9527,7 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-collectionFromListChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionFromListChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = collection.empty.asString } listCollection
 
@@ -9574,14 +9569,14 @@ wrapperFromListSingletonCompositionChecks wrapper checkInfo =
 
 
 emptiableToListChecks :
-    { otherProperties | empty : TypeSubsetProperties empty }
+    EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 emptiableToListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } collection
 
 
-collectionPartitionChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
