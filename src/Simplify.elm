@@ -7584,13 +7584,6 @@ type alias EmptiableProperties otherProperties =
         }
 
 
-type alias ConstantProperties =
-    { asString : QualifyResources {} -> String
-    , description : Description
-    , is : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-
-
 {-| `TypeProperties` of a structure that will always have data inside, for example a non-empty list, a `Test`, a `Benchmark` or a tree (but not a forest).
 
 This can be really valuable, for example when you want to know whether the function of a map or andThen will always be called.
@@ -7637,13 +7630,6 @@ type alias IndexableProperties otherProperties =
         }
 
 
-type alias ConstructWithOneArgProperties =
-    { description : Description
-    , fn : ( ModuleName, String )
-    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-    }
-
-
 {-| Properties of a type with with multiple elements.
 -}
 type alias CollectionProperties otherProperties =
@@ -7656,9 +7642,40 @@ type alias CollectionProperties otherProperties =
         }
 
 
+{-| Common properties of a specific set of values for a type.
+
+Examples:
+
+  - a task that is known to fail
+  - a non-empty list with exactly one element
+  - an empty string
+
+The first 2 are examples of a subset with `ConstructWithOneArgProperties`,
+the last one is an example of a subset with `ConstantProperties`
+
+-}
+type alias TypeSubsetProperties otherProperties =
+    { otherProperties
+        | description : Description
+        , is : ModuleNameLookupTable -> Node Expression -> Bool
+    }
+
+
+type alias ConstructWithOneArgProperties =
+    TypeSubsetProperties
+        { fn : ( ModuleName, String )
+        , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+        }
+
+
+type alias ConstantProperties =
+    TypeSubsetProperties
+        { asString : QualifyResources {} -> String }
+
+
 getEmpty :
     ModuleNameLookupTable
-    -> { otherProperties | empty : { empty | is : ModuleNameLookupTable -> Node Expression -> Bool } }
+    -> { otherProperties | empty : TypeSubsetProperties empty }
     -> Node Expression
     -> Maybe { range : Range }
 getEmpty lookupTable emptiable expressionNode =
@@ -7762,6 +7779,9 @@ randomGeneratorWrapper =
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
         }
     , empty = { invalid = () }
     , mapFn = ( [ "Random" ], "map" )
@@ -7788,6 +7808,9 @@ maybeWithJustAsWrap =
         , getValue =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) lookupTable expr)
+        , is =
+            \lookupTable expr ->
+                isJust (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) lookupTable expr)
         }
     , mapFn = ( [ "Maybe" ], "map" )
     }
@@ -7795,172 +7818,183 @@ maybeWithJustAsWrap =
 
 resultWithOkAsWrap :
     WrapperProperties
-        { empty :
-            { description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            , fn : ( ModuleName, String )
-            }
+        { empty : ConstructWithOneArgProperties
         , mapFn : ( ModuleName, String )
         }
 resultWithOkAsWrap =
     { represents = "result"
-    , wrap =
-        { description = An "okay result"
-        , fn = ( [ "Result" ], "Ok" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
-        }
-    , empty =
-        { description = An "error"
-        , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
-        , fn = ( [ "Result" ], "Err" )
-        }
+    , wrap = resultOkayConstruct
+    , empty = resultErrorConstruct
     , mapFn = ( [ "Result" ], "map" )
+    }
+
+
+resultOkayConstruct : ConstructWithOneArgProperties
+resultOkayConstruct =
+    { description = An "okay result"
+    , fn = ( [ "Result" ], "Ok" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
+    }
+
+
+resultErrorConstruct : ConstructWithOneArgProperties
+resultErrorConstruct =
+    { description = An "error"
+    , fn = ( [ "Result" ], "Err" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
     }
 
 
 resultWithErrAsWrap :
     WrapperProperties
-        { empty :
-            { description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            , fn : ( ModuleName, String )
-            }
+        { empty : ConstructWithOneArgProperties
         , mapFn : ( ModuleName, String )
         }
 resultWithErrAsWrap =
     { represents = "result"
-    , wrap =
-        { description = An "error"
-        , fn = ( [ "Result" ], "Err" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
-        }
-    , empty =
-        { description = An "okay result"
-        , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
-        , fn = ( [ "Result" ], "Ok" )
-        }
+    , wrap = resultErrorConstruct
+    , empty = resultOkayConstruct
     , mapFn = ( [ "Result" ], "mapError" )
     }
 
 
 taskWithSucceedAsWrap :
     WrapperProperties
-        { empty :
-            { description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            , fn : ( ModuleName, String )
-            }
+        { empty : ConstructWithOneArgProperties
         , mapFn : ( ModuleName, String )
         }
 taskWithSucceedAsWrap =
     { represents = "task"
-    , wrap =
-        { description = A "succeeding task"
-        , fn = ( [ "Task" ], "succeed" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
-        }
-    , empty =
-        { description = A "failing task"
-        , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
-        , fn = ( [ "Task" ], "fail" )
-        }
+    , wrap = taskSucceedingConstruct
+    , empty = taskFailingConstruct
     , mapFn = ( [ "Task" ], "map" )
+    }
+
+
+taskSucceedingConstruct : ConstructWithOneArgProperties
+taskSucceedingConstruct =
+    { description = A "succeeding task"
+    , fn = ( [ "Task" ], "succeed" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
+    }
+
+
+taskFailingConstruct : ConstructWithOneArgProperties
+taskFailingConstruct =
+    { description = A "failing task"
+    , fn = ( [ "Task" ], "fail" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
     }
 
 
 taskWithFailAsWrap :
     WrapperProperties
-        { empty :
-            { description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            , fn : ( ModuleName, String )
-            }
+        { empty : ConstructWithOneArgProperties
         , mapFn : ( ModuleName, String )
         }
 taskWithFailAsWrap =
     { represents = "task"
-    , wrap =
-        { description = A "failing task"
-        , fn = ( [ "Task" ], "fail" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
-        }
-    , empty =
-        { description = A "succeeding task"
-        , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
-        , fn = ( [ "Task" ], "succeed" )
-        }
+    , wrap = taskFailingConstruct
+    , empty = taskSucceedingConstruct
     , mapFn = ( [ "Task" ], "mapError" )
     }
 
 
 jsonDecoderWithSucceedAsWrap :
     WrapperProperties
-        { empty :
-            { description : Description
-            , is : ModuleNameLookupTable -> Node Expression -> Bool
-            }
+        { empty : ConstructWithOneArgProperties
         , mapFn : ( ModuleName, String )
         }
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
-    , wrap =
-        { description = A "succeeding decoder"
-        , fn = ( [ "Json", "Decode" ], "succeed" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
-        }
-    , empty =
-        { description = A "failing decoder"
-        , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
-        }
+    , wrap = jsonDecoderSucceedingConstruct
+    , empty = jsonDecoderFailingConstruct
     , mapFn = ( [ "Json", "Decode" ], "map" )
+    }
+
+
+jsonDecoderSucceedingConstruct : ConstructWithOneArgProperties
+jsonDecoderSucceedingConstruct =
+    { description = A "succeeding decoder"
+    , fn = ( [ "Json", "Decode" ], "succeed" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
+    }
+
+
+jsonDecoderFailingConstruct : ConstructWithOneArgProperties
+jsonDecoderFailingConstruct =
+    { description = A "failing decoder"
+    , fn = ( [ "Json", "Decode" ], "fail" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
     }
 
 
 listCollection : CollectionProperties (EmptiableProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) })))
 listCollection =
     { represents = "list"
-    , empty =
-        { description = Constant "[]"
-        , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
-        , asString = \_ -> "[]"
-        }
+    , empty = listEmptyConstant
     , size =
         { description = "length"
         , determine = listDetermineLength
         }
-    , wrap =
-        { description = A "singleton list"
-        , fn = ( [ "List" ], "singleton" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
-        }
+    , wrap = listSingletonConstruct
     , mapFn = ( [ "List" ], "map" )
     , fromListLiteral =
         { description = "list literal"
         , getListRange = \_ expr -> AstHelpers.getListLiteralRange expr
         }
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+listEmptyConstant : ConstantProperties
+listEmptyConstant =
+    { description = Constant "[]"
+    , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
+    , asString = \_ -> "[]"
+    }
+
+
+listSingletonConstruct : ConstructWithOneArgProperties
+listSingletonConstruct =
+    { description = A "singleton list"
+    , fn = ( [ "List" ], "singleton" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getListSingleton lookupTable expr)
     }
 
 
@@ -7992,22 +8026,12 @@ listDetermineLength resources expressionNode =
 stringCollection : CollectionProperties (WrapperProperties (EmptiableProperties (FromListProperties {})))
 stringCollection =
     { represents = "string"
-    , empty =
-        { description = Constant emptyStringAsString
-        , asString = \_ -> emptyStringAsString
-        , is = \_ (Node _ expr) -> expr == Expression.Literal ""
-        }
+    , empty = stringEmptyConstant
     , size =
         { description = "length"
         , determine = \_ (Node _ expr) -> stringDetermineLength expr
         }
-    , wrap =
-        { description = A "single-char string"
-        , fn = ( [ "String" ], "fromChar" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "String" ], "fromChar" ) lookupTable expr)
-        }
+    , wrap = singleCharConstruct
     , fromListLiteral =
         { description = "String.fromList call"
         , getListRange =
@@ -8016,6 +8040,27 @@ stringCollection =
                     |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+stringEmptyConstant : ConstantProperties
+stringEmptyConstant =
+    { description = Constant emptyStringAsString
+    , asString = \_ -> emptyStringAsString
+    , is = \_ (Node _ expr) -> expr == Expression.Literal ""
+    }
+
+
+singleCharConstruct : ConstructWithOneArgProperties
+singleCharConstruct =
+    { description = A "single-char string"
+    , fn = ( [ "String" ], "fromChar" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "String" ], "fromChar" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "String" ], "fromChar" ) lookupTable expr)
     }
 
 
@@ -8109,13 +8154,7 @@ setCollection =
                 qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
         }
     , size = { description = "size", determine = setDetermineSize }
-    , wrap =
-        { description = A "singleton set"
-        , fn = ( [ "Set" ], "singleton" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) lookupTable expr)
-        }
+    , wrap = setSingletonConstruct
     , fromListLiteral =
         { description = "Set.fromList call"
         , getListRange =
@@ -8124,6 +8163,19 @@ setCollection =
                     |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+setSingletonConstruct : ConstructWithOneArgProperties
+setSingletonConstruct =
+    { description = A "singleton set"
+    , fn = ( [ "Set" ], "singleton" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) lookupTable expr)
     }
 
 
@@ -9003,19 +9055,10 @@ unnecessaryCompositionAfterWrapCheck wrapper =
 
 unnecessaryCallOnWrappedCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
 unnecessaryCallOnWrappedCheck wrapper =
-    unnecessaryCallOnCheck
-        { description = wrapper.wrap.description
-        , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
-        }
+    unnecessaryCallOnCheck wrapper.wrap
 
 
-unnecessaryCallOnCheck :
-    { a
-        | description : Description
-        , is : ModuleNameLookupTable -> Node Expression -> Bool
-    }
-    -> CheckInfo
-    -> Maybe (Error {})
+unnecessaryCallOnCheck : TypeSubsetProperties otherProperties -> CheckInfo -> Maybe (Error {})
 unnecessaryCallOnCheck constructable checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just constructableArg ->
