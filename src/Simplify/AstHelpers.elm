@@ -1,7 +1,7 @@
 module Simplify.AstHelpers exposing
     ( removeParens, removeParensFromPattern
-    , getValueOrFunctionOrFunctionCall
-    , getSpecificFunctionCall, getSpecificValueOrFunction
+    , getValueOrFnOrFnCall
+    , getSpecificFnCall, getSpecificValueOrFn
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
@@ -23,8 +23,8 @@ module Simplify.AstHelpers exposing
 
 ### value/function/function call/composition
 
-@docs getValueOrFunctionOrFunctionCall
-@docs getSpecificFunctionCall, getSpecificValueOrFunction
+@docs getValueOrFnOrFnCall
+@docs getSpecificFnCall, getSpecificValueOrFn
 
 
 ### certain kind
@@ -103,7 +103,7 @@ getListSingleton lookupTable expressionNode =
             Nothing
 
         Nothing ->
-            case getSpecificFunctionCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+            case getSpecificFnCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         [] ->
@@ -118,7 +118,7 @@ getListSingleton lookupTable expressionNode =
 
 {-| Parses calls and lambdas that are reducible to a call of a function with the given name
 -}
-getSpecificFunctionCall :
+getSpecificFnCall :
     ( ModuleName, String )
     -> ModuleNameLookupTable
     -> Node Expression
@@ -129,8 +129,8 @@ getSpecificFunctionCall :
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
             }
-getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode =
-    case getValueOrFunctionOrFunctionCall expressionNode of
+getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
+    case getValueOrFnOrFnCall expressionNode of
         Just call ->
             case call.args of
                 firstArg :: argsAfterFirst ->
@@ -157,7 +157,7 @@ getSpecificFunctionCall ( moduleName, name ) lookupTable expressionNode =
 
 {-| Parse a value or the collapsed function or a lambda fully reduced to a function
 -}
-getValueOrFunctionOrFunctionCall :
+getValueOrFnOrFnCall :
     Node Expression
     ->
         Maybe
@@ -166,7 +166,7 @@ getValueOrFunctionOrFunctionCall :
             , fnRange : Range
             , args : List (Node Expression)
             }
-getValueOrFunctionOrFunctionCall expressionNode =
+getValueOrFnOrFnCall expressionNode =
     case getCollapsedUnreducedValueOrFunctionCall expressionNode of
         Just valueOrCall ->
             Just valueOrCall
@@ -194,8 +194,8 @@ getValueOrFunctionOrFunctionCall expressionNode =
 a function reference with the given name without arguments
 or a lambda that is reducible to a function with the given name without arguments
 -}
-getSpecificValueOrFunction : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificValueOrFunction ( moduleName, name ) lookupTable expressionNode =
+getSpecificValueOrFn : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
+getSpecificValueOrFn ( moduleName, name ) lookupTable expressionNode =
     case getValueOrFunction expressionNode of
         Just normalFn ->
             if
@@ -300,7 +300,7 @@ Either a function reducible to `Tuple.first` or `\( first, ... ) -> first`.
 -}
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleFirstAccess lookupTable expressionNode =
-    case getSpecificValueOrFunction ( [ "Tuple" ], "first" ) lookupTable expressionNode of
+    case getSpecificValueOrFn ( [ "Tuple" ], "first" ) lookupTable expressionNode of
         Just _ ->
             True
 
@@ -328,7 +328,7 @@ Either a function reducible to `Tuple.second` or `\( ..., second ) -> second`.
 -}
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
-    case getSpecificValueOrFunction ( [ "Tuple" ], "second" ) lookupTable expressionNode of
+    case getSpecificValueOrFn ( [ "Tuple" ], "second" ) lookupTable expressionNode of
         Just _ ->
             True
 
@@ -375,7 +375,7 @@ Either a function reducible to `Basics.identity` or `\a -> a`.
 -}
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
 isIdentity lookupTable baseExpressionNode =
-    case getSpecificValueOrFunction ( [ "Basics" ], "identity" ) lookupTable baseExpressionNode of
+    case getSpecificValueOrFn ( [ "Basics" ], "identity" ) lookupTable baseExpressionNode of
         Just _ ->
             True
 
@@ -398,7 +398,7 @@ Either a function reducible to `Basics.always x`, `\_ -> x` or even for example 
 -}
 getAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
 getAlwaysResult lookupTable expressionNode =
-    case getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+    case getSpecificFnCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
         Just alwaysCall ->
             Just alwaysCall.firstArg
 
@@ -691,7 +691,7 @@ getBool lookupTable expressionNode =
 
 getSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificBool specificBool lookupTable expressionNode =
-    getSpecificValueOrFunction ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
+    getSpecificValueOrFn ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
 
 
 getTuple2Literal : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
@@ -711,7 +711,7 @@ getTuple2 expressionNode lookupTable =
             Just { first = first, second = second }
 
         _ ->
-            case getSpecificFunctionCall ( [ "Tuple" ], "pair" ) lookupTable expressionNode of
+            case getSpecificFnCall ( [ "Tuple" ], "pair" ) lookupTable expressionNode of
                 Just tuplePairCall ->
                     case tuplePairCall.argsAfterFirst of
                         second :: _ ->
@@ -754,7 +754,7 @@ getBoolPattern lookupTable basePatternNode =
 
 getSpecificOrder : Order -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificOrder specificOrder lookupTable expression =
-    getSpecificValueOrFunction ( [ "Basics" ], orderToString specificOrder ) lookupTable expression
+    getSpecificValueOrFn ( [ "Basics" ], orderToString specificOrder ) lookupTable expression
 
 
 getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order

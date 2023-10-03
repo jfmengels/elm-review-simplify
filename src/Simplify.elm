@@ -2817,8 +2817,8 @@ compositionChecks =
     [ basicsIdentityCompositionChecks
     , \checkInfo ->
         case
-            ( AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.earlier.node
-            , AstHelpers.getValueOrFunctionOrFunctionCall checkInfo.later.node
+            ( AstHelpers.getValueOrFnOrFnCall checkInfo.earlier.node
+            , AstHelpers.getValueOrFnOrFnCall checkInfo.later.node
             )
         of
             ( Just earlierFnOrCall, Just laterFnOrCall ) ->
@@ -3497,7 +3497,7 @@ would be an incorrect fix. See for example
 -}
 onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
 onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
-    case AstHelpers.getSpecificFunctionCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
+    case AstHelpers.getSpecificFnCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
         Just call ->
             Just
                 (Rule.errorWithFix
@@ -3747,8 +3747,8 @@ equalityChecks isEqual =
                 (operationSides checkInfo)
         , \checkInfo ->
             case
-                ( AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left
-                , AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right
+                ( AstHelpers.getSpecificFnCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left
+                , AstHelpers.getSpecificFnCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right
                 )
             of
                 ( Just leftNotCall, Just rightNotCall ) ->
@@ -4388,7 +4388,7 @@ tuplePartChecks partConfig =
                 )
                 (AstHelpers.getTuple2 checkInfo.firstArg checkInfo.lookupTable)
         , \checkInfo ->
-            case AstHelpers.getSpecificFunctionCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificFnCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
                 Just mapSecondCall ->
                     case mapSecondCall.argsAfterFirst of
                         unmappedTuple :: [] ->
@@ -4407,7 +4407,7 @@ tuplePartChecks partConfig =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Tuple" ], "mapBoth" ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificFnCall ( [ "Tuple" ], "mapBoth" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just tupleMapBothCall ->
                     case tupleMapBothCall.argsAfterFirst of
                         secondMapperArg :: _ :: [] ->
@@ -5156,7 +5156,7 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
                     Nothing
 
         _ ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
                 Just alwaysCall ->
                     Just
                         (replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg)
@@ -5338,7 +5338,7 @@ dictToListMapChecks : CheckInfo -> Maybe (Error {})
 dictToListMapChecks listMapCheckInfo =
     case secondArg listMapCheckInfo of
         Just listArgument ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "toList" ) listMapCheckInfo.lookupTable listArgument of
+            case AstHelpers.getSpecificFnCall ( [ "Dict" ], "toList" ) listMapCheckInfo.lookupTable listArgument of
                 Just dictToListCall ->
                     let
                         error : { toEntryAspectList : String, tuplePart : String } -> Error {}
@@ -5373,7 +5373,7 @@ arrayToIndexedListToListMapChecks : CheckInfo -> Maybe (Error {})
 arrayToIndexedListToListMapChecks listMapCheckInfo =
     case secondArg listMapCheckInfo of
         Just listArgument ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "toIndexedList" ) listMapCheckInfo.lookupTable listArgument of
+            case AstHelpers.getSpecificFnCall ( [ "Array" ], "toIndexedList" ) listMapCheckInfo.lookupTable listArgument of
                 Just arrayToIndexedList ->
                     if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
                         let
@@ -5757,7 +5757,7 @@ listFoldAnyDirectionChecks =
                         [ \() ->
                             case maybeListArg of
                                 Just listArg ->
-                                    case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
+                                    case AstHelpers.getSpecificFnCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
                                         Just setToListCall ->
                                             Just
                                                 (Rule.errorWithFix
@@ -5926,7 +5926,7 @@ listFilterMapChecks =
                             Just list ->
                                 case
                                     traverse
-                                        (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
+                                        (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
                                         list
                                 of
                                     Just justCalls ->
@@ -5966,7 +5966,7 @@ emptiableWrapperFilterMapChecks : EmptiableProperties (WrapperProperties { other
 emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
@@ -5983,7 +5983,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Undetermined ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
@@ -5995,7 +5995,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -6016,7 +6016,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks config checkInfo =
     case secondArg checkInfo of
         Just mappableArg ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                case AstHelpers.getSpecificFunctionCall config.mapFn checkInfo.lookupTable mappableArg of
+                case AstHelpers.getSpecificFnCall config.mapFn checkInfo.lookupTable mappableArg of
                     Just mapCall ->
                         Just
                             (Rule.errorWithFix
@@ -6088,7 +6088,7 @@ callFromCanBeCombinedCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callFromCanBeCombinedCheck config checkInfo =
-    case AstHelpers.getSpecificFunctionCall config.fromFn checkInfo.lookupTable checkInfo.firstArg of
+    case AstHelpers.getSpecificFnCall config.fromFn checkInfo.lookupTable checkInfo.firstArg of
         Just fromFnCall ->
             Just
                 (Rule.errorWithFix
@@ -6279,10 +6279,10 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
         maybeCall =
             firstThatConstructsJust
                 [ \() ->
-                    AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) checkInfo.lookupTable checkInfo.firstArg
+                    AstHelpers.getSpecificFnCall ( [ "Array" ], "repeat" ) checkInfo.lookupTable checkInfo.firstArg
                         |> Maybe.map (Tuple.pair "repeat")
                 , \() ->
-                    AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) checkInfo.lookupTable checkInfo.firstArg
+                    AstHelpers.getSpecificFnCall ( [ "Array" ], "initialize" ) checkInfo.lookupTable checkInfo.firstArg
                         |> Maybe.map (Tuple.pair "initialize")
                 ]
                 ()
@@ -6498,7 +6498,7 @@ For operations that toggle between 2 states, like `reverse` or `List.Extra.swapA
 -}
 operationDoesNotChangeResultOfOperationCheck : CheckInfo -> Maybe (Error {})
 operationDoesNotChangeResultOfOperationCheck checkInfo =
-    case Maybe.andThen (AstHelpers.getSpecificFunctionCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+    case Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
         Just lastArgCall ->
             let
                 areAllArgsEqual : Bool
@@ -7624,7 +7624,7 @@ randomListChecks =
         , \checkInfo ->
             case secondArg checkInfo of
                 Just elementGeneratorArg ->
-                    case AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) checkInfo.lookupTable elementGeneratorArg of
+                    case AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) checkInfo.lookupTable elementGeneratorArg of
                         Just constantCall ->
                             let
                                 currentAsString : String
@@ -7913,7 +7913,7 @@ randomGeneratorWrapper =
         , fn = ( [ "Random" ], "constant" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Random" ], "constant" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
         }
     , empty = { invalid = () }
     , mapFn = ( [ "Random" ], "map" )
@@ -7929,7 +7929,7 @@ maybeWithJustAsWrap =
         { description = Constant "Nothing"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Nothing" ) lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
@@ -7939,7 +7939,7 @@ maybeWithJustAsWrap =
         , fn = ( [ "Maybe" ], "Just" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) lookupTable expr)
         }
     , mapFn = ( [ "Maybe" ], "map" )
     }
@@ -7960,13 +7960,13 @@ resultWithOkAsWrap =
         , fn = ( [ "Result" ], "Ok" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
         }
     , empty =
         { description = An "error"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
         }
     , mapFn = ( [ "Result" ], "map" )
     }
@@ -7987,13 +7987,13 @@ resultWithErrAsWrap =
         , fn = ( [ "Result" ], "Err" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Err" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
         }
     , empty =
         { description = An "okay result"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFunctionCall ( [ "Result" ], "Ok" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
         }
     , mapFn = ( [ "Result" ], "mapError" )
     }
@@ -8014,13 +8014,13 @@ taskWithSucceedAsWrap =
         , fn = ( [ "Task" ], "succeed" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "succeed" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
         }
     , empty =
         { description = A "failing task"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "fail" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
         }
     , mapFn = ( [ "Task" ], "map" )
     }
@@ -8041,13 +8041,13 @@ taskWithFailAsWrap =
         , fn = ( [ "Task" ], "fail" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "fail" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
         }
     , empty =
         { description = A "succeeding task"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFunctionCall ( [ "Task" ], "succeed" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
         }
     , mapFn = ( [ "Task" ], "mapError" )
     }
@@ -8068,13 +8068,13 @@ jsonDecoderWithSucceedAsWrap =
         , fn = ( [ "Json", "Decode" ], "succeed" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
         }
     , empty =
         { description = A "failing decoder"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFunctionCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
         }
     , mapFn = ( [ "Json", "Decode" ], "map" )
     }
@@ -8150,13 +8150,13 @@ stringCollection =
         , fn = ( [ "String" ], "fromChar" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromChar" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "String" ], "fromChar" ) lookupTable expr)
         }
     , fromListLiteral =
         { description = "String.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFunctionCall ( [ "String" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall ( [ "String" ], "fromList" ) lookupTable expr
                     |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
@@ -8180,7 +8180,7 @@ arrayCollection =
         { description = Constant (qualifiedToString ( [ "Array" ], "empty" ))
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn ( [ "Array" ], "empty" ) lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify ( [ "Array" ], "empty" ) resources)
@@ -8188,13 +8188,13 @@ arrayCollection =
     , size = { description = "length", determine = arrayDetermineSize }
     , literalElements =
         \lookupTable expr ->
-            AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
+            AstHelpers.getSpecificFnCall ( [ "Array" ], "fromList" ) lookupTable expr
                 |> Maybe.andThen (\arrayFromListCall -> AstHelpers.getListLiteral arrayFromListCall.firstArg)
     , fromListLiteral =
         { description = "Array.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall ( [ "Array" ], "fromList" ) lookupTable expr
                     |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
@@ -8208,21 +8208,21 @@ arrayDetermineSize :
 arrayDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Array" ], "empty" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFn ( [ "Array" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "fromList" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Array" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     listDetermineLength resources fromListCall.firstArg
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
                         |> Maybe.map (\n -> Exactly (max 0 n))
@@ -8230,7 +8230,7 @@ arrayDetermineSize resources =
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
                         |> Maybe.map (\n -> Exactly (max 0 n))
@@ -8247,7 +8247,7 @@ setCollection =
         { description = Constant (qualifiedToString ( [ "Set" ], "empty" ))
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn ( [ "Set" ], "empty" ) lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
@@ -8258,13 +8258,13 @@ setCollection =
         , fn = ( [ "Set" ], "singleton" )
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) lookupTable expr)
         }
     , fromListLiteral =
         { description = "Set.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall ( [ "Set" ], "fromList" ) lookupTable expr
                     |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
@@ -8278,21 +8278,21 @@ setDetermineSize :
 setDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Set" ], "empty" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFn ( [ "Set" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "singleton" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 1)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Set" ], "fromList" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Set" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
                         Just [] ->
@@ -8324,7 +8324,7 @@ dictCollection =
         { description = Constant (qualifiedToString ( [ "Dict" ], "empty" ))
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn ( [ "Dict" ], "empty" ) lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
@@ -8334,7 +8334,7 @@ dictCollection =
         { description = "Dict.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall ( [ "Dict" ], "fromList" ) lookupTable expr
                     |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = False
@@ -8348,14 +8348,14 @@ dictDetermineSize :
 dictDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFunction ( [ "Dict" ], "empty" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFn ( [ "Dict" ], "empty" ) resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "singleton" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Dict" ], "singleton" ) resources.lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         _ :: [] ->
@@ -8367,7 +8367,7 @@ dictDetermineSize resources =
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFunctionCall ( [ "Dict" ], "fromList" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall ( [ "Dict" ], "fromList" ) resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
                         Just [] ->
@@ -8400,7 +8400,7 @@ cmdCollection =
             Constant "Cmd.none"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
@@ -8416,7 +8416,7 @@ subCollection =
             Constant "Sub.none"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFunction ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
@@ -8687,7 +8687,7 @@ wrapperAndThenChecks wrapper =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFunction wrapper.wrap.fn checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFn wrapper.wrap.fn checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
@@ -8851,7 +8851,7 @@ fromMaybeChecks config checkInfo =
         Just maybeArg ->
             firstThatConstructsJust
                 [ \() ->
-                    case sameInAllBranches (AstHelpers.getSpecificValueOrFunction ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable) maybeArg of
                         Determined _ ->
                             Just
                                 (Rule.errorWithFix
@@ -8871,7 +8871,7 @@ fromMaybeChecks config checkInfo =
                         Undetermined ->
                             Nothing
                 , \() ->
-                    case sameInAllBranches (AstHelpers.getSpecificFunctionCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable) maybeArg of
                         Determined justCalls ->
                             Just
                                 (Rule.errorWithFix
@@ -10787,7 +10787,7 @@ constructs :
     -> Node Expression
     -> Match specific
 constructs getSpecific lookupTable expressionNode =
-    case AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+    case AstHelpers.getSpecificFnCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
         Just alwaysCall ->
             getSpecific alwaysCall.firstArg
 
