@@ -6424,100 +6424,6 @@ listSortCompositionChecks =
     operationDoesNotChangeResultOfOperationCompositionCheck
 
 
-{-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
-This applies to functions that are equivalent to identity when operating on the result another such function.
-
-Examples of such functions:
-
-  - one argument: `Simplify.expectNaN`, `Review.Rule.providesFixesForModuleRule`, `List.sort`, `List.Extra.unique`, [`AVL.Set.clear`](https://package.elm-lang.org/packages/owanturist/elm-avl-dict/2.1.0/AVL-Set#clear)
-  - two arguments: `List.filter f`, `List.Extra.filterNot f`, `List.Extra.takeWhile/dropWhile(Right) f`, `List.sortBy f`, `List.Extra.uniqueBy f`
-  - three arguments: `Array.set i new`, `Array.Extra.resizelRepeat l pad`, `List.Extra.setAt i new`
-
-Note that `update` or `setWhere` operations for example _can_ have an effect even after the same operation has already been applied.
-
-For operations that toggle between 2 states, like `reverse` or `List.Extra.swapAt i j`, use `toggleCallChecks`
-
--}
-operationDoesNotChangeResultOfOperationCheck : CheckInfo -> Maybe (Error {})
-operationDoesNotChangeResultOfOperationCheck checkInfo =
-    case Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
-        Just lastArgCall ->
-            let
-                areAllArgsEqual : Bool
-                areAllArgsEqual =
-                    List.all
-                        (\( arg, lastArgCallArg ) ->
-                            Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
-                        )
-                        (List.map2 Tuple.pair
-                            (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
-                            (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
-                        )
-            in
-            if areAllArgsEqual then
-                Just
-                    (Rule.errorWithFix
-                        { message =
-                            case checkInfo.argCount of
-                                1 ->
-                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
-
-                                _ ->
-                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
-                        , details = [ "You can remove this additional operation." ]
-                        }
-                        checkInfo.fnRange
-                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = lastArgCall.nodeRange })
-                    )
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
-
-
-operationDoesNotChangeResultOfOperationCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
-    let
-        areAllArgsEqual : () -> Bool
-        areAllArgsEqual () =
-            List.all
-                (\( arg, earlierArg ) ->
-                    Normalize.compare checkInfo arg earlierArg == Normalize.ConfirmedEquality
-                )
-                (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
-    in
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) && areAllArgsEqual () then
-        Just
-            { info =
-                { message =
-                    case checkInfo.later.argCount of
-                        1 ->
-                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after " ++ qualifiedToString checkInfo.earlier.fn
-
-                        _ ->
-                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after equivalent " ++ qualifiedToString checkInfo.earlier.fn
-                , details = [ "You can remove this additional operation." ]
-                }
-            , fix = [ Fix.removeRange checkInfo.later.removeRange ]
-            }
-
-    else
-        Nothing
-
-
-{-| The last argument of a fully applied function (the given `argCount` specifies what is considered "fully applied").
-
-For example, `fullyAppliedLastArg` on `Array.set 3 "Hitagi"` would return `Nothing`
-while `fullyAppliedLastArg` on `Array.set 3 "Hitagi" arr` would return `Just arr`.
-
--}
-fullyAppliedLastArg : { callInfo | firstArg : Node Expression, argsAfterFirst : List (Node Expression), argCount : Int } -> Maybe (Node Expression)
-fullyAppliedLastArg callInfo =
-    List.drop (callInfo.argCount - 1) (callInfo.firstArg :: callInfo.argsAfterFirst) |> List.head
-
-
 listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks =
     firstThatConstructsJust
@@ -9005,6 +8911,100 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+{-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
+This applies to functions that are equivalent to identity when operating on the result another such function.
+
+Examples of such functions:
+
+  - one argument: `Simplify.expectNaN`, `Review.Rule.providesFixesForModuleRule`, `List.sort`, `List.Extra.unique`, [`AVL.Set.clear`](https://package.elm-lang.org/packages/owanturist/elm-avl-dict/2.1.0/AVL-Set#clear)
+  - two arguments: `List.filter f`, `List.Extra.filterNot f`, `List.Extra.takeWhile/dropWhile(Right) f`, `List.sortBy f`, `List.Extra.uniqueBy f`
+  - three arguments: `Array.set i new`, `Array.Extra.resizelRepeat l pad`, `List.Extra.setAt i new`
+
+Note that `update` or `setWhere` operations for example _can_ have an effect even after the same operation has already been applied.
+
+For operations that toggle between 2 states, like `reverse` or `List.Extra.swapAt i j`, use `toggleCallChecks`
+
+-}
+operationDoesNotChangeResultOfOperationCheck : CheckInfo -> Maybe (Error {})
+operationDoesNotChangeResultOfOperationCheck checkInfo =
+    case Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+        Just lastArgCall ->
+            let
+                areAllArgsEqual : Bool
+                areAllArgsEqual =
+                    List.all
+                        (\( arg, lastArgCallArg ) ->
+                            Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
+                        )
+                        (List.map2 Tuple.pair
+                            (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
+                            (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
+                        )
+            in
+            if areAllArgsEqual then
+                Just
+                    (Rule.errorWithFix
+                        { message =
+                            case checkInfo.argCount of
+                                1 ->
+                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
+
+                                _ ->
+                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
+                        , details = [ "You can remove this additional operation." ]
+                        }
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = lastArgCall.nodeRange })
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+operationDoesNotChangeResultOfOperationCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
+    let
+        areAllArgsEqual : () -> Bool
+        areAllArgsEqual () =
+            List.all
+                (\( arg, earlierArg ) ->
+                    Normalize.compare checkInfo arg earlierArg == Normalize.ConfirmedEquality
+                )
+                (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
+    in
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) && areAllArgsEqual () then
+        Just
+            { info =
+                { message =
+                    case checkInfo.later.argCount of
+                        1 ->
+                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after " ++ qualifiedToString checkInfo.earlier.fn
+
+                        _ ->
+                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after equivalent " ++ qualifiedToString checkInfo.earlier.fn
+                , details = [ "You can remove this additional operation." ]
+                }
+            , fix = [ Fix.removeRange checkInfo.later.removeRange ]
+            }
+
+    else
+        Nothing
+
+
+{-| The last argument of a fully applied function (the given `argCount` specifies what is considered "fully applied").
+
+For example, `fullyAppliedLastArg` on `Array.set 3 "Hitagi"` would return `Nothing`
+while `fullyAppliedLastArg` on `Array.set 3 "Hitagi" arr` would return `Just arr`.
+
+-}
+fullyAppliedLastArg : { callInfo | firstArg : Node Expression, argsAfterFirst : List (Node Expression), argCount : Int } -> Maybe (Node Expression)
+fullyAppliedLastArg callInfo =
+    List.drop (callInfo.argCount - 1) (callInfo.firstArg :: callInfo.argsAfterFirst) |> List.head
 
 
 compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
