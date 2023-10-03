@@ -4518,7 +4518,7 @@ stringReverseChecks =
 stringReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringReverseCompositionChecks =
     firstThatConstructsJust
-        [ compositionAfterWrapIsUnnecessaryCheck stringCollection
+        [ unnecessaryCompositionAfterWrapCheck stringCollection
         , toggleCompositionChecks
         ]
 
@@ -5117,7 +5117,7 @@ listIntersperseChecks =
 
 listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listIntersperseCompositionChecks =
-    compositionAfterWrapIsUnnecessaryCheck listCollection
+    unnecessaryCompositionAfterWrapCheck listCollection
 
 
 listHeadChecks : CheckInfo -> Maybe (Error {})
@@ -6405,7 +6405,7 @@ listReverseChecks =
 listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listReverseCompositionChecks =
     firstThatConstructsJust
-        [ compositionAfterWrapIsUnnecessaryCheck listCollection
+        [ unnecessaryCompositionAfterWrapCheck listCollection
         , toggleCompositionChecks
         ]
 
@@ -8996,8 +8996,8 @@ operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
         Nothing
 
 
-compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-compositionAfterWrapIsUnnecessaryCheck wrapper =
+unnecessaryCompositionAfterWrapCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+unnecessaryCompositionAfterWrapCheck wrapper =
     unnecessaryCompositionAfterCheck wrapper.wrap
 
 
