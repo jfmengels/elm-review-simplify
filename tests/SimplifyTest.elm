@@ -2783,7 +2783,7 @@ a = n // 1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary dividing by 1"
-                            , details = [ "You can replace this operation by the left number you divided by 1 using (//)." ]
+                            , details = [ "You can replace this operation by the left integer you divided by 1." ]
                             , under = "//"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2799,7 +2799,7 @@ a = n // m // 1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary dividing by 1"
-                            , details = [ "You can replace this operation by the left number you divided by 1 using (//)." ]
+                            , details = [ "You can replace this operation by the left integer you divided by 1." ]
                             , under = "//"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
@@ -2834,7 +2834,7 @@ a = n // 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dividing by 0 always returns 0"
+                            { message = "Dividing by 0 will result in 0"
                             , details =
                                 [ "Dividing anything by 0 using (//) gives 0 which means you can replace the whole division operation by 0."
                                 , "Most likely, dividing by 0 was unintentional and you had a different number in mind."

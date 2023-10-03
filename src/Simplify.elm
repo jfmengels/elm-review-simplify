@@ -3262,7 +3262,7 @@ intDivideChecks =
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary dividing by 1"
-                                , details = [ "You can replace this operation by the left number you divided by 1 using (//)." ]
+                                , details = [ "You can replace this operation by the left integer you divided by 1." ]
                                 }
                                 checkInfo.operatorRange
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
@@ -3271,7 +3271,7 @@ intDivideChecks =
                     else if rightNumber == 0 then
                         Just
                             (Rule.errorWithFix
-                                { message = "Dividing by 0 always returns 0"
+                                { message = "Dividing by 0 will result in 0"
                                 , details =
                                     [ "Dividing anything by 0 using (//) gives 0 which means you can replace the whole division operation by 0."
                                     , "Most likely, dividing by 0 was unintentional and you had a different number in mind."
