@@ -1631,10 +1631,11 @@ a = not (not x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not (not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.not." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 8 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -1647,10 +1648,11 @@ a = x |> not |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not |> not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.not." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 17 }, end = { row = 2, column = 20 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -1663,10 +1665,11 @@ a = (x |> not) |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not) |> not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.not." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 19 }, end = { row = 2, column = 22 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -1679,10 +1682,11 @@ a = (not <| x) |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not <| x) |> not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.not." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 19 }, end = { row = 2, column = 22 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -1695,10 +1699,11 @@ a = not x |> not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not x |> not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.not." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 14 }, end = { row = 2, column = 17 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -1711,10 +1716,11 @@ a = not <| not x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.not"
-                            , details = [ "Chaining Basics.not with Basics.not makes both functions cancel each other out." ]
-                            , under = "not <| not"
+                            { message = "Basics.not, then Basics.not cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.not." ]
+                            , under = "not"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 8 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -3025,10 +3031,11 @@ a = negate <| negate x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double Basics.negate"
-                            , details = [ "Chaining Basics.negate with Basics.negate makes both functions cancel each other out." ]
-                            , under = "negate <| negate"
+                            { message = "Basics.negate, then Basics.negate cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.negate." ]
+                            , under = "negate"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 11 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -7171,10 +7178,11 @@ a = String.reverse <| String.reverse <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double String.reverse"
-                            , details = [ "Chaining String.reverse with String.reverse makes both functions cancel each other out." ]
-                            , under = "String.reverse <| String.reverse"
+                            { message = "String.reverse, then String.reverse cancels each other out"
+                            , details = [ "You can replace this call by the argument given to String.reverse." ]
+                            , under = "String.reverse"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
 """
@@ -14183,10 +14191,11 @@ a = List.reverse <| List.reverse <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary double List.reverse"
-                            , details = [ "Chaining List.reverse with List.reverse makes both functions cancel each other out." ]
-                            , under = "List.reverse <| List.reverse"
+                            { message = "List.reverse, then List.reverse cancels each other out"
+                            , details = [ "You can replace this call by the argument given to List.reverse." ]
+                            , under = "List.reverse"
                             }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 17 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = list
 """

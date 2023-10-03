@@ -2945,62 +2945,7 @@ compositionIntoChecks =
 
 removeAlongWithOtherFunctionCheck : CheckInfo -> Maybe (Error {})
 removeAlongWithOtherFunctionCheck checkInfo =
-    let
-        fnToFind : ( ModuleName, String )
-        fnToFind =
-            checkInfo.fn
-    in
-    case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
-        Expression.Application (secondFn :: firstArgOfSecondCall :: _) ->
-            case AstHelpers.getSpecificValueOrFunction fnToFind checkInfo.lookupTable secondFn of
-                Just secondRange ->
-                    Just
-                        (Rule.errorWithFix
-                            (doubleToggleErrorInfo fnToFind)
-                            (Range.combine [ checkInfo.fnRange, secondRange ])
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
-                                    firstArgOfSecondCall
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-
-        Expression.OperatorApplication "|>" _ firstArgOfSecondCall secondFn ->
-            case AstHelpers.getSpecificValueOrFunction fnToFind checkInfo.lookupTable secondFn of
-                Just secondRange ->
-                    Just
-                        (Rule.errorWithFix
-                            (doubleToggleErrorInfo fnToFind)
-                            (Range.combine [ checkInfo.fnRange, secondRange ])
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
-                                    firstArgOfSecondCall
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-
-        Expression.OperatorApplication "<|" _ secondFn firstArgOfSecondCall ->
-            case AstHelpers.getSpecificValueOrFunction fnToFind checkInfo.lookupTable secondFn of
-                Just secondRange ->
-                    Just
-                        (Rule.errorWithFix
-                            (doubleToggleErrorInfo fnToFind)
-                            (Range.combine [ checkInfo.fnRange, secondRange ])
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
-                                    firstArgOfSecondCall
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-
-        _ ->
-            Nothing
+    onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
 
 
 doubleToggleErrorInfo : ( ModuleName, String ) -> { message : String, details : List String }
