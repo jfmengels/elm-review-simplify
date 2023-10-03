@@ -4088,8 +4088,7 @@ isNegatableOperator op =
 orChecks : OperatorCheckInfo -> Maybe (Error {})
 orChecks =
     firstThatConstructsJust
-        [ \checkInfo -> orSideChecks { node = checkInfo.left, otherNode = checkInfo.right } checkInfo
-        , \checkInfo -> orSideChecks { node = checkInfo.right, otherNode = checkInfo.left } checkInfo
+        [ \checkInfo -> findMap (\side -> orSideChecks side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
