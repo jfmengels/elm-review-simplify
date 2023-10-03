@@ -3337,37 +3337,35 @@ plusplusChecks =
                 _ ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getListLiteral checkInfo.left of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
-                            checkInfo.operatorRange
-                            (keepOnlyFix
-                                { keep = checkInfo.rightRange
-                                , parentRange = checkInfo.parentRange
-                                }
-                            )
+            if listCollection.empty.is checkInfo.lookupTable checkInfo.left then
+                Just
+                    (Rule.errorWithFix
+                        (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
+                        checkInfo.operatorRange
+                        (keepOnlyFix
+                            { keep = checkInfo.rightRange
+                            , parentRange = checkInfo.parentRange
+                            }
                         )
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
         , \checkInfo ->
-            case AstHelpers.getListLiteral checkInfo.right of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
-                            checkInfo.operatorRange
-                            (keepOnlyFix
-                                { keep = checkInfo.leftRange
-                                , parentRange = checkInfo.parentRange
-                                }
-                            )
+            if listCollection.empty.is checkInfo.lookupTable checkInfo.right then
+                Just
+                    (Rule.errorWithFix
+                        (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
+                        checkInfo.operatorRange
+                        (keepOnlyFix
+                            { keep = checkInfo.leftRange
+                            , parentRange = checkInfo.parentRange
+                            }
                         )
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
         , \checkInfo ->
             collectionUnionWithLiteralsChecks listCollection
                 { lookupTable = checkInfo.lookupTable
