@@ -3171,8 +3171,8 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
 
 operationSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression }
 operationSides checkInfo =
-    [ { node = checkInfo.right, otherNode = checkInfo.left }
-    , { node = checkInfo.left, otherNode = checkInfo.right }
+    [ { node = checkInfo.left, otherNode = checkInfo.right }
+    , { node = checkInfo.right, otherNode = checkInfo.left }
     ]
 
 
