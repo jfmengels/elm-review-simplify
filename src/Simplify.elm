@@ -3151,14 +3151,14 @@ minusChecks checkInfo =
                 , details = [ "Subtracting 0 does not change the value of the number." ]
                 }
                 (errorToRightRange checkInfo)
-                [ Fix.removeRange (fixToRightRange checkInfo) ]
+                [ Fix.removeRange (removeRightRange checkInfo) ]
             )
 
     else if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
         let
             replacedRange : Range
             replacedRange =
-                fixToLeftRange checkInfo
+                removeLeftRange checkInfo
         in
         Just
             (Rule.errorWithFix
@@ -3251,11 +3251,11 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
 operationToSides : OperatorCheckInfo -> List { node : Node Expression, removeRange : Range, errorRange : Range }
 operationToSides checkInfo =
     [ { node = checkInfo.right
-      , removeRange = fixToRightRange checkInfo
+      , removeRange = removeRightRange checkInfo
       , errorRange = errorToRightRange checkInfo
       }
     , { node = checkInfo.left
-      , removeRange = fixToLeftRange checkInfo
+      , removeRange = removeLeftRange checkInfo
       , errorRange = errorToLeftRange checkInfo
       }
     ]
@@ -3288,8 +3288,8 @@ andBetweenRange ranges =
             { start = ranges.included.start, end = ranges.excluded.start }
 
 
-fixToLeftRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
-fixToLeftRange checkInfo =
+removeLeftRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
+removeLeftRange checkInfo =
     { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
 
 
@@ -3298,8 +3298,8 @@ errorToLeftRange checkInfo =
     { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
 
 
-fixToRightRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
-fixToRightRange checkInfo =
+removeRightRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
+removeRightRange checkInfo =
     { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
 
 
@@ -3322,7 +3322,7 @@ divisionChecks checkInfo =
                 , details = [ "Dividing by 1 does not change the value of the number." ]
                 }
                 (errorToRightRange checkInfo)
-                [ Fix.removeRange (fixToRightRange checkInfo) ]
+                [ Fix.removeRange (removeRightRange checkInfo) ]
             )
 
     else if not checkInfo.expectNaN && (AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0) then
@@ -4082,7 +4082,7 @@ or_isLeftSimplifiableError checkInfo =
                     , details = alwaysSameDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToRightRange checkInfo) ]
+                    [ Fix.removeRange (removeRightRange checkInfo) ]
                 )
 
         Determined False ->
@@ -4092,7 +4092,7 @@ or_isLeftSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToLeftRange checkInfo) ]
+                    [ Fix.removeRange (removeLeftRange checkInfo) ]
                 )
 
         Undetermined ->
@@ -4109,7 +4109,7 @@ or_isRightSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToLeftRange checkInfo) ]
+                    [ Fix.removeRange (removeLeftRange checkInfo) ]
                 )
 
         Determined False ->
@@ -4119,7 +4119,7 @@ or_isRightSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToRightRange checkInfo) ]
+                    [ Fix.removeRange (removeRightRange checkInfo) ]
                 )
 
         Undetermined ->
@@ -4145,7 +4145,7 @@ and_isLeftSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToLeftRange checkInfo) ]
+                    [ Fix.removeRange (removeLeftRange checkInfo) ]
                 )
 
         Determined False ->
@@ -4155,7 +4155,7 @@ and_isLeftSimplifiableError checkInfo =
                     , details = alwaysSameDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToRightRange checkInfo) ]
+                    [ Fix.removeRange (removeRightRange checkInfo) ]
                 )
 
         Undetermined ->
@@ -4172,7 +4172,7 @@ and_isRightSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToRightRange checkInfo) ]
+                    [ Fix.removeRange (removeRightRange checkInfo) ]
                 )
 
         Determined False ->
@@ -4182,7 +4182,7 @@ and_isRightSimplifiableError checkInfo =
                     , details = alwaysSameDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (fixToLeftRange checkInfo) ]
+                    [ Fix.removeRange (removeLeftRange checkInfo) ]
                 )
 
         Undetermined ->
