@@ -4526,7 +4526,7 @@ stringReverseCompositionChecks =
 stringSliceChecks : CheckInfo -> Maybe (Error {})
 stringSliceChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck stringCollection
+        [ unnecessaryCallOnEmptyCheck stringCollection
         , \checkInfo ->
             case secondArg checkInfo of
                 Just endArg ->
@@ -4598,7 +4598,7 @@ stringSliceChecks =
 stringLeftChecks : CheckInfo -> Maybe (Error {})
 stringLeftChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck stringCollection
+        [ unnecessaryCallOnEmptyCheck stringCollection
         , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -4645,7 +4645,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
 stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck stringCollection
+        [ unnecessaryCallOnEmptyCheck stringCollection
         , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just length ->
@@ -4742,7 +4742,7 @@ stringRepeatChecks =
 stringReplaceChecks : CheckInfo -> Maybe (Error {})
 stringReplaceChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck stringCollection
+        [ unnecessaryCallOnEmptyCheck stringCollection
         , \checkInfo ->
             case secondArg checkInfo of
                 Just replacementArg ->
@@ -4887,7 +4887,7 @@ resultMapErrorCompositionChecks =
 listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck listCollection
+        [ unnecessaryCallOnEmptyCheck listCollection
         , callOnWrapReturnsItsValue listCollection
         , callOnListWithIrrelevantEmptyElement listCollection
         , \checkInfo ->
@@ -5042,7 +5042,7 @@ operationWithIdentityCanBeReplacedChecks config checkInfo =
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck listCollection
+        [ unnecessaryCallOnEmptyCheck listCollection
         , operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) }
         ]
 
@@ -5110,7 +5110,7 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
 listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck listCollection
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         ]
 
@@ -5949,7 +5949,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Undetermined ->
                     Nothing
         , mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = emptiableWrapper.mapFn }
-        , callOnEmptyReturnsEmptyCheck emptiableWrapper
+        , unnecessaryCallOnEmptyCheck emptiableWrapper
         ]
 
 
@@ -6163,7 +6163,7 @@ arrayInitializeChecks =
 arrayIndexedMapChecks : CheckInfo -> Maybe (Error {})
 arrayIndexedMapChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck arrayCollection
+        [ unnecessaryCallOnEmptyCheck arrayCollection
         , operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "Array" ], "map" ) }
         ]
 
@@ -6320,7 +6320,7 @@ indexAccessChecks collection checkInfo n =
 setChecks : CollectionProperties (EmptiableProperties (FromListProperties (IndexableProperties otherProperties))) -> CheckInfo -> Maybe (Error {})
 setChecks collection =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck collection
+        [ unnecessaryCallOnEmptyCheck collection
         , \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
                 Just n ->
@@ -6389,7 +6389,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
 emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableReverseChecks emptiable =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck emptiable
+        [ unnecessaryCallOnEmptyCheck emptiable
         , toggleCallChecks
         ]
 
@@ -6413,7 +6413,7 @@ listReverseCompositionChecks =
 listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck listCollection
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         , operationDoesNotChangeResultOfOperationCheck
         ]
@@ -6427,7 +6427,7 @@ listSortCompositionChecks =
 listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck listCollection
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         , \checkInfo ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
@@ -6454,7 +6454,7 @@ listSortByCompositionChecks =
 listSortWithChecks : CheckInfo -> Maybe (Error {})
 listSortWithChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck listCollection
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         , \checkInfo ->
             let
@@ -6516,7 +6516,7 @@ listTakeChecks =
 
                 Nothing ->
                     Nothing
-        , callOnEmptyReturnsEmptyCheck listCollection
+        , unnecessaryCallOnEmptyCheck listCollection
         ]
 
 
@@ -6535,7 +6535,7 @@ listDropChecks =
 
                 _ ->
                     Nothing
-        , callOnEmptyReturnsEmptyCheck listCollection
+        , unnecessaryCallOnEmptyCheck listCollection
         ]
 
 
@@ -7003,7 +7003,7 @@ taskMapNChecks =
 taskAndThenChecks : CheckInfo -> Maybe (Error {})
 taskAndThenChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck taskWithSucceedAsWrap
+        [ unnecessaryCallOnEmptyCheck taskWithSucceedAsWrap
         , wrapperAndThenChecks taskWithSucceedAsWrap
         ]
 
@@ -7024,7 +7024,7 @@ taskMapErrorCompositionChecks =
 taskOnErrorChecks : CheckInfo -> Maybe (Error {})
 taskOnErrorChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck taskWithFailAsWrap
+        [ unnecessaryCallOnEmptyCheck taskWithFailAsWrap
         , wrapperAndThenChecks taskWithFailAsWrap
         ]
 
@@ -7325,7 +7325,7 @@ jsonDecodeMapNChecks =
 jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})
 jsonDecodeAndThenChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck jsonDecoderWithSucceedAsWrap
+        [ unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap
         , wrapperAndThenChecks jsonDecoderWithSucceedAsWrap
         ]
 
@@ -8294,7 +8294,7 @@ emptiableMapChecks :
 emptiableMapChecks emptiable =
     firstThatConstructsJust
         [ mapIdentityChecks emptiable
-        , callOnEmptyReturnsEmptyCheck emptiable
+        , unnecessaryCallOnEmptyCheck emptiable
         ]
 
 
@@ -8490,7 +8490,7 @@ emptiableAndThenChecks :
     -> Maybe (Error {})
 emptiableAndThenChecks emptiable =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck emptiable
+        [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
             case constructs (sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
@@ -8590,7 +8590,7 @@ maybeAndThenChecks =
 resultAndThenChecks : CheckInfo -> Maybe (Error {})
 resultAndThenChecks =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck resultWithOkAsWrap
+        [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
         , wrapperAndThenChecks resultWithOkAsWrap
         ]
 
@@ -9048,7 +9048,7 @@ unnecessaryCallOnCheck constructable checkInfo =
             Nothing
 
 
-callOnEmptyReturnsEmptyCheck :
+unnecessaryCallOnEmptyCheck :
     { a
         | empty :
             { empty
@@ -9058,7 +9058,7 @@ callOnEmptyReturnsEmptyCheck :
     }
     -> CheckInfo
     -> Maybe (Error {})
-callOnEmptyReturnsEmptyCheck emptiable =
+unnecessaryCallOnEmptyCheck emptiable =
     unnecessaryCallOnCheck emptiable.empty
 
 
@@ -9113,7 +9113,7 @@ Examples
     Task.mapError << Task.succeed
     --> Task.succeed
 
-Use together with `callOnEmptyReturnsEmptyCheck`
+Use together with `unnecessaryCallOnEmptyCheck`
 
 -}
 unnecessaryCompositionAfterEmptyCheck :
@@ -9312,7 +9312,7 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
 emptiableFilterChecks : EmptiableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable =
     firstThatConstructsJust
-        [ callOnEmptyReturnsEmptyCheck emptiable
+        [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
                 Determined True ->
@@ -9338,7 +9338,7 @@ emptiableFilterChecks emptiable =
 
 collectionRemoveChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection =
-    callOnEmptyReturnsEmptyCheck collection
+    unnecessaryCallOnEmptyCheck collection
 
 
 collectionIntersectChecks : CollectionProperties (EmptiableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
@@ -9355,7 +9355,7 @@ collectionIntersectChecks collection =
 
             else
                 Nothing
-        , callOnEmptyReturnsEmptyCheck collection
+        , unnecessaryCallOnEmptyCheck collection
         ]
 
 
