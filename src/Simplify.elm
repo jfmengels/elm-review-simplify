@@ -3309,73 +3309,32 @@ plusplusChecks : OperatorCheckInfo -> Maybe (Error {})
 plusplusChecks =
     firstThatConstructsJust
         [ \checkInfo ->
-            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
-                ( Expression.Literal "", Expression.Literal _ ) ->
-                    Just
-                        (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "string", emptyDescription = emptyStringAsString })
-                            checkInfo.operatorRange
-                            (keepOnlyFix
-                                { keep = checkInfo.rightRange
-                                , parentRange = checkInfo.parentRange
-                                }
-                            )
-                        )
+            findMap
+                (\side ->
+                    case Node.value side.otherNode of
+                        Expression.Literal _ ->
+                            appendEmptyCheck side stringCollection checkInfo
 
-                ( Expression.Literal _, Expression.Literal "" ) ->
-                    Just
-                        (Rule.errorWithFix
-                            (concatenateEmptyErrorInfo { represents = "string", emptyDescription = emptyStringAsString })
-                            checkInfo.operatorRange
-                            (keepOnlyFix
-                                { keep = checkInfo.leftRange
-                                , parentRange = checkInfo.parentRange
-                                }
-                            )
-                        )
-
-                _ ->
-                    Nothing
+                        _ ->
+                            Nothing
+                )
+                (operationSides checkInfo)
         , \checkInfo ->
-            if listCollection.empty.is checkInfo.lookupTable checkInfo.left then
-                Just
-                    (Rule.errorWithFix
-                        (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
-                        checkInfo.operatorRange
-                        (keepOnlyFix
-                            { keep = checkInfo.rightRange
-                            , parentRange = checkInfo.parentRange
-                            }
-                        )
-                    )
-
-            else
-                Nothing
+            findMap (\side -> appendEmptyCheck side listCollection checkInfo) (operationSides checkInfo)
         , \checkInfo ->
-            if listCollection.empty.is checkInfo.lookupTable checkInfo.right then
-                Just
-                    (Rule.errorWithFix
-                        (concatenateEmptyErrorInfo { represents = "list", emptyDescription = "[]" })
-                        checkInfo.operatorRange
-                        (keepOnlyFix
-                            { keep = checkInfo.leftRange
-                            , parentRange = checkInfo.parentRange
-                            }
-                        )
-                    )
-
-            else
-                Nothing
-        , \checkInfo ->
-            collectionUnionWithLiteralsChecks listCollection
-                { lookupTable = checkInfo.lookupTable
-                , extractSourceCode = checkInfo.extractSourceCode
-                , parentRange = checkInfo.parentRange
-                , first = checkInfo.left
-                , second = checkInfo.right
-                , operationRange = checkInfo.operatorRange
-                , operation = "++"
-                }
+            findMap
+                (\side ->
+                    collectionUnionWithLiteralsChecks listCollection
+                        { lookupTable = checkInfo.lookupTable
+                        , extractSourceCode = checkInfo.extractSourceCode
+                        , parentRange = checkInfo.parentRange
+                        , first = side.node
+                        , second = side.otherNode
+                        , operationRange = checkInfo.operatorRange
+                        , operation = "++"
+                        }
+                )
+                (operationSides checkInfo)
         , \checkInfo ->
             collectionUnionWithLiteralsChecks stringCollection
                 { lookupTable = checkInfo.lookupTable
@@ -3410,11 +3369,28 @@ plusplusChecks =
         ]
 
 
-concatenateEmptyErrorInfo : { represents : String, emptyDescription : String } -> { message : String, details : List String }
-concatenateEmptyErrorInfo config =
-    { message = "Unnecessary concatenation with " ++ config.emptyDescription
-    , details = [ "You should remove the concatenation with the empty " ++ config.represents ++ "." ]
-    }
+appendEmptyCheck :
+    { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
+    -> EmptiableProperties otherProperties
+    -> OperatorCheckInfo
+    -> Maybe (Error {})
+appendEmptyCheck side collection checkInfo =
+    if collection.empty.is checkInfo.lookupTable side.node then
+        Just
+            (Rule.errorWithFix
+                { message = "Unnecessary appending " ++ collection.empty.asString defaultQualifyResources
+                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ collection.represents ++ "." ]
+                }
+                checkInfo.operatorRange
+                (keepOnlyFix
+                    { keep = Node.range side.otherNode
+                    , parentRange = checkInfo.parentRange
+                    }
+                )
+            )
+
+    else
+        Nothing
 
 
 consChecks : OperatorCheckInfo -> Maybe (Error {})

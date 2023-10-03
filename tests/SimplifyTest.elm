@@ -5603,8 +5603,8 @@ a = "a" ++ ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with \"\""
-                            , details = [ "You should remove the concatenation with the empty string." ]
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the left string." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5626,8 +5626,8 @@ a = "" ++ "a"
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with \"\""
-                            , details = [ "You should remove the concatenation with the empty string." ]
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the right string." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5674,8 +5674,8 @@ a = [] ++ something
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with []"
-                            , details = [ "You should remove the concatenation with the empty list." ]
+                            { message = "Unnecessary appending []"
+                            , details = [ "You can replace this operation by the right list." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -5690,8 +5690,8 @@ a = something ++ []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary concatenation with []"
-                            , details = [ "You should remove the concatenation with the empty list." ]
+                            { message = "Unnecessary appending []"
+                            , details = [ "You can replace this operation by the left list." ]
                             , under = "++"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
