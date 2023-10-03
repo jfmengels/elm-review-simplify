@@ -4511,7 +4511,7 @@ stringReverseChecks : CheckInfo -> Maybe (Error {})
 stringReverseChecks =
     firstThatConstructsJust
         [ emptiableReverseChecks stringCollection
-        , callOnWrappedDoesNotChangeItCheck stringCollection
+        , unnecessaryCallOnWrappedCheck stringCollection
         ]
 
 
@@ -5111,7 +5111,7 @@ listIntersperseChecks : CheckInfo -> Maybe (Error {})
 listIntersperseChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsEmptyCheck listCollection
-        , callOnWrappedDoesNotChangeItCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
         ]
 
 
@@ -6398,7 +6398,7 @@ listReverseChecks : CheckInfo -> Maybe (Error {})
 listReverseChecks =
     firstThatConstructsJust
         [ emptiableReverseChecks listCollection
-        , callOnWrappedDoesNotChangeItCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
         ]
 
 
@@ -6414,7 +6414,7 @@ listSortChecks : CheckInfo -> Maybe (Error {})
 listSortChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsEmptyCheck listCollection
-        , callOnWrappedDoesNotChangeItCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
         , operationDoesNotChangeResultOfOperationCheck
         ]
 
@@ -6428,7 +6428,7 @@ listSortByChecks : CheckInfo -> Maybe (Error {})
 listSortByChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsEmptyCheck listCollection
-        , callOnWrappedDoesNotChangeItCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
         , \checkInfo ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
@@ -6455,7 +6455,7 @@ listSortWithChecks : CheckInfo -> Maybe (Error {})
 listSortWithChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsEmptyCheck listCollection
-        , callOnWrappedDoesNotChangeItCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
         , \checkInfo ->
             let
                 alwaysAlwaysOrder : Maybe Order
@@ -9001,8 +9001,8 @@ compositionAfterWrapIsUnnecessaryCheck wrapper =
     unnecessaryCompositionAfterCheck wrapper.wrap
 
 
-callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
-callOnWrappedDoesNotChangeItCheck wrapper =
+unnecessaryCallOnWrappedCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+unnecessaryCallOnWrappedCheck wrapper =
     unnecessaryCallOnCheck
         { description = wrapper.wrap.description
         , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
