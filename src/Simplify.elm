@@ -10428,13 +10428,6 @@ leftBoundaryRange range =
     }
 
 
-rightBoundaryRange : Range -> Range
-rightBoundaryRange range =
-    { start = { row = range.end.row, column = range.end.column - 1 }
-    , end = range.end
-    }
-
-
 {-| Shortcut for `alwaysResultsInConstantError` with `replacementNeedsParens = False`.
 
 If you want to replace to something like `Just []`,
