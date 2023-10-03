@@ -4267,15 +4267,15 @@ or_isRightSimplifiableError checkInfo =
 andChecks : OperatorCheckInfo -> Maybe (Error {})
 andChecks =
     firstThatConstructsJust
-        [ and_isLeftSimplifiableError
-        , and_isRightSimplifiableError
+        [ \checkInfo -> andSideCheck { node = checkInfo.left, otherNode = checkInfo.right } checkInfo
+        , \checkInfo -> andSideCheck { node = checkInfo.right, otherNode = checkInfo.left } checkInfo
         , findSimilarConditionsError
         ]
 
 
-and_isLeftSimplifiableError : OperatorCheckInfo -> Maybe (Error {})
-and_isLeftSimplifiableError checkInfo =
-    case Evaluate.getBoolean checkInfo checkInfo.left of
+andSideCheck : { node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+andSideCheck side checkInfo =
+    case Evaluate.getBoolean checkInfo side.node of
         Determined True ->
             Just
                 (Rule.errorWithFix
@@ -4283,7 +4283,7 @@ and_isLeftSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (removeLeftRange checkInfo) ]
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                 )
 
         Determined False ->
@@ -4293,34 +4293,7 @@ and_isLeftSimplifiableError checkInfo =
                     , details = alwaysSameDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (removeRightRange checkInfo) ]
-                )
-
-        Undetermined ->
-            Nothing
-
-
-and_isRightSimplifiableError : OperatorCheckInfo -> Maybe (Error {})
-and_isRightSimplifiableError checkInfo =
-    case Evaluate.getBoolean checkInfo checkInfo.right of
-        Determined True ->
-            Just
-                (Rule.errorWithFix
-                    { message = unnecessaryMessage
-                    , details = unnecessaryDetails
-                    }
-                    checkInfo.parentRange
-                    [ Fix.removeRange (removeRightRange checkInfo) ]
-                )
-
-        Determined False ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Comparison is always False"
-                    , details = alwaysSameDetails
-                    }
-                    checkInfo.parentRange
-                    [ Fix.removeRange (removeLeftRange checkInfo) ]
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
                 )
 
         Undetermined ->
