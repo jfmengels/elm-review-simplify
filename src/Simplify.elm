@@ -4518,7 +4518,7 @@ stringReverseChecks =
 stringReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringReverseCompositionChecks =
     firstThatConstructsJust
-        [ compositionAfterWrapIsUnnecessaryCheck { laterArgCount = 1 } stringCollection
+        [ compositionAfterWrapIsUnnecessaryCheck stringCollection
         , toggleCompositionChecks
         ]
 
@@ -4876,7 +4876,7 @@ resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAnd
 resultMapErrorCompositionChecks =
     firstThatConstructsJust
         [ wrapToMapCompositionChecks resultWithErrAsWrap
-        , unnecessaryCompositionAfterEmptyCheck { laterArgCount = 2 } resultWithErrAsWrap
+        , unnecessaryCompositionAfterEmptyCheck resultWithErrAsWrap
         ]
 
 
@@ -4944,7 +4944,7 @@ listConcatCompositionChecks =
     firstThatConstructsJust
         [ compositionFromCanBeCombinedCheck
             { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
-        , onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection
+        , onWrapAlwaysReturnsIncomingCompositionCheck listCollection
         ]
 
 
@@ -5117,7 +5117,7 @@ listIntersperseChecks =
 
 listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listIntersperseCompositionChecks =
-    compositionAfterWrapIsUnnecessaryCheck { laterArgCount = 2 } listCollection
+    compositionAfterWrapIsUnnecessaryCheck listCollection
 
 
 listHeadChecks : CheckInfo -> Maybe (Error {})
@@ -5526,7 +5526,7 @@ listSumChecks =
 
 sumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 sumCompositionChecks wrapper =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper
+    onWrapAlwaysReturnsIncomingCompositionCheck wrapper
 
 
 listProductChecks : CheckInfo -> Maybe (Error {})
@@ -5539,7 +5539,7 @@ listProductChecks =
 
 productCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 productCompositionChecks wrapper =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } wrapper
+    onWrapAlwaysReturnsIncomingCompositionCheck wrapper
 
 
 listMinimumChecks : CheckInfo -> Maybe (Error {})
@@ -5552,7 +5552,7 @@ listMinimumChecks =
 
 minimumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 minimumCompositionChecks wrapper =
-    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper
+    onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper
 
 
 listMaximumChecks : CheckInfo -> Maybe (Error {})
@@ -5565,7 +5565,7 @@ listMaximumChecks =
 
 maximumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maximumCompositionChecks wrapper =
-    onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } wrapper
+    onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper
 
 
 listFoldlChecks : CheckInfo -> Maybe (Error {})
@@ -6405,7 +6405,7 @@ listReverseChecks =
 listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listReverseCompositionChecks =
     firstThatConstructsJust
-        [ compositionAfterWrapIsUnnecessaryCheck { laterArgCount = 1 } listCollection
+        [ compositionAfterWrapIsUnnecessaryCheck listCollection
         , toggleCompositionChecks
         ]
 
@@ -6421,7 +6421,7 @@ listSortChecks =
 
 listSortCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listSortCompositionChecks =
-    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 1 }
+    operationDoesNotChangeResultOfOperationCompositionCheck
 
 
 {-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
@@ -6477,8 +6477,8 @@ operationDoesNotChangeResultOfOperationCheck checkInfo =
             Nothing
 
 
-operationDoesNotChangeResultOfOperationCompositionCheck : { argCount : Int } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-operationDoesNotChangeResultOfOperationCompositionCheck config checkInfo =
+operationDoesNotChangeResultOfOperationCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
     let
         areAllArgsEqual : () -> Bool
         areAllArgsEqual () =
@@ -6488,11 +6488,11 @@ operationDoesNotChangeResultOfOperationCompositionCheck config checkInfo =
                 )
                 (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
     in
-    if (List.length checkInfo.later.args == (config.argCount - 1)) && (checkInfo.earlier.fn == checkInfo.later.fn) == areAllArgsEqual () then
+    if (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) && (checkInfo.earlier.fn == checkInfo.later.fn) == areAllArgsEqual () then
         Just
             { info =
                 { message =
-                    case config.argCount of
+                    case checkInfo.later.argCount of
                         1 ->
                             "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after " ++ qualifiedToString checkInfo.earlier.fn
 
@@ -6542,7 +6542,7 @@ listSortByChecks =
 
 listSortByCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listSortByCompositionChecks =
-    operationDoesNotChangeResultOfOperationCompositionCheck { argCount = 2 }
+    operationDoesNotChangeResultOfOperationCompositionCheck
 
 
 listSortWithChecks : CheckInfo -> Maybe (Error {})
@@ -7066,7 +7066,7 @@ subAndCmdBatchChecks batchable =
 
 batchCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 batchCompositionChecks =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 1 } listCollection
+    onWrapAlwaysReturnsIncomingCompositionCheck listCollection
 
 
 
@@ -8709,7 +8709,7 @@ withDefaultChecks emptiable =
 
 wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapperWithDefaultChecks wrapper =
-    onWrapAlwaysReturnsIncomingCompositionCheck { operationArgCount = 2 } wrapper
+    onWrapAlwaysReturnsIncomingCompositionCheck wrapper
 
 
 emptiableWithDefaultChecks :
@@ -8766,7 +8766,7 @@ unwrapToMaybeChecks emptiableWrapper =
 resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultToMaybeCompositionChecks =
     firstThatConstructsJust
-        [ onWrapAlwaysReturnsJustIncomingCompositionCheck { operationArgCount = 1 } resultWithOkAsWrap
+        [ onWrapAlwaysReturnsJustIncomingCompositionCheck resultWithOkAsWrap
         , \checkInfo ->
             case checkInfo.earlier.fn of
                 ( [ "Result" ], "Err" ) ->
@@ -9007,9 +9007,9 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                 )
 
 
-compositionAfterWrapIsUnnecessaryCheck : { laterArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-compositionAfterWrapIsUnnecessaryCheck config wrapper =
-    unnecessaryCompositionAfterCheck config wrapper.wrap
+compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+compositionAfterWrapIsUnnecessaryCheck wrapper =
+    unnecessaryCompositionAfterCheck wrapper.wrap
 
 
 callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -9128,32 +9128,28 @@ Use together with `callOnEmptyReturnsEmptyCheck`
 
 -}
 unnecessaryCompositionAfterEmptyCheck :
-    { laterArgCount : Int }
-    ->
-        { a
-            | empty :
-                { empty
-                    | description : Description
-                    , fn : ( ModuleName, String )
-                }
-        }
+    { a
+        | empty :
+            { empty
+                | description : Description
+                , fn : ( ModuleName, String )
+            }
+    }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-unnecessaryCompositionAfterEmptyCheck config emptiable =
-    unnecessaryCompositionAfterCheck config emptiable.empty
+unnecessaryCompositionAfterEmptyCheck emptiable =
+    unnecessaryCompositionAfterCheck emptiable.empty
 
 
 unnecessaryCompositionAfterCheck :
-    { laterArgCount : Int }
-    ->
-        { construct
-            | description : Description
-            , fn : ( ModuleName, String )
-        }
+    { construct
+        | description : Description
+        , fn : ( ModuleName, String )
+    }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-unnecessaryCompositionAfterCheck config construct checkInfo =
-    if (List.length checkInfo.later.args == (config.laterArgCount - 1)) && (checkInfo.earlier.fn == construct.fn) then
+unnecessaryCompositionAfterCheck construct checkInfo =
+    if (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) && (checkInfo.earlier.fn == construct.fn) then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite construct.description ++ " will result in " ++ descriptionForDefinite "the unchanged" construct.description
@@ -9222,9 +9218,9 @@ For example
 Use together with `callOnWrapReturnsItsValue`.
 
 -}
-onWrapAlwaysReturnsIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-onWrapAlwaysReturnsIncomingCompositionCheck config wrapper checkInfo =
-    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
+onWrapAlwaysReturnsIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+onWrapAlwaysReturnsIncomingCompositionCheck wrapper checkInfo =
+    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) then
         Just
             (compositionAlwaysReturnsIncomingError
                 (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
@@ -9293,9 +9289,9 @@ For example
 Use together with `callOnWrapReturnsJustItsValue`.
 
 -}
-onWrapAlwaysReturnsJustIncomingCompositionCheck : { operationArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-onWrapAlwaysReturnsJustIncomingCompositionCheck config wrapper checkInfo =
-    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (config.operationArgCount - 1)) then
+onWrapAlwaysReturnsJustIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
+    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
