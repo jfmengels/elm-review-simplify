@@ -3774,16 +3774,228 @@ getFullComposition expressionNode =
 
 
 
--- NEGATE
+-- EQUALITY
+
+
+equalityChecks : Bool -> OperatorCheckInfo -> Maybe (Error {})
+equalityChecks isEqual =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            findMap
+                (\side ->
+                    if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
+                        Just
+                            (Rule.errorWithFix
+                                { message = "Unnecessary comparison with boolean"
+                                , details = [ "The result of the expression will be the same with or without the comparison." ]
+                                }
+                                side.errorRange
+                                [ Fix.removeRange side.removeRange ]
+                            )
+
+                    else
+                        Nothing
+                )
+                (operationToSides checkInfo)
+        , \checkInfo ->
+            case
+                Maybe.map2 Tuple.pair
+                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
+                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
+            of
+                Just ( leftNot, rightNot ) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Unnecessary negation on both sides"
+                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            }
+                            checkInfo.parentRange
+                            [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
+                        )
+
+                _ ->
+                    let
+                        inferred : Infer.Inferred
+                        inferred =
+                            Tuple.first checkInfo.inferredConstants
+
+                        normalizeAndInfer : Node Expression -> Node Expression
+                        normalizeAndInfer expressionNode =
+                            let
+                                normalizedExpressionNode : Node Expression
+                                normalizedExpressionNode =
+                                    Normalize.normalize checkInfo expressionNode
+                            in
+                            case Infer.get (Node.value normalizedExpressionNode) inferred of
+                                Just expr ->
+                                    Node Range.emptyRange expr
+
+                                Nothing ->
+                                    normalizedExpressionNode
+
+                        normalizedLeft : Node Expression
+                        normalizedLeft =
+                            normalizeAndInfer checkInfo.left
+
+                        normalizedRight : Node Expression
+                        normalizedRight =
+                            normalizeAndInfer checkInfo.right
+                    in
+                    case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
+                        Normalize.ConfirmedEquality ->
+                            if checkInfo.expectNaN then
+                                Nothing
+
+                            else
+                                Just (comparisonError isEqual checkInfo)
+
+                        Normalize.ConfirmedInequality ->
+                            Just (comparisonError (not isEqual) checkInfo)
+
+                        Normalize.Unconfirmed ->
+                            Nothing
+        ]
+
+
+alwaysSameDetails : List String
+alwaysSameDetails =
+    [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
+    ]
+
+
+unnecessaryMessage : String
+unnecessaryMessage =
+    "Part of the expression is unnecessary"
+
+
+unnecessaryDetails : List String
+unnecessaryDetails =
+    [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
+    ]
+
+
+
+-- COMPARISONS
+
+
+comparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> Maybe (Error {})
+comparisonChecks operatorFunction operatorCheckInfo =
+    case
+        Maybe.map2 operatorFunction
+            (Normalize.getNumberValue operatorCheckInfo.left)
+            (Normalize.getNumberValue operatorCheckInfo.right)
+    of
+        Just bool ->
+            Just (comparisonError bool operatorCheckInfo)
+
+        Nothing ->
+            Nothing
+
+
+comparisonError : Bool -> QualifyResources { a | parentRange : Range } -> Error {}
+comparisonError bool checkInfo =
+    let
+        boolAsString : String
+        boolAsString =
+            AstHelpers.boolToString bool
+    in
+    Rule.errorWithFix
+        { message = "Comparison is always " ++ boolAsString
+        , details =
+            [ "Based on the values and/or the context, we can determine that the value of this operation will always be " ++ boolAsString ++ "."
+            ]
+        }
+        checkInfo.parentRange
+        [ Fix.replaceRangeBy checkInfo.parentRange
+            (qualifiedToString (qualify ( [ "Basics" ], boolAsString ) checkInfo))
+        ]
+
+
+
+-- BASICS
+
+
+basicsIdentityChecks : CheckInfo -> Maybe (Error {})
+basicsIdentityChecks checkInfo =
+    Just
+        (Rule.errorWithFix
+            { message = "`identity` should be removed"
+            , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+            }
+            checkInfo.fnRange
+            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+        )
+
+
+basicsIdentityCompositionErrorMessage : { message : String, details : List String }
+basicsIdentityCompositionErrorMessage =
+    { message = "`identity` should be removed"
+    , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+    }
+
+
+basicsIdentityCompositionChecks : CompositionCheckInfo -> Maybe (Error {})
+basicsIdentityCompositionChecks checkInfo =
+    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.later.node then
+        Just
+            (Rule.errorWithFix
+                basicsIdentityCompositionErrorMessage
+                (Node.range checkInfo.later.node)
+                [ Fix.removeRange checkInfo.later.removeRange ]
+            )
+
+    else if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.earlier.node then
+        Just
+            (Rule.errorWithFix
+                basicsIdentityCompositionErrorMessage
+                (Node.range checkInfo.earlier.node)
+                [ Fix.removeRange checkInfo.earlier.removeRange ]
+            )
+
+    else
+        Nothing
+
+
+basicsAlwaysChecks : CheckInfo -> Maybe (Error {})
+basicsAlwaysChecks checkInfo =
+    case secondArg checkInfo of
+        Just (Node secondArgRange _) ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Expression can be replaced by the first argument given to `always`"
+                    , details = [ "The second argument will be ignored because of the `always` call." ]
+                    }
+                    checkInfo.fnRange
+                    (replaceBySubExpressionFix
+                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg, secondArgRange ])
+                        checkInfo.firstArg
+                    )
+                )
+
+        Nothing ->
+            Nothing
+
+
+basicsAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+basicsAlwaysCompositionChecks checkInfo =
+    case checkInfo.later.args of
+        _ :: [] ->
+            Just
+                { info =
+                    { message = "Function composed with always will be ignored"
+                    , details = [ "`always` will swallow the function composed into it." ]
+                    }
+                , fix =
+                    [ Fix.removeRange checkInfo.earlier.removeRange ]
+                }
+
+        _ ->
+            Nothing
 
 
 basicsNegateChecks : CheckInfo -> Maybe (Error {})
 basicsNegateChecks =
     toggleCallChecks
-
-
-
--- BOOLEAN
 
 
 basicsNotChecks : CheckInfo -> Maybe (Error {})
@@ -4112,226 +4324,6 @@ and_isRightSimplifiableError checkInfo =
                 )
 
         Undetermined ->
-            Nothing
-
-
-
--- EQUALITY
-
-
-equalityChecks : Bool -> OperatorCheckInfo -> Maybe (Error {})
-equalityChecks isEqual =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            findMap
-                (\side ->
-                    if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Unnecessary comparison with boolean"
-                                , details = [ "The result of the expression will be the same with or without the comparison." ]
-                                }
-                                side.errorRange
-                                [ Fix.removeRange side.removeRange ]
-                            )
-
-                    else
-                        Nothing
-                )
-                (operationToSides checkInfo)
-        , \checkInfo ->
-            case
-                Maybe.map2 Tuple.pair
-                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
-                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
-            of
-                Just ( leftNot, rightNot ) ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Unnecessary negation on both sides"
-                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
-                            }
-                            checkInfo.parentRange
-                            [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
-                        )
-
-                _ ->
-                    let
-                        inferred : Infer.Inferred
-                        inferred =
-                            Tuple.first checkInfo.inferredConstants
-
-                        normalizeAndInfer : Node Expression -> Node Expression
-                        normalizeAndInfer expressionNode =
-                            let
-                                normalizedExpressionNode : Node Expression
-                                normalizedExpressionNode =
-                                    Normalize.normalize checkInfo expressionNode
-                            in
-                            case Infer.get (Node.value normalizedExpressionNode) inferred of
-                                Just expr ->
-                                    Node Range.emptyRange expr
-
-                                Nothing ->
-                                    normalizedExpressionNode
-
-                        normalizedLeft : Node Expression
-                        normalizedLeft =
-                            normalizeAndInfer checkInfo.left
-
-                        normalizedRight : Node Expression
-                        normalizedRight =
-                            normalizeAndInfer checkInfo.right
-                    in
-                    case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
-                        Normalize.ConfirmedEquality ->
-                            if checkInfo.expectNaN then
-                                Nothing
-
-                            else
-                                Just (comparisonError isEqual checkInfo)
-
-                        Normalize.ConfirmedInequality ->
-                            Just (comparisonError (not isEqual) checkInfo)
-
-                        Normalize.Unconfirmed ->
-                            Nothing
-        ]
-
-
-alwaysSameDetails : List String
-alwaysSameDetails =
-    [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
-    ]
-
-
-unnecessaryMessage : String
-unnecessaryMessage =
-    "Part of the expression is unnecessary"
-
-
-unnecessaryDetails : List String
-unnecessaryDetails =
-    [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
-    ]
-
-
-
--- COMPARISONS
-
-
-comparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> Maybe (Error {})
-comparisonChecks operatorFunction operatorCheckInfo =
-    case
-        Maybe.map2 operatorFunction
-            (Normalize.getNumberValue operatorCheckInfo.left)
-            (Normalize.getNumberValue operatorCheckInfo.right)
-    of
-        Just bool ->
-            Just (comparisonError bool operatorCheckInfo)
-
-        Nothing ->
-            Nothing
-
-
-comparisonError : Bool -> QualifyResources { a | parentRange : Range } -> Error {}
-comparisonError bool checkInfo =
-    let
-        boolAsString : String
-        boolAsString =
-            AstHelpers.boolToString bool
-    in
-    Rule.errorWithFix
-        { message = "Comparison is always " ++ boolAsString
-        , details =
-            [ "Based on the values and/or the context, we can determine that the value of this operation will always be " ++ boolAsString ++ "."
-            ]
-        }
-        checkInfo.parentRange
-        [ Fix.replaceRangeBy checkInfo.parentRange
-            (qualifiedToString (qualify ( [ "Basics" ], boolAsString ) checkInfo))
-        ]
-
-
-
--- BASICS
-
-
-basicsIdentityChecks : CheckInfo -> Maybe (Error {})
-basicsIdentityChecks checkInfo =
-    Just
-        (Rule.errorWithFix
-            { message = "`identity` should be removed"
-            , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
-            }
-            checkInfo.fnRange
-            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
-        )
-
-
-basicsIdentityCompositionErrorMessage : { message : String, details : List String }
-basicsIdentityCompositionErrorMessage =
-    { message = "`identity` should be removed"
-    , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-    }
-
-
-basicsIdentityCompositionChecks : CompositionCheckInfo -> Maybe (Error {})
-basicsIdentityCompositionChecks checkInfo =
-    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.later.node then
-        Just
-            (Rule.errorWithFix
-                basicsIdentityCompositionErrorMessage
-                (Node.range checkInfo.later.node)
-                [ Fix.removeRange checkInfo.later.removeRange ]
-            )
-
-    else if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.earlier.node then
-        Just
-            (Rule.errorWithFix
-                basicsIdentityCompositionErrorMessage
-                (Node.range checkInfo.earlier.node)
-                [ Fix.removeRange checkInfo.earlier.removeRange ]
-            )
-
-    else
-        Nothing
-
-
-basicsAlwaysChecks : CheckInfo -> Maybe (Error {})
-basicsAlwaysChecks checkInfo =
-    case secondArg checkInfo of
-        Just (Node secondArgRange _) ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Expression can be replaced by the first argument given to `always`"
-                    , details = [ "The second argument will be ignored because of the `always` call." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceBySubExpressionFix
-                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg, secondArgRange ])
-                        checkInfo.firstArg
-                    )
-                )
-
-        Nothing ->
-            Nothing
-
-
-basicsAlwaysCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-basicsAlwaysCompositionChecks checkInfo =
-    case checkInfo.later.args of
-        _ :: [] ->
-            Just
-                { info =
-                    { message = "Function composed with always will be ignored"
-                    , details = [ "`always` will swallow the function composed into it." ]
-                    }
-                , fix =
-                    [ Fix.removeRange checkInfo.earlier.removeRange ]
-                }
-
-        _ ->
             Nothing
 
 
