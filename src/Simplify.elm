@@ -3322,19 +3322,15 @@ plusplusChecks =
         , \checkInfo ->
             findMap (\side -> appendEmptyCheck side listCollection checkInfo) (operationSides checkInfo)
         , \checkInfo ->
-            findMap
-                (\side ->
-                    collectionUnionWithLiteralsChecks listCollection
-                        { lookupTable = checkInfo.lookupTable
-                        , extractSourceCode = checkInfo.extractSourceCode
-                        , parentRange = checkInfo.parentRange
-                        , first = side.node
-                        , second = side.otherNode
-                        , operationRange = checkInfo.operatorRange
-                        , operation = "++"
-                        }
-                )
-                (operationSides checkInfo)
+            collectionUnionWithLiteralsChecks listCollection
+                { lookupTable = checkInfo.lookupTable
+                , extractSourceCode = checkInfo.extractSourceCode
+                , parentRange = checkInfo.parentRange
+                , first = checkInfo.left
+                , second = checkInfo.right
+                , operationRange = checkInfo.operatorRange
+                , operation = "++"
+                }
         , \checkInfo ->
             collectionUnionWithLiteralsChecks stringCollection
                 { lookupTable = checkInfo.lookupTable
