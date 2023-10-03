@@ -4233,8 +4233,7 @@ orSideChecks side checkInfo =
 andChecks : OperatorCheckInfo -> Maybe (Error {})
 andChecks =
     firstThatConstructsJust
-        [ \checkInfo -> andSideCheck { node = checkInfo.left, otherNode = checkInfo.right } checkInfo
-        , \checkInfo -> andSideCheck { node = checkInfo.right, otherNode = checkInfo.left } checkInfo
+        [ \checkInfo -> findMap (\side -> andSideCheck side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
