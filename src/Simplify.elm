@@ -3341,7 +3341,7 @@ plusplusChecks =
 
 appendEmptyCheck :
     { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
-    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    -> TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> OperatorCheckInfo
     -> Maybe (Error {})
 appendEmptyCheck side collection checkInfo =
@@ -5898,7 +5898,7 @@ listFilterMapCompositionChecks =
     mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) }
 
 
-emptiableWrapperFilterMapChecks : WrapperProperties (EmptiableProperties ConstantProperties { otherProperties | mapFn : ( ModuleName, String ) }) -> CheckInfo -> Maybe (Error {})
+emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties { otherProperties | mapFn : ( ModuleName, String ) })) -> CheckInfo -> Maybe (Error {})
 emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -6255,7 +6255,7 @@ arrayFoldrChecks =
     emptiableFoldChecks arrayCollection
 
 
-getChecks : IndexableProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
+getChecks : TypeProperties (IndexableProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
 getChecks collection =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } collection
@@ -6265,7 +6265,7 @@ getChecks collection =
         ]
 
 
-indexAccessChecks : IndexableProperties otherProperties -> CheckInfo -> Int -> Maybe (Error {})
+indexAccessChecks : TypeProperties (IndexableProperties otherProperties) -> CheckInfo -> Int -> Maybe (Error {})
 indexAccessChecks collection checkInfo n =
     if n < 0 then
         Just
@@ -6311,7 +6311,7 @@ indexAccessChecks collection checkInfo n =
                 Nothing
 
 
-setChecks : CollectionProperties (IndexableProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
+setChecks : TypeProperties (CollectionProperties (IndexableProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)))) -> CheckInfo -> Maybe (Error {})
 setChecks collection =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck collection
@@ -6340,7 +6340,7 @@ setChecks collection =
 
 
 setOnKnownElementChecks :
-    CollectionProperties (FromListProperties (IndexableProperties otherProperties))
+    TypeProperties (CollectionProperties (FromListProperties (IndexableProperties otherProperties)))
     -> CheckInfo
     -> Int
     -> Range
@@ -6533,7 +6533,7 @@ listDropChecks =
         ]
 
 
-emptiableMapNChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
     if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
         Just
@@ -6561,7 +6561,7 @@ For example given `resultWithOkAsWrap`:
 This is pretty similar to `wrapperSequenceChecks` where we look at arguments instead of list elements.
 
 -}
-wrapperMapNChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+wrapperMapNChecks : TypeProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 wrapperMapNChecks wrapper checkInfo =
     if List.length checkInfo.argsAfterFirst == (checkInfo.argCount - 1) then
         -- fully applied
@@ -7505,7 +7505,7 @@ randomAndThenChecks =
 
 
 nonEmptiableWrapperAndThenAlwaysChecks :
-    NonEmptiableProperties (WrapperProperties otherProperties)
+    TypeProperties (NonEmptiableProperties (WrapperProperties otherProperties))
     -> CheckInfo
     -> Maybe (Error {})
 nonEmptiableWrapperAndThenAlwaysChecks wrapper checkInfo =
@@ -7551,13 +7551,12 @@ type alias TypeProperties properties =
 {-| Properties of a type that either holds some data or is "empty" with the given properties.
 -}
 type alias EmptiableProperties empty otherProperties =
-    TypeProperties
-        { otherProperties
-            | empty : empty
-        }
+    { otherProperties
+        | empty : empty
+    }
 
 
-{-| `TypeProperties` of a structure that will always have data inside, for example a non-empty list, a `Test`, a `Benchmark` or a tree (but not a forest).
+{-| Properties of a structure type that will always have data inside, for example a non-empty list, a `Test`, a `Benchmark` or a tree (but not a forest).
 
 This can be really valuable, for example when you want to know whether the function of a map or andThen will always be called.
 
@@ -7576,40 +7575,36 @@ Note that for example `Cmd.batch [ a ]` is not a "wrap" because it keeps the typ
 
 -}
 type alias WrapperProperties otherProperties =
-    TypeProperties
-        { otherProperties
-            | wrap : ConstructWithOneArgProperties
-        }
+    { otherProperties
+        | wrap : ConstructWithOneArgProperties
+    }
 
 
 type alias FromListProperties otherProperties =
-    TypeProperties
-        { otherProperties
-            | fromListLiteral :
-                { description : String
-                , getListRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
-                }
-            , unionLeftElementsStayOnTheLeft : Bool
-        }
+    { otherProperties
+        | fromListLiteral :
+            { description : String
+            , getListRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
+            }
+        , unionLeftElementsStayOnTheLeft : Bool
+    }
 
 
 type alias IndexableProperties otherProperties =
-    TypeProperties
-        { otherProperties
-            | literalElements : ModuleNameLookupTable -> Node Expression -> Maybe (List (Node Expression))
-        }
+    { otherProperties
+        | literalElements : ModuleNameLookupTable -> Node Expression -> Maybe (List (Node Expression))
+    }
 
 
 {-| Properties of a type with with multiple elements.
 -}
 type alias CollectionProperties otherProperties =
-    TypeProperties
-        { otherProperties
-            | size :
-                { description : String
-                , determine : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
-                }
-        }
+    { otherProperties
+        | size :
+            { description : String
+            , determine : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
+            }
+    }
 
 
 {-| Common properties of a specific set of values for a type.
@@ -7740,7 +7735,7 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-randomGeneratorWrapper : NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) })
+randomGeneratorWrapper : TypeProperties (NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) }))
 randomGeneratorWrapper =
     { represents = "random generator"
     , wrap =
@@ -7759,9 +7754,11 @@ randomGeneratorWrapper =
 
 
 maybeWithJustAsWrap :
-    EmptiableProperties
-        ConstantProperties
-        (WrapperProperties { mapFn : ( ModuleName, String ) })
+    TypeProperties
+        (EmptiableProperties
+            ConstantProperties
+            (WrapperProperties { mapFn : ( ModuleName, String ) })
+        )
 maybeWithJustAsWrap =
     { represents = "maybe"
     , empty =
@@ -7788,10 +7785,12 @@ maybeWithJustAsWrap =
 
 
 resultWithOkAsWrap :
-    WrapperProperties
-        (EmptiableProperties
-            ConstructWithOneArgProperties
-            { mapFn : ( ModuleName, String ) }
+    TypeProperties
+        (WrapperProperties
+            (EmptiableProperties
+                ConstructWithOneArgProperties
+                { mapFn : ( ModuleName, String ) }
+            )
         )
 resultWithOkAsWrap =
     { represents = "result"
@@ -7828,10 +7827,12 @@ resultErrorConstruct =
 
 
 resultWithErrAsWrap :
-    WrapperProperties
-        (EmptiableProperties
-            ConstructWithOneArgProperties
-            { mapFn : ( ModuleName, String ) }
+    TypeProperties
+        (WrapperProperties
+            (EmptiableProperties
+                ConstructWithOneArgProperties
+                { mapFn : ( ModuleName, String ) }
+            )
         )
 resultWithErrAsWrap =
     { represents = "result"
@@ -7842,10 +7843,12 @@ resultWithErrAsWrap =
 
 
 taskWithSucceedAsWrap :
-    WrapperProperties
-        (EmptiableProperties
-            ConstructWithOneArgProperties
-            { mapFn : ( ModuleName, String ) }
+    TypeProperties
+        (WrapperProperties
+            (EmptiableProperties
+                ConstructWithOneArgProperties
+                { mapFn : ( ModuleName, String ) }
+            )
         )
 taskWithSucceedAsWrap =
     { represents = "task"
@@ -7882,10 +7885,12 @@ taskFailingConstruct =
 
 
 taskWithFailAsWrap :
-    WrapperProperties
-        (EmptiableProperties
-            ConstructWithOneArgProperties
-            { mapFn : ( ModuleName, String ) }
+    TypeProperties
+        (WrapperProperties
+            (EmptiableProperties
+                ConstructWithOneArgProperties
+                { mapFn : ( ModuleName, String ) }
+            )
         )
 taskWithFailAsWrap =
     { represents = "task"
@@ -7896,10 +7901,12 @@ taskWithFailAsWrap =
 
 
 jsonDecoderWithSucceedAsWrap :
-    WrapperProperties
-        (EmptiableProperties
-            ConstructWithOneArgProperties
-            { mapFn : ( ModuleName, String ) }
+    TypeProperties
+        (WrapperProperties
+            (EmptiableProperties
+                ConstructWithOneArgProperties
+                { mapFn : ( ModuleName, String ) }
+            )
         )
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
@@ -7935,7 +7942,7 @@ jsonDecoderFailingConstruct =
     }
 
 
-listCollection : CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) })))
+listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) }))))
 listCollection =
     { represents = "list"
     , empty = listEmptyConstant
@@ -7992,7 +7999,7 @@ listDetermineLength resources expressionNode =
             Maybe.map (\_ -> Exactly 1) (AstHelpers.getSpecificFnCall ( [ "List" ], "singleton" ) resources.lookupTable nonConsOrLiteral)
 
 
-stringCollection : CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {})))
+stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {}))))
 stringCollection =
     { represents = "string"
     , empty = stringEmptyConstant
@@ -8043,7 +8050,7 @@ stringDetermineLength expression =
             Nothing
 
 
-arrayCollection : CollectionProperties (FromListProperties (IndexableProperties (EmptiableProperties ConstantProperties {})))
+arrayCollection : TypeProperties (CollectionProperties (FromListProperties (IndexableProperties (EmptiableProperties ConstantProperties {}))))
 arrayCollection =
     { represents = "array"
     , empty =
@@ -8110,7 +8117,7 @@ arrayDetermineSize resources =
         ]
 
 
-setCollection : CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties {})))
+setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties {}))))
 setCollection =
     { represents = "set"
     , empty =
@@ -8194,7 +8201,7 @@ setDetermineSize resources =
         ]
 
 
-dictCollection : CollectionProperties (EmptiableProperties ConstantProperties (FromListProperties {}))
+dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (FromListProperties {})))
 dictCollection =
     { represents = "dict"
     , empty =
@@ -8269,7 +8276,7 @@ dictDetermineSize resources =
         ]
 
 
-cmdCollection : EmptiableProperties ConstantProperties {}
+cmdCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 cmdCollection =
     { represents = "command"
     , empty =
@@ -8285,7 +8292,7 @@ cmdCollection =
     }
 
 
-subCollection : EmptiableProperties ConstantProperties {}
+subCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 subCollection =
     { represents = "subscription"
     , empty =
@@ -8302,7 +8309,7 @@ subCollection =
 
 
 emptiableMapChecks :
-    EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 emptiableMapChecks emptiable =
@@ -8528,7 +8535,7 @@ getValueWithNodeRange getValue expressionNode =
 
 
 wrapperAndThenChecks :
-    WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) }
+    TypeProperties (WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) })
     -> CheckInfo
     -> Maybe (Error {})
 wrapperAndThenChecks wrapper =
@@ -9273,7 +9280,7 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
         Nothing
 
 
-emptiableFilterChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableFilterChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
@@ -9323,7 +9330,7 @@ collectionIntersectChecks collection =
         ]
 
 
-collectionDiffChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionDiffChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9358,7 +9365,7 @@ collectionDiffChecks collection =
         ]
 
 
-collectionUnionChecks : CollectionProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : TypeProperties (CollectionProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9480,7 +9487,7 @@ collectionMemberChecks collection =
         collection
 
 
-collectionIsEmptyChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
@@ -9503,7 +9510,7 @@ collectionIsEmptyChecks collection checkInfo =
             Nothing
 
 
-collectionSizeChecks : CollectionProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
     case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly size) ->
@@ -9569,7 +9576,7 @@ emptiableToListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } collection
 
 
-collectionPartitionChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -10532,13 +10539,13 @@ Use `returnsArgError` with the given last arg as `arg` when the last arg is alre
 -}
 alwaysReturnsLastArgError :
     String
-    -> { b | represents : String }
+    -> TypeProperties otherProperties
     -> QualifyResources { a | fnRange : Range, parentRange : Range, argCount : Int, firstArg : Node Expression, argsAfterFirst : List (Node Expression) }
     -> Error {}
-alwaysReturnsLastArgError usingSpecificSituation config checkInfo =
+alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just lastArg ->
-            returnsArgError usingSpecificSituation { arg = lastArg, argRepresents = config.represents } checkInfo
+            returnsArgError usingSpecificSituation { arg = lastArg, argRepresents = lastArgProperties.represents } checkInfo
 
         Nothing ->
             -- Not enough arguments
@@ -10564,12 +10571,12 @@ alwaysReturnsLastArgError usingSpecificSituation config checkInfo =
 
                         _ ->
                             -- Use-case is absent for now
-                            { description = "the " ++ config.represents ++ " argument"
+                            { description = "the " ++ lastArgProperties.represents ++ " argument"
                             , fix = []
                             }
             in
             Rule.errorWithFix
-                { message = usingSpecificSituation ++ " will always return the same given " ++ config.represents
+                { message = usingSpecificSituation ++ " will always return the same given " ++ lastArgProperties.represents
                 , details =
                     [ "You can replace this call by " ++ replacement.description ++ "." ]
                 }
