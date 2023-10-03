@@ -2786,10 +2786,10 @@ operatorApplicationChecks =
         , ( "&&", andChecks )
         , ( "==", equalityChecks True )
         , ( "/=", equalityChecks False )
-        , ( "<", comparisonChecks (<) )
-        , ( ">", comparisonChecks (>) )
-        , ( "<=", comparisonChecks (<=) )
-        , ( ">=", comparisonChecks (>=) )
+        , ( "<", numberComparisonChecks (<) )
+        , ( ">", numberComparisonChecks (>) )
+        , ( "<=", numberComparisonChecks (<=) )
+        , ( ">=", numberComparisonChecks (>=) )
         ]
 
 
@@ -3830,8 +3830,8 @@ unnecessaryDetails =
 -- COMPARISONS
 
 
-comparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> Maybe (Error {})
-comparisonChecks operatorFunction operatorCheckInfo =
+numberComparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> Maybe (Error {})
+numberComparisonChecks operatorFunction operatorCheckInfo =
     case
         Maybe.map2 operatorFunction
             (Normalize.getNumberValue operatorCheckInfo.left)
