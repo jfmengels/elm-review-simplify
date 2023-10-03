@@ -1115,7 +1115,7 @@ a = False || x
                         [ Review.Test.error
                             { message = "Unnecessary check for || False"
                             , details = [ "You can replace this operation by the right bool." ]
-                            , under = "False || x"
+                            , under = "False ||"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -1131,7 +1131,7 @@ a = x || False
                         [ Review.Test.error
                             { message = "Unnecessary check for || False"
                             , details = [ "You can replace this operation by the left bool." ]
-                            , under = "x || False"
+                            , under = "|| False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -1147,7 +1147,7 @@ a = x || (False)
                         [ Review.Test.error
                             { message = "Unnecessary check for || False"
                             , details = [ "You can replace this operation by the left bool." ]
-                            , under = "x || (False)"
+                            , under = "|| (False)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -1340,7 +1340,7 @@ a = True && x
                         [ Review.Test.error
                             { message = "Unnecessary check for && True"
                             , details = [ "You can replace this operation by the right bool." ]
-                            , under = "True && x"
+                            , under = "True &&"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -1356,7 +1356,7 @@ a = x && True
                         [ Review.Test.error
                             { message = "Unnecessary check for && True"
                             , details = [ "You can replace this operation by the left bool." ]
-                            , under = "x && True"
+                            , under = "&& True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
@@ -4420,7 +4420,7 @@ a =
                         [ Review.Test.error
                             { message = "Unnecessary check for && True"
                             , details = [ "You can replace this operation by the right bool." ]
-                            , under = "x && y"
+                            , under = "x &&"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =

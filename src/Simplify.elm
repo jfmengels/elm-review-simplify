@@ -4169,7 +4169,7 @@ orSideChecks side checkInfo =
                     { message = "Unnecessary check for || False"
                     , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " bool." ]
                     }
-                    checkInfo.parentRange
+                    (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                 )
 
@@ -4194,7 +4194,7 @@ andSideChecks side checkInfo =
                     { message = "Unnecessary check for && True"
                     , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " bool." ]
                     }
-                    checkInfo.parentRange
+                    (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                 )
 
