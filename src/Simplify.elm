@@ -3203,19 +3203,9 @@ andBetweenRange ranges =
             { start = ranges.included.start, end = ranges.excluded.start }
 
 
-removeLeftRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
-removeLeftRange checkInfo =
-    { start = checkInfo.leftRange.start, end = checkInfo.rightRange.start }
-
-
 errorToLeftRange : { checkInfo | leftRange : Range, operatorRange : Range } -> Range
 errorToLeftRange checkInfo =
     { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
-
-
-removeRightRange : { checkInfo | leftRange : Range, rightRange : Range } -> Range
-removeRightRange checkInfo =
-    { start = checkInfo.leftRange.end, end = checkInfo.rightRange.end }
 
 
 errorToRightRange : { checkInfo | rightRange : Range, operatorRange : Range } -> Range
