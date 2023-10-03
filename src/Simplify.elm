@@ -4094,8 +4094,8 @@ isNegatableOperator op =
 orChecks : OperatorCheckInfo -> Maybe (Error {})
 orChecks =
     firstThatConstructsJust
-        [ or_isLeftSimplifiableError
-        , or_isRightSimplifiableError
+        [ \checkInfo -> orSideChecks { node = checkInfo.left, otherNode = checkInfo.right } checkInfo
+        , \checkInfo -> orSideChecks { node = checkInfo.right, otherNode = checkInfo.left } checkInfo
         , findSimilarConditionsError
         ]
 
@@ -4210,9 +4210,9 @@ listConditions operatorToLookFor redundantConditionResolution expressionNode =
             [ ( redundantConditionResolution, expressionNode ) ]
 
 
-or_isLeftSimplifiableError : OperatorCheckInfo -> Maybe (Error {})
-or_isLeftSimplifiableError checkInfo =
-    case Evaluate.getBoolean checkInfo checkInfo.left of
+orSideChecks : { node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+orSideChecks side checkInfo =
+    case Evaluate.getBoolean checkInfo side.node of
         Determined True ->
             Just
                 (Rule.errorWithFix
@@ -4220,7 +4220,7 @@ or_isLeftSimplifiableError checkInfo =
                     , details = alwaysSameDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (removeRightRange checkInfo) ]
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
                 )
 
         Determined False ->
@@ -4230,34 +4230,7 @@ or_isLeftSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange (removeLeftRange checkInfo) ]
-                )
-
-        Undetermined ->
-            Nothing
-
-
-or_isRightSimplifiableError : OperatorCheckInfo -> Maybe (Error {})
-or_isRightSimplifiableError checkInfo =
-    case Evaluate.getBoolean checkInfo checkInfo.right of
-        Determined True ->
-            Just
-                (Rule.errorWithFix
-                    { message = unnecessaryMessage
-                    , details = unnecessaryDetails
-                    }
-                    checkInfo.parentRange
-                    [ Fix.removeRange (removeLeftRange checkInfo) ]
-                )
-
-        Determined False ->
-            Just
-                (Rule.errorWithFix
-                    { message = unnecessaryMessage
-                    , details = unnecessaryDetails
-                    }
-                    checkInfo.parentRange
-                    [ Fix.removeRange (removeRightRange checkInfo) ]
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                 )
 
         Undetermined ->

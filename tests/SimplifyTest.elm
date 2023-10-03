@@ -1106,7 +1106,7 @@ a = True || x
 a = True
 """
                         ]
-        , test "should simplify 'x || True' to x" <|
+        , test "should simplify 'x || True' to True" <|
             \() ->
                 """module A exposing (..)
 a = x || True
@@ -1114,8 +1114,8 @@ a = x || True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = unnecessaryMessage
-                            , details = unnecessaryDetails
+                            { message = "Comparison is always True"
+                            , details = alwaysSameDetails
                             , under = "x || True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
