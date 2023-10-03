@@ -3203,16 +3203,6 @@ andBetweenRange ranges =
             { start = ranges.included.start, end = ranges.excluded.start }
 
 
-errorToLeftRange : { checkInfo | leftRange : Range, operatorRange : Range } -> Range
-errorToLeftRange checkInfo =
-    { start = checkInfo.leftRange.start, end = checkInfo.operatorRange.end }
-
-
-errorToRightRange : { checkInfo | rightRange : Range, operatorRange : Range } -> Range
-errorToRightRange checkInfo =
-    { start = checkInfo.operatorRange.start, end = checkInfo.rightRange.end }
-
-
 divisionChecks : OperatorCheckInfo -> Maybe (Error {})
 divisionChecks checkInfo =
     let
