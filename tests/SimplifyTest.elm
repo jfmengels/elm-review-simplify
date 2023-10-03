@@ -1075,11 +1075,6 @@ sameThingOnBothSidesDetails value =
     ]
 
 
-comparisonIsAlwaysMessage : String -> String
-comparisonIsAlwaysMessage value =
-    "Comparison is always " ++ value
-
-
 orTests : Test
 orTests =
     describe "||"
