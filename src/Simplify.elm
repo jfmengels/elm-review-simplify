@@ -7976,11 +7976,11 @@ listSingletonConstruct =
 
 listDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
 listDetermineLength resources expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.ListExpr list ->
+    case AstHelpers.removeParens expressionNode of
+        Node _ (Expression.ListExpr list) ->
             Just (Exactly (List.length list))
 
-        Expression.OperatorApplication "::" _ _ right ->
+        Node _ (Expression.OperatorApplication "::" _ _ right) ->
             case listDetermineLength resources right of
                 Just (Exactly n) ->
                     Just (Exactly (n + 1))
@@ -7988,15 +7988,8 @@ listDetermineLength resources expressionNode =
                 _ ->
                     Just NotEmpty
 
-        Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
-            if ModuleNameLookupTable.moduleNameAt resources.lookupTable fnRange == Just [ "List" ] then
-                Just (Exactly 1)
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
+        nonConsOrLiteral ->
+            Maybe.map (\_ -> Exactly 1) (AstHelpers.getSpecificFnCall ( [ "List" ], "singleton" ) resources.lookupTable nonConsOrLiteral)
 
 
 stringCollection : CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {})))

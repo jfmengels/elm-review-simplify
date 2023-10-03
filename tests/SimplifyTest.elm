@@ -10710,6 +10710,22 @@ a = List.isEmpty (List.singleton x)
 a = False
 """
                         ]
+        , test "should replace List.isEmpty (a |> List.singleton) by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (b |> List.singleton)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on this list will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]
 
 
