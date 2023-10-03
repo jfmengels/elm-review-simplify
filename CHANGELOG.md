@@ -42,6 +42,7 @@ Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
 - Fixed an issue where `Set.intersect Set.empty` would be fixed to `Set.empty`
 - Fixed an issue where `(a |> not) == (b |> not)` would be fixed to `(a |> ) == (b |> )`
+- Fixed an issue where `List.intersperse << List.singleton` would be fixed to `List.singleton`
 
 ## [2.1.2] - 2023-09-28
 

@@ -4515,7 +4515,7 @@ stringReverseChecks =
 stringReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringReverseCompositionChecks =
     firstThatConstructsJust
-        [ compositionAfterWrapIsUnnecessaryCheck stringCollection
+        [ compositionAfterWrapIsUnnecessaryCheck { laterArgCount = 1 } stringCollection
         , toggleCompositionChecks
         ]
 
@@ -5114,7 +5114,7 @@ listIntersperseChecks =
 
 listIntersperseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listIntersperseCompositionChecks =
-    compositionAfterWrapIsUnnecessaryCheck listCollection
+    compositionAfterWrapIsUnnecessaryCheck { laterArgCount = 2 } listCollection
 
 
 listHeadChecks : CheckInfo -> Maybe (Error {})
@@ -6402,7 +6402,7 @@ listReverseChecks =
 listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listReverseCompositionChecks =
     firstThatConstructsJust
-        [ compositionAfterWrapIsUnnecessaryCheck listCollection
+        [ compositionAfterWrapIsUnnecessaryCheck { laterArgCount = 1 } listCollection
         , toggleCompositionChecks
         ]
 
@@ -9004,9 +9004,9 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                 )
 
 
-compositionAfterWrapIsUnnecessaryCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-compositionAfterWrapIsUnnecessaryCheck wrapper checkInfo =
-    if checkInfo.earlier.fn == wrapper.wrap.fn then
+compositionAfterWrapIsUnnecessaryCheck : { laterArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+compositionAfterWrapIsUnnecessaryCheck config wrapper checkInfo =
+    if (List.length checkInfo.later.args == (config.laterArgCount - 1)) && (checkInfo.earlier.fn == wrapper.wrap.fn) then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the given " ++ wrapper.represents
