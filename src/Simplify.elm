@@ -3764,46 +3764,48 @@ equalityChecks isEqual =
                         )
 
                 _ ->
+                    Nothing
+        , \checkInfo ->
+            let
+                inferred : Infer.Inferred
+                inferred =
+                    Tuple.first checkInfo.inferredConstants
+
+                normalizeAndInfer : Node Expression -> Node Expression
+                normalizeAndInfer expressionNode =
                     let
-                        inferred : Infer.Inferred
-                        inferred =
-                            Tuple.first checkInfo.inferredConstants
-
-                        normalizeAndInfer : Node Expression -> Node Expression
-                        normalizeAndInfer expressionNode =
-                            let
-                                normalizedExpressionNode : Node Expression
-                                normalizedExpressionNode =
-                                    Normalize.normalize checkInfo expressionNode
-                            in
-                            case Infer.get (Node.value normalizedExpressionNode) inferred of
-                                Just expr ->
-                                    Node Range.emptyRange expr
-
-                                Nothing ->
-                                    normalizedExpressionNode
-
-                        normalizedLeft : Node Expression
-                        normalizedLeft =
-                            normalizeAndInfer checkInfo.left
-
-                        normalizedRight : Node Expression
-                        normalizedRight =
-                            normalizeAndInfer checkInfo.right
+                        normalizedExpressionNode : Node Expression
+                        normalizedExpressionNode =
+                            Normalize.normalize checkInfo expressionNode
                     in
-                    case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
-                        Normalize.ConfirmedEquality ->
-                            if checkInfo.expectNaN then
-                                Nothing
+                    case Infer.get (Node.value normalizedExpressionNode) inferred of
+                        Just expr ->
+                            Node Range.emptyRange expr
 
-                            else
-                                Just (comparisonError isEqual checkInfo)
+                        Nothing ->
+                            normalizedExpressionNode
 
-                        Normalize.ConfirmedInequality ->
-                            Just (comparisonError (not isEqual) checkInfo)
+                normalizedLeft : Node Expression
+                normalizedLeft =
+                    normalizeAndInfer checkInfo.left
 
-                        Normalize.Unconfirmed ->
-                            Nothing
+                normalizedRight : Node Expression
+                normalizedRight =
+                    normalizeAndInfer checkInfo.right
+            in
+            case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
+                Normalize.ConfirmedEquality ->
+                    if checkInfo.expectNaN then
+                        Nothing
+
+                    else
+                        Just (comparisonError isEqual checkInfo)
+
+                Normalize.ConfirmedInequality ->
+                    Just (comparisonError (not isEqual) checkInfo)
+
+                Normalize.Unconfirmed ->
+                    Nothing
         ]
 
 
