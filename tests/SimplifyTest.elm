@@ -2431,8 +2431,8 @@ a = n * 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary multiplication by 1"
-                            , details = [ "Multiplying by 1 does not change the value of the number." ]
+                            { message = "Unnecessary multiplying by 1"
+                            , details = [ "You can replace this operation by the left number you multiplied by 0." ]
                             , under = "* 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2447,8 +2447,8 @@ a = n * 1.0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary multiplication by 1"
-                            , details = [ "Multiplying by 1 does not change the value of the number." ]
+                            { message = "Unnecessary multiplying by 1"
+                            , details = [ "You can replace this operation by the left number you multiplied by 0." ]
                             , under = "* 1.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2463,8 +2463,8 @@ a = 1 * n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary multiplication by 1"
-                            , details = [ "Multiplying by 1 does not change the value of the number." ]
+                            { message = "Unnecessary multiplying by 1"
+                            , details = [ "You can replace this operation by the right number you multiplied by 0." ]
                             , under = "1 *"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -3131,8 +3131,8 @@ multiplyChecks checkInfo =
                     if number == 1 then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary multiplication by 1"
-                                , details = [ "Multiplying by 1 does not change the value of the number." ]
+                                { message = "Unnecessary multiplying by 1"
+                                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " number you multiplied by 0." ]
                                 }
                                 (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
