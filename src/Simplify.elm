@@ -9003,20 +9003,20 @@ compositionAfterWrapIsUnnecessaryCheck wrapper =
 
 callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
 callOnWrappedDoesNotChangeItCheck wrapper =
-    callOnDoesNotChangeItCheck
+    unnecessaryCallOnCheck
         { description = wrapper.wrap.description
         , is = \lookupTable expr -> isJust (wrapper.wrap.getValue lookupTable expr)
         }
 
 
-callOnDoesNotChangeItCheck :
+unnecessaryCallOnCheck :
     { a
         | description : Description
         , is : ModuleNameLookupTable -> Node Expression -> Bool
     }
     -> CheckInfo
     -> Maybe (Error {})
-callOnDoesNotChangeItCheck constructable checkInfo =
+unnecessaryCallOnCheck constructable checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just constructableArg ->
             let
@@ -9059,7 +9059,7 @@ callOnEmptyReturnsEmptyCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsEmptyCheck emptiable =
-    callOnDoesNotChangeItCheck emptiable.empty
+    unnecessaryCallOnCheck emptiable.empty
 
 
 callOnEmptyReturnsCheck :
