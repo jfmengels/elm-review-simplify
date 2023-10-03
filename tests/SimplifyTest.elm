@@ -1057,18 +1057,6 @@ alwaysSameDetails =
     [ "This condition will always result in the same value. You may have hardcoded a value or mistyped a condition."
     ]
 
-
-unnecessaryMessage : String
-unnecessaryMessage =
-    "Part of the expression is unnecessary"
-
-
-unnecessaryDetails : List String
-unnecessaryDetails =
-    [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
-    ]
-
-
 sameThingOnBothSidesDetails : String -> List String
 sameThingOnBothSidesDetails value =
     [ "Based on the values and/or the context, we can determine the result. You can replace this operation by " ++ value ++ "."
@@ -1125,8 +1113,8 @@ a = False || x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = unnecessaryMessage
-                            , details = unnecessaryDetails
+                            { message = "Unnecessary check for || False"
+                            , details = [ "You can replace this operation by the right bool." ]
                             , under = "False || x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1141,8 +1129,8 @@ a = x || False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = unnecessaryMessage
-                            , details = unnecessaryDetails
+                            { message = "Unnecessary check for || False"
+                            , details = [ "You can replace this operation by the left bool." ]
                             , under = "x || False"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1157,8 +1145,8 @@ a = x || (False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = unnecessaryMessage
-                            , details = unnecessaryDetails
+                            { message = "Unnecessary check for || False"
+                            , details = [ "You can replace this operation by the left bool." ]
                             , under = "x || (False)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1350,8 +1338,8 @@ a = True && x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = unnecessaryMessage
-                            , details = unnecessaryDetails
+                            { message = "Unnecessary check for && True"
+                            , details = [ "You can replace this operation by the right bool." ]
                             , under = "True && x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1366,8 +1354,8 @@ a = x && True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = unnecessaryMessage
-                            , details = unnecessaryDetails
+                            { message = "Unnecessary check for && True"
+                            , details = [ "You can replace this operation by the left bool." ]
                             , under = "x && True"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4430,8 +4418,8 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Part of the expression is unnecessary"
-                            , details = [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program." ]
+                            { message = "Unnecessary check for && True"
+                            , details = [ "You can replace this operation by the right bool." ]
                             , under = "x && y"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

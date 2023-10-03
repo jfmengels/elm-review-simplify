@@ -3815,17 +3815,6 @@ alwaysSameDetails =
     ]
 
 
-unnecessaryMessage : String
-unnecessaryMessage =
-    "Part of the expression is unnecessary"
-
-
-unnecessaryDetails : List String
-unnecessaryDetails =
-    [ "A part of this condition is unnecessary. You can remove it and it would not impact the behavior of the program."
-    ]
-
-
 
 -- COMPARISONS
 
@@ -4161,7 +4150,7 @@ listConditions operatorToLookFor redundantConditionResolution expressionNode =
             [ ( redundantConditionResolution, expressionNode ) ]
 
 
-orSideChecks : { side | node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+orSideChecks : { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
 orSideChecks side checkInfo =
     case Evaluate.getBoolean checkInfo side.node of
         Determined True ->
@@ -4177,8 +4166,8 @@ orSideChecks side checkInfo =
         Determined False ->
             Just
                 (Rule.errorWithFix
-                    { message = unnecessaryMessage
-                    , details = unnecessaryDetails
+                    { message = "Unnecessary check for || False"
+                    , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " bool." ]
                     }
                     checkInfo.parentRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
@@ -4196,14 +4185,14 @@ andChecks =
         ]
 
 
-andSideChecks : { side | node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+andSideChecks : { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
 andSideChecks side checkInfo =
     case Evaluate.getBoolean checkInfo side.node of
         Determined True ->
             Just
                 (Rule.errorWithFix
-                    { message = unnecessaryMessage
-                    , details = unnecessaryDetails
+                    { message = "Unnecessary check for && True"
+                    , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " bool." ]
                     }
                     checkInfo.parentRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
