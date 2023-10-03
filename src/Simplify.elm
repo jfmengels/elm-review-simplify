@@ -3043,7 +3043,7 @@ addingZeroCheck checkInfo =
             else
                 Nothing
         )
-        (operationToSides checkInfo)
+        (operationSides checkInfo)
 
 
 addingOppositesCheck : OperatorCheckInfo -> Maybe (Error {})
@@ -3166,11 +3166,11 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                 Nothing ->
                     Nothing
         )
-        (operationToSides checkInfo)
+        (operationSides checkInfo)
 
 
-operationToSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression }
-operationToSides checkInfo =
+operationSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression }
+operationSides checkInfo =
     [ { node = checkInfo.right, otherNode = checkInfo.left }
     , { node = checkInfo.left, otherNode = checkInfo.right }
     ]
@@ -3790,7 +3790,7 @@ equalityChecks isEqual =
                     else
                         Nothing
                 )
-                (operationToSides checkInfo)
+                (operationSides checkInfo)
         , \checkInfo ->
             case
                 Maybe.map2 Tuple.pair
