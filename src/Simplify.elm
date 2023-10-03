@@ -2829,7 +2829,7 @@ compositionChecks =
                 of
                     ( Just earlierFnModuleName, Just laterFnModuleName ) ->
                         case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
-                            Just compositionIntoChecksForSpecificLater ->
+                            Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
                                 compositionIntoChecksForSpecificLater
                                     { lookupTable = checkInfo.lookupTable
                                     , importLookup = checkInfo.importLookup
@@ -2842,6 +2842,7 @@ compositionChecks =
                                         , fn = ( laterFnModuleName, laterFnOrCall.fnName )
                                         , fnRange = laterFnOrCall.fnRange
                                         , args = laterFnOrCall.args
+                                        , argCount = laterArgCount
                                         , removeRange = checkInfo.later.removeRange
                                         }
                                     , earlier =
@@ -2884,6 +2885,8 @@ type alias CompositionIntoCheckInfo =
         , fn : ( ModuleName, String )
         , fnRange : Range
         , args : List (Node Expression)
+        , -- how many arguments a fully applied call would have
+          argCount : Int
         , removeRange : Range
         }
     , earlier :
@@ -2897,49 +2900,49 @@ type alias CompositionIntoCheckInfo =
     }
 
 
-compositionIntoChecks : Dict ( ModuleName, String ) (CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix)
+compositionIntoChecks : Dict ( ModuleName, String ) ( Int, CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix )
 compositionIntoChecks =
     Dict.fromList
-        [ ( ( [ "Basics" ], "always" ), basicsAlwaysCompositionChecks )
-        , ( ( [ "Basics" ], "not" ), toggleCompositionChecks )
-        , ( ( [ "Basics" ], "negate" ), toggleCompositionChecks )
-        , ( ( [ "String" ], "reverse" ), stringReverseCompositionChecks )
-        , ( ( [ "String" ], "fromList" ), stringFromListCompositionChecks )
-        , ( ( [ "String" ], "toList" ), stringToListCompositionChecks )
-        , ( ( [ "String" ], "concat" ), stringConcatCompositionChecks )
-        , ( ( [ "Tuple" ], "first" ), tupleFirstCompositionChecks )
-        , ( ( [ "Tuple" ], "second" ), tupleSecondCompositionChecks )
-        , ( ( [ "Maybe" ], "map" ), maybeMapCompositionChecks )
-        , ( ( [ "Maybe" ], "withDefault" ), wrapperWithDefaultChecks maybeWithJustAsWrap )
-        , ( ( [ "Result" ], "map" ), resultMapCompositionChecks )
-        , ( ( [ "Result" ], "mapError" ), resultMapErrorCompositionChecks )
-        , ( ( [ "Result" ], "toMaybe" ), resultToMaybeCompositionChecks )
-        , ( ( [ "Result" ], "fromMaybe" ), wrapperFromMaybeCompositionChecks resultWithOkAsWrap )
-        , ( ( [ "Result" ], "withDefault" ), wrapperWithDefaultChecks resultWithOkAsWrap )
-        , ( ( [ "List" ], "reverse" ), listReverseCompositionChecks )
-        , ( ( [ "List" ], "sort" ), listSortCompositionChecks )
-        , ( ( [ "List" ], "sortBy" ), listSortByCompositionChecks )
-        , ( ( [ "List" ], "map" ), listMapCompositionChecks )
-        , ( ( [ "List" ], "filterMap" ), listFilterMapCompositionChecks )
-        , ( ( [ "List" ], "intersperse" ), listIntersperseCompositionChecks )
-        , ( ( [ "List" ], "concat" ), listConcatCompositionChecks )
-        , ( ( [ "List" ], "sum" ), sumCompositionChecks listCollection )
-        , ( ( [ "List" ], "product" ), productCompositionChecks listCollection )
-        , ( ( [ "List" ], "minimum" ), minimumCompositionChecks listCollection )
-        , ( ( [ "List" ], "maximum" ), maximumCompositionChecks listCollection )
-        , ( ( [ "List" ], "foldl" ), listFoldlCompositionChecks )
-        , ( ( [ "List" ], "foldr" ), listFoldrCompositionChecks )
-        , ( ( [ "Set" ], "fromList" ), setFromListCompositionChecks )
-        , ( ( [ "Dict" ], "fromList" ), dictFromListCompositionChecks )
-        , ( ( [ "Array" ], "toList" ), arrayToListCompositionChecks )
-        , ( ( [ "Array" ], "fromList" ), arrayFromListCompositionChecks )
-        , ( ( [ "Task" ], "map" ), taskMapCompositionChecks )
-        , ( ( [ "Task" ], "mapError" ), taskMapErrorCompositionChecks )
-        , ( ( [ "Task" ], "sequence" ), taskSequenceCompositionChecks )
-        , ( ( [ "Platform", "Cmd" ], "batch" ), batchCompositionChecks )
-        , ( ( [ "Platform", "Sub" ], "batch" ), batchCompositionChecks )
-        , ( ( [ "Json", "Decode" ], "map" ), jsonDecodeMapCompositionChecks )
-        , ( ( [ "Random" ], "map" ), randomMapCompositionChecks )
+        [ ( ( [ "Basics" ], "always" ), ( 2, basicsAlwaysCompositionChecks ) )
+        , ( ( [ "Basics" ], "not" ), ( 1, toggleCompositionChecks ) )
+        , ( ( [ "Basics" ], "negate" ), ( 1, toggleCompositionChecks ) )
+        , ( ( [ "String" ], "reverse" ), ( 1, stringReverseCompositionChecks ) )
+        , ( ( [ "String" ], "fromList" ), ( 1, stringFromListCompositionChecks ) )
+        , ( ( [ "String" ], "toList" ), ( 1, stringToListCompositionChecks ) )
+        , ( ( [ "String" ], "concat" ), ( 1, stringConcatCompositionChecks ) )
+        , ( ( [ "Tuple" ], "first" ), ( 1, tupleFirstCompositionChecks ) )
+        , ( ( [ "Tuple" ], "second" ), ( 1, tupleSecondCompositionChecks ) )
+        , ( ( [ "Maybe" ], "map" ), ( 2, maybeMapCompositionChecks ) )
+        , ( ( [ "Maybe" ], "withDefault" ), ( 2, wrapperWithDefaultChecks maybeWithJustAsWrap ) )
+        , ( ( [ "Result" ], "map" ), ( 2, resultMapCompositionChecks ) )
+        , ( ( [ "Result" ], "mapError" ), ( 2, resultMapErrorCompositionChecks ) )
+        , ( ( [ "Result" ], "toMaybe" ), ( 1, resultToMaybeCompositionChecks ) )
+        , ( ( [ "Result" ], "fromMaybe" ), ( 3, wrapperFromMaybeCompositionChecks resultWithOkAsWrap ) )
+        , ( ( [ "Result" ], "withDefault" ), ( 2, wrapperWithDefaultChecks resultWithOkAsWrap ) )
+        , ( ( [ "List" ], "reverse" ), ( 1, listReverseCompositionChecks ) )
+        , ( ( [ "List" ], "sort" ), ( 1, listSortCompositionChecks ) )
+        , ( ( [ "List" ], "sortBy" ), ( 2, listSortByCompositionChecks ) )
+        , ( ( [ "List" ], "map" ), ( 2, listMapCompositionChecks ) )
+        , ( ( [ "List" ], "filterMap" ), ( 2, listFilterMapCompositionChecks ) )
+        , ( ( [ "List" ], "intersperse" ), ( 2, listIntersperseCompositionChecks ) )
+        , ( ( [ "List" ], "concat" ), ( 1, listConcatCompositionChecks ) )
+        , ( ( [ "List" ], "sum" ), ( 1, sumCompositionChecks listCollection ) )
+        , ( ( [ "List" ], "product" ), ( 1, productCompositionChecks listCollection ) )
+        , ( ( [ "List" ], "minimum" ), ( 1, minimumCompositionChecks listCollection ) )
+        , ( ( [ "List" ], "maximum" ), ( 1, maximumCompositionChecks listCollection ) )
+        , ( ( [ "List" ], "foldl" ), ( 3, listFoldlCompositionChecks ) )
+        , ( ( [ "List" ], "foldr" ), ( 3, listFoldrCompositionChecks ) )
+        , ( ( [ "Set" ], "fromList" ), ( 1, setFromListCompositionChecks ) )
+        , ( ( [ "Dict" ], "fromList" ), ( 1, dictFromListCompositionChecks ) )
+        , ( ( [ "Array" ], "toList" ), ( 1, arrayToListCompositionChecks ) )
+        , ( ( [ "Array" ], "fromList" ), ( 1, arrayFromListCompositionChecks ) )
+        , ( ( [ "Task" ], "map" ), ( 2, taskMapCompositionChecks ) )
+        , ( ( [ "Task" ], "mapError" ), ( 2, taskMapErrorCompositionChecks ) )
+        , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceCompositionChecks ) )
+        , ( ( [ "Platform", "Cmd" ], "batch" ), ( 1, batchCompositionChecks ) )
+        , ( ( [ "Platform", "Sub" ], "batch" ), ( 1, batchCompositionChecks ) )
+        , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapCompositionChecks ) )
+        , ( ( [ "Random" ], "map" ), ( 2, randomMapCompositionChecks ) )
         ]
 
 
