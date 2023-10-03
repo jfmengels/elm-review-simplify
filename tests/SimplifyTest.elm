@@ -3264,7 +3264,7 @@ a = not x == not y
                         [ Review.Test.error
                             { message = "Unnecessary negation on both sides"
                             , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
-                            , under = "not x == not y"
+                            , under = "=="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =  x ==  y
@@ -3280,7 +3280,7 @@ a = not x /= not y
                         [ Review.Test.error
                             { message = "Unnecessary negation on both sides"
                             , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
-                            , under = "not x /= not y"
+                            , under = "/="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =  x /=  y

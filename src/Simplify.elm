@@ -3757,7 +3757,7 @@ equalityChecks isEqual =
                             { message = "Unnecessary negation on both sides"
                             , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
                             }
-                            checkInfo.parentRange
+                            checkInfo.operatorRange
                             [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]
                         )
 
