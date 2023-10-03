@@ -13548,6 +13548,8 @@ listSortByTests =
 a = List.sortBy fn
 b = List.sortBy fn list
 c = List.sortBy << List.sortBy fn
+c = List.sortBy f << List.sortWith g
+c = List.sortBy f << List.sort
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors

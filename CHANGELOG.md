@@ -43,6 +43,7 @@ Bug fixes:
 - Fixed an issue where `Set.intersect Set.empty` would be fixed to `Set.empty`
 - Fixed an issue where `(a |> not) == (b |> not)` would be fixed to `(a |> ) == (b |> )`
 - Fixed an issue where `List.intersperse << List.singleton` would be fixed to `List.singleton`
+- Fixed an issue where e.g. `List.sortBy f << g` would be fixed to `g`
 
 ## [2.1.2] - 2023-09-28
 

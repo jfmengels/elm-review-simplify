@@ -6488,7 +6488,7 @@ operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
                 )
                 (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
     in
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) == areAllArgsEqual () then
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) && areAllArgsEqual () then
         Just
             { info =
                 { message =
