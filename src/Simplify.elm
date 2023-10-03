@@ -3166,31 +3166,32 @@ minusChecks checkInfo =
                 )
             )
 
-    else if checkInfo.expectNaN then
-        Nothing
-
     else
         checkIfMinusResultsInZero checkInfo
 
 
 checkIfMinusResultsInZero : OperatorCheckInfo -> Maybe (Error {})
 checkIfMinusResultsInZero checkInfo =
-    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
-        Normalize.ConfirmedEquality ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Subtraction always results in 0"
-                    , details = [ "These two expressions have the same value, which means they will cancel add when subtracting one by the other." ]
-                    }
-                    checkInfo.parentRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
-                )
+    if checkInfo.expectNaN then
+        Nothing
 
-        Normalize.ConfirmedInequality ->
-            Nothing
+    else
+        case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+            Normalize.ConfirmedEquality ->
+                Just
+                    (Rule.errorWithFix
+                        { message = "Subtraction always results in 0"
+                        , details = [ "These two expressions have the same value, which means they will cancel add when subtracting one by the other." ]
+                        }
+                        checkInfo.parentRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange "0" ]
+                    )
 
-        Normalize.Unconfirmed ->
-            Nothing
+            Normalize.ConfirmedInequality ->
+                Nothing
+
+            Normalize.Unconfirmed ->
+                Nothing
 
 
 multiplyChecks : OperatorCheckInfo -> Maybe (Error {})
