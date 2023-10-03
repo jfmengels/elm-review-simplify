@@ -3155,22 +3155,14 @@ minusChecks checkInfo =
             )
 
     else if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
-        let
-            replacedRange : Range
-            replacedRange =
-                removeLeftRange checkInfo
-        in
         Just
             (Rule.errorWithFix
                 { message = "Unnecessary subtracting from 0"
                 , details = [ "You can negate the expression on the right like `-n`." ]
                 }
                 (errorToLeftRange checkInfo)
-                (if needsParens (Node.value checkInfo.right) then
-                    [ Fix.replaceRangeBy replacedRange "-(", Fix.insertAt checkInfo.rightRange.end ")" ]
-
-                 else
-                    [ Fix.replaceRangeBy replacedRange "-" ]
+                (replaceBySubExpressionFix checkInfo.parentRange checkInfo.right
+                    ++ [ Fix.insertAt checkInfo.parentRange.start "-" ]
                 )
             )
 
