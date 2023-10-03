@@ -10418,9 +10418,7 @@ endWithoutBoundary range =
 
 removeBoundariesFix : Node a -> List Fix
 removeBoundariesFix (Node nodeRange _) =
-    [ Fix.removeRange (leftBoundaryRange nodeRange)
-    , Fix.removeRange (rightBoundaryRange nodeRange)
-    ]
+    keepOnlyFix { parentRange = nodeRange, keep = rangeWithoutBoundaries nodeRange }
 
 
 leftBoundaryRange : Range -> Range
