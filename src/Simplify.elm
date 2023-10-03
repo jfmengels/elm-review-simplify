@@ -3078,7 +3078,7 @@ minusChecks checkInfo =
                 { message = "Unnecessary subtraction with 0"
                 , details = [ "Subtracting 0 does not change the value of the number." ]
                 }
-                (errorToRightRange checkInfo)
+                checkInfo.operatorRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.left })
             )
 
@@ -3088,7 +3088,7 @@ minusChecks checkInfo =
                 { message = "Unnecessary subtracting from 0"
                 , details = [ "You can negate the expression on the right like `-n`." ]
                 }
-                (errorToLeftRange checkInfo)
+                checkInfo.operatorRange
                 (replaceBySubExpressionFix checkInfo.parentRange checkInfo.right
                     ++ [ Fix.insertAt checkInfo.parentRange.start "-" ]
                 )
@@ -3226,7 +3226,7 @@ divisionChecks checkInfo =
                 { message = "Unnecessary division by 1"
                 , details = [ "Dividing by 1 does not change the value of the number." ]
                 }
-                (errorToRightRange checkInfo)
+                checkInfo.operatorRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.left })
             )
 
@@ -3254,7 +3254,7 @@ divisionChecks checkInfo =
                         , "Most likely, dividing 0 was unintentional and you had a different number in mind."
                         ]
                     }
-                    (errorToLeftRange checkInfo)
+                    checkInfo.operatorRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
                 )
 

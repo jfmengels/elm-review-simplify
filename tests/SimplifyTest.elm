@@ -2332,7 +2332,7 @@ a = n - 0
                         [ Review.Test.error
                             { message = "Unnecessary subtraction with 0"
                             , details = [ "Subtracting 0 does not change the value of the number." ]
-                            , under = "- 0"
+                            , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2348,7 +2348,7 @@ a = n - 0.0
                         [ Review.Test.error
                             { message = "Unnecessary subtraction with 0"
                             , details = [ "Subtracting 0 does not change the value of the number." ]
-                            , under = "- 0.0"
+                            , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2364,7 +2364,7 @@ a = 0 - n
                         [ Review.Test.error
                             { message = "Unnecessary subtracting from 0"
                             , details = [ "You can negate the expression on the right like `-n`." ]
-                            , under = "0 -"
+                            , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = -n
@@ -2380,7 +2380,7 @@ a = 0 - List.length list
                         [ Review.Test.error
                             { message = "Unnecessary subtracting from 0"
                             , details = [ "You can negate the expression on the right like `-n`." ]
-                            , under = "0 -"
+                            , under = "-"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = -(List.length list)
@@ -2627,7 +2627,7 @@ a = n / 1
                         [ Review.Test.error
                             { message = "Unnecessary division by 1"
                             , details = [ "Dividing by 1 does not change the value of the number." ]
-                            , under = "/ 1"
+                            , under = "/"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2643,7 +2643,7 @@ a = n / 1.0
                         [ Review.Test.error
                             { message = "Unnecessary division by 1"
                             , details = [ "Dividing by 1 does not change the value of the number." ]
-                            , under = "/ 1.0"
+                            , under = "/"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
@@ -2662,7 +2662,7 @@ a = 0 / n
                                 [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
                                 , "Most likely, dividing 0 was unintentional and you had a different number in mind."
                                 ]
-                            , under = "0 /"
+                            , under = "/"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0
@@ -2681,7 +2681,7 @@ a = 0.0 / n
                                 [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
                                 , "Most likely, dividing 0 was unintentional and you had a different number in mind."
                                 ]
-                            , under = "0.0 /"
+                            , under = "/"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0.0
