@@ -3844,7 +3844,7 @@ numberComparisonChecks operatorFunction operatorCheckInfo =
             Nothing
 
 
-comparisonError : Bool -> QualifyResources { a | parentRange : Range } -> Error {}
+comparisonError : Bool -> QualifyResources { a | parentRange : Range, operator : String } -> Error {}
 comparisonError bool checkInfo =
     let
         boolAsString : String
@@ -3852,9 +3852,9 @@ comparisonError bool checkInfo =
             AstHelpers.boolToString bool
     in
     Rule.errorWithFix
-        { message = "Comparison is always " ++ boolAsString
+        { message = "(" ++ checkInfo.operator ++ ") comparison will result in " ++ boolAsString
         , details =
-            [ "Based on the values and/or the context, we can determine that the value of this operation will always be " ++ boolAsString ++ "."
+            [ "Based on the values and/or the context, we can determine the result. You can replace this operation by " ++ boolAsString ++ "."
             ]
         }
         checkInfo.parentRange
