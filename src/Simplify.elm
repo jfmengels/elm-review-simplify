@@ -3322,25 +3322,23 @@ plusplusChecks =
         , \checkInfo ->
             findMap (\side -> appendEmptyCheck side listCollection checkInfo) (operationSides checkInfo)
         , \checkInfo ->
-            collectionUnionWithLiteralsChecks listCollection
-                { lookupTable = checkInfo.lookupTable
-                , extractSourceCode = checkInfo.extractSourceCode
-                , parentRange = checkInfo.parentRange
-                , first = checkInfo.left
+            collectionUnionWithLiteralsChecks
+                { first = checkInfo.left
                 , second = checkInfo.right
                 , operationRange = checkInfo.operatorRange
                 , operation = "++"
                 }
+                listCollection
+                checkInfo
         , \checkInfo ->
-            collectionUnionWithLiteralsChecks stringCollection
-                { lookupTable = checkInfo.lookupTable
-                , extractSourceCode = checkInfo.extractSourceCode
-                , parentRange = checkInfo.parentRange
-                , first = checkInfo.left
+            collectionUnionWithLiteralsChecks
+                { first = checkInfo.left
                 , second = checkInfo.right
                 , operationRange = checkInfo.operatorRange
                 , operation = "++"
                 }
+                stringCollection
+                checkInfo
         , \checkInfo ->
             case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
                 Just leftListSingleton ->
@@ -9413,15 +9411,14 @@ collectionUnionChecks collection =
                             )
 
                     else
-                        collectionUnionWithLiteralsChecks collection
-                            { lookupTable = checkInfo.lookupTable
-                            , extractSourceCode = checkInfo.extractSourceCode
-                            , parentRange = checkInfo.parentRange
-                            , first = checkInfo.firstArg
+                        collectionUnionWithLiteralsChecks
+                            { first = checkInfo.firstArg
                             , second = secondArg_
                             , operationRange = checkInfo.fnRange
                             , operation = qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
                             }
+                            collection
+                            checkInfo
 
                 Nothing ->
                     Nothing
@@ -9429,37 +9426,39 @@ collectionUnionChecks collection =
 
 
 collectionUnionWithLiteralsChecks :
-    CollectionProperties (FromListProperties otherProperties)
+    { first : Node Expression
+    , second : Node Expression
+    , operationRange : Range
+    , operation : String
+    }
+    -> CollectionProperties (FromListProperties otherProperties)
     ->
-        { lookupTable : ModuleNameLookupTable
-        , extractSourceCode : Range -> String
-        , parentRange : Range
-        , first : Node Expression
-        , second : Node Expression
-        , operationRange : Range
-        , operation : String
+        { checkInfo
+            | lookupTable : ModuleNameLookupTable
+            , extractSourceCode : Range -> String
+            , parentRange : Range
         }
     -> Maybe (Error {})
-collectionUnionWithLiteralsChecks collection checkInfo =
-    case collection.fromListLiteral.getListRange checkInfo.lookupTable checkInfo.second of
+collectionUnionWithLiteralsChecks operationInfo collection checkInfo =
+    case collection.fromListLiteral.getListRange checkInfo.lookupTable operationInfo.second of
         Just literalListRangeSecond ->
-            case collection.fromListLiteral.getListRange checkInfo.lookupTable checkInfo.first of
+            case collection.fromListLiteral.getListRange checkInfo.lookupTable operationInfo.first of
                 Just literalListRangeFirst ->
                     Just
                         (Rule.errorWithFix
-                            { message = checkInfo.operation ++ " on " ++ collection.fromListLiteral.description ++ "s can be turned into a single " ++ collection.fromListLiteral.description
+                            { message = operationInfo.operation ++ " on " ++ collection.fromListLiteral.description ++ "s can be turned into a single " ++ collection.fromListLiteral.description
                             , details = [ "Try moving all the elements into a single " ++ collection.fromListLiteral.description ++ "." ]
                             }
-                            checkInfo.operationRange
+                            operationInfo.operationRange
                             (if collection.unionLeftElementsStayOnTheLeft then
-                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.second }
+                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.second }
                                     ++ [ Fix.insertAt
                                             (rangeWithoutBoundaries literalListRangeSecond).start
                                             (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
                                        ]
 
                              else
-                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.first }
+                                keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.first }
                                     ++ [ Fix.insertAt
                                             (rangeWithoutBoundaries literalListRangeFirst).start
                                             (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
