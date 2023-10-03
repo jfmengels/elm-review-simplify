@@ -4233,13 +4233,13 @@ orSideChecks side checkInfo =
 andChecks : OperatorCheckInfo -> Maybe (Error {})
 andChecks =
     firstThatConstructsJust
-        [ \checkInfo -> findMap (\side -> andSideCheck side checkInfo) (operationSides checkInfo)
+        [ \checkInfo -> findMap (\side -> andSideChecks side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
 
-andSideCheck : { node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
-andSideCheck side checkInfo =
+andSideChecks : { node : Node Expression, otherNode : Node Expression } -> OperatorCheckInfo -> Maybe (Error {})
+andSideChecks side checkInfo =
     case Evaluate.getBoolean checkInfo side.node of
         Determined True ->
             Just
