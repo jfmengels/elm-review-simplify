@@ -7157,8 +7157,8 @@ a = String.reverse << String.fromChar
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.reverse on a single-char string will result in the given string"
-                            , details = [ "You can replace this call by String.fromChar." ]
+                            { message = "String.reverse on a single-char string will result in the unchanged single-char string"
+                            , details = [ "You can replace this composition by String.fromChar." ]
                             , under = "String.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -7173,8 +7173,8 @@ a = String.fromChar >> String.reverse
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.reverse on a single-char string will result in the given string"
-                            , details = [ "You can replace this call by String.fromChar." ]
+                            { message = "String.reverse on a single-char string will result in the unchanged single-char string"
+                            , details = [ "You can replace this composition by String.fromChar." ]
                             , under = "String.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14170,8 +14170,8 @@ a = List.reverse << List.singleton
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.reverse on a singleton list will result in the given list"
-                            , details = [ "You can replace this call by List.singleton." ]
+                            { message = "List.reverse on a singleton list will result in the unchanged singleton list"
+                            , details = [ "You can replace this composition by List.singleton." ]
                             , under = "List.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14186,8 +14186,8 @@ a = List.singleton >> List.reverse
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.reverse on a singleton list will result in the given list"
-                            , details = [ "You can replace this call by List.singleton." ]
+                            { message = "List.reverse on a singleton list will result in the unchanged singleton list"
+                            , details = [ "You can replace this composition by List.singleton." ]
                             , under = "List.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14656,8 +14656,8 @@ a = List.intersperse s << List.singleton
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.intersperse on a singleton list will result in the given list"
-                            , details = [ "You can replace this call by List.singleton." ]
+                            { message = "List.intersperse on a singleton list will result in the unchanged singleton list"
+                            , details = [ "You can replace this composition by List.singleton." ]
                             , under = "List.intersperse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -14672,8 +14672,8 @@ a = List.singleton >> List.intersperse s
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.intersperse on a singleton list will result in the given list"
-                            , details = [ "You can replace this call by List.singleton." ]
+                            { message = "List.intersperse on a singleton list will result in the unchanged singleton list"
+                            , details = [ "You can replace this composition by List.singleton." ]
                             , under = "List.intersperse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

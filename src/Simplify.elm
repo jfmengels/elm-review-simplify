@@ -9005,18 +9005,8 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
 
 
 compositionAfterWrapIsUnnecessaryCheck : { laterArgCount : Int } -> WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-compositionAfterWrapIsUnnecessaryCheck config wrapper checkInfo =
-    if (List.length checkInfo.later.args == (config.laterArgCount - 1)) && (checkInfo.earlier.fn == wrapper.wrap.fn) then
-        Just
-            { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the given " ++ wrapper.represents
-                , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources) ++ "." ]
-                }
-            , fix = [ Fix.removeRange checkInfo.later.removeRange ]
-            }
-
-    else
-        Nothing
+compositionAfterWrapIsUnnecessaryCheck config wrapper =
+    unnecessaryCompositionAfterCheck config wrapper.wrap
 
 
 callOnWrappedDoesNotChangeItCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -9146,12 +9136,25 @@ compositionFromEmptyReturnsEmptyCheck :
         }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-compositionFromEmptyReturnsEmptyCheck config emptiable checkInfo =
-    if (List.length checkInfo.later.args == (config.laterArgCount - 1)) && (checkInfo.earlier.fn == emptiable.empty.fn) then
+compositionFromEmptyReturnsEmptyCheck config emptiable =
+    unnecessaryCompositionAfterCheck config emptiable.empty
+
+
+unnecessaryCompositionAfterCheck :
+    { laterArgCount : Int }
+    ->
+        { construct
+            | description : Description
+            , fn : ( ModuleName, String )
+        }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+unnecessaryCompositionAfterCheck config construct checkInfo =
+    if (List.length checkInfo.later.args == (config.laterArgCount - 1)) && (checkInfo.earlier.fn == construct.fn) then
         Just
             { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite resultWithErrAsWrap.empty.description ++ " will result in " ++ descriptionForDefinite "the unchanged" resultWithErrAsWrap.empty.description
-                , details = [ "You can replace this composition by " ++ qualifiedToString (qualify emptiable.empty.fn checkInfo) ++ "." ]
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite construct.description ++ " will result in " ++ descriptionForDefinite "the unchanged" construct.description
+                , details = [ "You can replace this composition by " ++ qualifiedToString (qualify construct.fn checkInfo) ++ "." ]
                 }
             , fix =
                 [ Fix.removeRange checkInfo.later.removeRange ]
