@@ -4196,11 +4196,7 @@ and_isRightSimplifiableError checkInfo =
                     , details = unnecessaryDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange
-                        { start = checkInfo.leftRange.end
-                        , end = checkInfo.rightRange.end
-                        }
-                    ]
+                    [ Fix.removeRange (fixToRightRange checkInfo) ]
                 )
 
         Determined False ->
@@ -4210,11 +4206,7 @@ and_isRightSimplifiableError checkInfo =
                     , details = alwaysSameDetails
                     }
                     checkInfo.parentRange
-                    [ Fix.removeRange
-                        { start = checkInfo.leftRange.start
-                        , end = checkInfo.rightRange.start
-                        }
-                    ]
+                    [ Fix.removeRange (fixToLeftRange checkInfo) ]
                 )
 
         Undetermined ->
