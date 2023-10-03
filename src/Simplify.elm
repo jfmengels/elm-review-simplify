@@ -4949,13 +4949,7 @@ listConcatCompositionChecks =
 
 
 callOnListWithIrrelevantEmptyElement :
-    { otherProperties
-        | empty :
-            { empty
-                | description : Description
-                , is : ModuleNameLookupTable -> Node Expression -> Bool
-            }
-    }
+    { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 callOnListWithIrrelevantEmptyElement emptiableElement checkInfo =
@@ -6644,14 +6638,7 @@ This is pretty similar to `sequenceOrFirstEmptyChecks` where we look at argument
 
 -}
 mapNOrFirstEmptyConstructionChecks :
-    WrapperProperties
-        { otherProperties
-            | empty :
-                { empty
-                    | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : Description
-                }
-        }
+    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
@@ -6860,14 +6847,7 @@ Any other argument order is not supported:
 
 -}
 emptiableFoldChecks :
-    TypeProperties
-        { otherProperties
-            | empty :
-                { empty
-                    | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : Description
-                }
-        }
+    TypeProperties { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 emptiableFoldChecks emptiable =
@@ -7043,14 +7023,7 @@ taskSequenceCompositionChecks =
 
 
 sequenceOrFirstEmptyChecks :
-    WrapperProperties
-        { otherProperties
-            | empty :
-                { empty
-                    | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : Description
-                }
-        }
+    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 sequenceOrFirstEmptyChecks emptiable checkInfo =
@@ -7688,7 +7661,7 @@ getEmpty lookupTable emptiable expressionNode =
 
 getEmptyExpressionNode :
     ModuleNameLookupTable
-    -> { otherProperties | empty : { empty | is : ModuleNameLookupTable -> Node Expression -> Bool } }
+    -> { otherProperties | empty : TypeSubsetProperties empty }
     -> Node Expression
     -> Maybe (Node Expression)
 getEmptyExpressionNode lookupTable emptiable expressionNode =
@@ -8333,14 +8306,7 @@ subCollection =
 
 
 emptiableMapChecks :
-    TypeProperties
-        { otherProperties
-            | empty :
-                { empty
-                    | description : Description
-                    , is : ModuleNameLookupTable -> Node Expression -> Bool
-                }
-        }
+    TypeProperties { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 emptiableMapChecks emptiable =
@@ -8648,14 +8614,7 @@ resultAndThenChecks =
 
 
 withDefaultChecks :
-    WrapperProperties
-        { otherProperties
-            | empty :
-                { empty
-                    | description : Description
-                    , is : ModuleNameLookupTable -> Node Expression -> Bool
-                }
-        }
+    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 withDefaultChecks emptiable =
@@ -8671,13 +8630,7 @@ wrapperWithDefaultChecks wrapper =
 
 
 emptiableWithDefaultChecks :
-    { otherProperties
-        | empty :
-            { empty
-                | description : Description
-                , is : ModuleNameLookupTable -> Node Expression -> Bool
-            }
-    }
+    { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 emptiableWithDefaultChecks emptiable checkInfo =
@@ -8702,14 +8655,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
 
 
 unwrapToMaybeChecks :
-    WrapperProperties
-        { otherProperties
-            | empty :
-                { empty
-                    | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : Description
-                }
-        }
+    WrapperProperties { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 unwrapToMaybeChecks emptiableWrapper =
@@ -9092,13 +9038,7 @@ unnecessaryCallOnCheck constructable checkInfo =
 
 
 unnecessaryCallOnEmptyCheck :
-    { a
-        | empty :
-            { empty
-                | is : ModuleNameLookupTable -> Node Expression -> Bool
-                , description : Description
-            }
-    }
+    { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 unnecessaryCallOnEmptyCheck emptiable =
@@ -9107,14 +9047,7 @@ unnecessaryCallOnEmptyCheck emptiable =
 
 callOnEmptyReturnsCheck :
     { resultAsString : QualifyResources {} -> String }
-    ->
-        { a
-            | empty :
-                { empty
-                    | is : ModuleNameLookupTable -> Node Expression -> Bool
-                    , description : Description
-                }
-        }
+    -> { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsCheck config collection checkInfo =
@@ -9641,13 +9574,7 @@ wrapperFromListSingletonCompositionChecks wrapper checkInfo =
 
 
 emptiableToListChecks :
-    { otherProperties
-        | empty :
-            { empty
-                | is : ModuleNameLookupTable -> Node Expression -> Bool
-                , description : Description
-            }
-    }
+    { otherProperties | empty : TypeSubsetProperties empty }
     -> CheckInfo
     -> Maybe (Error {})
 emptiableToListChecks collection =
