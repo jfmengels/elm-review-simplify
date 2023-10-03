@@ -4873,7 +4873,7 @@ resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAnd
 resultMapErrorCompositionChecks =
     firstThatConstructsJust
         [ wrapToMapCompositionChecks resultWithErrAsWrap
-        , compositionFromEmptyReturnsEmptyCheck { laterArgCount = 2 } resultWithErrAsWrap
+        , unnecessaryCompositionAfterEmptyCheck { laterArgCount = 2 } resultWithErrAsWrap
         ]
 
 
@@ -9124,7 +9124,7 @@ Examples
 Use together with `callOnEmptyReturnsEmptyCheck`
 
 -}
-compositionFromEmptyReturnsEmptyCheck :
+unnecessaryCompositionAfterEmptyCheck :
     { laterArgCount : Int }
     ->
         { a
@@ -9136,7 +9136,7 @@ compositionFromEmptyReturnsEmptyCheck :
         }
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-compositionFromEmptyReturnsEmptyCheck config emptiable =
+unnecessaryCompositionAfterEmptyCheck config emptiable =
     unnecessaryCompositionAfterCheck config emptiable.empty
 
 
