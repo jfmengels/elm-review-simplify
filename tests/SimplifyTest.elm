@@ -19423,6 +19423,22 @@ a = Ok z |> Result.mapError f
 a = Ok z
 """
                         ]
+        , test "should replace Result.mapError f << Ok by Ok" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f << Ok
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.mapError on an okay result will result in the unchanged okay result"
+                            , details = [ "You can replace this composition by Ok." ]
+                            , under = "Result.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Ok
+"""
+                        ]
         , test "should replace Result.mapError identity x by x" <|
             \() ->
                 """module A exposing (..)

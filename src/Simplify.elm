@@ -4873,26 +4873,7 @@ resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAnd
 resultMapErrorCompositionChecks =
     firstThatConstructsJust
         [ wrapToMapCompositionChecks resultWithErrAsWrap
-        , \checkInfo ->
-            case checkInfo.later.args of
-                _ :: [] ->
-                    case checkInfo.earlier.fn of
-                        ( [ "Result" ], "Ok" ) ->
-                            Just
-                                { info =
-                                    operationDoesNotChangeSpecificLastArgErrorInfo
-                                        { fn = ( [ "Result" ], "mapError" )
-                                        , specific = resultWithErrAsWrap.empty.description
-                                        }
-                                , fix =
-                                    [ Fix.removeRange checkInfo.later.removeRange ]
-                                }
-
-                        _ ->
-                            Nothing
-
-                _ ->
-                    Nothing
+        , compositionFromEmptyReturnsEmptyCheck { laterArgCount = 2 } resultWithErrAsWrap
         ]
 
 
@@ -7908,6 +7889,7 @@ resultWithOkAsWrap :
         { empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
+            , fn : ( ModuleName, String )
             }
         , mapFn : ( ModuleName, String )
         }
@@ -7925,6 +7907,7 @@ resultWithOkAsWrap =
         , is =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
+        , fn = ( [ "Result" ], "Err" )
         }
     , mapFn = ( [ "Result" ], "map" )
     }
@@ -7935,6 +7918,7 @@ resultWithErrAsWrap :
         { empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
+            , fn : ( ModuleName, String )
             }
         , mapFn : ( ModuleName, String )
         }
@@ -7952,6 +7936,7 @@ resultWithErrAsWrap =
         , is =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
+        , fn = ( [ "Result" ], "Ok" )
         }
     , mapFn = ( [ "Result" ], "mapError" )
     }
@@ -7962,6 +7947,7 @@ taskWithSucceedAsWrap :
         { empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
+            , fn : ( ModuleName, String )
             }
         , mapFn : ( ModuleName, String )
         }
@@ -7979,6 +7965,7 @@ taskWithSucceedAsWrap =
         , is =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
+        , fn = ( [ "Task" ], "fail" )
         }
     , mapFn = ( [ "Task" ], "map" )
     }
@@ -7989,6 +7976,7 @@ taskWithFailAsWrap :
         { empty :
             { description : Description
             , is : ModuleNameLookupTable -> Node Expression -> Bool
+            , fn : ( ModuleName, String )
             }
         , mapFn : ( ModuleName, String )
         }
@@ -8006,6 +7994,7 @@ taskWithFailAsWrap =
         , is =
             \lookupTable expr ->
                 isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
+        , fn = ( [ "Task" ], "succeed" )
         }
     , mapFn = ( [ "Task" ], "mapError" )
     }
@@ -9128,6 +9117,48 @@ callOnEmptyReturnsCheck config collection checkInfo =
 
         Nothing ->
             Nothing
+
+
+{-| The operation is equivalent to identity when applied on an empty value:
+
+    operation << empty --> empty
+
+Examples
+
+    Json.Decode.map f << Json.Decode.fail
+    --> Json.Decode.fail
+
+    Task.mapError << Task.succeed
+    --> Task.succeed
+
+Use together with `callOnEmptyReturnsEmptyCheck`
+
+-}
+compositionFromEmptyReturnsEmptyCheck :
+    { laterArgCount : Int }
+    ->
+        { a
+            | empty :
+                { empty
+                    | description : Description
+                    , fn : ( ModuleName, String )
+                }
+        }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+compositionFromEmptyReturnsEmptyCheck config emptiable checkInfo =
+    if (List.length checkInfo.later.args == (config.laterArgCount - 1)) && (checkInfo.earlier.fn == emptiable.empty.fn) then
+        Just
+            { info =
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite resultWithErrAsWrap.empty.description ++ " will result in " ++ descriptionForDefinite "the unchanged" resultWithErrAsWrap.empty.description
+                , details = [ "You can replace this composition by " ++ qualifiedToString (qualify emptiable.empty.fn checkInfo) ++ "." ]
+                }
+            , fix =
+                [ Fix.removeRange checkInfo.later.removeRange ]
+            }
+
+    else
+        Nothing
 
 
 {-| This operation is equivalent to identity when called on a wrapped value.
