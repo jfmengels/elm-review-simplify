@@ -4888,7 +4888,7 @@ listConcatChecks : CheckInfo -> Maybe (Error {})
 listConcatChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck listCollection
-        , callOnWrapReturnsItsValue listCollection
+        , callOnWrapReturnsItsValueCheck listCollection
         , callOnListWithIrrelevantEmptyElement listCollection
         , \checkInfo ->
             case Node.value checkInfo.firstArg of
@@ -5520,7 +5520,7 @@ listSumChecks : CheckInfo -> Maybe (Error {})
 listSumChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
-        , callOnWrapReturnsItsValue listCollection
+        , callOnWrapReturnsItsValueCheck listCollection
         ]
 
 
@@ -5533,7 +5533,7 @@ listProductChecks : CheckInfo -> Maybe (Error {})
 listProductChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
-        , callOnWrapReturnsItsValue listCollection
+        , callOnWrapReturnsItsValueCheck listCollection
         ]
 
 
@@ -6965,7 +6965,7 @@ subAndCmdBatchChecks :
 subAndCmdBatchChecks batchable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
-        , callOnWrapReturnsItsValue listCollection
+        , callOnWrapReturnsItsValueCheck listCollection
         , callOnListWithIrrelevantEmptyElement batchable
         ]
 
@@ -8609,7 +8609,7 @@ withDefaultChecks :
 withDefaultChecks emptiable =
     firstThatConstructsJust
         [ emptiableWithDefaultChecks emptiable
-        , callOnWrapReturnsItsValue emptiable
+        , callOnWrapReturnsItsValueCheck emptiable
         ]
 
 
@@ -9181,13 +9181,13 @@ For example
 Use together with `onWrapAlwaysReturnsIncomingCompositionCheck`
 
 -}
-callOnWrapReturnsItsValue :
+callOnWrapReturnsItsValueCheck :
     { otherProperties
         | wrap : ConstructWithOneArgProperties
     }
     -> CheckInfo
     -> Maybe (Error {})
-callOnWrapReturnsItsValue wrapper checkInfo =
+callOnWrapReturnsItsValueCheck wrapper checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just wrapperArg ->
             case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
@@ -9220,7 +9220,7 @@ For example
 
     Cmd.batch << List.singleton --> identity
 
-Use together with `callOnWrapReturnsItsValue`.
+Use together with `callOnWrapReturnsItsValueCheck`.
 
 -}
 onWrapAlwaysReturnsIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
