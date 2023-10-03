@@ -3243,7 +3243,7 @@ divisionChecks checkInfo =
                 , details = [ "Dividing by 1 does not change the value of the number." ]
                 }
                 (errorToRightRange checkInfo)
-                [ Fix.removeRange (removeRightRange checkInfo) ]
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.left })
             )
 
     else if not checkInfo.expectNaN && (AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0) then
