@@ -9379,8 +9379,8 @@ collectionDiffChecks collection =
                     if collection.empty.is checkInfo.lookupTable collectionArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "Diffing a " ++ collection.represents ++ " with " ++ emptyAsString checkInfo collection ++ " will result in the " ++ collection.represents ++ " itself"
-                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                                { message = "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " with " ++ emptyAsString checkInfo collection
+                                , details = [ "You can replace this call by the given first " ++ collection.represents ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
@@ -9415,7 +9415,7 @@ collectionUnionChecks collection =
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ descriptionForIndefinite collection.empty.description
-                                , details = [ "You can replace this call by the " ++ collection.represents ++ " itself." ]
+                                , details = [ "You can replace this call by the given first " ++ collection.represents ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })

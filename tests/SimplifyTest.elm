@@ -6902,7 +6902,7 @@ a = String.append string ""
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary String.append with \"\""
-                            , details = [ "You can replace this call by the string itself." ]
+                            , details = [ "You can replace this call by the given first string." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6918,7 +6918,7 @@ a = "" |> String.append string
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary String.append with \"\""
-                            , details = [ "You can replace this call by the string itself." ]
+                            , details = [ "You can replace this call by the given first string." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -6934,7 +6934,7 @@ a = "" |> String.append string
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary String.append with \"\""
-                            , details = [ "You can replace this call by the string itself." ]
+                            , details = [ "You can replace this call by the given first string." ]
                             , under = "String.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8094,7 +8094,7 @@ a = List.append list []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary List.append with []"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by the given first list." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8110,7 +8110,7 @@ a = List.append list <| []
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary List.append with []"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by the given first list." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8126,7 +8126,7 @@ a = [] |> List.append list
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary List.append with []"
-                            , details = [ "You can replace this call by the list itself." ]
+                            , details = [ "You can replace this call by the given first list." ]
                             , under = "List.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17334,7 +17334,7 @@ a = Array.append array Array.empty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Array.append with Array.empty"
-                            , details = [ "You can replace this call by the array itself." ]
+                            , details = [ "You can replace this call by the given first array." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17352,7 +17352,7 @@ a = Array.append array <| Array.empty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Array.append with Array.empty"
-                            , details = [ "You can replace this call by the array itself." ]
+                            , details = [ "You can replace this call by the given first array." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -17370,7 +17370,7 @@ a = Array.empty |> Array.append array
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Array.append with Array.empty"
-                            , details = [ "You can replace this call by the array itself." ]
+                            , details = [ "You can replace this call by the given first array." ]
                             , under = "Array.append"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21720,8 +21720,8 @@ a = Set.diff set Set.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Diffing a set with Set.empty will result in the set itself"
-                            , details = [ "You can replace this call by the set itself." ]
+                            { message = "Unnecessary Set.diff with Set.empty"
+                            , details = [ "You can replace this call by the given first set." ]
                             , under = "Set.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21738,8 +21738,8 @@ a = Set.empty |> Set.diff set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Diffing a set with Set.empty will result in the set itself"
-                            , details = [ "You can replace this call by the set itself." ]
+                            { message = "Unnecessary Set.diff with Set.empty"
+                            , details = [ "You can replace this call by the given first set." ]
                             , under = "Set.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21789,7 +21789,7 @@ a = Set.union set Set.empty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Set.union with Set.empty"
-                            , details = [ "You can replace this call by the set itself." ]
+                            , details = [ "You can replace this call by the given first set." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21807,7 +21807,7 @@ a = Set.empty |> Set.union set
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Set.union with Set.empty"
-                            , details = [ "You can replace this call by the set itself." ]
+                            , details = [ "You can replace this call by the given first set." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -21825,7 +21825,7 @@ a = Set.empty |> Set.union set
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Set.union with Set.empty"
-                            , details = [ "You can replace this call by the set itself." ]
+                            , details = [ "You can replace this call by the given first set." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -23081,8 +23081,8 @@ a = Dict.diff dict Dict.empty
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Diffing a dict with Dict.empty will result in the dict itself"
-                            , details = [ "You can replace this call by the dict itself." ]
+                            { message = "Unnecessary Dict.diff with Dict.empty"
+                            , details = [ "You can replace this call by the given first dict." ]
                             , under = "Dict.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -23099,8 +23099,8 @@ a = Dict.empty |> Dict.diff dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Diffing a dict with Dict.empty will result in the dict itself"
-                            , details = [ "You can replace this call by the dict itself." ]
+                            { message = "Unnecessary Dict.diff with Dict.empty"
+                            , details = [ "You can replace this call by the given first dict." ]
                             , under = "Dict.diff"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -23150,7 +23150,7 @@ a = Dict.union dict Dict.empty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Dict.union with Dict.empty"
-                            , details = [ "You can replace this call by the dict itself." ]
+                            , details = [ "You can replace this call by the given first dict." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -23168,7 +23168,7 @@ a = Dict.empty |> Dict.union dict
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Dict.union with Dict.empty"
-                            , details = [ "You can replace this call by the dict itself." ]
+                            , details = [ "You can replace this call by the given first dict." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -23186,7 +23186,7 @@ a = Dict.empty |> Dict.union dict
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Dict.union with Dict.empty"
-                            , details = [ "You can replace this call by the dict itself." ]
+                            , details = [ "You can replace this call by the given first dict." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
