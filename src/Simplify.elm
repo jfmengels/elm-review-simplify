@@ -2943,8 +2943,8 @@ compositionIntoChecks =
         ]
 
 
-removeAlongWithOtherFunctionCheck : CheckInfo -> Maybe (Error {})
-removeAlongWithOtherFunctionCheck checkInfo =
+toggleCallChecks : CheckInfo -> Maybe (Error {})
+toggleCallChecks checkInfo =
     onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
 
 
@@ -3779,7 +3779,7 @@ toggleCompositionChecks checkInfo =
 
 basicsNegateChecks : CheckInfo -> Maybe (Error {})
 basicsNegateChecks =
-    removeAlongWithOtherFunctionCheck
+    toggleCallChecks
 
 
 
@@ -3790,7 +3790,7 @@ basicsNotChecks : CheckInfo -> Maybe (Error {})
 basicsNotChecks =
     firstThatConstructsJust
         [ notOnKnownBoolCheck
-        , removeAlongWithOtherFunctionCheck
+        , toggleCallChecks
         , isNotOnBooleanOperatorCheck
         ]
 
@@ -6562,7 +6562,7 @@ emptiableReverseChecks : EmptiableProperties otherProperties -> CheckInfo -> May
 emptiableReverseChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsEmptyCheck emptiable
-        , removeAlongWithOtherFunctionCheck
+        , toggleCallChecks
         ]
 
 
@@ -6607,7 +6607,7 @@ Examples of such functions:
 
 Note that `update` or `setWhere` operations for example _can_ have an effect even after the same operation has already been applied.
 
-For operations that toggle between 2 states, like `reverse` or `List.Extra.swapAt i j`, use `removeAlongWithOtherFunctionCheck`
+For operations that toggle between 2 states, like `reverse` or `List.Extra.swapAt i j`, use `toggleCallChecks`
 
 -}
 operationDoesNotChangeResultOfOperationCheck : CheckInfo -> Maybe (Error {})
