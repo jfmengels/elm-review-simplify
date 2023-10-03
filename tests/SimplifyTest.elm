@@ -21702,7 +21702,7 @@ a = Set.diff Set.empty set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.diff on Set.empty will always result in Set.empty"
+                            { message = "Set.diff Set.empty will always result in Set.empty"
                             , details = [ "You can replace this call by Set.empty." ]
                             , under = "Set.diff"
                             }
@@ -23063,7 +23063,7 @@ a = Dict.diff Dict.empty dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.diff on Dict.empty will always result in Dict.empty"
+                            { message = "Dict.diff Dict.empty will always result in Dict.empty"
                             , details = [ "You can replace this call by Dict.empty." ]
                             , under = "Dict.diff"
                             }

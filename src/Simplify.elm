@@ -9366,7 +9366,7 @@ collectionDiffChecks collection =
             if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
-                        (qualifiedToString checkInfo.fn ++ " on " ++ emptyAsString checkInfo collection)
+                        (qualifiedToString checkInfo.fn ++ " " ++ emptyAsString checkInfo collection)
                         { replacement = collection.empty.asString }
                         checkInfo
                     )
