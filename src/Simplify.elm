@@ -3747,11 +3747,11 @@ equalityChecks isEqual =
                 (operationSides checkInfo)
         , \checkInfo ->
             case
-                Maybe.map2 Tuple.pair
-                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left)
-                    (AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right)
+                ( AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left
+                , AstHelpers.getSpecificFunctionCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right
+                )
             of
-                Just ( leftNotCall, rightNotCall ) ->
+                ( Just leftNotCall, Just rightNotCall ) ->
                     Just
                         (Rule.errorWithFix
                             { message = "Unnecessary `not` on both sides of (" ++ checkInfo.operator ++ ")"
