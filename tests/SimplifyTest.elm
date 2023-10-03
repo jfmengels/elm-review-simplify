@@ -2425,7 +2425,7 @@ a = n * 1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary multiplying by 1"
-                            , details = [ "You can replace this operation by the left number you multiplied by 0." ]
+                            , details = [ "You can replace this operation by the left number you multiplied by 1." ]
                             , under = "* 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2441,7 +2441,7 @@ a = n * 1.0
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary multiplying by 1"
-                            , details = [ "You can replace this operation by the left number you multiplied by 0." ]
+                            , details = [ "You can replace this operation by the left number you multiplied by 1." ]
                             , under = "* 1.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2457,7 +2457,7 @@ a = 1 * n
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary multiplying by 1"
-                            , details = [ "You can replace this operation by the right number you multiplied by 0." ]
+                            , details = [ "You can replace this operation by the right number you multiplied by 1." ]
                             , under = "1 *"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

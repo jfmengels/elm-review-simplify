@@ -3135,7 +3135,7 @@ multiplyChecks checkInfo =
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary multiplying by 1"
-                                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " number you multiplied by 0." ]
+                                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " number you multiplied by 1." ]
                                 }
                                 (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
