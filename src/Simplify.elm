@@ -6488,7 +6488,7 @@ operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
                 )
                 (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
     in
-    if (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) && (checkInfo.earlier.fn == checkInfo.later.fn) == areAllArgsEqual () then
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) == areAllArgsEqual () then
         Just
             { info =
                 { message =
@@ -9149,7 +9149,7 @@ unnecessaryCompositionAfterCheck :
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 unnecessaryCompositionAfterCheck construct checkInfo =
-    if (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) && (checkInfo.earlier.fn == construct.fn) then
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == construct.fn) then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite construct.description ++ " will result in " ++ descriptionForDefinite "the unchanged" construct.description
@@ -9161,6 +9161,11 @@ unnecessaryCompositionAfterCheck construct checkInfo =
 
     else
         Nothing
+
+
+onlyLastArgIsCurried : { function | args : List (Node Expression), argCount : Int } -> Bool
+onlyLastArgIsCurried functionInfo =
+    List.length functionInfo.args == (functionInfo.argCount - 1)
 
 
 {-| This operation is equivalent to identity when called on a wrapped value.
@@ -9220,7 +9225,7 @@ Use together with `callOnWrapReturnsItsValue`.
 -}
 onWrapAlwaysReturnsIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 onWrapAlwaysReturnsIncomingCompositionCheck wrapper checkInfo =
-    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) then
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
         Just
             (compositionAlwaysReturnsIncomingError
                 (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
@@ -9291,7 +9296,7 @@ Use together with `callOnWrapReturnsJustItsValue`.
 -}
 onWrapAlwaysReturnsJustIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
-    if (checkInfo.earlier.fn == wrapper.wrap.fn) && (List.length checkInfo.later.args == (checkInfo.later.argCount - 1)) then
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
         Just
             { info =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
