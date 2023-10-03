@@ -3036,8 +3036,8 @@ addingZeroCheck checkInfo =
                         { message = "Unnecessary addition with 0"
                         , details = [ "Adding 0 does not change the value of the number." ]
                         }
-                        side.errorRange
-                        [ Fix.removeRange side.removeRange ]
+                        (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                     )
 
             else
@@ -3134,8 +3134,8 @@ multiplyChecks checkInfo =
                                 { message = "Unnecessary multiplication by 1"
                                 , details = [ "Multiplying by 1 does not change the value of the number." ]
                                 }
-                                side.errorRange
-                                [ Fix.removeRange side.removeRange ]
+                                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                             )
 
                     else if number == 0 then
@@ -3151,7 +3151,7 @@ by explicitly checking for `Basics.isNaN` and `Basics.isInfinite`."""
 Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#isInfinite"""
                                     ]
                                 }
-                                side.errorRange
+                                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                                 (if checkInfo.expectNaN then
                                     []
 
@@ -3169,16 +3169,10 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
         (operationToSides checkInfo)
 
 
-operationToSides : OperatorCheckInfo -> List { node : Node Expression, removeRange : Range, errorRange : Range }
+operationToSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression }
 operationToSides checkInfo =
-    [ { node = checkInfo.right
-      , removeRange = removeRightRange checkInfo
-      , errorRange = errorToRightRange checkInfo
-      }
-    , { node = checkInfo.left
-      , removeRange = removeLeftRange checkInfo
-      , errorRange = errorToLeftRange checkInfo
-      }
+    [ { node = checkInfo.right, otherNode = checkInfo.left }
+    , { node = checkInfo.left, otherNode = checkInfo.right }
     ]
 
 
@@ -3789,8 +3783,8 @@ equalityChecks isEqual =
                                 { message = "Unnecessary comparison with boolean"
                                 , details = [ "The result of the expression will be the same with or without the comparison." ]
                                 }
-                                side.errorRange
-                                [ Fix.removeRange side.removeRange ]
+                                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
                             )
 
                     else
