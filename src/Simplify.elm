@@ -2948,18 +2948,6 @@ removeAlongWithOtherFunctionCheck checkInfo =
     onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
 
 
-doubleToggleErrorInfo : ( ModuleName, String ) -> { message : String, details : List String }
-doubleToggleErrorInfo toggle =
-    let
-        toggleFullyQualifiedAsString : String
-        toggleFullyQualifiedAsString =
-            qualifiedToString toggle
-    in
-    { message = "Unnecessary double " ++ toggleFullyQualifiedAsString
-    , details = [ "Chaining " ++ toggleFullyQualifiedAsString ++ " with " ++ toggleFullyQualifiedAsString ++ " makes both functions cancel each other out." ]
-    }
-
-
 findOperatorRange :
     { extractSourceCode : Range -> String
     , commentRanges : List Range
