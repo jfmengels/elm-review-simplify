@@ -7738,18 +7738,22 @@ emptyAsString qualifyResources emptiable =
 randomGeneratorWrapper : TypeProperties (NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) }))
 randomGeneratorWrapper =
     { represents = "random generator"
-    , wrap =
-        { description = A "constant generator"
-        , fn = ( [ "Random" ], "constant" )
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
-        , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
-        }
+    , wrap = randomGeneratorConstantConstruct
     , empty = { invalid = () }
     , mapFn = ( [ "Random" ], "map" )
+    }
+
+
+randomGeneratorConstantConstruct : ConstructWithOneArgProperties
+randomGeneratorConstantConstruct =
+    { description = A "constant generator"
+    , fn = ( [ "Random" ], "constant" )
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
+    , is =
+        \lookupTable expr ->
+            isJust (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
     }
 
 
