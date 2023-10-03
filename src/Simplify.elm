@@ -3213,8 +3213,8 @@ divisionChecks checkInfo =
     if maybeDivisorNumber == Just 1 then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary division by 1"
-                , details = [ "Dividing by 1 does not change the value of the number." ]
+                { message = "Unnecessary dividing by 1"
+                , details = [ "You can replace this operation by the left number you divided by 1." ]
                 }
                 checkInfo.operatorRange
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.left })
@@ -3238,7 +3238,7 @@ divisionChecks checkInfo =
         else
             Just
                 (Rule.errorWithFix
-                    { message = "Dividing 0 always returns 0"
+                    { message = "Dividing 0 will result in 0"
                     , details =
                         [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
                         , "Most likely, dividing 0 was unintentional and you had a different number in mind."
@@ -3261,8 +3261,8 @@ intDivideChecks =
                     if rightNumber == 1 then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary division by 1"
-                                , details = [ "Dividing by 1 using (//) does not change the value of the number." ]
+                                { message = "Unnecessary dividing by 1"
+                                , details = [ "You can replace this operation by the left number you divided by 1 using (//)." ]
                                 }
                                 checkInfo.operatorRange
                                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = checkInfo.leftRange })
@@ -3290,7 +3290,7 @@ intDivideChecks =
             if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
                 Just
                     (Rule.errorWithFix
-                        { message = "Dividing 0 always returns 0"
+                        { message = "Dividing 0 will result in 0"
                         , details =
                             [ "Dividing 0 by anything using (//), even 0, gives 0 which means you can replace the whole division operation by 0."
                             , "Most likely, dividing 0 was unintentional and you had a different number in mind."

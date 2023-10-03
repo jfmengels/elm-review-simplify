@@ -2625,8 +2625,8 @@ a = n / 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary division by 1"
-                            , details = [ "Dividing by 1 does not change the value of the number." ]
+                            { message = "Unnecessary dividing by 1"
+                            , details = [ "You can replace this operation by the left number you divided by 1." ]
                             , under = "/"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2641,8 +2641,8 @@ a = n / 1.0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary division by 1"
-                            , details = [ "Dividing by 1 does not change the value of the number." ]
+                            { message = "Unnecessary dividing by 1"
+                            , details = [ "You can replace this operation by the left number you divided by 1." ]
                             , under = "/"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2657,7 +2657,7 @@ a = 0 / n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dividing 0 always returns 0"
+                            { message = "Dividing 0 will result in 0"
                             , details =
                                 [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
                                 , "Most likely, dividing 0 was unintentional and you had a different number in mind."
@@ -2676,7 +2676,7 @@ a = 0.0 / n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dividing 0 always returns 0"
+                            { message = "Dividing 0 will result in 0"
                             , details =
                                 [ "Dividing 0 by anything, even infinite numbers, gives 0 which means you can replace the whole division operation by 0."
                                 , "Most likely, dividing 0 was unintentional and you had a different number in mind."
@@ -2782,8 +2782,8 @@ a = n // 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary division by 1"
-                            , details = [ "Dividing by 1 using (//) does not change the value of the number." ]
+                            { message = "Unnecessary dividing by 1"
+                            , details = [ "You can replace this operation by the left number you divided by 1 using (//)." ]
                             , under = "//"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2798,8 +2798,8 @@ a = n // m // 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary division by 1"
-                            , details = [ "Dividing by 1 using (//) does not change the value of the number." ]
+                            { message = "Unnecessary dividing by 1"
+                            , details = [ "You can replace this operation by the left number you divided by 1 using (//)." ]
                             , under = "//"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
@@ -2815,7 +2815,7 @@ a = 0 // n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dividing 0 always returns 0"
+                            { message = "Dividing 0 will result in 0"
                             , details =
                                 [ "Dividing 0 by anything using (//), even 0, gives 0 which means you can replace the whole division operation by 0."
                                 , "Most likely, dividing 0 was unintentional and you had a different number in mind."
