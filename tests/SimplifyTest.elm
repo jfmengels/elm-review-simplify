@@ -14580,6 +14580,7 @@ listIntersperseTests =
                 """module A exposing (..)
 a = List.intersperse 2 list
 b = List.intersperse y [ 1, 2, 3 ]
+c = List.intersperse << List.singleton
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
