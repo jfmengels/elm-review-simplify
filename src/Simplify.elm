@@ -3176,33 +3176,6 @@ operationSides checkInfo =
     ]
 
 
-{-| Takes the ranges of two neighboring elements and
-returns a range that includes the specified element and everything between them.
-
-This is useful when you can't use `replaceBySubExpressionFix` and `keepOnlyFix` because there is no
-existing node that could be kept.
-
-For example, you might want to remove `|> identity` in `f |> g |> identity`. `elm-syntax` might represent this as (simplified)
-
-    Op (Var "f") "|>" (Op (Var "g") "|>" (Var "identity"))
-
-In practice, you will check this syntax tree recursively, leading to situations where we only know
-
-  - the previous/next element which we want to keep
-  - and the current element which we want to remove
-
--}
-andBetweenRange : { excluded : Range, included : Range } -> Range
-andBetweenRange ranges =
-    case Range.compare ranges.excluded ranges.included of
-        LT ->
-            { start = ranges.excluded.end, end = ranges.included.end }
-
-        -- GT | EQ ->
-        _ ->
-            { start = ranges.included.start, end = ranges.excluded.start }
-
-
 divisionChecks : OperatorCheckInfo -> Maybe (Error {})
 divisionChecks checkInfo =
     let
@@ -10388,6 +10361,33 @@ rangeBetweenExclusive ( aRange, bRange ) =
         -- EQ | LT
         _ ->
             { start = aRange.end, end = bRange.start }
+
+
+{-| Takes the ranges of two neighboring elements and
+returns a range that includes the specified element and everything between them.
+
+This is useful when you can't use `replaceBySubExpressionFix` and `keepOnlyFix` because there is no
+existing node that could be kept.
+
+For example, you might want to remove `|> identity` in `f |> g |> identity`. `elm-syntax` might represent this as (simplified)
+
+    Op (Var "f") "|>" (Op (Var "g") "|>" (Var "identity"))
+
+In practice, you will check this syntax tree recursively, leading to situations where we only know
+
+  - the previous/next element which we want to keep
+  - and the current element which we want to remove
+
+-}
+andBetweenRange : { excluded : Range, included : Range } -> Range
+andBetweenRange ranges =
+    case Range.compare ranges.excluded ranges.included of
+        LT ->
+            { start = ranges.excluded.end, end = ranges.included.end }
+
+        -- GT | EQ ->
+        _ ->
+            { start = ranges.included.start, end = ranges.excluded.start }
 
 
 rangeContainsLocation : Location -> Range -> Bool
