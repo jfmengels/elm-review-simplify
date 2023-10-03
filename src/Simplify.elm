@@ -3754,8 +3754,8 @@ equalityChecks isEqual =
                 Just ( leftNot, rightNot ) ->
                     Just
                         (Rule.errorWithFix
-                            { message = "Unnecessary negation on both sides"
-                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            { message = "Unnecessary `not` on both sides of (" ++ checkInfo.operator ++ ")"
+                            , details = [ "You can replace the bool on each side by the value given to `not`." ]
                             }
                             checkInfo.operatorRange
                             [ Fix.removeRange leftNot.fnRange, Fix.removeRange rightNot.fnRange ]

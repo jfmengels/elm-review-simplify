@@ -3262,8 +3262,8 @@ a = not x == not y
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary negation on both sides"
-                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            { message = "Unnecessary `not` on both sides of (==)"
+                            , details = [ "You can replace the bool on each side by the value given to `not`." ]
                             , under = "=="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3278,8 +3278,8 @@ a = not x /= not y
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary negation on both sides"
-                            , details = [ "Since both sides are negated using `not`, they are redundant and can be removed." ]
+                            { message = "Unnecessary `not` on both sides of (/=)"
+                            , details = [ "You can replace the bool on each side by the value given to `not`." ]
                             , under = "/="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
