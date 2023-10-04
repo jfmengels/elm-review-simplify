@@ -60,6 +60,9 @@ import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
+import Fn.Basics
+import Fn.List
+import Fn.Tuple
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Set exposing (Set)
 import Simplify.Infer as Infer
@@ -103,7 +106,7 @@ getListSingleton lookupTable expressionNode =
             Nothing
 
         Nothing ->
-            case getSpecificFnCall ( [ "List" ], "singleton" ) lookupTable expressionNode of
+            case getSpecificFnCall Fn.List.singleton lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         [] ->
@@ -300,7 +303,7 @@ Either a function reducible to `Tuple.first` or `\( first, ... ) -> first`.
 -}
 isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleFirstAccess lookupTable expressionNode =
-    case getSpecificValueOrFn ( [ "Tuple" ], "first" ) lookupTable expressionNode of
+    case getSpecificValueOrFn Fn.Tuple.first lookupTable expressionNode of
         Just _ ->
             True
 
@@ -328,7 +331,7 @@ Either a function reducible to `Tuple.second` or `\( ..., second ) -> second`.
 -}
 isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
 isTupleSecondAccess lookupTable expressionNode =
-    case getSpecificValueOrFn ( [ "Tuple" ], "second" ) lookupTable expressionNode of
+    case getSpecificValueOrFn Fn.Tuple.second lookupTable expressionNode of
         Just _ ->
             True
 
@@ -375,7 +378,7 @@ Either a function reducible to `Basics.identity` or `\a -> a`.
 -}
 isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
 isIdentity lookupTable baseExpressionNode =
-    case getSpecificValueOrFn ( [ "Basics" ], "identity" ) lookupTable baseExpressionNode of
+    case getSpecificValueOrFn Fn.Basics.identity lookupTable baseExpressionNode of
         Just _ ->
             True
 
@@ -398,7 +401,7 @@ Either a function reducible to `Basics.always x`, `\_ -> x` or even for example 
 -}
 getAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
 getAlwaysResult lookupTable expressionNode =
-    case getSpecificFnCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+    case getSpecificFnCall Fn.Basics.always lookupTable expressionNode of
         Just alwaysCall ->
             Just alwaysCall.firstArg
 
@@ -711,7 +714,7 @@ getTuple2 expressionNode lookupTable =
             Just { first = first, second = second }
 
         _ ->
-            case getSpecificFnCall ( [ "Tuple" ], "pair" ) lookupTable expressionNode of
+            case getSpecificFnCall Fn.Tuple.pair lookupTable expressionNode of
                 Just tuplePairCall ->
                     case tuplePairCall.argsAfterFirst of
                         second :: _ ->

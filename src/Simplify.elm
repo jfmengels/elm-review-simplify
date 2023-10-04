@@ -1176,6 +1176,23 @@ import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
+import Fn.Array
+import Fn.Basics
+import Fn.Dict
+import Fn.Html.Attributes
+import Fn.Json.Decode
+import Fn.List
+import Fn.Maybe
+import Fn.Parser
+import Fn.Parser.Advanced
+import Fn.Platform.Cmd
+import Fn.Platform.Sub
+import Fn.Random
+import Fn.Result
+import Fn.Set
+import Fn.String
+import Fn.Task
+import Fn.Tuple
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency exposing (Dependency)
@@ -2604,152 +2621,152 @@ functionCallChecks =
     -- Any additional arguments will be ignored in order to avoid removing too many arguments
     -- when replacing the entire argument, which is quite common.
     Dict.fromList
-        [ ( ( [ "Basics" ], "identity" ), ( 1, basicsIdentityChecks ) )
-        , ( ( [ "Basics" ], "always" ), ( 2, basicsAlwaysChecks ) )
-        , ( ( [ "Basics" ], "not" ), ( 1, basicsNotChecks ) )
-        , ( ( [ "Basics" ], "negate" ), ( 1, basicsNegateChecks ) )
-        , ( ( [ "Tuple" ], "first" ), ( 1, tupleFirstChecks ) )
-        , ( ( [ "Tuple" ], "second" ), ( 1, tupleSecondChecks ) )
-        , ( ( [ "Tuple" ], "pair" ), ( 2, tuplePairChecks ) )
-        , ( ( [ "Maybe" ], "map" ), ( 2, maybeMapChecks ) )
-        , ( ( [ "Maybe" ], "map2" ), ( 3, maybeMapNChecks ) )
-        , ( ( [ "Maybe" ], "map3" ), ( 4, maybeMapNChecks ) )
-        , ( ( [ "Maybe" ], "map4" ), ( 5, maybeMapNChecks ) )
-        , ( ( [ "Maybe" ], "map5" ), ( 6, maybeMapNChecks ) )
-        , ( ( [ "Maybe" ], "andThen" ), ( 2, maybeAndThenChecks ) )
-        , ( ( [ "Maybe" ], "withDefault" ), ( 2, withDefaultChecks maybeWithJustAsWrap ) )
-        , ( ( [ "Result" ], "map" ), ( 2, resultMapChecks ) )
-        , ( ( [ "Result" ], "map2" ), ( 3, resultMapNChecks ) )
-        , ( ( [ "Result" ], "map3" ), ( 4, resultMapNChecks ) )
-        , ( ( [ "Result" ], "map4" ), ( 5, resultMapNChecks ) )
-        , ( ( [ "Result" ], "map5" ), ( 6, resultMapNChecks ) )
-        , ( ( [ "Result" ], "mapError" ), ( 2, resultMapErrorChecks ) )
-        , ( ( [ "Result" ], "andThen" ), ( 2, resultAndThenChecks ) )
-        , ( ( [ "Result" ], "withDefault" ), ( 2, withDefaultChecks resultWithOkAsWrap ) )
-        , ( ( [ "Result" ], "toMaybe" ), ( 1, unwrapToMaybeChecks resultWithOkAsWrap ) )
-        , ( ( [ "Result" ], "fromMaybe" ), ( 2, resultFromMaybeChecks ) )
-        , ( ( [ "List" ], "append" ), ( 2, collectionUnionChecks listCollection ) )
-        , ( ( [ "List" ], "head" ), ( 1, listHeadChecks ) )
-        , ( ( [ "List" ], "tail" ), ( 1, listTailChecks ) )
-        , ( ( [ "List" ], "member" ), ( 2, listMemberChecks ) )
-        , ( ( [ "List" ], "map" ), ( 2, listMapChecks ) )
-        , ( ( [ "List" ], "filter" ), ( 2, emptiableFilterChecks listCollection ) )
-        , ( ( [ "List" ], "filterMap" ), ( 2, listFilterMapChecks ) )
-        , ( ( [ "List" ], "concat" ), ( 1, listConcatChecks ) )
-        , ( ( [ "List" ], "concatMap" ), ( 2, listConcatMapChecks ) )
-        , ( ( [ "List" ], "indexedMap" ), ( 2, listIndexedMapChecks ) )
-        , ( ( [ "List" ], "intersperse" ), ( 2, listIntersperseChecks ) )
-        , ( ( [ "List" ], "sum" ), ( 1, listSumChecks ) )
-        , ( ( [ "List" ], "product" ), ( 1, listProductChecks ) )
-        , ( ( [ "List" ], "minimum" ), ( 1, listMinimumChecks ) )
-        , ( ( [ "List" ], "maximum" ), ( 1, listMaximumChecks ) )
-        , ( ( [ "List" ], "foldl" ), ( 3, listFoldlChecks ) )
-        , ( ( [ "List" ], "foldr" ), ( 3, listFoldrChecks ) )
-        , ( ( [ "List" ], "all" ), ( 2, listAllChecks ) )
-        , ( ( [ "List" ], "any" ), ( 2, listAnyChecks ) )
-        , ( ( [ "List" ], "range" ), ( 2, listRangeChecks ) )
-        , ( ( [ "List" ], "length" ), ( 1, collectionSizeChecks listCollection ) )
-        , ( ( [ "List" ], "repeat" ), ( 2, listRepeatChecks ) )
-        , ( ( [ "List" ], "isEmpty" ), ( 1, collectionIsEmptyChecks listCollection ) )
-        , ( ( [ "List" ], "partition" ), ( 2, collectionPartitionChecks listCollection ) )
-        , ( ( [ "List" ], "reverse" ), ( 1, listReverseChecks ) )
-        , ( ( [ "List" ], "sort" ), ( 1, listSortChecks ) )
-        , ( ( [ "List" ], "sortBy" ), ( 2, listSortByChecks ) )
-        , ( ( [ "List" ], "sortWith" ), ( 2, listSortWithChecks ) )
-        , ( ( [ "List" ], "take" ), ( 2, listTakeChecks ) )
-        , ( ( [ "List" ], "drop" ), ( 2, listDropChecks ) )
-        , ( ( [ "List" ], "map2" ), ( 3, emptiableMapNChecks listCollection ) )
-        , ( ( [ "List" ], "map3" ), ( 4, emptiableMapNChecks listCollection ) )
-        , ( ( [ "List" ], "map4" ), ( 5, emptiableMapNChecks listCollection ) )
-        , ( ( [ "List" ], "map5" ), ( 6, emptiableMapNChecks listCollection ) )
-        , ( ( [ "List" ], "unzip" ), ( 1, listUnzipChecks ) )
-        , ( ( [ "Array" ], "toList" ), ( 1, arrayToListChecks ) )
-        , ( ( [ "Array" ], "toIndexedList" ), ( 1, arrayToIndexedListChecks ) )
-        , ( ( [ "Array" ], "fromList" ), ( 1, arrayFromListChecks ) )
-        , ( ( [ "Array" ], "map" ), ( 2, emptiableMapChecks arrayCollection ) )
-        , ( ( [ "Array" ], "indexedMap" ), ( 2, arrayIndexedMapChecks ) )
-        , ( ( [ "Array" ], "filter" ), ( 2, emptiableFilterChecks arrayCollection ) )
-        , ( ( [ "Array" ], "isEmpty" ), ( 1, collectionIsEmptyChecks arrayCollection ) )
-        , ( ( [ "Array" ], "length" ), ( 1, arrayLengthChecks ) )
-        , ( ( [ "Array" ], "repeat" ), ( 2, arrayRepeatChecks ) )
-        , ( ( [ "Array" ], "initialize" ), ( 2, arrayInitializeChecks ) )
-        , ( ( [ "Array" ], "append" ), ( 2, collectionUnionChecks arrayCollection ) )
-        , ( ( [ "Array" ], "get" ), ( 2, getChecks arrayCollection ) )
-        , ( ( [ "Array" ], "set" ), ( 3, setChecks arrayCollection ) )
-        , ( ( [ "Array" ], "foldl" ), ( 3, arrayFoldlChecks ) )
-        , ( ( [ "Array" ], "foldr" ), ( 3, arrayFoldrChecks ) )
-        , ( ( [ "Set" ], "map" ), ( 2, emptiableMapChecks setCollection ) )
-        , ( ( [ "Set" ], "filter" ), ( 2, emptiableFilterChecks setCollection ) )
-        , ( ( [ "Set" ], "remove" ), ( 2, collectionRemoveChecks setCollection ) )
-        , ( ( [ "Set" ], "isEmpty" ), ( 1, collectionIsEmptyChecks setCollection ) )
-        , ( ( [ "Set" ], "size" ), ( 1, collectionSizeChecks setCollection ) )
-        , ( ( [ "Set" ], "member" ), ( 2, collectionMemberChecks setCollection ) )
-        , ( ( [ "Set" ], "fromList" ), ( 1, setFromListChecks ) )
-        , ( ( [ "Set" ], "toList" ), ( 1, emptiableToListChecks setCollection ) )
-        , ( ( [ "Set" ], "partition" ), ( 2, collectionPartitionChecks setCollection ) )
-        , ( ( [ "Set" ], "intersect" ), ( 2, collectionIntersectChecks setCollection ) )
-        , ( ( [ "Set" ], "diff" ), ( 2, collectionDiffChecks setCollection ) )
-        , ( ( [ "Set" ], "union" ), ( 2, collectionUnionChecks setCollection ) )
-        , ( ( [ "Set" ], "insert" ), ( 2, collectionInsertChecks setCollection ) )
-        , ( ( [ "Set" ], "foldl" ), ( 3, setFoldlChecks ) )
-        , ( ( [ "Set" ], "foldr" ), ( 3, setFoldrChecks ) )
-        , ( ( [ "Dict" ], "isEmpty" ), ( 1, collectionIsEmptyChecks dictCollection ) )
-        , ( ( [ "Dict" ], "fromList" ), ( 1, dictFromListChecks ) )
-        , ( ( [ "Dict" ], "toList" ), ( 1, emptiableToListChecks dictCollection ) )
-        , ( ( [ "Dict" ], "size" ), ( 1, collectionSizeChecks dictCollection ) )
-        , ( ( [ "Dict" ], "member" ), ( 2, collectionMemberChecks dictCollection ) )
-        , ( ( [ "Dict" ], "partition" ), ( 2, collectionPartitionChecks dictCollection ) )
-        , ( ( [ "Dict" ], "intersect" ), ( 2, collectionIntersectChecks dictCollection ) )
-        , ( ( [ "Dict" ], "diff" ), ( 2, collectionDiffChecks dictCollection ) )
-        , ( ( [ "Dict" ], "union" ), ( 2, collectionUnionChecks dictCollection ) )
-        , ( ( [ "String" ], "toList" ), ( 1, stringToListChecks ) )
-        , ( ( [ "String" ], "fromList" ), ( 1, stringFromListChecks ) )
-        , ( ( [ "String" ], "isEmpty" ), ( 1, collectionIsEmptyChecks stringCollection ) )
-        , ( ( [ "String" ], "concat" ), ( 1, stringConcatChecks ) )
-        , ( ( [ "String" ], "join" ), ( 2, stringJoinChecks ) )
-        , ( ( [ "String" ], "length" ), ( 1, collectionSizeChecks stringCollection ) )
-        , ( ( [ "String" ], "repeat" ), ( 2, stringRepeatChecks ) )
-        , ( ( [ "String" ], "replace" ), ( 3, stringReplaceChecks ) )
-        , ( ( [ "String" ], "words" ), ( 1, stringWordsChecks ) )
-        , ( ( [ "String" ], "lines" ), ( 1, stringLinesChecks ) )
-        , ( ( [ "String" ], "reverse" ), ( 1, stringReverseChecks ) )
-        , ( ( [ "String" ], "slice" ), ( 3, stringSliceChecks ) )
-        , ( ( [ "String" ], "left" ), ( 2, stringLeftChecks ) )
-        , ( ( [ "String" ], "right" ), ( 2, stringRightChecks ) )
-        , ( ( [ "String" ], "append" ), ( 2, collectionUnionChecks stringCollection ) )
-        , ( ( [ "String" ], "foldl" ), ( 3, stringFoldlChecks ) )
-        , ( ( [ "String" ], "foldr" ), ( 3, stringFoldrChecks ) )
-        , ( ( [ "Platform", "Cmd" ], "batch" ), ( 1, subAndCmdBatchChecks cmdCollection ) )
-        , ( ( [ "Platform", "Cmd" ], "map" ), ( 2, emptiableMapChecks cmdCollection ) )
-        , ( ( [ "Platform", "Sub" ], "batch" ), ( 1, subAndCmdBatchChecks subCollection ) )
-        , ( ( [ "Platform", "Sub" ], "map" ), ( 2, emptiableMapChecks subCollection ) )
-        , ( ( [ "Task" ], "map" ), ( 2, taskMapChecks ) )
-        , ( ( [ "Task" ], "map2" ), ( 3, taskMapNChecks ) )
-        , ( ( [ "Task" ], "map3" ), ( 4, taskMapNChecks ) )
-        , ( ( [ "Task" ], "map4" ), ( 5, taskMapNChecks ) )
-        , ( ( [ "Task" ], "map5" ), ( 6, taskMapNChecks ) )
-        , ( ( [ "Task" ], "andThen" ), ( 2, taskAndThenChecks ) )
-        , ( ( [ "Task" ], "mapError" ), ( 2, taskMapErrorChecks ) )
-        , ( ( [ "Task" ], "onError" ), ( 2, taskOnErrorChecks ) )
-        , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceChecks ) )
-        , ( ( [ "Json", "Decode" ], "oneOf" ), ( 1, oneOfChecks ) )
-        , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapChecks ) )
-        , ( ( [ "Json", "Decode" ], "map2" ), ( 3, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "map3" ), ( 4, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "map4" ), ( 5, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "map5" ), ( 6, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "map6" ), ( 7, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "map7" ), ( 8, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "map8" ), ( 9, jsonDecodeMapNChecks ) )
-        , ( ( [ "Json", "Decode" ], "andThen" ), ( 2, jsonDecodeAndThenChecks ) )
-        , ( ( [ "Html", "Attributes" ], "classList" ), ( 1, htmlAttributesClassListChecks ) )
-        , ( ( [ "Parser" ], "oneOf" ), ( 1, oneOfChecks ) )
-        , ( ( [ "Parser", "Advanced" ], "oneOf" ), ( 1, oneOfChecks ) )
-        , ( ( [ "Random" ], "uniform" ), ( 2, randomUniformChecks ) )
-        , ( ( [ "Random" ], "weighted" ), ( 2, randomWeightedChecks ) )
-        , ( ( [ "Random" ], "list" ), ( 2, randomListChecks ) )
-        , ( ( [ "Random" ], "map" ), ( 2, randomMapChecks ) )
-        , ( ( [ "Random" ], "andThen" ), ( 2, randomAndThenChecks ) )
+        [ ( Fn.Basics.identity, ( 1, basicsIdentityChecks ) )
+        , ( Fn.Basics.always, ( 2, basicsAlwaysChecks ) )
+        , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
+        , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
+        , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
+        , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
+        , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
+        , ( Fn.Maybe.map, ( 2, maybeMapChecks ) )
+        , ( Fn.Maybe.map2, ( 3, maybeMapNChecks ) )
+        , ( Fn.Maybe.map3, ( 4, maybeMapNChecks ) )
+        , ( Fn.Maybe.map4, ( 5, maybeMapNChecks ) )
+        , ( Fn.Maybe.map5, ( 6, maybeMapNChecks ) )
+        , ( Fn.Maybe.andThen, ( 2, maybeAndThenChecks ) )
+        , ( Fn.Maybe.withDefault, ( 2, withDefaultChecks maybeWithJustAsWrap ) )
+        , ( Fn.Result.map, ( 2, resultMapChecks ) )
+        , ( Fn.Result.map2, ( 3, resultMapNChecks ) )
+        , ( Fn.Result.map3, ( 4, resultMapNChecks ) )
+        , ( Fn.Result.map4, ( 5, resultMapNChecks ) )
+        , ( Fn.Result.map5, ( 6, resultMapNChecks ) )
+        , ( Fn.Result.mapError, ( 2, resultMapErrorChecks ) )
+        , ( Fn.Result.andThen, ( 2, resultAndThenChecks ) )
+        , ( Fn.Result.withDefault, ( 2, withDefaultChecks resultWithOkAsWrap ) )
+        , ( Fn.Result.toMaybe, ( 1, unwrapToMaybeChecks resultWithOkAsWrap ) )
+        , ( Fn.Result.fromMaybe, ( 2, resultFromMaybeChecks ) )
+        , ( Fn.List.append, ( 2, collectionUnionChecks listCollection ) )
+        , ( Fn.List.head, ( 1, listHeadChecks ) )
+        , ( Fn.List.tail, ( 1, listTailChecks ) )
+        , ( Fn.List.member, ( 2, listMemberChecks ) )
+        , ( Fn.List.map, ( 2, listMapChecks ) )
+        , ( Fn.List.filter, ( 2, emptiableFilterChecks listCollection ) )
+        , ( Fn.List.filterMap, ( 2, listFilterMapChecks ) )
+        , ( Fn.List.concat, ( 1, listConcatChecks ) )
+        , ( Fn.List.concatMap, ( 2, listConcatMapChecks ) )
+        , ( Fn.List.indexedMap, ( 2, listIndexedMapChecks ) )
+        , ( Fn.List.intersperse, ( 2, listIntersperseChecks ) )
+        , ( Fn.List.sum, ( 1, listSumChecks ) )
+        , ( Fn.List.product, ( 1, listProductChecks ) )
+        , ( Fn.List.minimum, ( 1, listMinimumChecks ) )
+        , ( Fn.List.maximum, ( 1, listMaximumChecks ) )
+        , ( Fn.List.foldl, ( 3, listFoldlChecks ) )
+        , ( Fn.List.foldr, ( 3, listFoldrChecks ) )
+        , ( Fn.List.all, ( 2, listAllChecks ) )
+        , ( Fn.List.any, ( 2, listAnyChecks ) )
+        , ( Fn.List.range, ( 2, listRangeChecks ) )
+        , ( Fn.List.length, ( 1, collectionSizeChecks listCollection ) )
+        , ( Fn.List.repeat, ( 2, listRepeatChecks ) )
+        , ( Fn.List.isEmpty, ( 1, collectionIsEmptyChecks listCollection ) )
+        , ( Fn.List.partition, ( 2, collectionPartitionChecks listCollection ) )
+        , ( Fn.List.reverse, ( 1, listReverseChecks ) )
+        , ( Fn.List.sort, ( 1, listSortChecks ) )
+        , ( Fn.List.sortBy, ( 2, listSortByChecks ) )
+        , ( Fn.List.sortWith, ( 2, listSortWithChecks ) )
+        , ( Fn.List.take, ( 2, listTakeChecks ) )
+        , ( Fn.List.drop, ( 2, listDropChecks ) )
+        , ( Fn.List.map2, ( 3, emptiableMapNChecks listCollection ) )
+        , ( Fn.List.map3, ( 4, emptiableMapNChecks listCollection ) )
+        , ( Fn.List.map4, ( 5, emptiableMapNChecks listCollection ) )
+        , ( Fn.List.map5, ( 6, emptiableMapNChecks listCollection ) )
+        , ( Fn.List.unzip, ( 1, listUnzipChecks ) )
+        , ( Fn.Array.toList, ( 1, arrayToListChecks ) )
+        , ( Fn.Array.toIndexedList, ( 1, arrayToIndexedListChecks ) )
+        , ( Fn.Array.fromList, ( 1, arrayFromListChecks ) )
+        , ( Fn.Array.map, ( 2, emptiableMapChecks arrayCollection ) )
+        , ( Fn.Array.indexedMap, ( 2, arrayIndexedMapChecks ) )
+        , ( Fn.Array.filter, ( 2, emptiableFilterChecks arrayCollection ) )
+        , ( Fn.Array.isEmpty, ( 1, collectionIsEmptyChecks arrayCollection ) )
+        , ( Fn.Array.length, ( 1, arrayLengthChecks ) )
+        , ( Fn.Array.repeat, ( 2, arrayRepeatChecks ) )
+        , ( Fn.Array.initialize, ( 2, arrayInitializeChecks ) )
+        , ( Fn.Array.append, ( 2, collectionUnionChecks arrayCollection ) )
+        , ( Fn.Array.get, ( 2, getChecks arrayCollection ) )
+        , ( Fn.Array.set, ( 3, setChecks arrayCollection ) )
+        , ( Fn.Array.foldl, ( 3, arrayFoldlChecks ) )
+        , ( Fn.Array.foldr, ( 3, arrayFoldrChecks ) )
+        , ( Fn.Set.map, ( 2, emptiableMapChecks setCollection ) )
+        , ( Fn.Set.filter, ( 2, emptiableFilterChecks setCollection ) )
+        , ( Fn.Set.remove, ( 2, collectionRemoveChecks setCollection ) )
+        , ( Fn.Set.isEmpty, ( 1, collectionIsEmptyChecks setCollection ) )
+        , ( Fn.Set.size, ( 1, collectionSizeChecks setCollection ) )
+        , ( Fn.Set.member, ( 2, collectionMemberChecks setCollection ) )
+        , ( Fn.Set.fromList, ( 1, setFromListChecks ) )
+        , ( Fn.Set.toList, ( 1, emptiableToListChecks setCollection ) )
+        , ( Fn.Set.partition, ( 2, collectionPartitionChecks setCollection ) )
+        , ( Fn.Set.intersect, ( 2, collectionIntersectChecks setCollection ) )
+        , ( Fn.Set.diff, ( 2, collectionDiffChecks setCollection ) )
+        , ( Fn.Set.union, ( 2, collectionUnionChecks setCollection ) )
+        , ( Fn.Set.insert, ( 2, collectionInsertChecks setCollection ) )
+        , ( Fn.Set.foldl, ( 3, setFoldlChecks ) )
+        , ( Fn.Set.foldr, ( 3, setFoldrChecks ) )
+        , ( Fn.Dict.isEmpty, ( 1, collectionIsEmptyChecks dictCollection ) )
+        , ( Fn.Dict.fromList, ( 1, dictFromListChecks ) )
+        , ( Fn.Dict.toList, ( 1, emptiableToListChecks dictCollection ) )
+        , ( Fn.Dict.size, ( 1, collectionSizeChecks dictCollection ) )
+        , ( Fn.Dict.member, ( 2, collectionMemberChecks dictCollection ) )
+        , ( Fn.Dict.partition, ( 2, collectionPartitionChecks dictCollection ) )
+        , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
+        , ( Fn.Dict.diff, ( 2, collectionDiffChecks dictCollection ) )
+        , ( Fn.Dict.union, ( 2, collectionUnionChecks dictCollection ) )
+        , ( Fn.String.toList, ( 1, stringToListChecks ) )
+        , ( Fn.String.fromList, ( 1, stringFromListChecks ) )
+        , ( Fn.String.isEmpty, ( 1, collectionIsEmptyChecks stringCollection ) )
+        , ( Fn.String.concat, ( 1, stringConcatChecks ) )
+        , ( Fn.String.join, ( 2, stringJoinChecks ) )
+        , ( Fn.String.length, ( 1, collectionSizeChecks stringCollection ) )
+        , ( Fn.String.repeat, ( 2, stringRepeatChecks ) )
+        , ( Fn.String.replace, ( 3, stringReplaceChecks ) )
+        , ( Fn.String.words, ( 1, stringWordsChecks ) )
+        , ( Fn.String.lines, ( 1, stringLinesChecks ) )
+        , ( Fn.String.reverse, ( 1, stringReverseChecks ) )
+        , ( Fn.String.slice, ( 3, stringSliceChecks ) )
+        , ( Fn.String.left, ( 2, stringLeftChecks ) )
+        , ( Fn.String.right, ( 2, stringRightChecks ) )
+        , ( Fn.String.append, ( 2, collectionUnionChecks stringCollection ) )
+        , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
+        , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
+        , ( Fn.Platform.Cmd.batch, ( 1, subAndCmdBatchChecks cmdCollection ) )
+        , ( Fn.Platform.Cmd.map, ( 2, emptiableMapChecks cmdCollection ) )
+        , ( Fn.Platform.Sub.batch, ( 1, subAndCmdBatchChecks subCollection ) )
+        , ( Fn.Platform.Sub.map, ( 2, emptiableMapChecks subCollection ) )
+        , ( Fn.Task.map, ( 2, taskMapChecks ) )
+        , ( Fn.Task.map2, ( 3, taskMapNChecks ) )
+        , ( Fn.Task.map3, ( 4, taskMapNChecks ) )
+        , ( Fn.Task.map4, ( 5, taskMapNChecks ) )
+        , ( Fn.Task.map5, ( 6, taskMapNChecks ) )
+        , ( Fn.Task.andThen, ( 2, taskAndThenChecks ) )
+        , ( Fn.Task.mapError, ( 2, taskMapErrorChecks ) )
+        , ( Fn.Task.onError, ( 2, taskOnErrorChecks ) )
+        , ( Fn.Task.sequence, ( 1, taskSequenceChecks ) )
+        , ( Fn.Json.Decode.oneOf, ( 1, oneOfChecks ) )
+        , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapChecks ) )
+        , ( Fn.Json.Decode.map2, ( 3, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map3, ( 4, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map4, ( 5, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map5, ( 6, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map6, ( 7, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map7, ( 8, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map8, ( 9, jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.andThen, ( 2, jsonDecodeAndThenChecks ) )
+        , ( Fn.Html.Attributes.classList, ( 1, htmlAttributesClassListChecks ) )
+        , ( Fn.Parser.oneOf, ( 1, oneOfChecks ) )
+        , ( Fn.Parser.Advanced.oneOf, ( 1, oneOfChecks ) )
+        , ( Fn.Random.uniform, ( 2, randomUniformChecks ) )
+        , ( Fn.Random.weighted, ( 2, randomWeightedChecks ) )
+        , ( Fn.Random.list, ( 2, randomListChecks ) )
+        , ( Fn.Random.map, ( 2, randomMapChecks ) )
+        , ( Fn.Random.andThen, ( 2, randomAndThenChecks ) )
         ]
 
 
@@ -2903,46 +2920,46 @@ type alias CompositionIntoCheckInfo =
 compositionIntoChecks : Dict ( ModuleName, String ) ( Int, CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix )
 compositionIntoChecks =
     Dict.fromList
-        [ ( ( [ "Basics" ], "always" ), ( 2, basicsAlwaysCompositionChecks ) )
-        , ( ( [ "Basics" ], "not" ), ( 1, toggleCompositionChecks ) )
-        , ( ( [ "Basics" ], "negate" ), ( 1, toggleCompositionChecks ) )
-        , ( ( [ "String" ], "reverse" ), ( 1, stringReverseCompositionChecks ) )
-        , ( ( [ "String" ], "fromList" ), ( 1, stringFromListCompositionChecks ) )
-        , ( ( [ "String" ], "toList" ), ( 1, stringToListCompositionChecks ) )
-        , ( ( [ "String" ], "concat" ), ( 1, stringConcatCompositionChecks ) )
-        , ( ( [ "Tuple" ], "first" ), ( 1, tupleFirstCompositionChecks ) )
-        , ( ( [ "Tuple" ], "second" ), ( 1, tupleSecondCompositionChecks ) )
-        , ( ( [ "Maybe" ], "map" ), ( 2, maybeMapCompositionChecks ) )
-        , ( ( [ "Maybe" ], "withDefault" ), ( 2, wrapperWithDefaultChecks maybeWithJustAsWrap ) )
-        , ( ( [ "Result" ], "map" ), ( 2, resultMapCompositionChecks ) )
-        , ( ( [ "Result" ], "mapError" ), ( 2, resultMapErrorCompositionChecks ) )
-        , ( ( [ "Result" ], "toMaybe" ), ( 1, resultToMaybeCompositionChecks ) )
-        , ( ( [ "Result" ], "fromMaybe" ), ( 3, wrapperFromMaybeCompositionChecks resultWithOkAsWrap ) )
-        , ( ( [ "Result" ], "withDefault" ), ( 2, wrapperWithDefaultChecks resultWithOkAsWrap ) )
-        , ( ( [ "List" ], "reverse" ), ( 1, listReverseCompositionChecks ) )
-        , ( ( [ "List" ], "sort" ), ( 1, listSortCompositionChecks ) )
-        , ( ( [ "List" ], "sortBy" ), ( 2, listSortByCompositionChecks ) )
-        , ( ( [ "List" ], "map" ), ( 2, listMapCompositionChecks ) )
-        , ( ( [ "List" ], "filterMap" ), ( 2, listFilterMapCompositionChecks ) )
-        , ( ( [ "List" ], "intersperse" ), ( 2, listIntersperseCompositionChecks ) )
-        , ( ( [ "List" ], "concat" ), ( 1, listConcatCompositionChecks ) )
-        , ( ( [ "List" ], "sum" ), ( 1, sumCompositionChecks listCollection ) )
-        , ( ( [ "List" ], "product" ), ( 1, productCompositionChecks listCollection ) )
-        , ( ( [ "List" ], "minimum" ), ( 1, minimumCompositionChecks listCollection ) )
-        , ( ( [ "List" ], "maximum" ), ( 1, maximumCompositionChecks listCollection ) )
-        , ( ( [ "List" ], "foldl" ), ( 3, listFoldlCompositionChecks ) )
-        , ( ( [ "List" ], "foldr" ), ( 3, listFoldrCompositionChecks ) )
-        , ( ( [ "Set" ], "fromList" ), ( 1, setFromListCompositionChecks ) )
-        , ( ( [ "Dict" ], "fromList" ), ( 1, dictFromListCompositionChecks ) )
-        , ( ( [ "Array" ], "toList" ), ( 1, arrayToListCompositionChecks ) )
-        , ( ( [ "Array" ], "fromList" ), ( 1, arrayFromListCompositionChecks ) )
-        , ( ( [ "Task" ], "map" ), ( 2, taskMapCompositionChecks ) )
-        , ( ( [ "Task" ], "mapError" ), ( 2, taskMapErrorCompositionChecks ) )
-        , ( ( [ "Task" ], "sequence" ), ( 1, taskSequenceCompositionChecks ) )
-        , ( ( [ "Platform", "Cmd" ], "batch" ), ( 1, batchCompositionChecks ) )
-        , ( ( [ "Platform", "Sub" ], "batch" ), ( 1, batchCompositionChecks ) )
-        , ( ( [ "Json", "Decode" ], "map" ), ( 2, jsonDecodeMapCompositionChecks ) )
-        , ( ( [ "Random" ], "map" ), ( 2, randomMapCompositionChecks ) )
+        [ ( Fn.Basics.always, ( 2, basicsAlwaysCompositionChecks ) )
+        , ( Fn.Basics.not, ( 1, toggleCompositionChecks ) )
+        , ( Fn.Basics.negate, ( 1, toggleCompositionChecks ) )
+        , ( Fn.String.reverse, ( 1, stringReverseCompositionChecks ) )
+        , ( Fn.String.fromList, ( 1, stringFromListCompositionChecks ) )
+        , ( Fn.String.toList, ( 1, stringToListCompositionChecks ) )
+        , ( Fn.String.concat, ( 1, stringConcatCompositionChecks ) )
+        , ( Fn.Tuple.first, ( 1, tupleFirstCompositionChecks ) )
+        , ( Fn.Tuple.second, ( 1, tupleSecondCompositionChecks ) )
+        , ( Fn.Maybe.map, ( 2, maybeMapCompositionChecks ) )
+        , ( Fn.Maybe.withDefault, ( 2, wrapperWithDefaultChecks maybeWithJustAsWrap ) )
+        , ( Fn.Result.map, ( 2, resultMapCompositionChecks ) )
+        , ( Fn.Result.mapError, ( 2, resultMapErrorCompositionChecks ) )
+        , ( Fn.Result.toMaybe, ( 1, resultToMaybeCompositionChecks ) )
+        , ( Fn.Result.fromMaybe, ( 3, wrapperFromMaybeCompositionChecks resultWithOkAsWrap ) )
+        , ( Fn.Result.withDefault, ( 2, wrapperWithDefaultChecks resultWithOkAsWrap ) )
+        , ( Fn.List.reverse, ( 1, listReverseCompositionChecks ) )
+        , ( Fn.List.sort, ( 1, listSortCompositionChecks ) )
+        , ( Fn.List.sortBy, ( 2, listSortByCompositionChecks ) )
+        , ( Fn.List.map, ( 2, listMapCompositionChecks ) )
+        , ( Fn.List.filterMap, ( 2, listFilterMapCompositionChecks ) )
+        , ( Fn.List.intersperse, ( 2, listIntersperseCompositionChecks ) )
+        , ( Fn.List.concat, ( 1, listConcatCompositionChecks ) )
+        , ( Fn.List.sum, ( 1, sumCompositionChecks listCollection ) )
+        , ( Fn.List.product, ( 1, productCompositionChecks listCollection ) )
+        , ( Fn.List.minimum, ( 1, minimumCompositionChecks listCollection ) )
+        , ( Fn.List.maximum, ( 1, maximumCompositionChecks listCollection ) )
+        , ( Fn.List.foldl, ( 3, listFoldlCompositionChecks ) )
+        , ( Fn.List.foldr, ( 3, listFoldrCompositionChecks ) )
+        , ( Fn.Set.fromList, ( 1, setFromListCompositionChecks ) )
+        , ( Fn.Dict.fromList, ( 1, dictFromListCompositionChecks ) )
+        , ( Fn.Array.toList, ( 1, arrayToListCompositionChecks ) )
+        , ( Fn.Array.fromList, ( 1, arrayFromListCompositionChecks ) )
+        , ( Fn.Task.map, ( 2, taskMapCompositionChecks ) )
+        , ( Fn.Task.mapError, ( 2, taskMapErrorCompositionChecks ) )
+        , ( Fn.Task.sequence, ( 1, taskSequenceCompositionChecks ) )
+        , ( Fn.Platform.Cmd.batch, ( 1, batchCompositionChecks ) )
+        , ( Fn.Platform.Sub.batch, ( 1, batchCompositionChecks ) )
+        , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapCompositionChecks ) )
+        , ( Fn.Random.map, ( 2, randomMapCompositionChecks ) )
         ]
 
 
@@ -3543,7 +3560,7 @@ compositionAlwaysReturnsIncomingError message checkInfo =
             { message = message
             , details = [ "You can replace this composition by identity." ]
             }
-        , fix = compositionReplaceByFnFix ( [ "Basics" ], "identity" ) checkInfo
+        , fix = compositionReplaceByFnFix Fn.Basics.identity checkInfo
         }
 
 
@@ -3717,8 +3734,8 @@ equalityChecks isEqual =
                 (operationSides checkInfo)
         , \checkInfo ->
             case
-                ( AstHelpers.getSpecificFnCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.left
-                , AstHelpers.getSpecificFnCall ( [ "Basics" ], "not" ) checkInfo.lookupTable checkInfo.right
+                ( AstHelpers.getSpecificFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.left
+                , AstHelpers.getSpecificFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.right
                 )
             of
                 ( Just leftNotCall, Just rightNotCall ) ->
@@ -4246,8 +4263,8 @@ tupleFirstChecks =
     tuplePartChecks
         { part = TupleFirst
         , description = "first"
-        , mapUnrelatedFn = ( [ "Tuple" ], "mapSecond" )
-        , mapFn = ( [ "Tuple" ], "mapFirst" )
+        , mapUnrelatedFn = Fn.Tuple.mapSecond
+        , mapFn = Fn.Tuple.mapFirst
         }
 
 
@@ -4257,8 +4274,8 @@ tupleFirstCompositionChecks =
         [ tuplePartCompositionChecks
             { part = TupleFirst
             , description = "first"
-            , mapUnrelatedFn = ( [ "Tuple" ], "mapSecond" )
-            , mapFn = ( [ "Tuple" ], "mapFirst" )
+            , mapUnrelatedFn = Fn.Tuple.mapSecond
+            , mapFn = Fn.Tuple.mapFirst
             }
         , \checkInfo ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
@@ -4271,7 +4288,7 @@ tupleFirstCompositionChecks =
                         , fix =
                             replaceBySubExpressionFix checkInfo.earlier.range first
                                 ++ [ Fix.insertAt checkInfo.earlier.range.start
-                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " ")
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ")
                                    , Fix.removeRange checkInfo.later.removeRange
                                    ]
                         }
@@ -4286,8 +4303,8 @@ tupleSecondChecks =
     tuplePartChecks
         { part = TupleSecond
         , description = "second"
-        , mapFn = ( [ "Tuple" ], "mapSecond" )
-        , mapUnrelatedFn = ( [ "Tuple" ], "mapFirst" )
+        , mapFn = Fn.Tuple.mapSecond
+        , mapUnrelatedFn = Fn.Tuple.mapFirst
         }
 
 
@@ -4297,8 +4314,8 @@ tupleSecondCompositionChecks =
         [ tuplePartCompositionChecks
             { part = TupleSecond
             , description = "second"
-            , mapFn = ( [ "Tuple" ], "mapSecond" )
-            , mapUnrelatedFn = ( [ "Tuple" ], "mapFirst" )
+            , mapFn = Fn.Tuple.mapSecond
+            , mapUnrelatedFn = Fn.Tuple.mapFirst
             }
         , \checkInfo ->
             case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
@@ -4368,14 +4385,14 @@ tuplePartChecks partConfig =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificFnCall ( [ "Tuple" ], "mapBoth" ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificFnCall Fn.Tuple.mapBoth checkInfo.lookupTable checkInfo.firstArg of
                 Just tupleMapBothCall ->
                     case tupleMapBothCall.argsAfterFirst of
                         secondMapperArg :: _ :: [] ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString ( [ "Tuple" ], "mapBoth" ) ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
-                                    , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString ( [ "Tuple" ], "mapBoth" ) ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping and tuple." ]
+                                    { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
+                                    , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping and tuple." ]
                                     }
                                     checkInfo.fnRange
                                     (case partConfig.part of
@@ -4425,8 +4442,8 @@ tuplePartCompositionChecks partConfig =
                 ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: _ :: [] ) ->
                     Just
                         { info =
-                            { message = qualifiedToString ( [ "Tuple" ], "mapBoth" ) ++ " before " ++ qualifiedToString checkInfo.later.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
-                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString ( [ "Tuple" ], "mapBoth" ) ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping." ]
+                            { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.later.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping." ]
                             }
                         , fix =
                             case partConfig.part of
@@ -4455,12 +4472,12 @@ tuplePartCompositionChecks partConfig =
 
 stringToListChecks : CheckInfo -> Maybe (Error {})
 stringToListChecks =
-    onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "fromList" )
+    onCallToInverseReturnsItsArgumentCheck Fn.String.fromList
 
 
 stringToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringToListCompositionChecks =
-    inversesCompositionCheck ( [ "String" ], "fromList" )
+    inversesCompositionCheck Fn.String.fromList
 
 
 stringFromListChecks : CheckInfo -> Maybe (Error {})
@@ -4468,7 +4485,7 @@ stringFromListChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
         , wrapperFromListSingletonChecks stringCollection
-        , onCallToInverseReturnsItsArgumentCheck ( [ "String" ], "toList" )
+        , onCallToInverseReturnsItsArgumentCheck Fn.String.toList
         ]
 
 
@@ -4476,7 +4493,7 @@ stringFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAnd
 stringFromListCompositionChecks =
     firstThatConstructsJust
         [ wrapperFromListSingletonCompositionChecks stringCollection
-        , inversesCompositionCheck ( [ "String" ], "toList" )
+        , inversesCompositionCheck Fn.String.toList
         ]
 
 
@@ -4484,16 +4501,16 @@ stringConcatChecks : CheckInfo -> Maybe (Error {})
 stringConcatChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
-        , callFromCanBeCombinedCheck { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
-        , callFromCanBeCombinedCheck { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
+        , callFromCanBeCombinedCheck { fromFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
+        , callFromCanBeCombinedCheck { fromFn = Fn.List.intersperse, combinedFn = Fn.String.join }
         ]
 
 
 stringConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 stringConcatCompositionChecks =
     firstThatConstructsJust
-        [ compositionFromCanBeCombinedCheck { fromFn = ( [ "List" ], "repeat" ), combinedFn = ( [ "String" ], "repeat" ) }
-        , compositionFromCanBeCombinedCheck { fromFn = ( [ "List" ], "intersperse" ), combinedFn = ( [ "String" ], "join" ) }
+        [ compositionFromCanBeCombinedCheck { fromFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
+        , compositionFromCanBeCombinedCheck { fromFn = Fn.List.intersperse, combinedFn = Fn.String.join }
         ]
 
 
@@ -4670,7 +4687,7 @@ stringJoinChecks =
                 let
                     replacementFn : ( ModuleName, String )
                     replacementFn =
-                        ( [ "String" ], "concat" )
+                        Fn.String.concat
                 in
                 Just
                     (Rule.errorWithFix
@@ -4935,7 +4952,7 @@ listConcatChecks =
                 _ ->
                     Nothing
         , callFromCanBeCombinedCheck
-            { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+            { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
         ]
 
 
@@ -4943,7 +4960,7 @@ listConcatCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatCompositionChecks =
     firstThatConstructsJust
         [ compositionFromCanBeCombinedCheck
-            { fromFn = ( [ "List" ], "map" ), combinedFn = ( [ "List" ], "concatMap" ) }
+            { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
         , onWrapAlwaysReturnsIncomingCompositionCheck listCollection
         ]
 
@@ -4999,7 +5016,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 listConcatMapChecks : CheckInfo -> Maybe (Error {})
 listConcatMapChecks =
     firstThatConstructsJust
-        [ operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "concat" ) }
+        [ operationWithIdentityCanBeReplacedChecks { replacementFn = Fn.List.concat }
         , emptiableAndThenChecks listCollection
         , wrapperAndThenChecks listCollection
         ]
@@ -5037,7 +5054,7 @@ listIndexedMapChecks : CheckInfo -> Maybe (Error {})
 listIndexedMapChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck listCollection
-        , operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "List" ], "map" ) }
+        , operationWithExtraArgChecks { operationWithoutExtraArg = Fn.List.map }
         ]
 
 
@@ -5092,7 +5109,7 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
                     Nothing
 
         _ ->
-            case AstHelpers.getSpecificFnCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Basics.always lookupTable expressionNode of
                 Just alwaysCall ->
                     Just
                         (replaceBySubExpressionFix alwaysCall.nodeRange alwaysCall.firstArg)
@@ -5128,7 +5145,7 @@ listHeadChecks =
                         checkInfo.fnRange
                         (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listArgHead
                             ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                    (qualifiedToString (qualify Fn.Maybe.just checkInfo))
                                ]
                         )
                 )
@@ -5163,7 +5180,7 @@ listTailExistsError replaceListArgByTailFix checkInfo =
         checkInfo.fnRange
         (replaceListArgByTailFix
             ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                    (qualifiedToString (qualify Fn.Maybe.just checkInfo))
                ]
         )
 
@@ -5202,7 +5219,7 @@ listTailChecks =
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) "[]"
                             , Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                (qualifiedToString (qualify Fn.Maybe.just checkInfo))
                             ]
                         )
 
@@ -5265,7 +5282,7 @@ dictToListMapErrorInfo info =
         toEntryAspectListAsQualifiedString =
             qualifiedToString ( [ "Dict" ], info.toEntryAspectList )
     in
-    { message = qualifiedToString ( [ "Dict" ], "toList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], info.tuplePart ) ++ " is the same as " ++ toEntryAspectListAsQualifiedString
+    { message = qualifiedToString Fn.Dict.toList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString ( [ "Tuple" ], info.tuplePart ) ++ " is the same as " ++ toEntryAspectListAsQualifiedString
     , details = [ "Using " ++ toEntryAspectListAsQualifiedString ++ " directly is meant for this exact purpose and will also be faster." ]
     }
 
@@ -5274,7 +5291,7 @@ dictToListMapChecks : CheckInfo -> Maybe (Error {})
 dictToListMapChecks listMapCheckInfo =
     case secondArg listMapCheckInfo of
         Just listArgument ->
-            case AstHelpers.getSpecificFnCall ( [ "Dict" ], "toList" ) listMapCheckInfo.lookupTable listArgument of
+            case AstHelpers.getSpecificFnCall Fn.Dict.toList listMapCheckInfo.lookupTable listArgument of
                 Just dictToListCall ->
                     let
                         error : { toEntryAspectList : String, tuplePart : String } -> Error {}
@@ -5309,18 +5326,18 @@ arrayToIndexedListToListMapChecks : CheckInfo -> Maybe (Error {})
 arrayToIndexedListToListMapChecks listMapCheckInfo =
     case secondArg listMapCheckInfo of
         Just listArgument ->
-            case AstHelpers.getSpecificFnCall ( [ "Array" ], "toIndexedList" ) listMapCheckInfo.lookupTable listArgument of
+            case AstHelpers.getSpecificFnCall Fn.Array.toIndexedList listMapCheckInfo.lookupTable listArgument of
                 Just arrayToIndexedList ->
                     if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
                         let
                             combinedFn : ( ModuleName, String )
                             combinedFn =
-                                ( [ "Array" ], "toList" )
+                                Fn.Array.toList
                         in
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], "second" ) ++ " is the same as " ++ qualifiedToString combinedFn
-                                , details = [ "You can replace this call by " ++ qualifiedToString combinedFn ++ " on the array given to " ++ qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ " which is meant for this exact purpose and will also be faster." ]
+                                { message = qualifiedToString Fn.Array.toIndexedList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString Fn.Tuple.second ++ " is the same as " ++ qualifiedToString combinedFn
+                                , details = [ "You can replace this call by " ++ qualifiedToString combinedFn ++ " on the array given to " ++ qualifiedToString Fn.Array.toIndexedList ++ " which is meant for this exact purpose and will also be faster." ]
                                 }
                                 listMapCheckInfo.fnRange
                                 (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range arrayToIndexedList.firstArg }
@@ -5386,11 +5403,11 @@ arrayToIndexedListMapCompositionCheck checkInfo =
                 let
                     combinedFn : ( ModuleName, String )
                     combinedFn =
-                        ( [ "Array" ], "toList" )
+                        Fn.Array.toList
                 in
                 Just
                     { info =
-                        { message = qualifiedToString ( [ "Array" ], "toIndexedList" ) ++ ", then " ++ qualifiedToString ( [ "List" ], "map" ) ++ " " ++ qualifiedToString ( [ "Tuple" ], "second" ) ++ " is the same as " ++ qualifiedToString combinedFn
+                        { message = qualifiedToString Fn.Array.toIndexedList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString Fn.Tuple.second ++ " is the same as " ++ qualifiedToString combinedFn
                         , details = [ "You can replace this composition by " ++ qualifiedToString combinedFn ++ " which is meant for this exact purpose and will also be faster." ]
                         }
                     , fix = compositionReplaceByFnFix combinedFn checkInfo
@@ -5407,7 +5424,7 @@ listMemberChecks : CheckInfo -> Maybe (Error {})
 listMemberChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.false res) }
             listCollection
         , \checkInfo ->
             case secondArg checkInfo of
@@ -5443,7 +5460,7 @@ listMemberChecks =
                                     Just
                                         (resultsInConstantError
                                             (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
-                                            (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res))
+                                            (\res -> qualifiedToString (qualify Fn.Basics.true res))
                                             checkInfo
                                         )
 
@@ -5685,7 +5702,7 @@ listFoldAnyDirectionChecks =
                                         { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
                                         (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
                                             ++ " "
-                                            ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo)
+                                            ++ qualifiedToString (qualify Fn.Basics.identity checkInfo)
                                         )
                                     ]
                     in
@@ -5693,7 +5710,7 @@ listFoldAnyDirectionChecks =
                         [ \() ->
                             case maybeListArg of
                                 Just listArg ->
-                                    case AstHelpers.getSpecificFnCall ( [ "Set" ], "toList" ) checkInfo.lookupTable listArg of
+                                    case AstHelpers.getSpecificFnCall Fn.Set.toList checkInfo.lookupTable listArg of
                                         Just setToListCall ->
                                             Just
                                                 (Rule.errorWithFix
@@ -5783,7 +5800,7 @@ emptiableAllChecks : EmptiableProperties (TypeSubsetProperties empty) otherPrope
 emptiableAllChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.true res) }
             emptiable
         , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
@@ -5791,7 +5808,7 @@ emptiableAllChecks emptiable =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res) }
+                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.true res) }
                             checkInfo
                         )
 
@@ -5813,7 +5830,7 @@ listAnyChecks =
                     let
                         replacementFn : ( ModuleName, String )
                         replacementFn =
-                            ( [ "List" ], "member" )
+                            Fn.List.member
                     in
                     Just
                         (Rule.errorWithFix
@@ -5832,7 +5849,7 @@ emptiableAnyChecks : EmptiableProperties (TypeSubsetProperties empty) otherPrope
 emptiableAnyChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.false res) }
             emptiable
         , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
@@ -5840,7 +5857,7 @@ emptiableAnyChecks emptiable =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.false res) }
                             checkInfo
                         )
 
@@ -5862,7 +5879,7 @@ listFilterMapChecks =
                             Just list ->
                                 case
                                     traverse
-                                        (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)
+                                        (AstHelpers.getSpecificFnCall Fn.Maybe.just checkInfo.lookupTable)
                                         list
                                 of
                                     Just justCalls ->
@@ -5895,14 +5912,14 @@ listFilterMapChecks =
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFilterMapCompositionChecks =
-    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = ( [ "List" ], "map" ) }
+    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = Fn.List.map }
 
 
 emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties { otherProperties | mapFn : ( ModuleName, String ) })) -> CheckInfo -> Maybe (Error {})
 emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.just checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
@@ -5919,7 +5936,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Undetermined ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Just" ) checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFn Fn.Maybe.just checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
@@ -5931,7 +5948,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothing checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -6111,18 +6128,18 @@ arrayToListChecks : CheckInfo -> Maybe (Error {})
 arrayToListChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection
-        , onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "fromList" )
+        , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
         , callFromCanBeCombinedCheck
-            { fromFn = ( [ "Array" ], "repeat" ), combinedFn = ( [ "List" ], "repeat" ) }
+            { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
         ]
 
 
 arrayToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 arrayToListCompositionChecks =
     firstThatConstructsJust
-        [ inversesCompositionCheck ( [ "Array" ], "fromList" )
+        [ inversesCompositionCheck Fn.Array.fromList
         , compositionFromCanBeCombinedCheck
-            { fromFn = ( [ "Array" ], "repeat" ), combinedFn = ( [ "List" ], "repeat" ) }
+            { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
         ]
 
 
@@ -6135,13 +6152,13 @@ arrayFromListChecks : CheckInfo -> Maybe (Error {})
 arrayFromListChecks =
     firstThatConstructsJust
         [ collectionFromListChecks arrayCollection
-        , onCallToInverseReturnsItsArgumentCheck ( [ "Array" ], "toList" )
+        , onCallToInverseReturnsItsArgumentCheck Fn.Array.toList
         ]
 
 
 arrayFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 arrayFromListCompositionChecks =
-    inversesCompositionCheck ( [ "Array" ], "toList" )
+    inversesCompositionCheck Fn.Array.toList
 
 
 arrayRepeatChecks : CheckInfo -> Maybe (Error {})
@@ -6158,7 +6175,7 @@ arrayIndexedMapChecks : CheckInfo -> Maybe (Error {})
 arrayIndexedMapChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck arrayCollection
-        , operationWithExtraArgChecks { operationWithoutExtraArg = ( [ "Array" ], "map" ) }
+        , operationWithExtraArgChecks { operationWithoutExtraArg = Fn.Array.map }
         ]
 
 
@@ -6215,10 +6232,10 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
         maybeCall =
             firstThatConstructsJust
                 [ \() ->
-                    AstHelpers.getSpecificFnCall ( [ "Array" ], "repeat" ) checkInfo.lookupTable checkInfo.firstArg
+                    AstHelpers.getSpecificFnCall Fn.Array.repeat checkInfo.lookupTable checkInfo.firstArg
                         |> Maybe.map (Tuple.pair "repeat")
                 , \() ->
-                    AstHelpers.getSpecificFnCall ( [ "Array" ], "initialize" ) checkInfo.lookupTable checkInfo.firstArg
+                    AstHelpers.getSpecificFnCall Fn.Array.initialize checkInfo.lookupTable checkInfo.firstArg
                         |> Maybe.map (Tuple.pair "initialize")
                 ]
                 ()
@@ -6228,7 +6245,7 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
             let
                 maxFn : String
                 maxFn =
-                    qualifiedToString (qualify ( [ "Basics" ], "max" ) defaultQualifyResources)
+                    qualifiedToString (qualify Fn.Basics.max defaultQualifyResources)
             in
             Just
                 (Rule.errorWithFix
@@ -6237,7 +6254,7 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
                     }
                     checkInfo.fnRange
                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg }
-                        ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "max" ) checkInfo) ++ " 0 ") ]
+                        ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify Fn.Basics.max checkInfo) ++ " 0 ") ]
                     )
                 )
 
@@ -6289,7 +6306,7 @@ indexAccessChecks collection checkInfo n =
                                         checkInfo.fnRange
                                         (replaceBySubExpressionFix (Node.range arg) element
                                             ++ [ Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                                    (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo))
+                                                    (qualifiedToString (qualify Fn.Maybe.just checkInfo))
                                                ]
                                         )
                                     )
@@ -6297,11 +6314,11 @@ indexAccessChecks collection checkInfo n =
                             Nothing ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
+                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
                                         , details = [ "You can replace this call by Nothing." ]
                                         }
                                         checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)) ]
+                                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothing checkInfo)) ]
                                     )
 
                     Nothing ->
@@ -6435,7 +6452,7 @@ listSortByChecks =
 
                 Nothing ->
                     Nothing
-        , operationWithIdentityCanBeReplacedChecks { replacementFn = ( [ "List" ], "sort" ) }
+        , operationWithIdentityCanBeReplacedChecks { replacementFn = Fn.List.sort }
         , operationDoesNotChangeResultOfOperationCheck
         ]
 
@@ -6472,15 +6489,15 @@ listSortWithChecks =
                         LT ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " (\\_ _ -> LT) is the same as " ++ qualifiedToString ( [ "List" ], "reverse" )
-                                    , details = [ "You can replace this call by " ++ qualifiedToString ( [ "List" ], "reverse" ) ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " (\\_ _ -> LT) is the same as " ++ qualifiedToString Fn.List.reverse
+                                    , details = [ "You can replace this call by " ++ qualifiedToString Fn.List.reverse ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.replaceRangeBy
                                         { start = checkInfo.fnRange.start
                                         , end = (Node.range checkInfo.firstArg).end
                                         }
-                                        (qualifiedToString (qualify ( [ "List" ], "reverse" ) checkInfo))
+                                        (qualifiedToString (qualify Fn.List.reverse checkInfo))
                                     ]
                                 )
 
@@ -6667,7 +6684,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                         "always with " ++ descriptionForDefinite "the first" emptiable.empty.description
                                     , fix =
                                         replaceBySubExpressionFix checkInfo.parentRange emptyAndBefore.found
-                                            ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " ") ]
+                                            ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ") ]
                                     }
 
                                 -- multiple args curried
@@ -6748,7 +6765,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                                 { start = checkInfo.parentRange.start
                                                 , end = keptRange.start
                                                 }
-                                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " (")
+                                                (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " (")
                                             ]
                                         , description =
                                             "always with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
@@ -6794,7 +6811,7 @@ setFromListChecks =
     firstThatConstructsJust
         [ collectionFromListChecks setCollection
         , wrapperFromListSingletonChecks setCollection
-        , onCallToInverseReturnsItsArgumentCheck ( [ "Set" ], "toList" )
+        , onCallToInverseReturnsItsArgumentCheck Fn.Set.toList
         ]
 
 
@@ -6802,7 +6819,7 @@ setFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 setFromListCompositionChecks =
     firstThatConstructsJust
         [ wrapperFromListSingletonCompositionChecks setCollection
-        , inversesCompositionCheck ( [ "Set" ], "toList" )
+        , inversesCompositionCheck Fn.Set.toList
         ]
 
 
@@ -6888,7 +6905,7 @@ foldToUnchangedAccumulatorCheck typeProperties checkInfo =
                                 { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
                                 , fix =
                                     [ Fix.replaceRangeBy checkInfo.parentRange
-                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo))
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
                                     ]
                                 }
 
@@ -6898,7 +6915,7 @@ foldToUnchangedAccumulatorCheck typeProperties checkInfo =
                                 , fix =
                                     [ Fix.replaceRangeBy
                                         (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                        (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo))
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
                                     ]
                                 }
 
@@ -6929,13 +6946,13 @@ dictFromListChecks : CheckInfo -> Maybe (Error {})
 dictFromListChecks =
     firstThatConstructsJust
         [ collectionFromListChecks dictCollection
-        , onCallToInverseReturnsItsArgumentCheck ( [ "Dict" ], "toList" )
+        , onCallToInverseReturnsItsArgumentCheck Fn.Dict.toList
         ]
 
 
 dictFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 dictFromListCompositionChecks =
-    inversesCompositionCheck ( [ "Dict" ], "toList" )
+    inversesCompositionCheck Fn.Dict.toList
 
 
 subAndCmdBatchChecks :
@@ -7094,7 +7111,7 @@ wrapperSequenceChecks wrapper =
                         replacement qualifyResources =
                             qualifiedToString (qualify wrapper.mapFn qualifyResources)
                                 ++ " "
-                                ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) qualifyResources)
+                                ++ qualifiedToString (qualify Fn.List.singleton qualifyResources)
                     in
                     Just
                         (Rule.errorWithFix
@@ -7147,7 +7164,7 @@ mappableSequenceCompositionChecks mappable checkInfo =
                 replacement qualifyResources =
                     qualifiedToString (qualify mappable.mapFn qualifyResources)
                         ++ " "
-                        ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) qualifyResources)
+                        ++ qualifiedToString (qualify Fn.List.singleton qualifyResources)
             in
             Just
                 { info =
@@ -7201,7 +7218,7 @@ htmlAttributesClassListChecks =
                                         let
                                             replacementFn : ( ModuleName, String )
                                             replacementFn =
-                                                ( [ "Html", "Attributes" ], "class" )
+                                                Fn.Html.Attributes.class
                                         in
                                         Just
                                             (Rule.errorWithFix
@@ -7346,7 +7363,7 @@ randomUniformChecks checkInfo =
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
-                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
+                                (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
                             , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
                             ]
                         )
@@ -7373,7 +7390,7 @@ randomWeightedChecks checkInfo =
                             (case Node.value checkInfo.firstArg of
                                 Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
                                     [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
-                                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " ")
+                                        (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
                                     , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
                                     ]
 
@@ -7384,7 +7401,7 @@ randomWeightedChecks checkInfo =
                                             Node.range checkInfo.firstArg
                                     in
                                     [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
-                                        (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo) ++ " (Tuple.first ")
+                                        (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " (Tuple.first ")
                                     , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
                                         ")"
                                     ]
@@ -7406,15 +7423,15 @@ randomListChecks =
                 Just 1 ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " 1 can be replaced by " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" )
-                            , details = [ "This " ++ qualifiedToString checkInfo.fn ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString ( [ "Random" ], "map" ) ++ " " ++ qualifiedToString ( [ "List" ], "singleton" ) ++ "." ]
+                            { message = qualifiedToString checkInfo.fn ++ " 1 can be replaced by " ++ qualifiedToString Fn.Random.map ++ " " ++ qualifiedToString Fn.List.singleton
+                            , details = [ "This " ++ qualifiedToString checkInfo.fn ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString Fn.Random.map ++ " " ++ qualifiedToString Fn.List.singleton ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
                                 (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                (qualifiedToString (qualify ( [ "Random" ], "map" ) checkInfo)
+                                (qualifiedToString (qualify Fn.Random.map checkInfo)
                                     ++ " "
-                                    ++ qualifiedToString (qualify ( [ "List" ], "singleton" ) checkInfo)
+                                    ++ qualifiedToString (qualify Fn.List.singleton checkInfo)
                                 )
                             ]
                         )
@@ -7431,7 +7448,7 @@ randomListChecks =
                                         "Random.list with a negative length"
                                 )
                                 { replacement =
-                                    \res -> qualifiedToString (qualify ( [ "Random" ], "constant" ) res) ++ " []"
+                                    \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
                                 , replacementNeedsParens = True
                                 }
                                 checkInfo
@@ -7445,16 +7462,16 @@ randomListChecks =
         , \checkInfo ->
             case secondArg checkInfo of
                 Just elementGeneratorArg ->
-                    case AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) checkInfo.lookupTable elementGeneratorArg of
+                    case AstHelpers.getSpecificFnCall Fn.Random.constant checkInfo.lookupTable elementGeneratorArg of
                         Just constantCall ->
                             let
                                 currentAsString : String
                                 currentAsString =
-                                    qualifiedToString checkInfo.fn ++ " n (" ++ qualifiedToString ( [ "Random" ], "constant" ) ++ " el)"
+                                    qualifiedToString checkInfo.fn ++ " n (" ++ qualifiedToString Fn.Random.constant ++ " el)"
 
                                 replacementAsString : String
                                 replacementAsString =
-                                    qualifiedToString ( [ "Random" ], "constant" ) ++ " (" ++ qualifiedToString ( [ "List" ], "repeat" ) ++ " n el)"
+                                    qualifiedToString Fn.Random.constant ++ " (" ++ qualifiedToString Fn.List.repeat ++ " n el)"
                             in
                             Just
                                 (Rule.errorWithFix
@@ -7464,9 +7481,9 @@ randomListChecks =
                                     checkInfo.fnRange
                                     (replaceBySubExpressionFix constantCall.nodeRange constantCall.firstArg
                                         ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                (qualifiedToString (qualify ( [ "List" ], "repeat" ) checkInfo))
+                                                (qualifiedToString (qualify Fn.List.repeat checkInfo))
                                            , Fix.insertAt checkInfo.parentRange.start
-                                                (qualifiedToString (qualify ( [ "Random" ], "constant" ) checkInfo)
+                                                (qualifiedToString (qualify Fn.Random.constant checkInfo)
                                                     ++ " ("
                                                 )
                                            , Fix.insertAt checkInfo.parentRange.end ")"
@@ -7740,20 +7757,20 @@ randomGeneratorWrapper =
     { represents = "random generator"
     , wrap = randomGeneratorConstantConstruct
     , empty = { invalid = () }
-    , mapFn = ( [ "Random" ], "map" )
+    , mapFn = Fn.Random.map
     }
 
 
 randomGeneratorConstantConstruct : ConstructWithOneArgProperties
 randomGeneratorConstantConstruct =
     { description = A "constant generator"
-    , fn = ( [ "Random" ], "constant" )
+    , fn = Fn.Random.constant
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Random.constant lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Random" ], "constant" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Random.constant lookupTable expr)
     }
 
 
@@ -7769,22 +7786,22 @@ maybeWithJustAsWrap =
         { description = Constant "Nothing"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Nothing" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothing lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) resources)
+                qualifiedToString (qualify Fn.Maybe.nothing resources)
         }
     , wrap =
         { description = A "just maybe"
-        , fn = ( [ "Maybe" ], "Just" )
+        , fn = Fn.Maybe.just
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.just lookupTable expr)
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall Fn.Maybe.just lookupTable expr)
         }
-    , mapFn = ( [ "Maybe" ], "map" )
+    , mapFn = Fn.Maybe.map
     }
 
 
@@ -7800,33 +7817,33 @@ resultWithOkAsWrap =
     { represents = "result"
     , wrap = resultOkayConstruct
     , empty = resultErrorConstruct
-    , mapFn = ( [ "Result" ], "map" )
+    , mapFn = Fn.Result.map
     }
 
 
 resultOkayConstruct : ConstructWithOneArgProperties
 resultOkayConstruct =
     { description = An "okay result"
-    , fn = ( [ "Result" ], "Ok" )
+    , fn = Fn.Result.ok
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.ok lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Ok" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Result.ok lookupTable expr)
     }
 
 
 resultErrorConstruct : ConstructWithOneArgProperties
 resultErrorConstruct =
     { description = An "error"
-    , fn = ( [ "Result" ], "Err" )
+    , fn = Fn.Result.err
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.err lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Result" ], "Err" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Result.err lookupTable expr)
     }
 
 
@@ -7842,7 +7859,7 @@ resultWithErrAsWrap =
     { represents = "result"
     , wrap = resultErrorConstruct
     , empty = resultOkayConstruct
-    , mapFn = ( [ "Result" ], "mapError" )
+    , mapFn = Fn.Result.mapError
     }
 
 
@@ -7858,33 +7875,33 @@ taskWithSucceedAsWrap =
     { represents = "task"
     , wrap = taskSucceedingConstruct
     , empty = taskFailingConstruct
-    , mapFn = ( [ "Task" ], "map" )
+    , mapFn = Fn.Task.map
     }
 
 
 taskSucceedingConstruct : ConstructWithOneArgProperties
 taskSucceedingConstruct =
     { description = A "succeeding task"
-    , fn = ( [ "Task" ], "succeed" )
+    , fn = Fn.Task.succeed
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Task.succeed lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "succeed" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Task.succeed lookupTable expr)
     }
 
 
 taskFailingConstruct : ConstructWithOneArgProperties
 taskFailingConstruct =
     { description = A "failing task"
-    , fn = ( [ "Task" ], "fail" )
+    , fn = Fn.Task.fail
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Task.fail lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Task" ], "fail" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Task.fail lookupTable expr)
     }
 
 
@@ -7900,7 +7917,7 @@ taskWithFailAsWrap =
     { represents = "task"
     , wrap = taskFailingConstruct
     , empty = taskSucceedingConstruct
-    , mapFn = ( [ "Task" ], "mapError" )
+    , mapFn = Fn.Task.mapError
     }
 
 
@@ -7916,33 +7933,33 @@ jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
     , wrap = jsonDecoderSucceedingConstruct
     , empty = jsonDecoderFailingConstruct
-    , mapFn = ( [ "Json", "Decode" ], "map" )
+    , mapFn = Fn.Json.Decode.map
     }
 
 
 jsonDecoderSucceedingConstruct : ConstructWithOneArgProperties
 jsonDecoderSucceedingConstruct =
     { description = A "succeeding decoder"
-    , fn = ( [ "Json", "Decode" ], "succeed" )
+    , fn = Fn.Json.Decode.succeed
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "succeed" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed lookupTable expr)
     }
 
 
 jsonDecoderFailingConstruct : ConstructWithOneArgProperties
 jsonDecoderFailingConstruct =
     { description = A "failing decoder"
-    , fn = ( [ "Json", "Decode" ], "fail" )
+    , fn = Fn.Json.Decode.fail
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Json", "Decode" ], "fail" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail lookupTable expr)
     }
 
 
@@ -7955,7 +7972,7 @@ listCollection =
         , determine = listDetermineLength
         }
     , wrap = listSingletonConstruct
-    , mapFn = ( [ "List" ], "map" )
+    , mapFn = Fn.List.map
     , fromListLiteral =
         { description = "list literal"
         , getListRange = \_ expr -> AstHelpers.getListLiteralRange expr
@@ -7975,7 +7992,7 @@ listEmptyConstant =
 listSingletonConstruct : ConstructWithOneArgProperties
 listSingletonConstruct =
     { description = A "singleton list"
-    , fn = ( [ "List" ], "singleton" )
+    , fn = Fn.List.singleton
     , getValue =
         \lookupTable expr ->
             Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
@@ -8000,7 +8017,7 @@ listDetermineLength resources expressionNode =
                     Just NotEmpty
 
         nonConsOrLiteral ->
-            Maybe.map (\_ -> Exactly 1) (AstHelpers.getSpecificFnCall ( [ "List" ], "singleton" ) resources.lookupTable nonConsOrLiteral)
+            Maybe.map (\_ -> Exactly 1) (AstHelpers.getSpecificFnCall Fn.List.singleton resources.lookupTable nonConsOrLiteral)
 
 
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {}))))
@@ -8016,7 +8033,7 @@ stringCollection =
         { description = "String.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall ( [ "String" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall Fn.String.fromList lookupTable expr
                     |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
@@ -8034,13 +8051,13 @@ stringEmptyConstant =
 singleCharConstruct : ConstructWithOneArgProperties
 singleCharConstruct =
     { description = A "single-char string"
-    , fn = ( [ "String" ], "fromChar" )
+    , fn = Fn.String.fromChar
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "String" ], "fromChar" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.String.fromChar lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "String" ], "fromChar" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.String.fromChar lookupTable expr)
     }
 
 
@@ -8058,24 +8075,24 @@ arrayCollection : TypeProperties (CollectionProperties (FromListProperties (Inde
 arrayCollection =
     { represents = "array"
     , empty =
-        { description = Constant (qualifiedToString ( [ "Array" ], "empty" ))
+        { description = Constant (qualifiedToString Fn.Array.empty)
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn ( [ "Array" ], "empty" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Array.empty lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify ( [ "Array" ], "empty" ) resources)
+                qualifiedToString (qualify Fn.Array.empty resources)
         }
     , size = { description = "length", determine = arrayDetermineSize }
     , literalElements =
         \lookupTable expr ->
-            AstHelpers.getSpecificFnCall ( [ "Array" ], "fromList" ) lookupTable expr
+            AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr
                 |> Maybe.andThen (\arrayFromListCall -> AstHelpers.getListLiteral arrayFromListCall.firstArg)
     , fromListLiteral =
         { description = "Array.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall ( [ "Array" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr
                     |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
@@ -8089,21 +8106,21 @@ arrayDetermineSize :
 arrayDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFn ( [ "Array" ], "empty" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFn Fn.Array.empty resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Array" ], "fromList" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Array.fromList resources.lookupTable expressionNode of
                 Just fromListCall ->
                     listDetermineLength resources fromListCall.firstArg
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Array" ], "repeat" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Array.repeat resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
                         |> Maybe.map (\n -> Exactly (max 0 n))
@@ -8111,7 +8128,7 @@ arrayDetermineSize resources =
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Array" ], "initialize" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Array.initialize resources.lookupTable expressionNode of
                 Just repeatCall ->
                     Evaluate.getInt resources repeatCall.firstArg
                         |> Maybe.map (\n -> Exactly (max 0 n))
@@ -8125,13 +8142,13 @@ setCollection : TypeProperties (CollectionProperties (EmptiableProperties Consta
 setCollection =
     { represents = "set"
     , empty =
-        { description = Constant (qualifiedToString ( [ "Set" ], "empty" ))
+        { description = Constant (qualifiedToString Fn.Set.empty)
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn ( [ "Set" ], "empty" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Set.empty lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify ( [ "Set" ], "empty" ) resources)
+                qualifiedToString (qualify Fn.Set.empty resources)
         }
     , size = { description = "size", determine = setDetermineSize }
     , wrap = setSingletonConstruct
@@ -8139,7 +8156,7 @@ setCollection =
         { description = "Set.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall ( [ "Set" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall Fn.Set.fromList lookupTable expr
                     |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = True
@@ -8149,13 +8166,13 @@ setCollection =
 setSingletonConstruct : ConstructWithOneArgProperties
 setSingletonConstruct =
     { description = A "singleton set"
-    , fn = ( [ "Set" ], "singleton" )
+    , fn = Fn.Set.singleton
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Set.singleton lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Set.singleton lookupTable expr)
     }
 
 
@@ -8166,21 +8183,21 @@ setDetermineSize :
 setDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFn ( [ "Set" ], "empty" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFn Fn.Set.empty resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Set" ], "singleton" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Set.singleton resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 1)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Set" ], "fromList" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Set.fromList resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
                         Just [] ->
@@ -8209,20 +8226,20 @@ dictCollection : TypeProperties (CollectionProperties (EmptiableProperties Const
 dictCollection =
     { represents = "dict"
     , empty =
-        { description = Constant (qualifiedToString ( [ "Dict" ], "empty" ))
+        { description = Constant (qualifiedToString Fn.Dict.empty)
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn ( [ "Dict" ], "empty" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Dict.empty lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify ( [ "Dict" ], "empty" ) resources)
+                qualifiedToString (qualify Fn.Dict.empty resources)
         }
     , size = { description = "size", determine = dictDetermineSize }
     , fromListLiteral =
         { description = "Dict.fromList call"
         , getListRange =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall ( [ "Dict" ], "fromList" ) lookupTable expr
+                AstHelpers.getSpecificFnCall Fn.Dict.fromList lookupTable expr
                     |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
         }
     , unionLeftElementsStayOnTheLeft = False
@@ -8236,14 +8253,14 @@ dictDetermineSize :
 dictDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFn ( [ "Dict" ], "empty" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificValueOrFn Fn.Dict.empty resources.lookupTable expressionNode of
                 Just _ ->
                     Just (Exactly 0)
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Dict" ], "singleton" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Dict.singleton resources.lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         _ :: [] ->
@@ -8255,7 +8272,7 @@ dictDetermineSize resources =
                 Nothing ->
                     Nothing
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall ( [ "Dict" ], "fromList" ) resources.lookupTable expressionNode of
+            case AstHelpers.getSpecificFnCall Fn.Dict.fromList resources.lookupTable expressionNode of
                 Just fromListCall ->
                     case AstHelpers.getListLiteral fromListCall.firstArg of
                         Just [] ->
@@ -8288,10 +8305,10 @@ cmdCollection =
             Constant "Cmd.none"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn ( [ "Platform", "Cmd" ], "none" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Cmd.none lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify ( [ "Platform", "Cmd" ], "none" ) resources)
+                qualifiedToString (qualify Fn.Platform.Cmd.none resources)
         }
     }
 
@@ -8304,10 +8321,10 @@ subCollection =
             Constant "Sub.none"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn ( [ "Platform", "Sub" ], "none" ) lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Sub.none lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify ( [ "Platform", "Sub" ], "none" ) resources)
+                qualifiedToString (qualify Fn.Platform.Sub.none resources)
         }
     }
 
@@ -8454,7 +8471,7 @@ nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.parentRange.start, end = alwaysMapResultRange.start }
-                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                                (qualifiedToString (qualify Fn.Basics.always checkInfo)
                                     ++ " ("
                                     ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo)
                                     ++ " "
@@ -8667,7 +8684,7 @@ unwrapToMaybeChecks emptiableWrapper =
     firstThatConstructsJust
         [ callOnWrapReturnsJustItsValue emptiableWrapper
         , callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothing res) }
             emptiableWrapper
         ]
 
@@ -8681,14 +8698,14 @@ resultToMaybeCompositionChecks =
                 ( [ "Result" ], "Err" ) ->
                     Just
                         { info =
-                            { message = qualifiedToString ( [ "Result" ], "toMaybe" ) ++ " on an error will result in Nothing"
+                            { message = qualifiedToString Fn.Result.toMaybe ++ " on an error will result in Nothing"
                             , details = [ "You can replace this call by always Nothing." ]
                             }
                         , fix =
                             compositionReplaceByFix
-                                (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo)
+                                (qualifiedToString (qualify Fn.Basics.always checkInfo)
                                     ++ " "
-                                    ++ qualifiedToString (qualify ( [ "Maybe" ], "Nothing" ) checkInfo)
+                                    ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
                                 )
                                 checkInfo
                         }
@@ -8701,7 +8718,7 @@ resultToMaybeCompositionChecks =
 resultFromMaybeChecks : CheckInfo -> Maybe (Error {})
 resultFromMaybeChecks =
     fromMaybeChecks
-        { onNothingFn = ( [ "Result" ], "Err" ), onJustFn = ( [ "Result" ], "Ok" ) }
+        { onNothingFn = Fn.Result.err, onJustFn = Fn.Result.ok }
 
 
 fromMaybeChecks : { onNothingFn : ( ModuleName, String ), onJustFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
@@ -8710,7 +8727,7 @@ fromMaybeChecks config checkInfo =
         Just maybeArg ->
             firstThatConstructsJust
                 [ \() ->
-                    case sameInAllBranches (AstHelpers.getSpecificValueOrFn ( [ "Maybe" ], "Nothing" ) checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothing checkInfo.lookupTable) maybeArg of
                         Determined _ ->
                             Just
                                 (Rule.errorWithFix
@@ -8730,7 +8747,7 @@ fromMaybeChecks config checkInfo =
                         Undetermined ->
                             Nothing
                 , \() ->
-                    case sameInAllBranches (AstHelpers.getSpecificFnCall ( [ "Maybe" ], "Just" ) checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.just checkInfo.lookupTable) maybeArg of
                         Determined justCalls ->
                             Just
                                 (Rule.errorWithFix
@@ -9244,7 +9261,7 @@ callOnWrapReturnsJustItsValue withWrap checkInfo =
                             (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
                                 :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
                                 ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
-                                        (qualifiedToString (qualify ( [ "Maybe" ], "Just" ) checkInfo) ++ " ")
+                                        (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " ")
                                    ]
                             )
                         )
@@ -9277,7 +9294,7 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
                 , details = [ "You can replace this call by Just." ]
                 }
-            , fix = compositionReplaceByFnFix ( [ "Maybe" ], "Just" ) checkInfo
+            , fix = compositionReplaceByFnFix Fn.Maybe.just checkInfo
             }
 
     else
@@ -9487,7 +9504,7 @@ collectionInsertChecks collection checkInfo =
 collectionMemberChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection =
     callOnEmptyReturnsCheck
-        { resultAsString = \res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res) }
+        { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.false res) }
         collection
 
 
@@ -9498,7 +9515,7 @@ collectionIsEmptyChecks collection checkInfo =
             Just
                 (resultsInConstantError
                     (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite collection.empty.description)
-                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "True" ) res))
+                    (\res -> qualifiedToString (qualify Fn.Basics.true res))
                     checkInfo
                 )
 
@@ -9506,7 +9523,7 @@ collectionIsEmptyChecks collection checkInfo =
             Just
                 (resultsInConstantError
                     (qualifiedToString checkInfo.fn ++ " on this " ++ collection.represents)
-                    (\res -> qualifiedToString (qualify ( [ "Basics" ], "False" ) res))
+                    (\res -> qualifiedToString (qualify Fn.Basics.false res))
                     checkInfo
                 )
 
@@ -9621,7 +9638,7 @@ collectionPartitionChecks collection =
                                 Nothing ->
                                     [ Fix.replaceRangeBy checkInfo.parentRange
                                         ("("
-                                            ++ qualifiedToString (qualify ( [ "Tuple" ], "pair" ) checkInfo)
+                                            ++ qualifiedToString (qualify Fn.Tuple.pair checkInfo)
                                             ++ " "
                                             ++ emptyAsString checkInfo collection
                                             ++ ")"
@@ -9809,7 +9826,7 @@ ifChecks =
                                 (targetIfKeyword checkInfo.nodeRange)
                                 (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition
                                     ++ [ Fix.insertAt checkInfo.nodeRange.start
-                                            (qualifiedToString (qualify ( [ "Basics" ], "not" ) checkInfo) ++ " ")
+                                            (qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " ")
                                        ]
                                 )
                         , rangesToIgnore = RangeDict.empty
@@ -10489,7 +10506,7 @@ alwaysResultsInConstantError usingSituation config checkInfo =
                 -- one arg curried
                 1 ->
                     \res ->
-                        qualifiedToString (qualify ( [ "Basics" ], "always" ) res) ++ " " ++ addNecessaryParens (config.replacement res)
+                        qualifiedToString (qualify Fn.Basics.always res) ++ " " ++ addNecessaryParens (config.replacement res)
 
                 -- multiple args curried
                 atLeast2 ->
@@ -10561,7 +10578,7 @@ alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =
                             { description = "identity"
                             , fix =
                                 [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                                    (qualifiedToString (qualify Fn.Basics.identity checkInfo))
                                 ]
                             }
 
@@ -10569,7 +10586,7 @@ alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =
                             { description = "always identity"
                             , fix =
                                 [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify ( [ "Basics" ], "always" ) checkInfo) ++ " " ++ qualifiedToString (qualify ( [ "Basics" ], "identity" ) checkInfo))
+                                    (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " " ++ qualifiedToString (qualify Fn.Basics.identity checkInfo))
                                 ]
                             }
 
@@ -10771,7 +10788,7 @@ constructs :
     -> Node Expression
     -> Match specific
 constructs getSpecific lookupTable expressionNode =
-    case AstHelpers.getSpecificFnCall ( [ "Basics" ], "always" ) lookupTable expressionNode of
+    case AstHelpers.getSpecificFnCall Fn.Basics.always lookupTable expressionNode of
         Just alwaysCall ->
             getSpecific alwaysCall.firstArg
 
