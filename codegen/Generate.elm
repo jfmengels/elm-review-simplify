@@ -40,15 +40,32 @@ moduleDocsToFile moduleDocs =
             moduleDocs.name |> String.split "."
     in
     Elm.file ("Fn" :: moduleName)
-        (moduleDocs.values
+        ((moduleDocs.values |> List.map .name)
+            ++ (moduleDocs.unions
+                    |> List.concatMap
+                        (\union ->
+                            union.tags
+                                |> List.map (\( variantName, _ ) -> variantName |> stringFirstCharToLower)
+                        )
+               )
             |> List.map
-                (\fnDeclaration ->
-                    Elm.declaration fnDeclaration.name
+                (\name ->
+                    Elm.declaration name
                         (Elm.tuple
                             (Elm.list (moduleName |> List.map Elm.string)
                                 |> Elm.withType Gen.Elm.Syntax.ModuleName.annotation_.moduleName
                             )
-                            (Elm.string fnDeclaration.name)
+                            (Elm.string name)
                         )
                 )
         )
+
+
+stringFirstCharToLower : String -> String
+stringFirstCharToLower string =
+    case string |> String.uncons of
+        Nothing ->
+            ""
+
+        Just ( firstChar, afterFirstChar ) ->
+            String.cons (firstChar |> Char.toLower) afterFirstChar
