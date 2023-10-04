@@ -6993,7 +6993,10 @@ taskMapChecks =
 
 taskMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskMapCompositionChecks =
-    wrapToMapCompositionChecks taskWithSucceedAsWrap
+    firstThatConstructsJust
+        [ wrapToMapCompositionChecks taskWithSucceedAsWrap
+        , unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
+        ]
 
 
 taskMapNChecks : CheckInfo -> Maybe (Error {})

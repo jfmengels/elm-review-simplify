@@ -23830,6 +23830,24 @@ import Task
 a = Task.fail z
 """
                         ]
+        , test "should replace Task.map f << Task.fail by Task.fail" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.map f << Task.fail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.map on a failing task will result in the unchanged failing task"
+                            , details = [ "You can replace this composition by Task.fail." ]
+                            , under = "Task.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.fail
+"""
+                        ]
         , test "should replace Task.map identity task by task" <|
             \() ->
                 """module A exposing (..)
