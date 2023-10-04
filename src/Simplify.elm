@@ -2957,6 +2957,7 @@ compositionIntoChecks =
         , ( Fn.Task.map, ( 2, taskMapCompositionChecks ) )
         , ( Fn.Task.andThen, ( 2, taskAndThenCompositionChecks ) )
         , ( Fn.Task.mapError, ( 2, taskMapErrorCompositionChecks ) )
+        , ( Fn.Task.onError, ( 2, taskOnErrorCompositionChecks ) )
         , ( Fn.Task.sequence, ( 1, taskSequenceCompositionChecks ) )
         , ( Fn.Platform.Cmd.batch, ( 1, batchCompositionChecks ) )
         , ( Fn.Platform.Sub.batch, ( 1, batchCompositionChecks ) )
@@ -7031,6 +7032,11 @@ taskOnErrorChecks =
         [ unnecessaryCallOnEmptyCheck taskWithFailAsWrap
         , wrapperAndThenChecks taskWithFailAsWrap
         ]
+
+
+taskOnErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+taskOnErrorCompositionChecks =
+    unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
 
 
 taskSequenceChecks : CheckInfo -> Maybe (Error {})

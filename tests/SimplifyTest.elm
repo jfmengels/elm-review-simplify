@@ -24674,6 +24674,24 @@ import Task
 a = (Task.succeed a)
 """
                         ]
+        , test "should replace Task.onError f << Task.succeed by Task.succeed" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError f << Task.succeed
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError on a succeeding task will result in the unchanged succeeding task"
+                            , details = [ "You can replace this composition by Task.succeed." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed
+"""
+                        ]
         , test "should not report Task.onError (always (Task.succeed a)) task" <|
             \() ->
                 """module A exposing (..)
