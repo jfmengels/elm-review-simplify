@@ -36,3 +36,13 @@ map5 =
 withDefault : ( Elm.Syntax.ModuleName.ModuleName, String )
 withDefault =
     ( [ "Maybe" ], "withDefault" )
+
+
+just : ( Elm.Syntax.ModuleName.ModuleName, String )
+just =
+    ( [ "Maybe" ], "Just" )
+
+
+nothing : ( Elm.Syntax.ModuleName.ModuleName, String )
+nothing =
+    ( [ "Maybe" ], "Nothing" )
