@@ -3,7 +3,7 @@
   "scripts": {
     "test": "npm-run-all --print-name --silent --sequential test:make test:format test:run test:review-run test:review test:package",
     "test:make": "elm make --docs=docs.json",
-    "test:format": "elm-format src/ tests/ --validate",
+    "test:format": "elm-format src/ tests/ review/ codegen/Generate.elm --validate",
     "test:run": "elm-test",
     "test:review": "elm-review",
     "test:review-run": "(cd review && elm-test)",
