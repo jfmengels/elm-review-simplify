@@ -51,3 +51,13 @@ toMaybe =
 withDefault : ( Elm.Syntax.ModuleName.ModuleName, String )
 withDefault =
     ( [ "Result" ], "withDefault" )
+
+
+ok : ( Elm.Syntax.ModuleName.ModuleName, String )
+ok =
+    ( [ "Result" ], "Ok" )
+
+
+err : ( Elm.Syntax.ModuleName.ModuleName, String )
+err =
+    ( [ "Result" ], "Err" )

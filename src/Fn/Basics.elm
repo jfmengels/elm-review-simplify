@@ -181,3 +181,28 @@ turns =
 xor : ( Elm.Syntax.ModuleName.ModuleName, String )
 xor =
     ( [ "Basics" ], "xor" )
+
+
+true : ( Elm.Syntax.ModuleName.ModuleName, String )
+true =
+    ( [ "Basics" ], "True" )
+
+
+false : ( Elm.Syntax.ModuleName.ModuleName, String )
+false =
+    ( [ "Basics" ], "False" )
+
+
+lT : ( Elm.Syntax.ModuleName.ModuleName, String )
+lT =
+    ( [ "Basics" ], "LT" )
+
+
+eQ : ( Elm.Syntax.ModuleName.ModuleName, String )
+eQ =
+    ( [ "Basics" ], "EQ" )
+
+
+gT : ( Elm.Syntax.ModuleName.ModuleName, String )
+gT =
+    ( [ "Basics" ], "GT" )
