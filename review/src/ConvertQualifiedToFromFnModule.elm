@@ -17,6 +17,7 @@ import Review.Rule exposing (Rule)
 
     config =
         [ ConvertQualifiedToFromFnModule.rule
+            |> Rule.ignoreErrorsForDirectories [ "src/Fn" ]
         ]
 
 
@@ -32,13 +33,6 @@ import Review.Rule exposing (Rule)
 
     a =
         Fn.Module.name
-
-
-## Try it out
-
-```bash
-elm-review --template jfmengels/elm-review-convert-qualified-to-from-fn-module/example
-```
 
 -}
 rule : Rule
