@@ -2933,6 +2933,7 @@ compositionIntoChecks =
         , ( Fn.Maybe.withDefault, ( 2, wrapperWithDefaultChecks maybeWithJustAsWrap ) )
         , ( Fn.Result.map, ( 2, resultMapCompositionChecks ) )
         , ( Fn.Result.mapError, ( 2, resultMapErrorCompositionChecks ) )
+        , ( Fn.Result.andThen, ( 2, resultAndThenCompositionChecks ) )
         , ( Fn.Result.toMaybe, ( 1, resultToMaybeCompositionChecks ) )
         , ( Fn.Result.fromMaybe, ( 3, wrapperFromMaybeCompositionChecks resultWithOkAsWrap ) )
         , ( Fn.Result.withDefault, ( 2, wrapperWithDefaultChecks resultWithOkAsWrap ) )
@@ -8633,6 +8634,11 @@ resultAndThenChecks =
         [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
         , wrapperAndThenChecks resultWithOkAsWrap
         ]
+
+
+resultAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+resultAndThenCompositionChecks =
+    unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
 
 
 withDefaultChecks :
