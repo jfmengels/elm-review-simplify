@@ -2962,6 +2962,7 @@ compositionIntoChecks =
         , ( Fn.Platform.Cmd.batch, ( 1, batchCompositionChecks ) )
         , ( Fn.Platform.Sub.batch, ( 1, batchCompositionChecks ) )
         , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapCompositionChecks ) )
+        , ( Fn.Json.Decode.andThen, ( 2, jsonDecodeAndThenCompositionChecks ) )
         , ( Fn.Random.map, ( 2, randomMapCompositionChecks ) )
         ]
 
@@ -7331,6 +7332,11 @@ jsonDecodeAndThenChecks =
         [ unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap
         , wrapperAndThenChecks jsonDecoderWithSucceedAsWrap
         ]
+
+
+jsonDecodeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+jsonDecodeAndThenCompositionChecks =
+    unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
 
 
 
