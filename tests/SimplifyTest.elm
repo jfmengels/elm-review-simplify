@@ -18926,6 +18926,22 @@ a = Err z |> Result.map f
 a = Err z
 """
                         ]
+        , test "should replace Result.andThen f << Err by Err" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen f << Err
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.andThen on an error will result in the unchanged error"
+                            , details = [ "You can replace this composition by Err." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err
+"""
+                        ]
         , test "should replace Result.map identity x by x" <|
             \() ->
                 """module A exposing (..)

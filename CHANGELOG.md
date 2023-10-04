@@ -37,6 +37,7 @@
 - `Array.toList (Array.repeat n a)` to `List.repeat n a`
 - `Array.toIndexedList Array.empty` to `[]`
 - `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
+- `Result.map f << Err` to `Err`
 - `Result.andThen f << Err` to `Err`
 - `Task.andThen f << Task.fail` to `Task.fail`
 - `Task.onError f << Task.succeed` to `Task.succeed`

@@ -4859,7 +4859,10 @@ resultMapChecks =
 
 resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapCompositionChecks =
-    wrapToMapCompositionChecks resultWithOkAsWrap
+    firstThatConstructsJust
+        [ wrapToMapCompositionChecks resultWithOkAsWrap
+        , unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
+        ]
 
 
 resultMapNChecks : CheckInfo -> Maybe (Error {})
