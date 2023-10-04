@@ -45,12 +45,12 @@ moduleDocsToFile moduleDocs =
                     |> List.concatMap
                         (\union ->
                             union.tags
-                                |> List.map (\( variantName, _ ) -> variantName |> stringFirstCharToLower)
+                                |> List.map (\( variantName, _ ) -> variantName)
                         )
                )
             |> List.map
                 (\name ->
-                    Elm.declaration name
+                    Elm.declaration (name |> stringFirstCharToLower)
                         (Elm.tuple
                             (Elm.list (moduleName |> List.map Elm.string)
                                 |> Elm.withType Gen.Elm.Syntax.ModuleName.annotation_.moduleName
