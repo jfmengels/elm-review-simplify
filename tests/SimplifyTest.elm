@@ -19752,7 +19752,7 @@ a = Result.andThen f << Err
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Result.andThen on an error will result in the unchanged error"
-                            , details = [ "You can replace this composition Err." ]
+                            , details = [ "You can replace this composition by Err." ]
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
