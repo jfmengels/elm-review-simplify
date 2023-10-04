@@ -41,6 +41,7 @@
 - `Result.andThen f << Err` to `Err`
 - `Task.map f << Task.fail` to `Task.fail`
 - `Task.andThen f << Task.fail` to `Task.fail`
+- `Task.mapError f << Task.succeed` to `Task.succeed`
 - `Task.onError f << Task.succeed` to `Task.succeed`
 - `Json.Decode.andThen f << Json.Decode.fail` to `Json.Decode.fail`
 
