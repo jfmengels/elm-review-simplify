@@ -19743,6 +19743,22 @@ a = Result.andThen f (Err z)
 a = (Err z)
 """
                         ]
+        , test "should replace Result.andThen f << Err by Err" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen f << Err
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.andThen on an error will result in the unchanged error"
+                            , details = [ "You can replace this composition Err." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Err
+"""
+                        ]
         , test "should not report Result.andThen (always (Err z)) x" <|
             \() ->
                 """module A exposing (..)

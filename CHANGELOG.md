@@ -37,6 +37,7 @@
 - `Array.toList (Array.repeat n a)` to `List.repeat n a`
 - `Array.toIndexedList Array.empty` to `[]`
 - `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
+- `Result.andThen f << Err` to `Err`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
