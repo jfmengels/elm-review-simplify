@@ -24501,6 +24501,7 @@ a = (Task.fail x)
         , test "should replace Task.andThen f << Task.fail by Task.fail" <|
             \() ->
                 """module A exposing (..)
+import Task
 a = Task.andThen f << Task.fail
 """
                     |> Review.Test.run ruleWithDefaults
@@ -24511,6 +24512,7 @@ a = Task.andThen f << Task.fail
                             , under = "Task.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Task
 a = Task.fail
 """
                         ]
