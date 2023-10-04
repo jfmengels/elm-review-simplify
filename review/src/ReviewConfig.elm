@@ -11,6 +11,7 @@ when inside the directory containing this file.
 
 -}
 
+import ConvertQualifiedToFromFnModule
 import Docs.NoMissing exposing (exposedModules, onlyExposed)
 import Docs.ReviewAtDocs
 import Docs.ReviewLinksAndSections
@@ -66,4 +67,6 @@ config =
     , NoUnused.Patterns.rule
     , NoUnused.Variables.rule
     , Simplify.rule Simplify.defaults
+    , ConvertQualifiedToFromFnModule.rule
+        |> Rule.ignoreErrorsForDirectories [ "src/Fn" ]
     ]
