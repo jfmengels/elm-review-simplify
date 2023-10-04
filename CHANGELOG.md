@@ -40,6 +40,7 @@
 - `Result.andThen f << Err` to `Err`
 - `Task.andThen f << Task.fail` to `Task.fail`
 - `Task.onError f << Task.succeed` to `Task.succeed`
+- `Json.Decode.andThen f << Json.Decode.fail` to `Json.Decode.fail`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

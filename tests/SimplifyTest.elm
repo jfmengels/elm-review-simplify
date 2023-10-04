@@ -25489,6 +25489,24 @@ import Json.Decode
 a = (Json.Decode.fail x)
 """
                         ]
+        , test "should replace Json.Decode.andThen f << Json.Decode.fail by Json.Decode.fail" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen f << Json.Decode.fail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen on a failing decoder will result in the unchanged failing decoder"
+                            , details = [ "You can replace this composition by Json.Decode.fail." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.fail
+"""
+                        ]
         , test "should not report Json.Decode.andThen (always (Json.Decode.fail x)) decoder" <|
             \() ->
                 """module A exposing (..)
