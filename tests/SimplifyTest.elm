@@ -24318,6 +24318,24 @@ import Task
 a = Task.succeed a
 """
                         ]
+        , test "should replace Task.mapError f << Task.succeed by Task.succeed" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.mapError f << Task.succeed
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.mapError on a succeeding task will result in the unchanged succeeding task"
+                            , details = [ "You can replace this composition by Task.succeed." ]
+                            , under = "Task.mapError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = Task.succeed
+"""
+                        ]
         , test "should replace Task.mapError identity task by task" <|
             \() ->
                 """module A exposing (..)
