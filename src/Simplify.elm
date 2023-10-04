@@ -7324,7 +7324,10 @@ jsonDecodeMapChecks =
 
 jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 jsonDecodeMapCompositionChecks =
-    wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap
+    firstThatConstructsJust
+        [ wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap
+        , unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
+        ]
 
 
 jsonDecodeMapNChecks : CheckInfo -> Maybe (Error {})

@@ -25107,6 +25107,24 @@ import Json.Decode
 a = Json.Decode.fail z
 """
                         ]
+        , test "should replace Json.Decode.map f << Json.Decode.fail by Json.Decode.fail" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.map f << Json.Decode.fail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.map on a failing decoder will result in the unchanged failing decoder"
+                            , details = [ "You can replace this composition by Json.Decode.fail." ]
+                            , under = "Json.Decode.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = Json.Decode.fail
+"""
+                        ]
         , test "should replace Json.Decode.map identity json decoder by json decoder" <|
             \() ->
                 """module A exposing (..)
