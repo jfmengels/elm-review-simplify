@@ -2,7 +2,8 @@
     "type": "application",
     "source-directories": [
         "src",
-        "../src"
+        "../src",
+        "../elm-review-convert-qualified-to-from-fn-module/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
