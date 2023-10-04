@@ -24498,6 +24498,22 @@ import Task
 a = (Task.fail x)
 """
                         ]
+        , test "should replace Task.andThen f << Task.fail by Task.fail" <|
+            \() ->
+                """module A exposing (..)
+a = Task.andThen f << Task.fail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen on a failing task will result in the unchanged failing task"
+                            , details = [ "You can replace this composition by Task.fail." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Task.fail
+"""
+                        ]
         , test "should not report Task.andThen (always (Task.fail x)) task" <|
             \() ->
                 """module A exposing (..)

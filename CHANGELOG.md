@@ -38,6 +38,7 @@
 - `Array.toIndexedList Array.empty` to `[]`
 - `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
 - `Result.andThen f << Err` to `Err`
+- `Task.andThen f << Task.fail` to `Task.fail`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
