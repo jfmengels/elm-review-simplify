@@ -24741,6 +24741,24 @@ import Task
 a = a |> f
 """
                         ]
+        , test "should replace Task.andThen f << Task.succeed by f" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.andThen f << Task.succeed
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.andThen on a succeeding task is the same as applying the function to the value from the succeeding task"
+                            , details = [ "You can replace this composition by the function given to Task.andThen." ]
+                            , under = "Task.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = f
+"""
+                        ]
         ]
 
 
