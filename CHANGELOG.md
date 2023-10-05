@@ -47,6 +47,7 @@
 - `Json.Decode.andThen f << Json.Decode.fail` to `Json.Decode.fail`
 - `Maybe.andThen f << Just` to `f`
 - `Result.andThen f << Ok` to `f`
+- `Json.Decode.andThen f << Json.Decode.succeed` to `f`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

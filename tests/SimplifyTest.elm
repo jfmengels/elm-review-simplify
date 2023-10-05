@@ -25734,6 +25734,24 @@ import Json.Decode
 a = a |> f
 """
                         ]
+        , test "should replace Json.Decode.andThen f << Json.Decode.succeed by f" <|
+            \() ->
+                """module A exposing (..)
+import Json.Decode
+a = Json.Decode.andThen f << Json.Decode.succeed
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Json.Decode.andThen on a succeeding decoder is the same as applying the function to the value from the succeeding decoder"
+                            , details = [ "You can replace this composition by the function given to Json.Decode.andThen." ]
+                            , under = "Json.Decode.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Decode
+a = f
+"""
+                        ]
         ]
 
 
