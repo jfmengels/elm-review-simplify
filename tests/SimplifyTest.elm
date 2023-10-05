@@ -9418,7 +9418,7 @@ a = identity |> List.map
 a = identity
 """
                         ]
-        , test "should replace List.map f [ x ] by [ f x ]" <|
+        , test "should replace List.map f [ x ] by [ (f x) ]" <|
             \() ->
                 """module A exposing (..)
 a = List.map f [ x ]
@@ -9427,14 +9427,14 @@ a = List.map f [ x ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
-                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = [ f x ]
+a = [ (f x) ]
 """
                         ]
-        , test "should replace List.map f [ g x ] by [ f (g x) ]" <|
+        , test "should replace List.map f [ g x ] by [ (f (g x)) ]" <|
             \() ->
                 """module A exposing (..)
 a = List.map f [ g x ]
@@ -9443,11 +9443,11 @@ a = List.map f [ g x ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
-                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = [ f (g x) ]
+a = [ (f (g x)) ]
 """
                         ]
         , test "should replace List.map f (if cond then [ x ] else [ y ]) by [ f (if cond then x else y) ]" <|
@@ -9459,14 +9459,62 @@ a = List.map f (if cond then [ x ] else [ y ])
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
-                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ f (if cond then x else y) ]
 """
                         ]
-        , test "should replace List.map f (List.singleton x) by [ f x ]" <|
+        , test "should replace List.map f <| if cond then [ x ] else [ y ] by [ f <| if cond then x else y ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f <| if cond then [ x ] else [ y ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f <| if cond then x else y ]
+"""
+                        ]
+        , test "should replace (if cond then [ x ] else [ y ]) |> List.map f by [ (if cond then x else y) |> f ]" <|
+            \() ->
+                """module A exposing (..)
+a = (if cond then [ x ] else [ y ]) |> List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ (if cond then x else y) |> f ]
+"""
+                        ]
+        , test "should replace List.map f (if cond then List.singleton x else List.singleton y) by [ f (if cond then x else y) ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f (if cond then List.singleton x else List.singleton y)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ f (if cond then x else y) ]
+"""
+                        ]
+        , test "should replace List.map f (List.singleton x) by (List.singleton (f x))" <|
             \() ->
                 """module A exposing (..)
 a = List.map f (List.singleton x)
@@ -9475,14 +9523,14 @@ a = List.map f (List.singleton x)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
-                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = [ f x ]
+a = (List.singleton (f x))
 """
                         ]
-        , test "should replace List.map f <| [ x ] by [ f <| x ]" <|
+        , test "should replace List.map f <| [ x ] by [ (f <| x) ]" <|
             \() ->
                 """module A exposing (..)
 a = List.map f <| [ x ]
@@ -9491,14 +9539,14 @@ a = List.map f <| [ x ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
-                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = [ f <| x ]
+a = [ (f <| x) ]
 """
                         ]
-        , test "should replace [ x ] |> List.map f by [ x |> f ]" <|
+        , test "should replace [ x ] |> List.map f by [ (x |> f) ]" <|
             \() ->
                 """module A exposing (..)
 a = [ x ] |> List.map f
@@ -9507,11 +9555,11 @@ a = [ x ] |> List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map on a singleton list will result in a singleton list with the function applied to the value inside"
-                            , details = [ "You can replace this call by a singleton list containing the function directly applied to the value inside the given singleton list." ]
+                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = [ x |> f ]
+a = [ (x |> f) ]
 """
                         ]
         , test "should replace List.map f << List.singleton by List.singleton << f" <|
@@ -18226,7 +18274,7 @@ a = identity |> Maybe.map
 a = identity
 """
                         ]
-        , test "should replace Maybe.map f (Just x) by Just (f x)" <|
+        , test "should replace Maybe.map f (Just x) by (Just (f x))" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.map f (Just x)
@@ -18239,10 +18287,10 @@ a = Maybe.map f (Just x)
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just (f x)
+a = (Just (f x))
 """
                         ]
-        , test "should replace Maybe.map f <| Just x by Just <| f <| x" <|
+        , test "should replace Maybe.map f <| Just x by Just (f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.map f <| Just x
@@ -18255,10 +18303,10 @@ a = Maybe.map f <| Just x
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just <| f <| x
+a = Just (f <| x)
 """
                         ]
-        , test "should replace Just x |> Maybe.map f by x |> f |> Just" <|
+        , test "should replace Just x |> Maybe.map f by Just (x |> f)" <|
             \() ->
                 """module A exposing (..)
 a = Just x |> Maybe.map f
@@ -18271,10 +18319,10 @@ a = Just x |> Maybe.map f
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> f |> Just
+a = Just (x |> f)
 """
                         ]
-        , test "should replace x |> Just |> Maybe.map f by x |> f |> Just" <|
+        , test "should replace x |> Just |> Maybe.map f by (x |> f) |> Just" <|
             \() ->
                 """module A exposing (..)
 a = x |> Just |> Maybe.map f
@@ -18287,10 +18335,10 @@ a = x |> Just |> Maybe.map f
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> f |> Just
+a = (x |> f) |> Just
 """
                         ]
-        , test "should replace Maybe.map f <| Just <| x by Just <| f <| x" <|
+        , test "should replace Maybe.map f <| Just <| x by Just <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = Maybe.map f <| Just <| x
@@ -18303,7 +18351,7 @@ a = Maybe.map f <| Just <| x
                             , under = "Maybe.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Just <| f <| x
+a = Just <| (f <| x)
 """
                         ]
         , test "should replace Maybe.map f << Just by Just << f" <|
@@ -19071,7 +19119,7 @@ a = identity |> Result.map
 a = identity
 """
                         ]
-        , test "should replace Result.map f (Ok x) by Ok (f x)" <|
+        , test "should replace Result.map f (Ok x) by (Ok (f x))" <|
             \() ->
                 """module A exposing (..)
 a = Result.map f (Ok x)
@@ -19084,10 +19132,10 @@ a = Result.map f (Ok x)
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok (f x)
+a = (Ok (f x))
 """
                         ]
-        , test "should replace Result.map f <| Ok x by Ok <| f <| x" <|
+        , test "should replace Result.map f <| Ok x by Ok (f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = Result.map f <| Ok x
@@ -19100,10 +19148,10 @@ a = Result.map f <| Ok x
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok <| f <| x
+a = Ok (f <| x)
 """
                         ]
-        , test "should replace Ok x |> Result.map f by x |> f |> Ok" <|
+        , test "should replace Ok x |> Result.map f by Ok (x |> f)" <|
             \() ->
                 """module A exposing (..)
 a = Ok x |> Result.map f
@@ -19116,10 +19164,10 @@ a = Ok x |> Result.map f
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> f |> Ok
+a = Ok (x |> f)
 """
                         ]
-        , test "should replace x |> Ok |> Result.map f by x |> f |> Ok" <|
+        , test "should replace x |> Ok |> Result.map f by (x |> f) |> Ok" <|
             \() ->
                 """module A exposing (..)
 a = x |> Ok |> Result.map f
@@ -19132,10 +19180,10 @@ a = x |> Ok |> Result.map f
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> f |> Ok
+a = (x |> f) |> Ok
 """
                         ]
-        , test "should replace Result.map f <| Ok <| x by Ok <| f <| x" <|
+        , test "should replace Result.map f <| Ok <| x by Ok <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = Result.map f <| Ok <| x
@@ -19148,7 +19196,7 @@ a = Result.map f <| Ok <| x
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Ok <| f <| x
+a = Ok <| (f <| x)
 """
                         ]
         , test "should replace Result.map f << Ok by Ok << f" <|
@@ -19603,7 +19651,7 @@ a = identity |> Result.mapError
 a = identity
 """
                         ]
-        , test "should replace Result.mapError f (Err x) by Err (f x)" <|
+        , test "should replace Result.mapError f (Err x) by (Err (f x))" <|
             \() ->
                 """module A exposing (..)
 a = Result.mapError f (Err x)
@@ -19616,10 +19664,10 @@ a = Result.mapError f (Err x)
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Err (f x)
+a = (Err (f x))
 """
                         ]
-        , test "should replace Result.mapError f <| Err x by Err <| f <| x" <|
+        , test "should replace Result.mapError f <| Err x by Err (f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = Result.mapError f <| Err x
@@ -19632,10 +19680,10 @@ a = Result.mapError f <| Err x
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Err <| f <| x
+a = Err (f <| x)
 """
                         ]
-        , test "should replace Err x |> Result.mapError f by x |> f |> Err" <|
+        , test "should replace Err x |> Result.mapError f by Err (x |> f)" <|
             \() ->
                 """module A exposing (..)
 a = Err x |> Result.mapError f
@@ -19648,10 +19696,10 @@ a = Err x |> Result.mapError f
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> f |> Err
+a = Err (x |> f)
 """
                         ]
-        , test "should replace x |> Err |> Result.mapError f by x |> f |> Err" <|
+        , test "should replace x |> Err |> Result.mapError f by (x |> f) |> Err" <|
             \() ->
                 """module A exposing (..)
 a = x |> Err |> Result.mapError f
@@ -19664,10 +19712,10 @@ a = x |> Err |> Result.mapError f
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = x |> f |> Err
+a = (x |> f) |> Err
 """
                         ]
-        , test "should replace Result.mapError f <| Err <| x by Err <| f <| x" <|
+        , test "should replace Result.mapError f <| Err <| x by Err <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 a = Result.mapError f <| Err <| x
@@ -19680,7 +19728,7 @@ a = Result.mapError f <| Err <| x
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Err <| f <| x
+a = Err <| (f <| x)
 """
                         ]
         , test "should replace Result.mapError f << Err by Err << f" <|
@@ -23969,7 +24017,7 @@ import Task
 a = identity
 """
                         ]
-        , test "should replace Task.map f (Task.succeed x) by Task.succeed (f x)" <|
+        , test "should replace Task.map f (Task.succeed x) by (Task.succeed (f x))" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -23984,10 +24032,10 @@ a = Task.map f (Task.succeed x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.succeed (f x)
+a = (Task.succeed (f x))
 """
                         ]
-        , test "should replace Task.map f <| Task.succeed x by Task.succeed <| f <| x" <|
+        , test "should replace Task.map f <| Task.succeed x by Task.succeed (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24002,10 +24050,10 @@ a = Task.map f <| Task.succeed x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.succeed <| f <| x
+a = Task.succeed (f <| x)
 """
                         ]
-        , test "should replace Task.succeed x |> Task.map f by x |> f |> Task.succeed" <|
+        , test "should replace Task.succeed x |> Task.map f by Task.succeed (x |> f)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24020,10 +24068,10 @@ a = Task.succeed x |> Task.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x |> f |> Task.succeed
+a = Task.succeed (x |> f)
 """
                         ]
-        , test "should replace x |> Task.succeed |> Task.map f by x |> f |> Task.succeed" <|
+        , test "should replace x |> Task.succeed |> Task.map f by (x |> f) |> Task.succeed" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24038,10 +24086,10 @@ a = x |> Task.succeed |> Task.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x |> f |> Task.succeed
+a = (x |> f) |> Task.succeed
 """
                         ]
-        , test "should replace Task.map f <| Task.succeed <| x by Task.succeed <| f <| x" <|
+        , test "should replace Task.map f <| Task.succeed <| x by Task.succeed <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24056,7 +24104,7 @@ a = Task.map f <| Task.succeed <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.succeed <| f <| x
+a = Task.succeed <| (f <| x)
 """
                         ]
         , test "should replace Task.map f << Task.succeed by Task.succeed << f" <|
@@ -24457,7 +24505,7 @@ import Task
 a = identity
 """
                         ]
-        , test "should replace Task.mapError f (Task.fail x) by Task.fail (f x)" <|
+        , test "should replace Task.mapError f (Task.fail x) by (Task.fail (f x))" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24472,10 +24520,10 @@ a = Task.mapError f (Task.fail x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.fail (f x)
+a = (Task.fail (f x))
 """
                         ]
-        , test "should replace Task.mapError f <| Task.fail x by Task.fail <| f <| x" <|
+        , test "should replace Task.mapError f <| Task.fail x by Task.fail (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24490,10 +24538,10 @@ a = Task.mapError f <| Task.fail x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.fail <| f <| x
+a = Task.fail (f <| x)
 """
                         ]
-        , test "should replace Task.fail x |> Task.mapError f by x |> f |> Task.fail" <|
+        , test "should replace Task.fail x |> Task.mapError f by Task.fail (x |> f)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24508,10 +24556,10 @@ a = Task.fail x |> Task.mapError f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x |> f |> Task.fail
+a = Task.fail (x |> f)
 """
                         ]
-        , test "should replace x |> Task.fail |> Task.mapError f by x |> f |> Task.fail" <|
+        , test "should replace x |> Task.fail |> Task.mapError f by (x |> f) |> Task.fail" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24526,10 +24574,10 @@ a = x |> Task.fail |> Task.mapError f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = x |> f |> Task.fail
+a = (x |> f) |> Task.fail
 """
                         ]
-        , test "should replace Task.mapError f <| Task.fail <| x by Task.fail <| f <| x" <|
+        , test "should replace Task.mapError f <| Task.fail <| x by Task.fail <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Task
@@ -24544,7 +24592,7 @@ a = Task.mapError f <| Task.fail <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = Task.fail <| f <| x
+a = Task.fail <| (f <| x)
 """
                         ]
         , test "should replace Task.mapError f << Task.fail by Task.fail << f" <|
@@ -25282,7 +25330,7 @@ import Json.Decode
 a = identity
 """
                         ]
-        , test "should replace Json.Decode.map f (Json.Decode.succeed x) by Json.Decode.succeed (f x)" <|
+        , test "should replace Json.Decode.map f (Json.Decode.succeed x) by (Json.Decode.succeed (f x))" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -25297,10 +25345,10 @@ a = Json.Decode.map f (Json.Decode.succeed x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = Json.Decode.succeed (f x)
+a = (Json.Decode.succeed (f x))
 """
                         ]
-        , test "should replace Json.Decode.map f <| Json.Decode.succeed x by Json.Decode.succeed <| f <| x" <|
+        , test "should replace Json.Decode.map f <| Json.Decode.succeed x by Json.Decode.succeed (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -25315,10 +25363,10 @@ a = Json.Decode.map f <| Json.Decode.succeed x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = Json.Decode.succeed <| f <| x
+a = Json.Decode.succeed (f <| x)
 """
                         ]
-        , test "should replace Json.Decode.succeed x |> Json.Decode.map f by x |> f |> Json.Decode.succeed" <|
+        , test "should replace Json.Decode.succeed x |> Json.Decode.map f by Json.Decode.succeed (x |> f)" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -25333,10 +25381,10 @@ a = Json.Decode.succeed x |> Json.Decode.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = x |> f |> Json.Decode.succeed
+a = Json.Decode.succeed (x |> f)
 """
                         ]
-        , test "should replace x |> Json.Decode.succeed |> Json.Decode.map f by x |> f |> Json.Decode.succeed" <|
+        , test "should replace x |> Json.Decode.succeed |> Json.Decode.map f by (x |> f) |> Json.Decode.succeed" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -25351,10 +25399,10 @@ a = x |> Json.Decode.succeed |> Json.Decode.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = x |> f |> Json.Decode.succeed
+a = (x |> f) |> Json.Decode.succeed
 """
                         ]
-        , test "should replace Json.Decode.map f <| Json.Decode.succeed <| x by Json.Decode.succeed <| f <| x" <|
+        , test "should replace Json.Decode.map f <| Json.Decode.succeed <| x by Json.Decode.succeed <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Json.Decode
@@ -25369,7 +25417,7 @@ a = Json.Decode.map f <| Json.Decode.succeed <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = Json.Decode.succeed <| f <| x
+a = Json.Decode.succeed <| (f <| x)
 """
                         ]
         , test "should replace Json.Decode.map f << Json.Decode.succeed by Json.Decode.succeed << f" <|
@@ -27333,7 +27381,7 @@ import Random
 a = Random.constant
 """
                         ]
-        , test "should replace Random.map f (Random.constant x) by Random.constant (f x)" <|
+        , test "should replace Random.map f (Random.constant x) by (Random.constant (f x))" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -27348,10 +27396,10 @@ a = Random.map f (Random.constant x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant (f x)
+a = (Random.constant (f x))
 """
                         ]
-        , test "should replace Random.map f <| Random.constant x by Random.constant <| f <| x" <|
+        , test "should replace Random.map f <| Random.constant x by Random.constant (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -27366,10 +27414,10 @@ a = Random.map f <| Random.constant x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant <| f <| x
+a = Random.constant (f <| x)
 """
                         ]
-        , test "should replace Random.constant x |> Random.map f by x |> f |> Random.constant" <|
+        , test "should replace Random.constant x |> Random.map f by Random.constant (x |> f)" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -27384,10 +27432,10 @@ a = Random.constant x |> Random.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = x |> f |> Random.constant
+a = Random.constant (x |> f)
 """
                         ]
-        , test "should replace x |> Random.constant |> Random.map f by x |> f |> Random.constant" <|
+        , test "should replace x |> Random.constant |> Random.map f by (x |> f) |> Random.constant" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -27402,10 +27450,10 @@ a = x |> Random.constant |> Random.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = x |> f |> Random.constant
+a = (x |> f) |> Random.constant
 """
                         ]
-        , test "should replace Random.map f <| Random.constant <| x by Random.constant <| f <| x" <|
+        , test "should replace Random.map f <| Random.constant <| x by Random.constant <| (f <| x)" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -27420,7 +27468,7 @@ a = Random.map f <| Random.constant <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant <| f <| x
+a = Random.constant <| (f <| x)
 """
                         ]
         , test "should replace Random.map f << Random.constant by Random.constant << f" <|
