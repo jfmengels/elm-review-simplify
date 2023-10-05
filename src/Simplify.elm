@@ -5178,7 +5178,7 @@ listHeadChecks =
                         checkInfo.fnRange
                         (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listArgHead
                             ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                    (qualifiedToString (qualify Fn.Maybe.just checkInfo))
+                                    (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
                                ]
                         )
                 )
@@ -5213,7 +5213,7 @@ listTailExistsError replaceListArgByTailFix checkInfo =
         checkInfo.fnRange
         (replaceListArgByTailFix
             ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                    (qualifiedToString (qualify Fn.Maybe.just checkInfo))
+                    (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
                ]
         )
 
@@ -5252,7 +5252,7 @@ listTailChecks =
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) "[]"
                             , Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify Fn.Maybe.just checkInfo))
+                                (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
                             ]
                         )
 
@@ -5512,7 +5512,7 @@ listMemberChecks : CheckInfo -> Maybe (Error {})
 listMemberChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.false res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
             listCollection
         , \checkInfo ->
             case secondArg checkInfo of
@@ -5548,7 +5548,7 @@ listMemberChecks =
                                     Just
                                         (resultsInConstantError
                                             (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
-                                            (\res -> qualifiedToString (qualify Fn.Basics.true res))
+                                            (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
                                             checkInfo
                                         )
 
@@ -5888,7 +5888,7 @@ emptiableAllChecks : EmptiableProperties (TypeSubsetProperties empty) otherPrope
 emptiableAllChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.true res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
             emptiable
         , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
@@ -5896,7 +5896,7 @@ emptiableAllChecks emptiable =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.true res) }
+                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
                             checkInfo
                         )
 
@@ -5937,7 +5937,7 @@ emptiableAnyChecks : EmptiableProperties (TypeSubsetProperties empty) otherPrope
 emptiableAnyChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.false res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
             emptiable
         , \checkInfo ->
             case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
@@ -5945,7 +5945,7 @@ emptiableAnyChecks emptiable =
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.false res) }
+                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
                             checkInfo
                         )
 
@@ -5967,7 +5967,7 @@ listFilterMapChecks =
                             Just list ->
                                 case
                                     traverse
-                                        (AstHelpers.getSpecificFnCall Fn.Maybe.just checkInfo.lookupTable)
+                                        (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable)
                                         list
                                 of
                                     Just justCalls ->
@@ -6007,7 +6007,7 @@ emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiablePr
 emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.just checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined justCalls ->
                     Just
                         (Rule.errorWithFix
@@ -6024,7 +6024,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Undetermined ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFn Fn.Maybe.just checkInfo.lookupTable checkInfo.firstArg of
+            case AstHelpers.getSpecificValueOrFn Fn.Maybe.justVariant checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
@@ -6036,7 +6036,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothing checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -6394,7 +6394,7 @@ indexAccessChecks collection checkInfo n =
                                         checkInfo.fnRange
                                         (replaceBySubExpressionFix (Node.range arg) element
                                             ++ [ Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                                    (qualifiedToString (qualify Fn.Maybe.just checkInfo))
+                                                    (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
                                                ]
                                         )
                                     )
@@ -6402,11 +6402,11 @@ indexAccessChecks collection checkInfo n =
                             Nothing ->
                                 Just
                                     (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
+                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
                                         , details = [ "You can replace this call by Nothing." ]
                                         }
                                         checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothing checkInfo)) ]
+                                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)) ]
                                     )
 
                     Nothing ->
@@ -7974,20 +7974,20 @@ maybeWithJustAsWrap =
         { description = Constant "Nothing"
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothing lookupTable expr)
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant lookupTable expr)
         , asString =
             \resources ->
-                qualifiedToString (qualify Fn.Maybe.nothing resources)
+                qualifiedToString (qualify Fn.Maybe.nothingVariant resources)
         }
     , wrap =
         { description = A "just maybe"
-        , fn = Fn.Maybe.just
+        , fn = Fn.Maybe.justVariant
         , getValue =
             \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.just lookupTable expr)
+                Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
         , is =
             \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall Fn.Maybe.just lookupTable expr)
+                isJust (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
         }
     , mapFn = Fn.Maybe.map
     }
@@ -8012,26 +8012,26 @@ resultWithOkAsWrap =
 resultOkayConstruct : ConstructWithOneArgProperties
 resultOkayConstruct =
     { description = An "okay result"
-    , fn = Fn.Result.ok
+    , fn = Fn.Result.okVariant
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.ok lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.okVariant lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Result.ok lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Result.okVariant lookupTable expr)
     }
 
 
 resultErrorConstruct : ConstructWithOneArgProperties
 resultErrorConstruct =
     { description = An "error"
-    , fn = Fn.Result.err
+    , fn = Fn.Result.errVariant
     , getValue =
         \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.err lookupTable expr)
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.errVariant lookupTable expr)
     , is =
         \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Result.err lookupTable expr)
+            isJust (AstHelpers.getSpecificFnCall Fn.Result.errVariant lookupTable expr)
     }
 
 
@@ -8958,7 +8958,7 @@ unwrapToMaybeChecks emptiableWrapper =
     firstThatConstructsJust
         [ callOnWrapReturnsJustItsValue emptiableWrapper
         , callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothing res) }
+            { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothingVariant res) }
             emptiableWrapper
         ]
 
@@ -8979,7 +8979,7 @@ resultToMaybeCompositionChecks =
                             compositionReplaceByFix
                                 (qualifiedToString (qualify Fn.Basics.always checkInfo)
                                     ++ " "
-                                    ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
+                                    ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
                                 )
                                 checkInfo
                         }
@@ -8992,7 +8992,7 @@ resultToMaybeCompositionChecks =
 resultFromMaybeChecks : CheckInfo -> Maybe (Error {})
 resultFromMaybeChecks =
     fromMaybeChecks
-        { onNothingFn = Fn.Result.err, onJustFn = Fn.Result.ok }
+        { onNothingFn = Fn.Result.errVariant, onJustFn = Fn.Result.okVariant }
 
 
 fromMaybeChecks : { onNothingFn : ( ModuleName, String ), onJustFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
@@ -9001,7 +9001,7 @@ fromMaybeChecks config checkInfo =
         Just maybeArg ->
             firstThatConstructsJust
                 [ \() ->
-                    case sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothing checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo.lookupTable) maybeArg of
                         Determined _ ->
                             Just
                                 (Rule.errorWithFix
@@ -9021,7 +9021,7 @@ fromMaybeChecks config checkInfo =
                         Undetermined ->
                             Nothing
                 , \() ->
-                    case sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.just checkInfo.lookupTable) maybeArg of
+                    case sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable) maybeArg of
                         Determined justCalls ->
                             Just
                                 (Rule.errorWithFix
@@ -9535,7 +9535,7 @@ callOnWrapReturnsJustItsValue withWrap checkInfo =
                             (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
                                 :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
                                 ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
-                                        (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " ")
+                                        (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo) ++ " ")
                                    ]
                             )
                         )
@@ -9568,7 +9568,7 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
                 { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
                 , details = [ "You can replace this call by Just." ]
                 }
-            , fix = compositionReplaceByFnFix Fn.Maybe.just checkInfo
+            , fix = compositionReplaceByFnFix Fn.Maybe.justVariant checkInfo
             }
 
     else
@@ -9778,7 +9778,7 @@ collectionInsertChecks collection checkInfo =
 collectionMemberChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection =
     callOnEmptyReturnsCheck
-        { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.false res) }
+        { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
         collection
 
 
@@ -9789,7 +9789,7 @@ collectionIsEmptyChecks collection checkInfo =
             Just
                 (resultsInConstantError
                     (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite collection.empty.description)
-                    (\res -> qualifiedToString (qualify Fn.Basics.true res))
+                    (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
                     checkInfo
                 )
 
@@ -9797,7 +9797,7 @@ collectionIsEmptyChecks collection checkInfo =
             Just
                 (resultsInConstantError
                     (qualifiedToString checkInfo.fn ++ " on this " ++ collection.represents)
-                    (\res -> qualifiedToString (qualify Fn.Basics.false res))
+                    (\res -> qualifiedToString (qualify Fn.Basics.falseVariant res))
                     checkInfo
                 )
 

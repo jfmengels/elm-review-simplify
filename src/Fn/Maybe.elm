@@ -38,11 +38,11 @@ withDefault =
     ( [ "Maybe" ], "withDefault" )
 
 
-just : ( Elm.Syntax.ModuleName.ModuleName, String )
-just =
+justVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+justVariant =
     ( [ "Maybe" ], "Just" )
 
 
-nothing : ( Elm.Syntax.ModuleName.ModuleName, String )
-nothing =
+nothingVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+nothingVariant =
     ( [ "Maybe" ], "Nothing" )

@@ -183,13 +183,13 @@ withIndent =
     ( [ "Parser", "Advanced" ], "withIndent" )
 
 
-notNestable : ( Elm.Syntax.ModuleName.ModuleName, String )
-notNestable =
+notNestableVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+notNestableVariant =
     ( [ "Parser", "Advanced" ], "NotNestable" )
 
 
-nestable : ( Elm.Syntax.ModuleName.ModuleName, String )
-nestable =
+nestableVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+nestableVariant =
     ( [ "Parser", "Advanced" ], "Nestable" )
 
 
@@ -198,8 +198,8 @@ loopVariant =
     ( [ "Parser", "Advanced" ], "Loop" )
 
 
-done : ( Elm.Syntax.ModuleName.ModuleName, String )
-done =
+doneVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+doneVariant =
     ( [ "Parser", "Advanced" ], "Done" )
 
 
@@ -208,16 +208,16 @@ tokenVariant =
     ( [ "Parser", "Advanced" ], "Token" )
 
 
-forbidden : ( Elm.Syntax.ModuleName.ModuleName, String )
-forbidden =
+forbiddenVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+forbiddenVariant =
     ( [ "Parser", "Advanced" ], "Forbidden" )
 
 
-optional : ( Elm.Syntax.ModuleName.ModuleName, String )
-optional =
+optionalVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+optionalVariant =
     ( [ "Parser", "Advanced" ], "Optional" )
 
 
-mandatory : ( Elm.Syntax.ModuleName.ModuleName, String )
-mandatory =
+mandatoryVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+mandatoryVariant =
     ( [ "Parser", "Advanced" ], "Mandatory" )
