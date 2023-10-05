@@ -482,7 +482,7 @@ a =
     case List.foldl f x << Set.toList of
         ( _, Node [] _ ) ->
             []
-    
+
         ( _, Node _ ({ foldl } :: _) ) ->
             []
 """
@@ -499,7 +499,7 @@ a =
     case foldl f x of
         ( _, Node [] _ ) ->
             []
-    
+
         ( _, Node _ ({ foldl } :: _) ) ->
             []
 """
@@ -540,7 +540,7 @@ a =
     let
         doIt ( _, Node _ ({ foldl } :: _) ) =
             ()
-        
+
         doItBetter x =
             List.foldl f x << Set.toList
     in
@@ -559,7 +559,7 @@ a =
     let
         doIt ( _, Node _ ({ foldl } :: _) ) =
             ()
-        
+
         doItBetter x =
             foldl f x
     in
@@ -17633,6 +17633,8 @@ import Array
 a = Array.get n array
 b = Array.get 0 array
 c = Array.get n (Array.fromList [ 1 ])
+d = Array.get n (Array.repeat m x)
+e = Array.get 0 (Array.repeat m x)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -17785,6 +17787,42 @@ a = f <| Just <| (c |> g)
                 """module A exposing (..)
 import Array
 a = Array.get 100 (Array.fromList [ b, c, d ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.get with an index out of bounds of the given array will always return Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Nothing
+"""
+                        ]
+        , test "should replace Array.get 2 (Array.repeat 10 x) by Just x" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get 2 (Array.repeat 10 x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The element returned by Array.get is known"
+                            , details = [ "You can replace this call by Just the repeated element." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Just x
+"""
+                        ]
+        , test "should replace Array.get 100 (Array.repeat 10 a) by Nothing" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get 100 (Array.repeat 10 x)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -20274,10 +20312,10 @@ a = b |> Ok
             \() ->
                 """module A exposing (..)
 a =
-    Result.fromMaybe x <| 
+    Result.fromMaybe x <|
         if cond then
             Just b
-        
+
         else
             Just c
 """
@@ -20292,7 +20330,7 @@ a =
 a =
     if cond then
             Ok b
-        
+
         else
             Ok c
 """
