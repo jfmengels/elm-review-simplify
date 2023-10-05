@@ -75,7 +75,11 @@ expressionVisitor expressionNode context =
 
                         replacementAsString : String
                         replacementAsString =
-                            moduleNameAsString ++ "." ++ (name |> stringFirstCharToLower)
+                            if name == stringFirstCharToLower name then
+                                moduleNameAsString ++ "." ++ name
+
+                            else
+                                moduleNameAsString ++ "." ++ stringFirstCharToLower name ++ "Variant"
 
                         importFix : List Fix
                         importFix =

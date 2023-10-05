@@ -53,11 +53,11 @@ withDefault =
     ( [ "Result" ], "withDefault" )
 
 
-ok : ( Elm.Syntax.ModuleName.ModuleName, String )
-ok =
+okVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+okVariant =
     ( [ "Result" ], "Ok" )
 
 
-err : ( Elm.Syntax.ModuleName.ModuleName, String )
-err =
+errVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+errVariant =
     ( [ "Result" ], "Err" )
