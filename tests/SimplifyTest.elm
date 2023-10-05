@@ -19902,6 +19902,22 @@ a = Ok x |> Result.andThen f
 a = x |> f
 """
                         ]
+        , test "should replace Result.andThen f << Ok by f" <|
+            \() ->
+                """module A exposing (..)
+a = Result.andThen f << Ok
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.andThen on an okay result is the same as applying the function to the value from the okay result"
+                            , details = [ "You can replace this composition by the function given to Result.andThen." ]
+                            , under = "Result.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
         ]
 
 

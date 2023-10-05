@@ -8706,7 +8706,10 @@ resultAndThenChecks =
 
 resultAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultAndThenCompositionChecks =
-    unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
+    firstThatConstructsJust
+        [ unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
+        , wrapperAndThenCompositionChecks resultWithOkAsWrap
+        ]
 
 
 withDefaultChecks :
