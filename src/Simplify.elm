@@ -2930,6 +2930,7 @@ compositionIntoChecks =
         , ( Fn.Tuple.first, ( 1, tupleFirstCompositionChecks ) )
         , ( Fn.Tuple.second, ( 1, tupleSecondCompositionChecks ) )
         , ( Fn.Maybe.map, ( 2, maybeMapCompositionChecks ) )
+        , ( Fn.Maybe.andThen, ( 2, maybeAndThenCompositionChecks ) )
         , ( Fn.Maybe.withDefault, ( 2, wrapperWithDefaultChecks maybeWithJustAsWrap ) )
         , ( Fn.Result.map, ( 2, resultMapCompositionChecks ) )
         , ( Fn.Result.mapError, ( 2, resultMapErrorCompositionChecks ) )
@@ -7017,7 +7018,10 @@ taskAndThenChecks =
 
 taskAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskAndThenCompositionChecks =
-    unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
+    firstThatConstructsJust
+        [ unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
+        , unnecessaryCompositionAfterWrapCheck taskWithSucceedAsWrap
+        ]
 
 
 taskMapErrorChecks : CheckInfo -> Maybe (Error {})
@@ -8650,12 +8654,46 @@ wrapperAndThenChecks wrapper =
         ]
 
 
+{-| `andThen f` on a wrapped value is equivalent to `f`
+
+    andThen f << wrap --> f
+
+So for example
+
+    List.concat f << List.singleton --> f
+
+Use in together with `wrapperAndThenChecks`
+
+-}
+wrapperAndThenCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperAndThenCompositionChecks wrapper checkInfo =
+    case ( wrapper.wrap.fn == checkInfo.earlier.fn, checkInfo.later.args ) of
+        ( True, (Node functionRange _) :: [] ) ->
+            Just
+                { info =
+                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
+                    , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
+                    }
+                , fix =
+                    Fix.removeRange checkInfo.earlier.removeRange
+                        :: keepOnlyFix { parentRange = checkInfo.later.range, keep = functionRange }
+                }
+
+        _ ->
+            Nothing
+
+
 maybeAndThenChecks : CheckInfo -> Maybe (Error {})
 maybeAndThenChecks =
     firstThatConstructsJust
         [ wrapperAndThenChecks maybeWithJustAsWrap
         , emptiableAndThenChecks maybeWithJustAsWrap
         ]
+
+
+maybeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+maybeAndThenCompositionChecks checkInfo =
+    wrapperAndThenCompositionChecks maybeWithJustAsWrap checkInfo
 
 
 resultAndThenChecks : CheckInfo -> Maybe (Error {})

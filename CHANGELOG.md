@@ -45,6 +45,7 @@
 - `Task.onError f << Task.succeed` to `Task.succeed`
 - `Json.Decode.map f << Json.Decode.fail` to `Json.Decode.fail`
 - `Json.Decode.andThen f << Json.Decode.fail` to `Json.Decode.fail`
+- `Maybe.andThen f << Just` to `f`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
