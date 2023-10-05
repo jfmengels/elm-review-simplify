@@ -951,6 +951,15 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
+    Dict.filter f Dict.empty
+    --> Dict.empty
+
+    Dict.filter (\_ _ -> True) dict
+    --> dict
+
+    Dict.filter (\_ _ -> False) dict
+    --> Dict.empty
+
     Dict.map f Dict.empty
     --> Dict.empty
 
@@ -2721,6 +2730,7 @@ functionCallChecks =
         , ( Fn.Dict.toList, ( 1, emptiableToListChecks dictCollection ) )
         , ( Fn.Dict.size, ( 1, collectionSizeChecks dictCollection ) )
         , ( Fn.Dict.member, ( 2, collectionMemberChecks dictCollection ) )
+        , ( Fn.Dict.filter, ( 2, dictFilterChecks ) )
         , ( Fn.Dict.partition, ( 2, collectionPartitionChecks dictCollection ) )
         , ( Fn.Dict.map, ( 2, dictMapChecks ) )
         , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
@@ -7025,6 +7035,45 @@ dictFromListChecks =
 dictFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 dictFromListCompositionChecks =
     inversesCompositionCheck Fn.Dict.toList
+
+
+dictFilterChecks : CheckInfo -> Maybe (Error {})
+dictFilterChecks =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck dictCollection
+        , \checkInfo ->
+            let
+                maybeFilterFunctionResult : Maybe (Node Expression)
+                maybeFilterFunctionResult =
+                    checkInfo.firstArg
+                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+            in
+            case maybeFilterFunctionResult of
+                Just filterFunctionResult ->
+                    case Evaluate.getBoolean checkInfo filterFunctionResult of
+                        Determined True ->
+                            Just
+                                (alwaysReturnsLastArgError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
+                                    dictCollection
+                                    checkInfo
+                                )
+
+                        Determined False ->
+                            Just
+                                (alwaysResultsInUnparenthesizedConstantError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
+                                    { replacement = dictCollection.empty.asString }
+                                    checkInfo
+                                )
+
+                        Undetermined ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        ]
 
 
 dictMapChecks : CheckInfo -> Maybe (Error {})

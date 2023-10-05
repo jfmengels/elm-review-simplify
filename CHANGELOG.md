@@ -54,6 +54,9 @@
 - `Task.onError f << Task.fail` to `f`
 - `Dict.map f Dict.empty` to `Dict.empty`
 - `Dict.map (\_ value -> value) dict` to `dict`
+- `Dict.filter f Dict.empty` to `Dict.empty`
+- `Dict.filter (\_ _ -> True) dict` to `dict`
+- `Dict.filter (\_ _ -> False) dict` to `Dict.empty`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

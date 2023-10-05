@@ -22383,6 +22383,7 @@ dictSimplificationTests =
         , dictToListTests
         , dictSizeTests
         , dictMemberTests
+        , dictFilterTests
         , dictPartitionTests
         , dictMapTests
         , dictUnionTests
@@ -22930,6 +22931,182 @@ a = False
                         ]
         ]
 
+dictFilterTests : Test
+dictFilterTests =
+    describe "Dict.filter"
+        [ test "should not report Dict.filter used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.filter
+a1 = Dict.filter f
+a2 = Dict.filter f dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.filter f Dict.empty by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter f Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter on Dict.empty will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.filter (always (always True)) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (always (always True)) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return True will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.filter (always (\\_ -> True)) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (always (\\_ -> True)) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return True will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.filter (\\_ -> (\\_ -> True)) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\_ -> (\\_ -> True)) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return True will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.filter (\\_ -> (always True)) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\_ -> (always True)) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return True will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.filter (\\_ _ -> True)) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\_ _ -> True) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return True will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.filter (always (always True)) by identity" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (always (always True))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return True will always return the same given dict"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = identity
+"""
+                        ]
+        , test "should replace Dict.filter (always (always False)) dict by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (always (always False)) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return False will always result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.filter (always (always False)) dict by always Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (always (always False))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter with a function that will always return False will always result in Dict.empty"
+                            , details = [ "You can replace this call by always Dict.empty." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always Dict.empty
+"""
+                        ]
+        ]
 
 dictPartitionTests : Test
 dictPartitionTests =
