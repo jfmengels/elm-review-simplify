@@ -183,26 +183,26 @@ xor =
     ( [ "Basics" ], "xor" )
 
 
-true : ( Elm.Syntax.ModuleName.ModuleName, String )
-true =
+trueVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+trueVariant =
     ( [ "Basics" ], "True" )
 
 
-false : ( Elm.Syntax.ModuleName.ModuleName, String )
-false =
+falseVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+falseVariant =
     ( [ "Basics" ], "False" )
 
 
-lT : ( Elm.Syntax.ModuleName.ModuleName, String )
-lT =
+lTVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+lTVariant =
     ( [ "Basics" ], "LT" )
 
 
-eQ : ( Elm.Syntax.ModuleName.ModuleName, String )
-eQ =
+eQVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+eQVariant =
     ( [ "Basics" ], "EQ" )
 
 
-gT : ( Elm.Syntax.ModuleName.ModuleName, String )
-gT =
+gTVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+gTVariant =
     ( [ "Basics" ], "GT" )

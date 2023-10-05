@@ -178,6 +178,6 @@ oneOfVariant =
     ( [ "Json", "Decode" ], "OneOf" )
 
 
-failure : ( Elm.Syntax.ModuleName.ModuleName, String )
-failure =
+failureVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+failureVariant =
     ( [ "Json", "Decode" ], "Failure" )

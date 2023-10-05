@@ -183,73 +183,73 @@ withIndent =
     ( [ "Parser" ], "withIndent" )
 
 
-notNestable : ( Elm.Syntax.ModuleName.ModuleName, String )
-notNestable =
+notNestableVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+notNestableVariant =
     ( [ "Parser" ], "NotNestable" )
 
 
-nestable : ( Elm.Syntax.ModuleName.ModuleName, String )
-nestable =
+nestableVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+nestableVariant =
     ( [ "Parser" ], "Nestable" )
 
 
-expecting : ( Elm.Syntax.ModuleName.ModuleName, String )
-expecting =
+expectingVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingVariant =
     ( [ "Parser" ], "Expecting" )
 
 
-expectingInt : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingInt =
+expectingIntVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingIntVariant =
     ( [ "Parser" ], "ExpectingInt" )
 
 
-expectingHex : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingHex =
+expectingHexVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingHexVariant =
     ( [ "Parser" ], "ExpectingHex" )
 
 
-expectingOctal : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingOctal =
+expectingOctalVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingOctalVariant =
     ( [ "Parser" ], "ExpectingOctal" )
 
 
-expectingBinary : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingBinary =
+expectingBinaryVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingBinaryVariant =
     ( [ "Parser" ], "ExpectingBinary" )
 
 
-expectingFloat : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingFloat =
+expectingFloatVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingFloatVariant =
     ( [ "Parser" ], "ExpectingFloat" )
 
 
-expectingNumber : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingNumber =
+expectingNumberVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingNumberVariant =
     ( [ "Parser" ], "ExpectingNumber" )
 
 
-expectingVariable : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingVariable =
+expectingVariableVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingVariableVariant =
     ( [ "Parser" ], "ExpectingVariable" )
 
 
-expectingSymbol : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingSymbol =
+expectingSymbolVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingSymbolVariant =
     ( [ "Parser" ], "ExpectingSymbol" )
 
 
-expectingKeyword : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingKeyword =
+expectingKeywordVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingKeywordVariant =
     ( [ "Parser" ], "ExpectingKeyword" )
 
 
-expectingEnd : ( Elm.Syntax.ModuleName.ModuleName, String )
-expectingEnd =
+expectingEndVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingEndVariant =
     ( [ "Parser" ], "ExpectingEnd" )
 
 
-unexpectedChar : ( Elm.Syntax.ModuleName.ModuleName, String )
-unexpectedChar =
+unexpectedCharVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+unexpectedCharVariant =
     ( [ "Parser" ], "UnexpectedChar" )
 
 
@@ -258,8 +258,8 @@ problemVariant =
     ( [ "Parser" ], "Problem" )
 
 
-badRepeat : ( Elm.Syntax.ModuleName.ModuleName, String )
-badRepeat =
+badRepeatVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+badRepeatVariant =
     ( [ "Parser" ], "BadRepeat" )
 
 
@@ -268,21 +268,21 @@ loopVariant =
     ( [ "Parser" ], "Loop" )
 
 
-done : ( Elm.Syntax.ModuleName.ModuleName, String )
-done =
+doneVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+doneVariant =
     ( [ "Parser" ], "Done" )
 
 
-forbidden : ( Elm.Syntax.ModuleName.ModuleName, String )
-forbidden =
+forbiddenVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+forbiddenVariant =
     ( [ "Parser" ], "Forbidden" )
 
 
-optional : ( Elm.Syntax.ModuleName.ModuleName, String )
-optional =
+optionalVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+optionalVariant =
     ( [ "Parser" ], "Optional" )
 
 
-mandatory : ( Elm.Syntax.ModuleName.ModuleName, String )
-mandatory =
+mandatoryVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+mandatoryVariant =
     ( [ "Parser" ], "Mandatory" )

@@ -54,8 +54,8 @@ a =
                     |> Review.Test.run rule
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Manual qualified fn tuple can be replaced by Fn.Result.ok"
-                            , details = [ "You can replace this tuple by Fn.Result.ok." ]
+                            { message = "Manual qualified fn tuple can be replaced by Fn.Result.okVariant"
+                            , details = [ "You can replace this tuple by Fn.Result.okVariant." ]
                             , under = """( [ "Result" ], "Ok" )"""
                             }
                             |> Review.Test.whenFixed
@@ -64,7 +64,7 @@ import Fn.Result
 import Set
 
 a =
-    Fn.Result.ok
+    Fn.Result.okVariant
 """
                         ]
         ]
