@@ -7027,7 +7027,7 @@ taskAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskAndThenCompositionChecks =
     firstThatConstructsJust
         [ unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
-        , unnecessaryCompositionAfterWrapCheck taskWithSucceedAsWrap
+        , wrapperAndThenCompositionChecks taskWithSucceedAsWrap
         ]
 
 
