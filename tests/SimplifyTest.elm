@@ -22384,6 +22384,7 @@ dictSimplificationTests =
         , dictSizeTests
         , dictMemberTests
         , dictPartitionTests
+        , dictMapTests
         , dictUnionTests
         , dictIntersectTests
         , dictDiffTests
@@ -23247,6 +23248,112 @@ a = Dict.empty |> Dict.diff dict
                             { message = "Unnecessary Dict.diff with Dict.empty"
                             , details = [ "You can replace this call by the given first dict." ]
                             , under = "Dict.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        ]
+
+
+dictMapTests : Test
+dictMapTests =
+    describe "Dict.map"
+        [ test "should not report Dict.map used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.map
+a1 = Dict.map f
+a2 = Dict.map f dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.map f Dict.empty by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.map f Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.map on Dict.empty will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.map (always identity) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.map (always identity) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.map with a function that maps to the unchanged value will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.map (always (\\v -> v)) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.map (always (\\v -> v)) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.map with a function that maps to the unchanged value will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.map (\\_ -> identity) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.map (\\_ -> identity) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.map with a function that maps to the unchanged value will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.map (\\_ v -> v) dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.map (\\_ v -> v) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.map with a function that maps to the unchanged value will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict

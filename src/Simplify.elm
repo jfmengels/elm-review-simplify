@@ -951,6 +951,12 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
+    Dict.map f Dict.empty
+    --> Dict.empty
+
+    Dict.map (\_ value -> value) dict
+    --> dict
+
     Dict.intersect Dict.empty dict
     --> Dict.empty
 
@@ -2716,6 +2722,7 @@ functionCallChecks =
         , ( Fn.Dict.size, ( 1, collectionSizeChecks dictCollection ) )
         , ( Fn.Dict.member, ( 2, collectionMemberChecks dictCollection ) )
         , ( Fn.Dict.partition, ( 2, collectionPartitionChecks dictCollection ) )
+        , ( Fn.Dict.map, ( 2, dictMapChecks ) )
         , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
         , ( Fn.Dict.diff, ( 2, collectionDiffChecks dictCollection ) )
         , ( Fn.Dict.union, ( 2, collectionUnionChecks dictCollection ) )
@@ -7018,6 +7025,29 @@ dictFromListChecks =
 dictFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 dictFromListCompositionChecks =
     inversesCompositionCheck Fn.Dict.toList
+
+
+dictMapChecks : CheckInfo -> Maybe (Error {})
+dictMapChecks =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck dictCollection
+        , \checkInfo ->
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                Just alwaysResult ->
+                    if AstHelpers.isIdentity checkInfo.lookupTable alwaysResult then
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with a function that maps to the unchanged value")
+                                dictCollection
+                                checkInfo
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+        ]
 
 
 subAndCmdBatchChecks :
