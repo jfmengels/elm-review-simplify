@@ -846,6 +846,12 @@ Destructuring using case expressions
     Array.get 100 (Array.repeat 10 x)
     --> Nothing
 
+    Array.get 2 (Array.initialize 10 f)
+    --> Just (f 2)
+
+    Array.get 100 (Array.initialize 10 f)
+    --> Nothing
+
     Array.set n x Array.empty
     --> Array.empty
 
@@ -6441,6 +6447,43 @@ indexAccessChecks collection checkInfo n =
                                                                     checkInfo.fnRange
                                                                     [ Fix.replaceRangeBy checkInfo.parentRange
                                                                         (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " " ++ checkInfo.extractSourceCode (Node.range repeatSecondArg))
+                                                                    ]
+                                                                )
+
+                                                        else
+                                                            Just
+                                                                (Rule.errorWithFix
+                                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
+                                                                    , details = [ "You can replace this call by Nothing." ]
+                                                                    }
+                                                                    checkInfo.fnRange
+                                                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                                                        (qualifiedToString (qualify Fn.Maybe.nothing checkInfo))
+                                                                    ]
+                                                                )
+
+                                                    Nothing ->
+                                                        Nothing
+                                            )
+                                )
+                    , \() ->
+                        AstHelpers.getSpecificFnCall Fn.Array.initialize checkInfo.lookupTable arg
+                            |> Maybe.andThen
+                                (\initializeCall ->
+                                    List.head initializeCall.argsAfterFirst
+                                        |> Maybe.andThen
+                                            (\repeatSecondArg ->
+                                                case Evaluate.getInt checkInfo initializeCall.firstArg of
+                                                    Just initializeArgInt ->
+                                                        if n < initializeArgInt then
+                                                            Just
+                                                                (Rule.errorWithFix
+                                                                    { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
+                                                                    , details = [ "You can replace this call by Just the function directly applied to the index." ]
+                                                                    }
+                                                                    checkInfo.fnRange
+                                                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                                                        (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " (" ++ checkInfo.extractSourceCode (Node.range repeatSecondArg) ++ " " ++ String.fromInt n ++ ")")
                                                                     ]
                                                                 )
 

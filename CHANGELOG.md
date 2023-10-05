@@ -33,6 +33,8 @@
 - `Maybe.map2 f (Just a) (Just b)` to `Just (f a b)` (same for all Maybe.mapN)
 - `Array.get 2 (Array.repeat 10 x)` -> `Just x`
 - `Array.get 100 (Array.repeat 10 x)` -> `Nothing`
+- `Array.get 2 (Array.initialize 10 f)` -> `Just (f 2)`
+- `Array.get 100 (Array.initialize 10 f)` -> `Nothing`
 - `Array.foldl f initial Array.empty` to `initial` (same for `Array.foldr`)
 - `Array.foldl (\_ soFar -> soFar) initial array` to `initial` (same for `Array.foldr`)
 - `Array.toList Array.empty` to `[]`
