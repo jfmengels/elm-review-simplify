@@ -75,8 +75,14 @@ isAlwaysBoolean resources node =
                 _ ->
                     Undetermined
 
-        Expression.LambdaExpression { expression } ->
-            getBoolean resources expression
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                -- exactly one irrelevant arg pattern
+                _ :: [] ->
+                    getBoolean resources lambda.expression
+
+                _ ->
+                    Undetermined
 
         _ ->
             Undetermined
