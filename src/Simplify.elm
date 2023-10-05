@@ -917,6 +917,15 @@ Destructuring using case expressions
     List.foldl f x (Set.toList set)
     --> Set.foldl f x set
 
+    Set.filter f Set.empty
+    --> Set.empty
+
+    Set.filter (\_ -> True) set
+    --> dict
+
+    Set.filter (\_ -> False) set
+    --> Set.empty
+
     Set.partition f Set.empty
     --> ( Set.empty, Set.empty )
 
