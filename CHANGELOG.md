@@ -51,6 +51,7 @@
 - `Random.andThen f << Random.constant` to `f`
 - `List.concatMap f << List.singleton` to `f`
 - `Task.andThen f << Task.succeed` to `f`
+- `Task.onError f << Task.fail` to `f`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
