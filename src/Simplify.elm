@@ -957,6 +957,9 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
+    Dict.remove k Dict.empty
+    --> Dict.empty
+
     Dict.filter f Dict.empty
     --> Dict.empty
 
@@ -2736,6 +2739,7 @@ functionCallChecks =
         , ( Fn.Dict.toList, ( 1, emptiableToListChecks dictCollection ) )
         , ( Fn.Dict.size, ( 1, collectionSizeChecks dictCollection ) )
         , ( Fn.Dict.member, ( 2, collectionMemberChecks dictCollection ) )
+        , ( Fn.Dict.remove, ( 2, collectionRemoveChecks dictCollection ) )
         , ( Fn.Dict.filter, ( 2, dictFilterChecks ) )
         , ( Fn.Dict.partition, ( 2, collectionPartitionChecks dictCollection ) )
         , ( Fn.Dict.map, ( 2, dictMapChecks ) )

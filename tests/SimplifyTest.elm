@@ -22383,6 +22383,7 @@ dictSimplificationTests =
         , dictToListTests
         , dictSizeTests
         , dictMemberTests
+        , dictRemoveTests
         , dictFilterTests
         , dictPartitionTests
         , dictMapTests
@@ -22927,6 +22928,40 @@ a = Dict.member x Dict.empty
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = False
+"""
+                        ]
+        ]
+
+
+dictRemoveTests : Test
+dictRemoveTests =
+    describe "Dict.remove"
+        [ test "should not report Dict.remove used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.remove
+a1 = Dict.remove k
+a2 = Dict.remove k dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.remove k Dict.empty by Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.remove k Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.remove on Dict.empty will result in Dict.empty"
+                            , details = [ "You can replace this call by Dict.empty." ]
+                            , under = "Dict.remove"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.empty
 """
                         ]
         ]
