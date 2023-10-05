@@ -38,27 +38,41 @@ moduleDocsToFile moduleDocs =
         moduleName : List String
         moduleName =
             moduleDocs.name |> String.split "."
+
+        values : List String
+        values =
+            List.map .name moduleDocs.values
     in
     Elm.file ("Fn" :: moduleName)
-        ((moduleDocs.values |> List.map .name)
+        (List.map (\name -> declaration moduleName ( name, name )) values
             ++ (moduleDocs.unions
-                    |> List.concatMap
-                        (\union ->
-                            union.tags
-                                |> List.map (\( variantName, _ ) -> variantName)
+                    |> List.concatMap .tags
+                    |> List.map
+                        (\( tagName, _ ) ->
+                            declaration moduleName ( tagDeclarationName values (stringFirstCharToLower tagName), tagName )
                         )
                )
-            |> List.map
-                (\name ->
-                    Elm.declaration (name |> stringFirstCharToLower)
-                        (Elm.tuple
-                            (Elm.list (moduleName |> List.map Elm.string)
-                                |> Elm.withType Gen.Elm.Syntax.ModuleName.annotation_.moduleName
-                            )
-                            (Elm.string name)
-                        )
-                )
         )
+
+
+declaration : List String -> ( String, String ) -> Elm.Declaration
+declaration moduleName ( declarationName, originalName ) =
+    Elm.declaration declarationName
+        (Elm.tuple
+            (Elm.list (moduleName |> List.map Elm.string)
+                |> Elm.withType Gen.Elm.Syntax.ModuleName.annotation_.moduleName
+            )
+            (Elm.string originalName)
+        )
+
+
+tagDeclarationName : List String -> String -> String
+tagDeclarationName values tagName =
+    if List.member tagName values then
+        tagName ++ "Variant"
+
+    else
+        tagName
 
 
 stringFirstCharToLower : String -> String
