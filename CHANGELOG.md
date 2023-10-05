@@ -52,6 +52,8 @@
 - `List.concatMap f << List.singleton` to `f`
 - `Task.andThen f << Task.succeed` to `f`
 - `Task.onError f << Task.fail` to `f`
+- `Dict.map f Dict.empty` to `Dict.empty`
+- `Dict.map (\_ value -> value) dict` to `dict`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
