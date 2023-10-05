@@ -840,6 +840,12 @@ Destructuring using case expressions
     Array.get -1 array
     --> Nothing
 
+    Array.get 2 (Array.repeat 10 x)
+    --> Just x
+
+    Array.get 100 (Array.repeat 10 x)
+    --> Nothing
+
     Array.set n x Array.empty
     --> Array.empty
 
@@ -6386,35 +6392,76 @@ indexAccessChecks collection checkInfo n =
     else
         case secondArg checkInfo of
             Just arg ->
-                case collection.literalElements checkInfo.lookupTable arg of
-                    Just literalElements ->
-                        case List.drop n literalElements |> List.head of
-                            Just element ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
-                                        , details = [ "You can replace this call by Just the targeted element." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (replaceBySubExpressionFix (Node.range arg) element
-                                            ++ [ Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                                    (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
-                                               ]
-                                        )
-                                    )
+                firstThatConstructsJust
+                    [ \() ->
+                        case collection.literalElements checkInfo.lookupTable arg of
+                            Just literalElements ->
+                                case List.drop n literalElements |> List.head of
+                                    Just element ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
+                                                , details = [ "You can replace this call by Just the targeted element." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceBySubExpressionFix (Node.range arg) element
+                                                    ++ [ Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                                            (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
+                                                       ]
+                                                )
+                                            )
+
+                                    Nothing ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
+                                                , details = [ "You can replace this call by Nothing." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)) ]
+                                            )
 
                             Nothing ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
-                                        , details = [ "You can replace this call by Nothing." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)) ]
-                                    )
+                                Nothing
+                    , \() ->
+                        AstHelpers.getSpecificFnCall Fn.Array.repeat checkInfo.lookupTable arg
+                            |> Maybe.andThen
+                                (\repeatCall ->
+                                    List.head repeatCall.argsAfterFirst
+                                        |> Maybe.andThen
+                                            (\repeatSecondArg ->
+                                                case Evaluate.getInt checkInfo repeatCall.firstArg of
+                                                    Just repeatArgInt ->
+                                                        if n < repeatArgInt then
+                                                            Just
+                                                                (Rule.errorWithFix
+                                                                    { message = "The element returned by " ++ qualifiedToString checkInfo.fn ++ " is known"
+                                                                    , details = [ "You can replace this call by Just the repeated element." ]
+                                                                    }
+                                                                    checkInfo.fnRange
+                                                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                                                        (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " " ++ checkInfo.extractSourceCode (Node.range repeatSecondArg))
+                                                                    ]
+                                                                )
 
-                    Nothing ->
-                        Nothing
+                                                        else
+                                                            Just
+                                                                (Rule.errorWithFix
+                                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
+                                                                    , details = [ "You can replace this call by Nothing." ]
+                                                                    }
+                                                                    checkInfo.fnRange
+                                                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                                                        (qualifiedToString (qualify Fn.Maybe.nothing checkInfo))
+                                                                    ]
+                                                                )
+
+                                                    Nothing ->
+                                                        Nothing
+                                            )
+                                )
+                    ]
+                    ()
 
             Nothing ->
                 Nothing
