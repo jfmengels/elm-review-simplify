@@ -18526,7 +18526,8 @@ maybeAndThenTests =
         [ test "should not report Maybe.andThen used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = Maybe.andThen f x
+a0 = Maybe.andThen f x
+a1 = Maybe.andThen << Just -- f arg missing
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -18736,6 +18737,22 @@ a = Just x |> Maybe.andThen f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x |> f
+"""
+                        ]
+        , test "should replace Maybe.andThen f << Just by f" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen f << Just
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.andThen on a just maybe is the same as applying the function to the value from the just maybe"
+                            , details = [ "You can replace this composition by the function given to Maybe.andThen." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
 """
                         ]
         ]
