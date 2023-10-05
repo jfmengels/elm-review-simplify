@@ -23228,8 +23228,10 @@ dictPartitionTests =
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.partition f
-a = Dict.partition f x
+a0 = Dict.partition
+a1 = Dict.partition f
+a2 = Dict.partition f dict
+a3 = Dict.partition (\\_ _ -> bool)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -23287,11 +23289,11 @@ import Dict
 a = ( Dict.empty, Dict.empty )
 """
                         ]
-        , test "should replace Dict.partition (always True) x by ( x, Dict.empty )" <|
+        , test "should replace Dict.partition (always (always True)) x by ( x, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.partition (always True) x
+a = Dict.partition (always (always True)) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -23305,11 +23307,11 @@ import Dict
 a = ( x, Dict.empty )
 """
                         ]
-        , test "should replace Dict.partition (\\_ -> True) x by ( x, Dict.empty )" <|
+        , test "should replace Dict.partition (always (\\_ -> True)) dict by ( dict, Dict.empty )" <|
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.partition (\\_ -> True) x
+a = Dict.partition (always (\\_ -> True)) dict
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -23320,7 +23322,61 @@ a = Dict.partition (\\_ -> True) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = ( x, Dict.empty )
+a = ( dict, Dict.empty )
+"""
+                        ]
+        , test "should replace Dict.partition (\\_ _ -> True) dict by ( dict, Dict.empty )" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.partition (\\_ _ -> True) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "All elements will go to the first dict"
+                            , details = [ "Since the predicate function always returns True, the second dict will always be Dict.empty." ]
+                            , under = "Dict.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = ( dict, Dict.empty )
+"""
+                        ]
+        , test "should replace Dict.partition (\\_ -> \\_ -> True) dict by ( dict, Dict.empty )" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.partition (\\_ -> \\_ -> True) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "All elements will go to the first dict"
+                            , details = [ "Since the predicate function always returns True, the second dict will always be Dict.empty." ]
+                            , under = "Dict.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = ( dict, Dict.empty )
+"""
+                        ]
+        , test "should replace Dict.partition (\\_ -> always True) dict by ( dict, Dict.empty )" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.partition (\\_ -> always True) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "All elements will go to the first dict"
+                            , details = [ "Since the predicate function always returns True, the second dict will always be Dict.empty." ]
+                            , under = "Dict.partition"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = ( dict, Dict.empty )
 """
                         ]
         , test "should not replace Dict.partition (always True)" <|
@@ -23330,15 +23386,15 @@ a = ( x, Dict.empty )
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.partition (always True)
+a = Dict.partition (always (always True))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Dict.partition (always False) x by ( Dict.empty, x )" <|
+        , test "should replace Dict.partition (always (always False)) dict by ( Dict.empty, dict )" <|
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.partition (always False) x
+a = Dict.partition (always (always False)) dict
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -23349,50 +23405,14 @@ a = Dict.partition (always False) x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = ( Dict.empty, x )
+a = ( Dict.empty, dict )
 """
                         ]
-        , test "should replace Dict.partition (always False) by (Tuple.pair Dict.empty)" <|
+        , test "should replace Dict.partition (always (always False)) by (Tuple.pair Dict.empty)" <|
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.partition (always False)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "All elements will go to the second dict"
-                            , details = [ "Since the predicate function always returns False, the first dict will always be Dict.empty." ]
-                            , under = "Dict.partition"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Dict
-a = (Tuple.pair Dict.empty)
-"""
-                        ]
-        , test "should replace Dict.partition <| (always False) by (Tuple.pair Dict.empty)" <|
-            \() ->
-                """module A exposing (..)
-import Dict
-a = Dict.partition <| (always False)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "All elements will go to the second dict"
-                            , details = [ "Since the predicate function always returns False, the first dict will always be Dict.empty." ]
-                            , under = "Dict.partition"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Dict
-a = (Tuple.pair Dict.empty)
-"""
-                        ]
-        , test "should replace always False |> Dict.partition by Tuple.pair Dict.empty" <|
-            \() ->
-                """module A exposing (..)
-import Dict
-a = always False |> Dict.partition
+a = Dict.partition (always (always False))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
