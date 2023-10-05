@@ -22,5 +22,6 @@ codegen "html" "1.0.0"
 codegen "json" "1.1.3"
 codegen "parser" "1.1.0"
 codegen "random" "1.0.0"
+codegen "regex" "1.0.0"
 
 elm-format --yes src/Fn/
