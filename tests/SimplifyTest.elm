@@ -24909,6 +24909,24 @@ import Task
 a = x |> f
 """
                         ]
+        , test "should replace Task.onError f << Task.fail by f" <|
+            \() ->
+                """module A exposing (..)
+import Task
+a = Task.onError f << Task.fail
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Task.onError on a failing task is the same as applying the function to the value from the failing task"
+                            , details = [ "You can replace this composition by the function given to Task.onError." ]
+                            , under = "Task.onError"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Task
+a = f
+"""
+                        ]
         ]
 
 

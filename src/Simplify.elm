@@ -7057,7 +7057,10 @@ taskOnErrorChecks =
 
 taskOnErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskOnErrorCompositionChecks =
-    unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
+    firstThatConstructsJust
+        [ unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
+        , wrapperAndThenCompositionChecks taskWithFailAsWrap
+        ]
 
 
 taskSequenceChecks : CheckInfo -> Maybe (Error {})
