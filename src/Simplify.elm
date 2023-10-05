@@ -2942,6 +2942,7 @@ compositionIntoChecks =
         , ( Fn.List.sort, ( 1, listSortCompositionChecks ) )
         , ( Fn.List.sortBy, ( 2, listSortByCompositionChecks ) )
         , ( Fn.List.map, ( 2, listMapCompositionChecks ) )
+        , ( Fn.List.concatMap, ( 2, listConcatMapCompositionChecks ) )
         , ( Fn.List.filterMap, ( 2, listFilterMapCompositionChecks ) )
         , ( Fn.List.intersperse, ( 2, listIntersperseCompositionChecks ) )
         , ( Fn.List.concat, ( 1, listConcatCompositionChecks ) )
@@ -5427,6 +5428,11 @@ arrayToIndexedListMapCompositionCheck checkInfo =
 
         _ ->
             Nothing
+
+
+listConcatMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listConcatMapCompositionChecks =
+    wrapperAndThenCompositionChecks listCollection
 
 
 listMemberChecks : CheckInfo -> Maybe (Error {})
