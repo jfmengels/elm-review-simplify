@@ -6446,19 +6446,19 @@ indexAccessChecks collection checkInfo n =
                                                                     }
                                                                     checkInfo.fnRange
                                                                     [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                        (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " " ++ checkInfo.extractSourceCode (Node.range repeatSecondArg))
+                                                                        (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo) ++ " " ++ checkInfo.extractSourceCode (Node.range repeatSecondArg))
                                                                     ]
                                                                 )
 
                                                         else
                                                             Just
                                                                 (Rule.errorWithFix
-                                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
+                                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
                                                                     , details = [ "You can replace this call by Nothing." ]
                                                                     }
                                                                     checkInfo.fnRange
                                                                     [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                        (qualifiedToString (qualify Fn.Maybe.nothing checkInfo))
+                                                                        (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo))
                                                                     ]
                                                                 )
 
@@ -6483,19 +6483,19 @@ indexAccessChecks collection checkInfo n =
                                                                     }
                                                                     checkInfo.fnRange
                                                                     [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                        (qualifiedToString (qualify Fn.Maybe.just checkInfo) ++ " (" ++ checkInfo.extractSourceCode (Node.range repeatSecondArg) ++ " " ++ String.fromInt n ++ ")")
+                                                                        (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo) ++ " (" ++ checkInfo.extractSourceCode (Node.range repeatSecondArg) ++ " " ++ String.fromInt n ++ ")")
                                                                     ]
                                                                 )
 
                                                         else
                                                             Just
                                                                 (Rule.errorWithFix
-                                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothing checkInfo)
+                                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
                                                                     , details = [ "You can replace this call by Nothing." ]
                                                                     }
                                                                     checkInfo.fnRange
                                                                     [ Fix.replaceRangeBy checkInfo.parentRange
-                                                                        (qualifiedToString (qualify Fn.Maybe.nothing checkInfo))
+                                                                        (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo))
                                                                     ]
                                                                 )
 
