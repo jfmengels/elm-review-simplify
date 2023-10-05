@@ -27567,6 +27567,24 @@ import Random
 a = x |> f
 """
                         ]
+        , test "should replace Random.andThen f << Random.constant by f" <|
+            \() ->
+                """module A exposing (..)
+import Random
+a = Random.andThen f << Random.constant
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Random.andThen on a constant generator is the same as applying the function to the value from the constant generator"
+                            , details = [ "You can replace this composition by the function given to Random.andThen." ]
+                            , under = "Random.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Random
+a = f
+"""
+                        ]
         , test "should replace Random.andThen (\\_ -> x) generator by x" <|
             \() ->
                 """module A exposing (..)

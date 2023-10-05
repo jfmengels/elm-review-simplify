@@ -2965,6 +2965,7 @@ compositionIntoChecks =
         , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapCompositionChecks ) )
         , ( Fn.Json.Decode.andThen, ( 2, jsonDecodeAndThenCompositionChecks ) )
         , ( Fn.Random.map, ( 2, randomMapCompositionChecks ) )
+        , ( Fn.Random.andThen, ( 2, randomAndThenCompositionChecks ) )
         ]
 
 
@@ -7557,6 +7558,11 @@ randomAndThenChecks =
         [ wrapperAndThenChecks randomGeneratorWrapper
         , nonEmptiableWrapperAndThenAlwaysChecks randomGeneratorWrapper
         ]
+
+
+randomAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+randomAndThenCompositionChecks =
+    wrapperAndThenCompositionChecks randomGeneratorWrapper
 
 
 nonEmptiableWrapperAndThenAlwaysChecks :
