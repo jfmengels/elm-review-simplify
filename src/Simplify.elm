@@ -993,10 +993,10 @@ Destructuring using case expressions
     Dict.partition f Dict.empty
     --> ( Dict.empty, Dict.empty )
 
-    Dict.partition (always True) dict
+    Dict.partition (\_ _ -> True) dict
     --> ( dict, Dict.empty )
 
-    Dict.partition (always False) dict
+    Dict.partition (\_ _ -> False) dict
     --> ( Dict.empty, dict )
 
     List.map Tuple.first (Dict.toList dict)
@@ -2741,7 +2741,7 @@ functionCallChecks =
         , ( Fn.Dict.member, ( 2, collectionMemberChecks dictCollection ) )
         , ( Fn.Dict.remove, ( 2, collectionRemoveChecks dictCollection ) )
         , ( Fn.Dict.filter, ( 2, dictFilterChecks ) )
-        , ( Fn.Dict.partition, ( 2, collectionPartitionChecks dictCollection ) )
+        , ( Fn.Dict.partition, ( 2, dictPartitionChecks ) )
         , ( Fn.Dict.map, ( 2, dictMapChecks ) )
         , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
         , ( Fn.Dict.diff, ( 2, collectionDiffChecks dictCollection ) )
@@ -7076,6 +7076,73 @@ dictFilterChecks =
                                     (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
                                     { replacement = dictCollection.empty.asString }
                                     checkInfo
+                                )
+
+                        Undetermined ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        ]
+
+
+dictPartitionChecks : CheckInfo -> Maybe (Error {})
+dictPartitionChecks =
+    firstThatConstructsJust
+        [ callOnEmptyReturnsCheck
+            { resultAsString = \res -> "( " ++ dictCollection.empty.asString res ++ ", " ++ dictCollection.empty.asString res ++ " )" }
+            dictCollection
+        , \checkInfo ->
+            let
+                maybePartitionFunctionResult : Maybe (Node Expression)
+                maybePartitionFunctionResult =
+                    checkInfo.firstArg
+                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+            in
+            case maybePartitionFunctionResult of
+                Just partitionFunctionResult ->
+                    case Evaluate.getBoolean checkInfo partitionFunctionResult of
+                        Determined True ->
+                            case secondArg checkInfo of
+                                Just (Node listArgRange _) ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "All elements will go to the first " ++ dictCollection.represents
+                                            , details = [ "Since the predicate function always returns True, the second " ++ dictCollection.represents ++ " will always be " ++ dictCollection.empty.asString defaultQualifyResources ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
+                                            , Fix.insertAt listArgRange.end (", " ++ emptyAsString checkInfo dictCollection ++ " )")
+                                            ]
+                                        )
+
+                                Nothing ->
+                                    Nothing
+
+                        Determined False ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "All elements will go to the second " ++ dictCollection.represents
+                                    , details = [ "Since the predicate function always returns False, the first " ++ dictCollection.represents ++ " will always be " ++ dictCollection.empty.asString defaultQualifyResources ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (case secondArg checkInfo of
+                                        Just listArg ->
+                                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ emptyAsString checkInfo dictCollection ++ ", ")
+                                            , Fix.insertAt (Node.range listArg).end " )"
+                                            ]
+
+                                        Nothing ->
+                                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                                ("("
+                                                    ++ qualifiedToString (qualify Fn.Tuple.pair checkInfo)
+                                                    ++ " "
+                                                    ++ emptyAsString checkInfo dictCollection
+                                                    ++ ")"
+                                                )
+                                            ]
+                                    )
                                 )
 
                         Undetermined ->
