@@ -181,3 +181,43 @@ variable =
 withIndent : ( Elm.Syntax.ModuleName.ModuleName, String )
 withIndent =
     ( [ "Parser", "Advanced" ], "withIndent" )
+
+
+notNestable : ( Elm.Syntax.ModuleName.ModuleName, String )
+notNestable =
+    ( [ "Parser", "Advanced" ], "NotNestable" )
+
+
+nestable : ( Elm.Syntax.ModuleName.ModuleName, String )
+nestable =
+    ( [ "Parser", "Advanced" ], "Nestable" )
+
+
+loopVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+loopVariant =
+    ( [ "Parser", "Advanced" ], "Loop" )
+
+
+done : ( Elm.Syntax.ModuleName.ModuleName, String )
+done =
+    ( [ "Parser", "Advanced" ], "Done" )
+
+
+tokenVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+tokenVariant =
+    ( [ "Parser", "Advanced" ], "Token" )
+
+
+forbidden : ( Elm.Syntax.ModuleName.ModuleName, String )
+forbidden =
+    ( [ "Parser", "Advanced" ], "Forbidden" )
+
+
+optional : ( Elm.Syntax.ModuleName.ModuleName, String )
+optional =
+    ( [ "Parser", "Advanced" ], "Optional" )
+
+
+mandatory : ( Elm.Syntax.ModuleName.ModuleName, String )
+mandatory =
+    ( [ "Parser", "Advanced" ], "Mandatory" )
