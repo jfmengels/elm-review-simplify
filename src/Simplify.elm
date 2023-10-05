@@ -7352,7 +7352,10 @@ jsonDecodeAndThenChecks =
 
 jsonDecodeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 jsonDecodeAndThenCompositionChecks =
-    unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
+    firstThatConstructsJust
+        [ unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
+        , wrapperAndThenCompositionChecks jsonDecoderWithSucceedAsWrap
+        ]
 
 
 
