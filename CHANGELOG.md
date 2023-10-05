@@ -49,6 +49,7 @@
 - `Result.andThen f << Ok` to `f`
 - `Json.Decode.andThen f << Json.Decode.succeed` to `f`
 - `Random.andThen f << Random.constant` to `f`
+- `List.concatMap f << List.singleton` to `f`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

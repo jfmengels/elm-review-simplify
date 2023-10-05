@@ -8690,6 +8690,22 @@ a = [ b c ] |> List.concatMap f
 a = (b c) |> f
 """
                         ]
+        , test "should replace List.concatMap f << List.singleton by f" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap f << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.concatMap on a singleton list is the same as applying the function to the value from the singleton list"
+                            , details = [ "You can replace this composition by the function given to List.concatMap." ]
+                            , under = "List.concatMap"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
         , test "should replace List.map f >> List.concat by List.concatMap f" <|
             \() ->
                 """module A exposing (..)
