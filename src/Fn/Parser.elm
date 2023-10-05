@@ -181,3 +181,108 @@ variable =
 withIndent : ( Elm.Syntax.ModuleName.ModuleName, String )
 withIndent =
     ( [ "Parser" ], "withIndent" )
+
+
+notNestable : ( Elm.Syntax.ModuleName.ModuleName, String )
+notNestable =
+    ( [ "Parser" ], "NotNestable" )
+
+
+nestable : ( Elm.Syntax.ModuleName.ModuleName, String )
+nestable =
+    ( [ "Parser" ], "Nestable" )
+
+
+expecting : ( Elm.Syntax.ModuleName.ModuleName, String )
+expecting =
+    ( [ "Parser" ], "Expecting" )
+
+
+expectingInt : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingInt =
+    ( [ "Parser" ], "ExpectingInt" )
+
+
+expectingHex : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingHex =
+    ( [ "Parser" ], "ExpectingHex" )
+
+
+expectingOctal : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingOctal =
+    ( [ "Parser" ], "ExpectingOctal" )
+
+
+expectingBinary : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingBinary =
+    ( [ "Parser" ], "ExpectingBinary" )
+
+
+expectingFloat : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingFloat =
+    ( [ "Parser" ], "ExpectingFloat" )
+
+
+expectingNumber : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingNumber =
+    ( [ "Parser" ], "ExpectingNumber" )
+
+
+expectingVariable : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingVariable =
+    ( [ "Parser" ], "ExpectingVariable" )
+
+
+expectingSymbol : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingSymbol =
+    ( [ "Parser" ], "ExpectingSymbol" )
+
+
+expectingKeyword : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingKeyword =
+    ( [ "Parser" ], "ExpectingKeyword" )
+
+
+expectingEnd : ( Elm.Syntax.ModuleName.ModuleName, String )
+expectingEnd =
+    ( [ "Parser" ], "ExpectingEnd" )
+
+
+unexpectedChar : ( Elm.Syntax.ModuleName.ModuleName, String )
+unexpectedChar =
+    ( [ "Parser" ], "UnexpectedChar" )
+
+
+problemVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+problemVariant =
+    ( [ "Parser" ], "Problem" )
+
+
+badRepeat : ( Elm.Syntax.ModuleName.ModuleName, String )
+badRepeat =
+    ( [ "Parser" ], "BadRepeat" )
+
+
+loopVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+loopVariant =
+    ( [ "Parser" ], "Loop" )
+
+
+done : ( Elm.Syntax.ModuleName.ModuleName, String )
+done =
+    ( [ "Parser" ], "Done" )
+
+
+forbidden : ( Elm.Syntax.ModuleName.ModuleName, String )
+forbidden =
+    ( [ "Parser" ], "Forbidden" )
+
+
+optional : ( Elm.Syntax.ModuleName.ModuleName, String )
+optional =
+    ( [ "Parser" ], "Optional" )
+
+
+mandatory : ( Elm.Syntax.ModuleName.ModuleName, String )
+mandatory =
+    ( [ "Parser" ], "Mandatory" )

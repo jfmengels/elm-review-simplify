@@ -161,3 +161,23 @@ succeed =
 value : ( Elm.Syntax.ModuleName.ModuleName, String )
 value =
     ( [ "Json", "Decode" ], "value" )
+
+
+fieldVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+fieldVariant =
+    ( [ "Json", "Decode" ], "Field" )
+
+
+indexVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+indexVariant =
+    ( [ "Json", "Decode" ], "Index" )
+
+
+oneOfVariant : ( Elm.Syntax.ModuleName.ModuleName, String )
+oneOfVariant =
+    ( [ "Json", "Decode" ], "OneOf" )
+
+
+failure : ( Elm.Syntax.ModuleName.ModuleName, String )
+failure =
+    ( [ "Json", "Decode" ], "Failure" )
