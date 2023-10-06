@@ -7234,41 +7234,7 @@ dictFromListCompositionChecks =
 
 dictFilterChecks : CheckInfo -> Maybe (Error {})
 dictFilterChecks =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck dictCollection
-        , \checkInfo ->
-            let
-                maybeFilterFunctionResult : Maybe (Node Expression)
-                maybeFilterFunctionResult =
-                    checkInfo.firstArg
-                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
-                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
-            in
-            case maybeFilterFunctionResult of
-                Just filterFunctionResult ->
-                    case Evaluate.getBoolean checkInfo filterFunctionResult of
-                        Determined True ->
-                            Just
-                                (alwaysReturnsLastArgError
-                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                                    dictCollection
-                                    checkInfo
-                                )
-
-                        Determined False ->
-                            Just
-                                (alwaysResultsInUnparenthesizedConstantError
-                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                                    { replacement = dictCollection.empty.asString }
-                                    checkInfo
-                                )
-
-                        Undetermined ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-        ]
+    emptiableFilterWithExtraArgChecks dictCollection
 
 
 dictPartitionChecks : CheckInfo -> Maybe (Error {})
@@ -9867,6 +9833,17 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
         Nothing
 
 
+{-| The filter checks
+
+    filter f empty --> empty
+
+    filter (\_ -> True) emptiable --> emptiable
+
+    filter (\_ -> False) emptiable --> empty
+
+If your function only takes two arguments like `Dict.filter`, use `emptiableFilterWithExtraArgChecks`
+
+-}
 emptiableFilterChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 emptiableFilterChecks emptiable =
     firstThatConstructsJust
@@ -9890,6 +9867,56 @@ emptiableFilterChecks emptiable =
                         )
 
                 Undetermined ->
+                    Nothing
+        ]
+
+
+{-| Filter checks where the function takes 2 arguments
+
+    filter f empty --> empty
+
+    filter (\_ _ -> True) emptiable --> emptiable
+
+    filter (\_ _ -> False) emptiable --> empty
+
+If your function only takes one argument like `List.filter`, use `emptiableFilterChecks`
+
+-}
+emptiableFilterWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableFilterWithExtraArgChecks emptiable =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck emptiable
+        , \checkInfo ->
+            let
+                maybeFilterFunctionResult : Maybe (Node Expression)
+                maybeFilterFunctionResult =
+                    checkInfo.firstArg
+                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+            in
+            case maybeFilterFunctionResult of
+                Just filterFunctionResult ->
+                    case Evaluate.getBoolean checkInfo filterFunctionResult of
+                        Determined True ->
+                            Just
+                                (alwaysReturnsLastArgError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
+                                    emptiable
+                                    checkInfo
+                                )
+
+                        Determined False ->
+                            Just
+                                (alwaysResultsInUnparenthesizedConstantError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
+                                    { replacement = emptiable.empty.asString }
+                                    checkInfo
+                                )
+
+                        Undetermined ->
+                            Nothing
+
+                Nothing ->
                     Nothing
         ]
 
