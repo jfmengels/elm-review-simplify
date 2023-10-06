@@ -7239,69 +7239,7 @@ dictFilterChecks =
 
 dictPartitionChecks : CheckInfo -> Maybe (Error {})
 dictPartitionChecks =
-    firstThatConstructsJust
-        [ callOnEmptyReturnsCheck
-            { resultAsString = \res -> "( " ++ dictCollection.empty.asString res ++ ", " ++ dictCollection.empty.asString res ++ " )" }
-            dictCollection
-        , \checkInfo ->
-            let
-                maybePartitionFunctionResult : Maybe (Node Expression)
-                maybePartitionFunctionResult =
-                    checkInfo.firstArg
-                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
-                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
-            in
-            case maybePartitionFunctionResult of
-                Just partitionFunctionResult ->
-                    case Evaluate.getBoolean checkInfo partitionFunctionResult of
-                        Determined True ->
-                            case secondArg checkInfo of
-                                Just (Node listArgRange _) ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "All elements will go to the first " ++ dictCollection.represents
-                                            , details = [ "Since the predicate function always returns True, the second " ++ dictCollection.represents ++ " will always be " ++ dictCollection.empty.asString defaultQualifyResources ++ "." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
-                                            , Fix.insertAt listArgRange.end (", " ++ emptyAsString checkInfo dictCollection ++ " )")
-                                            ]
-                                        )
-
-                                Nothing ->
-                                    Nothing
-
-                        Determined False ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "All elements will go to the second " ++ dictCollection.represents
-                                    , details = [ "Since the predicate function always returns False, the first " ++ dictCollection.represents ++ " will always be " ++ dictCollection.empty.asString defaultQualifyResources ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (case secondArg checkInfo of
-                                        Just listArg ->
-                                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ emptyAsString checkInfo dictCollection ++ ", ")
-                                            , Fix.insertAt (Node.range listArg).end " )"
-                                            ]
-
-                                        Nothing ->
-                                            [ Fix.replaceRangeBy checkInfo.parentRange
-                                                ("("
-                                                    ++ qualifiedToString (qualify Fn.Tuple.pair checkInfo)
-                                                    ++ " "
-                                                    ++ emptyAsString checkInfo dictCollection
-                                                    ++ ")"
-                                                )
-                                            ]
-                                    )
-                                )
-
-                        Undetermined ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-        ]
+    emptiablePartitionWithExtraArgChecks dictCollection
 
 
 dictMapChecks : CheckInfo -> Maybe (Error {})
@@ -10190,6 +10128,17 @@ emptiableToListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } collection
 
 
+{-| The partition checks
+
+    partition f empty --> empty
+
+    partition (\_ -> True) emptiable --> ( emptiable, empty )
+
+    partition (\_ -> False) emptiable --> ( empty, emptiable )
+
+If your function takes two arguments like `Dict.partition`, use `emptiablePartitionWithExtraArgChecks`.
+
+-}
 collectionPartitionChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection =
     firstThatConstructsJust
@@ -10241,6 +10190,84 @@ collectionPartitionChecks collection =
                         )
 
                 Undetermined ->
+                    Nothing
+        ]
+
+
+{-| partition checks where the function takes two arguments
+
+    partition f empty --> empty
+
+    partition (\_ _ -> True) emptiable --> ( emptiable, empty )
+
+    partition (\_ _ -> False) emptiable --> ( empty, emptiable )
+
+If your function only takes one argument like `List.partition`, use `collectionPartitionChecks`
+
+-}
+emptiablePartitionWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiablePartitionWithExtraArgChecks emptiable =
+    firstThatConstructsJust
+        [ callOnEmptyReturnsCheck
+            { resultAsString = \res -> "( " ++ dictCollection.empty.asString res ++ ", " ++ dictCollection.empty.asString res ++ " )" }
+            dictCollection
+        , \checkInfo ->
+            let
+                maybePartitionFunctionResult : Maybe (Node Expression)
+                maybePartitionFunctionResult =
+                    checkInfo.firstArg
+                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+            in
+            case maybePartitionFunctionResult of
+                Just partitionFunctionResult ->
+                    case Evaluate.getBoolean checkInfo partitionFunctionResult of
+                        Determined True ->
+                            case secondArg checkInfo of
+                                Just (Node listArgRange _) ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "All elements will go to the first " ++ dictCollection.represents
+                                            , details = [ "Since the predicate function always returns True, the second " ++ dictCollection.represents ++ " will always be " ++ dictCollection.empty.asString defaultQualifyResources ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
+                                            , Fix.insertAt listArgRange.end (", " ++ emptyAsString checkInfo dictCollection ++ " )")
+                                            ]
+                                        )
+
+                                Nothing ->
+                                    Nothing
+
+                        Determined False ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "All elements will go to the second " ++ dictCollection.represents
+                                    , details = [ "Since the predicate function always returns False, the first " ++ dictCollection.represents ++ " will always be " ++ dictCollection.empty.asString defaultQualifyResources ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (case secondArg checkInfo of
+                                        Just listArg ->
+                                            [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = (Node.range listArg).start } ("( " ++ emptyAsString checkInfo dictCollection ++ ", ")
+                                            , Fix.insertAt (Node.range listArg).end " )"
+                                            ]
+
+                                        Nothing ->
+                                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                                ("("
+                                                    ++ qualifiedToString (qualify Fn.Tuple.pair checkInfo)
+                                                    ++ " "
+                                                    ++ emptyAsString checkInfo dictCollection
+                                                    ++ ")"
+                                                )
+                                            ]
+                                    )
+                                )
+
+                        Undetermined ->
+                            Nothing
+
+                Nothing ->
                     Nothing
         ]
 
