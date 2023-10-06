@@ -7024,18 +7024,36 @@ setFoldrChecks =
     emptiableFoldChecks setCollection
 
 
-{-| Folding/reducing checks with a reduce function that not only takes the current element but more information as an extra argument
+{-| The Folding/reducing checks
 
-    fold f initial empty --> initial
+    fold f initial empty
+    --> initial
 
-    fold (\_ _ soFar -> soFar) emptiable --> initial
+    fold (\_ soFar -> soFar) initial emptiable
+    --> initial
 
 which applies to for example
 
-    Dict.foldl : (k -> v -> b -> b) -> b -> Dict.Dict k v -> b
-    Graph.Tree.levelOrder : (l -> Forest l -> b -> b) -> b -> Tree l -> b
+    Graph.fold : (NodeContext n e -> b -> b) -> b -> Graph n e -> b
 
-If your fold function does not have an extra arg, use `emptiableFoldChecks`.
+but also functions like
+
+    Either.foldl foldOnLeft initial (Either.Right r) --> initial
+
+    Effects.apply f initial Effects.none
+
+Any other argument order is not supported:
+
+    Maybe.Extra.unwrap initial f Nothing
+    -- not simplified
+
+    Result.Extra.unwrap initial f (Err x)
+    -- not simplified
+
+    RemoteData.unwrap initial f (Err x)
+    -- not simplified
+
+If your fold function takes two arguments, use `emptiableFoldWithExtraArgChecks`
 
 -}
 emptiableFoldChecks :
@@ -7121,34 +7139,18 @@ foldToUnchangedAccumulatorCheck typeProperties checkInfo =
             Nothing
 
 
-{-| The Folding/reducing checks
+{-| Folding/reducing checks with a reduce function that not only takes the current element but more information as an extra argument
 
-    fold f initial empty
-    --> initial
+    fold f initial empty --> initial
 
-    fold (\_ soFar -> soFar) initial emptiable
-    --> initial
+    fold (\_ _ soFar -> soFar) emptiable --> initial
 
 which applies to for example
 
-    Graph.fold : (NodeContext n e -> b -> b) -> b -> Graph n e -> b
+    Dict.foldl : (k -> v -> b -> b) -> b -> Dict.Dict k v -> b
+    Graph.Tree.levelOrder : (l -> Forest l -> b -> b) -> b -> Tree l -> b
 
-but also functions like
-
-    Either.foldl foldOnLeft initial (Either.Right r) --> initial
-
-    Effects.apply f initial Effects.none
-
-Any other argument order is not supported:
-
-    Maybe.Extra.unwrap initial f Nothing
-    -- not simplified
-
-    Result.Extra.unwrap initial f (Err x)
-    -- not simplified
-
-    RemoteData.unwrap initial f (Err x)
-    -- not simplified
+If your fold function does not have an extra arg, use `emptiableFoldChecks`.
 
 -}
 emptiableFoldWithExtraArgChecks :
