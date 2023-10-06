@@ -15464,6 +15464,110 @@ a = Tuple.first << Tuple.mapBoth changeFirst changeSecond
 a = Tuple.first << Tuple.mapFirst changeFirst
 """
                         ]
+        , test "should replace Tuple.first (List.partition f list) by (List.filter f list)" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first (List.partition f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.partition, then Tuple.first can be combined into List.filter"
+                            , details = [ "You can replace this call by List.filter with the same arguments given to List.partition which is meant for this exact purpose." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.filter f list)
+"""
+                        ]
+        , test "should replace Tuple.first (Set.partition f set) by (Set.filter f set)" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Tuple.first (Set.partition f set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.partition, then Tuple.first can be combined into Set.filter"
+                            , details = [ "You can replace this call by Set.filter with the same arguments given to Set.partition which is meant for this exact purpose." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.filter f set)
+"""
+                        ]
+        , test "should replace Tuple.first (Dict.partition f dict) by (Dict.filter f dict)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Tuple.first (Dict.partition f dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.partition, then Tuple.first can be combined into Dict.filter"
+                            , details = [ "You can replace this call by Dict.filter with the same arguments given to Dict.partition which is meant for this exact purpose." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.filter f dict)
+"""
+                        ]
+        , test "should replace Tuple.first << List.partition f by List.filter f" <|
+            \() ->
+                """module A exposing (..)
+a = Tuple.first << List.partition f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.partition, then Tuple.first can be combined into List.filter"
+                            , details = [ "You can replace this composition by List.filter with the same arguments given to List.partition which is meant for this exact purpose." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filter f
+"""
+                        ]
+        , test "should replace Tuple.first << Set.partition f by Set.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Tuple.first << Set.partition f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.partition, then Tuple.first can be combined into Set.filter"
+                            , details = [ "You can replace this composition by Set.filter with the same arguments given to Set.partition which is meant for this exact purpose." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.filter f
+"""
+                        ]
+        , test "should replace Tuple.first << Dict.partition f by Dict.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Tuple.first << Dict.partition f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.partition, then Tuple.first can be combined into Dict.filter"
+                            , details = [ "You can replace this composition by Dict.filter with the same arguments given to Dict.partition which is meant for this exact purpose." ]
+                            , under = "Tuple.first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.filter f
+"""
+                        ]
         ]
 
 

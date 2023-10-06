@@ -714,6 +714,9 @@ Destructuring using case expressions
     List.partition (always False) list
     --> ( [], list )
 
+    Tuple.first (List.partition f list)
+    --> List.filter f list
+
     List.take 0 list
     --> []
 
@@ -941,6 +944,9 @@ Destructuring using case expressions
     Set.partition (always True) set
     --> ( set, Set.empty )
 
+    Tuple.first (Set.partition f set)
+    --> Set.filter f set
+
     -- The following simplifications for Set.foldl also work for Set.foldr
     Set.foldl f initial Set.empty
     --> initial
@@ -1010,6 +1016,9 @@ Destructuring using case expressions
 
     Dict.partition (\_ _ -> False) dict
     --> ( Dict.empty, dict )
+
+    Tuple.first (Dict.partition f dict)
+    --> Dict.filter f dict
 
     List.map Tuple.first (Dict.toList dict)
     --> Dict.keys dict
@@ -4315,12 +4324,20 @@ tuplePairChecks checkInfo =
 
 tupleFirstChecks : CheckInfo -> Maybe (Error {})
 tupleFirstChecks =
-    tuplePartChecks
-        { part = TupleFirst
-        , description = "first"
-        , mapUnrelatedFn = Fn.Tuple.mapSecond
-        , mapFn = Fn.Tuple.mapFirst
-        }
+    firstThatConstructsJust
+        [ tuplePartChecks
+            { part = TupleFirst
+            , description = "first"
+            , mapUnrelatedFn = Fn.Tuple.mapSecond
+            , mapFn = Fn.Tuple.mapFirst
+            }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.List.partition, combinedFn = Fn.List.filter }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
+        ]
 
 
 tupleFirstCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -4350,6 +4367,12 @@ tupleFirstCompositionChecks =
 
                 _ ->
                     Nothing
+        , compositionFromCanBeCombinedCheck
+            { fromFn = Fn.List.partition, combinedFn = Fn.List.filter }
+        , compositionFromCanBeCombinedCheck
+            { fromFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
+        , compositionFromCanBeCombinedCheck
+            { fromFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
         ]
 
 
