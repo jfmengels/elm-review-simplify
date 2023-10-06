@@ -626,6 +626,9 @@ Destructuring using case expressions
     List.sum [ a ]
     --> a
 
+    List.sum [ a, 0, b ]
+    --> List.sum [ a, b ]
+
     List.product []
     --> 1
 
@@ -3426,7 +3429,7 @@ appendEmptyCheck :
     -> OperatorCheckInfo
     -> Maybe (Error {})
 appendEmptyCheck side collection checkInfo =
-    if collection.empty.is checkInfo.lookupTable side.node then
+    if collection.empty.is (extractInferResources checkInfo) side.node then
         Just
             (Rule.errorWithFix
                 { message = "Unnecessary appending " ++ descriptionForIndefinite collection.empty.description
@@ -4761,7 +4764,7 @@ stringJoinChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
         , \checkInfo ->
-            if stringCollection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+            if stringCollection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
                 let
                     replacementFn : ( ModuleName, String )
                     replacementFn =
@@ -4789,7 +4792,7 @@ stringRepeatChecks =
         [ \checkInfo ->
             case secondArg checkInfo of
                 Just stringArg ->
-                    if stringCollection.empty.is checkInfo.lookupTable stringArg then
+                    if stringCollection.empty.is (extractInferResources checkInfo) stringArg then
                         Just
                             (Rule.errorWithFix
                                 { message = "String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
@@ -5055,7 +5058,7 @@ callOnListWithIrrelevantEmptyElement emptiableElement checkInfo =
         Just listArg ->
             case AstHelpers.getListLiteral listArg of
                 Just list ->
-                    case findMapNeighboring (getEmpty checkInfo.lookupTable emptiableElement) list of
+                    case findMapNeighboring (getEmpty checkInfo emptiableElement) list of
                         Just emptyLiteralAndNeighbors ->
                             Just
                                 (Rule.errorWithFix
@@ -5668,6 +5671,7 @@ listSumChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
+        , callOnListWithIrrelevantEmptyElement additiveNumberProperties
         ]
 
 
@@ -6766,7 +6770,7 @@ listDropChecks =
 
 emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
-    if List.any (emptiable.empty.is checkInfo.lookupTable) checkInfo.argsAfterFirst then
+    if List.any (emptiable.empty.is (extractInferResources checkInfo)) checkInfo.argsAfterFirst then
         Just
             (alwaysResultsInUnparenthesizedConstantError
                 (qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.asString defaultQualifyResources)
@@ -6873,7 +6877,7 @@ mapNOrFirstEmptyConstructionChecks :
     -> CheckInfo
     -> Maybe (Error {})
 mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
-    case findMapAndAllBefore (getEmptyExpressionNode checkInfo.lookupTable emptiable) checkInfo.argsAfterFirst of
+    case findMapAndAllBefore (getEmptyExpressionNode checkInfo emptiable) checkInfo.argsAfterFirst of
         -- no empty arg found
         Nothing ->
             Nothing
@@ -7094,7 +7098,7 @@ foldOnEmptyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProper
 foldOnEmptyChecks emptiable checkInfo =
     case checkInfo.argsAfterFirst of
         initialArg :: emptiableArg :: [] ->
-            if emptiable.empty.is checkInfo.lookupTable emptiableArg then
+            if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
                 Just
                     (returnsArgError
                         (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
@@ -7400,7 +7404,7 @@ sequenceOrFirstEmptyChecks emptiable checkInfo =
                 [ \() ->
                     case List.filter (\el -> isNothing (emptiable.wrap.getValue checkInfo.lookupTable el)) list of
                         firstNonWrappedElement :: _ ->
-                            if emptiable.empty.is checkInfo.lookupTable firstNonWrappedElement then
+                            if emptiable.empty.is (extractInferResources checkInfo) firstNonWrappedElement then
                                 Just
                                     (Rule.errorWithFix
                                         { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" emptiable.empty.description
@@ -7416,7 +7420,7 @@ sequenceOrFirstEmptyChecks emptiable checkInfo =
                         [] ->
                             Nothing
                 , \() ->
-                    case findMapNeighboring (\el -> getEmpty checkInfo.lookupTable emptiable el) list of
+                    case findMapNeighboring (\el -> getEmpty checkInfo emptiable el) list of
                         Just emptyAndNeighbors ->
                             case emptyAndNeighbors.after of
                                 Just _ ->
@@ -8005,7 +8009,7 @@ the last one is an example of a subset with `ConstantProperties`
 type alias TypeSubsetProperties otherProperties =
     { otherProperties
         | description : Description
-        , is : ModuleNameLookupTable -> Node Expression -> Bool
+        , is : Infer.Resources {} -> Node Expression -> Bool
     }
 
 
@@ -8022,12 +8026,12 @@ type alias ConstantProperties =
 
 
 getEmpty :
-    ModuleNameLookupTable
+    Infer.Resources a
     -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> Node Expression
     -> Maybe { range : Range }
-getEmpty lookupTable emptiable expressionNode =
-    if emptiable.empty.is lookupTable expressionNode then
+getEmpty resources emptiable expressionNode =
+    if emptiable.empty.is (extractInferResources resources) expressionNode then
         Just { range = Node.range expressionNode }
 
     else
@@ -8035,12 +8039,12 @@ getEmpty lookupTable emptiable expressionNode =
 
 
 getEmptyExpressionNode :
-    ModuleNameLookupTable
+    Infer.Resources a
     -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> Node Expression
     -> Maybe (Node Expression)
-getEmptyExpressionNode lookupTable emptiable expressionNode =
-    if emptiable.empty.is lookupTable expressionNode then
+getEmptyExpressionNode resources emptiable expressionNode =
+    if emptiable.empty.is (extractInferResources resources) expressionNode then
         Just expressionNode
 
     else
@@ -8118,6 +8122,21 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
+additiveNumberProperties : TypeProperties (EmptiableProperties ConstantProperties {})
+additiveNumberProperties =
+    { represents = "number"
+    , empty = number0Constant
+    }
+
+
+number0Constant : ConstantProperties
+number0Constant =
+    { description = Constant "0"
+    , is = \res expr -> Evaluate.getNumber res expr == Just 0
+    , asString = \_ -> "0"
+    }
+
+
 randomGeneratorWrapper : TypeProperties (NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) }))
 randomGeneratorWrapper =
     { represents = "random generator"
@@ -8135,8 +8154,8 @@ randomGeneratorConstantConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Random.constant lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Random.constant lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Random.constant res.lookupTable expr)
     }
 
 
@@ -8151,8 +8170,8 @@ maybeWithJustAsWrap =
     , empty =
         { description = Constant "Nothing"
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant res.lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify Fn.Maybe.nothingVariant resources)
@@ -8164,8 +8183,8 @@ maybeWithJustAsWrap =
             \lookupTable expr ->
                 Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant res.lookupTable expr)
         }
     , mapFn = Fn.Maybe.map
     }
@@ -8195,8 +8214,8 @@ resultOkayConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.okVariant lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Result.okVariant lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Result.okVariant res.lookupTable expr)
     }
 
 
@@ -8208,8 +8227,8 @@ resultErrorConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.errVariant lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Result.errVariant lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Result.errVariant res.lookupTable expr)
     }
 
 
@@ -8253,8 +8272,8 @@ taskSucceedingConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Task.succeed lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Task.succeed lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Task.succeed res.lookupTable expr)
     }
 
 
@@ -8266,8 +8285,8 @@ taskFailingConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Task.fail lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Task.fail lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Task.fail res.lookupTable expr)
     }
 
 
@@ -8311,8 +8330,8 @@ jsonDecoderSucceedingConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed res.lookupTable expr)
     }
 
 
@@ -8324,8 +8343,8 @@ jsonDecoderFailingConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail res.lookupTable expr)
     }
 
 
@@ -8363,8 +8382,8 @@ listSingletonConstruct =
         \lookupTable expr ->
             Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getListSingleton lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getListSingleton res.lookupTable expr)
     }
 
 
@@ -8422,8 +8441,8 @@ singleCharConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.String.fromChar lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.String.fromChar lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.String.fromChar res.lookupTable expr)
     }
 
 
@@ -8443,8 +8462,8 @@ arrayCollection =
     , empty =
         { description = Constant (qualifiedToString Fn.Array.empty)
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Array.empty lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Array.empty res.lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify Fn.Array.empty resources)
@@ -8510,8 +8529,8 @@ setCollection =
     , empty =
         { description = Constant (qualifiedToString Fn.Set.empty)
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Set.empty lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Set.empty res.lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify Fn.Set.empty resources)
@@ -8537,8 +8556,8 @@ setSingletonConstruct =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Set.singleton lookupTable expr)
     , is =
-        \lookupTable expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Set.singleton lookupTable expr)
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Set.singleton res.lookupTable expr)
     }
 
 
@@ -8594,8 +8613,8 @@ dictCollection =
     , empty =
         { description = Constant (qualifiedToString Fn.Dict.empty)
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Dict.empty lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Dict.empty res.lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify Fn.Dict.empty resources)
@@ -8670,8 +8689,8 @@ cmdCollection =
         { description =
             Constant "Cmd.none"
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Cmd.none lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Cmd.none res.lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify Fn.Platform.Cmd.none resources)
@@ -8686,8 +8705,8 @@ subCollection =
         { description =
             Constant "Sub.none"
         , is =
-            \lookupTable expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Sub.none lookupTable expr)
+            \res expr ->
+                isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Sub.none res.lookupTable expr)
         , asString =
             \resources ->
                 qualifiedToString (qualify Fn.Platform.Sub.none resources)
@@ -8986,7 +9005,7 @@ emptiableAndThenChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
-            case constructs (sameInAllBranches (getEmpty checkInfo.lookupTable emptiable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (getEmpty checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -9154,7 +9173,7 @@ emptiableWithDefaultChecks :
 emptiableWithDefaultChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just emptiableArg ->
-            case sameInAllBranches (getEmpty checkInfo.lookupTable emptiable) emptiableArg of
+            case sameInAllBranches (getEmpty checkInfo emptiable) emptiableArg of
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
@@ -9529,7 +9548,7 @@ unnecessaryCallOnCheck constructable checkInfo =
             let
                 getConstructable : Node Expression -> Maybe ()
                 getConstructable expressionNode =
-                    if constructable.is checkInfo.lookupTable expressionNode then
+                    if constructable.is (extractInferResources checkInfo) expressionNode then
                         Just ()
 
                     else
@@ -9571,7 +9590,7 @@ callOnEmptyReturnsCheck :
 callOnEmptyReturnsCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just lastArg ->
-            if collection.empty.is checkInfo.lookupTable lastArg then
+            if collection.empty.is (extractInferResources checkInfo) lastArg then
                 let
                     resultDescription : String
                     resultDescription =
@@ -9886,7 +9905,7 @@ collectionIntersectChecks : CollectionProperties (EmptiableProperties ConstantPr
 collectionIntersectChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
-            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+            if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
                         (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.asString defaultQualifyResources)
@@ -9904,7 +9923,7 @@ collectionDiffChecks : TypeProperties (CollectionProperties (EmptiableProperties
 collectionDiffChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
-            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+            if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
                         (qualifiedToString checkInfo.fn ++ " " ++ emptyAsString checkInfo collection)
@@ -9917,7 +9936,7 @@ collectionDiffChecks collection =
         , \checkInfo ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    if collection.empty.is checkInfo.lookupTable collectionArg then
+                    if collection.empty.is (extractInferResources checkInfo) collectionArg then
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " with " ++ emptyAsString checkInfo collection
@@ -9939,7 +9958,7 @@ collectionUnionChecks : TypeProperties (CollectionProperties (FromListProperties
 collectionUnionChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
-            if collection.empty.is checkInfo.lookupTable checkInfo.firstArg then
+            if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
                 Just
                     (alwaysReturnsLastArgError
                         (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
@@ -9952,7 +9971,7 @@ collectionUnionChecks collection =
         , \checkInfo ->
             case secondArg checkInfo of
                 Just secondArg_ ->
-                    if collection.empty.is checkInfo.lookupTable secondArg_ then
+                    if collection.empty.is (extractInferResources checkInfo) secondArg_ then
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ descriptionForIndefinite collection.empty.description
@@ -10029,7 +10048,7 @@ collectionInsertChecks : CollectionProperties (EmptiableProperties (TypeSubsetPr
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            if collection.empty.is checkInfo.lookupTable collectionArg then
+            if collection.empty.is (extractInferResources checkInfo) collectionArg then
                 Just
                     (Rule.errorWithFix
                         { message = "Use " ++ qualifiedToString collection.wrap.fn ++ " instead of inserting in " ++ descriptionForIndefinite collection.empty.description
