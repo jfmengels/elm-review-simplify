@@ -22466,6 +22466,8 @@ dictSimplificationTests =
         , dictUnionTests
         , dictIntersectTests
         , dictDiffTests
+        , dictFoldlTests
+        , dictFoldrTests
         ]
 
 
@@ -23848,7 +23850,334 @@ a = (Dict.fromList [b,c,d,e])
                         ]
         ]
 
+dictFoldlTests : Test
+dictFoldlTests =
+    describe "Dict.foldl"
+        [ test "should not report Dict.foldl used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.foldl
+a1 = Dict.foldl (\\_ el soFar -> soFar - el)
+a2 = Dict.foldl (\\_ el soFar -> soFar - el) 20
+a3 = Dict.foldl (\\_ el soFar -> soFar - el) 20 dict
+a4 = Dict.foldl (always identity) initial dict
+a5 = Dict.foldl (\\_ -> identity) initial dict
+a6 = Dict.foldl (\\_ v -> v) initial dict
+a6 = Dict.foldl (always (\\v -> v)) initial dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.foldl f initial Dict.empty by initial" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl f initial Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl on Dict.empty will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = initial
+"""
+                        ]
+        , test "should replace Dict.foldl (always (always identity)) initial dict by initial" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (always (always identity)) initial dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = initial
+"""
+                        ]
+        , test "should replace Dict.foldl (always (always identity)) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (always (always identity)) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always initial
+"""
+                        ]
+        , test "should replace Dict.foldl (always (always identity)) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (always (always identity))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldl (always (\\_ -> identity)) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (always (\\_ -> identity))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldl (\\_ -> (always identity)) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (\\_ -> (always identity))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldl (\\_ _ -> identity) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (\\_ _ -> identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldl (\\_ _ soFar -> soFar) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl (\\_ _ soFar -> soFar)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        ]
 
+
+dictFoldrTests : Test
+dictFoldrTests =
+    describe "Dict.foldr"
+        [ test "should not report Dict.foldr used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.foldr
+a1 = Dict.foldr (\\_ el soFar -> soFar - el)
+a2 = Dict.foldr (\\_ el soFar -> soFar - el) 20
+a3 = Dict.foldr (\\_ el soFar -> soFar - el) 20 dict
+a4 = Dict.foldr (always identity) initial dict
+a5 = Dict.foldr (\\_ -> identity) initial dict
+a6 = Dict.foldr (\\_ v -> v) initial dict
+a6 = Dict.foldr (always (\\v -> v)) initial dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.foldr f initial Dict.empty by initial" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr f initial Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr on Dict.empty will always return the same given initial accumulator"
+                            , details = [ "You can replace this call by the initial accumulator itself." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = initial
+"""
+                        ]
+        , test "should replace Dict.foldr (always (always identity)) initial dict by initial" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (always (always identity)) initial dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by the given initial accumulator." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = initial
+"""
+                        ]
+        , test "should replace Dict.foldr (always (always identity)) initial by always initial" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (always (always identity)) initial
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` with the given initial accumulator." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always initial
+"""
+                        ]
+        , test "should replace Dict.foldr (always (always identity)) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (always (always identity))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldr (always (\\_ -> identity)) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (always (\\_ -> identity))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldr (\\_ -> (always identity)) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (\\_ -> (always identity))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldr (\\_ _ -> identity) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (\\_ _ -> identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        , test "should replace Dict.foldr (\\_ _ soFar -> soFar) by always" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (\\_ _ soFar -> soFar)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                            , details = [ "You can replace this call by `always` because the incoming accumulator will be returned, no matter which dict is supplied next." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = always
+"""
+                        ]
+        ]
 
 -- Cmd
 
