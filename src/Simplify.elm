@@ -9787,26 +9787,36 @@ emptiableFilterChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
-            case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
-                Determined True ->
-                    Just
-                        (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                            emptiable
-                            checkInfo
-                        )
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                Just constantFunctionResult ->
+                    filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
 
-                Determined False ->
-                    Just
-                        (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = emptiable.empty.asString }
-                            checkInfo
-                        )
-
-                Undetermined ->
+                Nothing ->
                     Nothing
         ]
+
+
+filterWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
+    case Evaluate.getBoolean checkInfo constantFunctionResult of
+        Determined True ->
+            Just
+                (alwaysReturnsLastArgError
+                    (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
+                    emptiable
+                    checkInfo
+                )
+
+        Determined False ->
+            Just
+                (alwaysResultsInUnparenthesizedConstantError
+                    (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
+                    { replacement = emptiable.empty.asString }
+                    checkInfo
+                )
+
+        Undetermined ->
+            Nothing
 
 
 {-| Filter checks where the function takes 2 arguments
@@ -9833,26 +9843,8 @@ emptiableFilterWithExtraArgChecks emptiable =
                         |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
             in
             case maybeFilterFunctionResult of
-                Just filterFunctionResult ->
-                    case Evaluate.getBoolean checkInfo filterFunctionResult of
-                        Determined True ->
-                            Just
-                                (alwaysReturnsLastArgError
-                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                                    emptiable
-                                    checkInfo
-                                )
-
-                        Determined False ->
-                            Just
-                                (alwaysResultsInUnparenthesizedConstantError
-                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                                    { replacement = emptiable.empty.asString }
-                                    checkInfo
-                                )
-
-                        Undetermined ->
-                            Nothing
+                Just constantFunctionResult ->
+                    filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
 
                 Nothing ->
                     Nothing
