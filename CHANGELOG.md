@@ -62,6 +62,8 @@
 - `Dict.filter (\_ _ -> True) dict` to `dict`
 - `Dict.filter (\_ _ -> False) dict` to `Dict.empty`
 - `Dict.remove k Dict.empty` to `Dict.empty`
+- `Dict.fold f initial Dict.empty` to `initial`
+- `Dict.fold (\_ soFar -> soFar) initial dict` to `initial`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

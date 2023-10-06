@@ -1017,6 +1017,12 @@ Destructuring using case expressions
     List.map Tuple.second (Dict.toList dict)
     --> Dict.values dict
 
+    Dict.fold f initial Dict.empty
+    --> initial
+
+    Dict.fold (\_ soFar -> soFar) initial dict
+    --> initial
+
 
 ### Cmd / Sub
 
@@ -2758,6 +2764,8 @@ functionCallChecks =
         , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
         , ( Fn.Dict.diff, ( 2, collectionDiffChecks dictCollection ) )
         , ( Fn.Dict.union, ( 2, collectionUnionChecks dictCollection ) )
+        , ( Fn.Dict.foldl, ( 3, dictFoldlChecks ) )
+        , ( Fn.Dict.foldr, ( 3, dictFoldrChecks ) )
         , ( Fn.String.toList, ( 1, stringToListChecks ) )
         , ( Fn.String.fromList, ( 1, stringFromListChecks ) )
         , ( Fn.String.isEmpty, ( 1, collectionIsEmptyChecks stringCollection ) )
@@ -7015,17 +7023,114 @@ setFoldrChecks =
     emptiableFoldChecks setCollection
 
 
-{-| The folding/reducing check
+{-| Folding/reducing checks with a reduce function that not only takes the current element but more information as an extra argument
 
     fold f initial empty --> initial
 
-so for example
+    fold (\_ _ soFar -> soFar) emptiable --> initial
 
-    List.Extra.indexedFoldl f initial empty --> initial
+which applies to for example
 
-    Graph.Tree.levelOrder f initial Graph.Tree.empty --> initial
+    Dict.foldl : (k -> v -> b -> b) -> b -> Dict.Dict k v -> b
+    Graph.Tree.levelOrder : (l -> Forest l -> b -> b) -> b -> Tree l -> b
 
-    Graph.fold f initial empty --> initial
+If your fold function does not have an extra arg, use `emptiableFoldChecks`.
+
+-}
+emptiableFoldChecks :
+    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableFoldChecks emptiable =
+    firstThatConstructsJust
+        [ foldToUnchangedAccumulatorCheck emptiable
+        , foldOnEmptyChecks emptiable
+        ]
+
+
+foldOnEmptyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
+foldOnEmptyChecks emptiable checkInfo =
+    case checkInfo.argsAfterFirst of
+        initialArg :: emptiableArg :: [] ->
+            if emptiable.empty.is checkInfo.lookupTable emptiableArg then
+                Just
+                    (returnsArgError
+                        (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
+                        { argRepresents = "initial accumulator"
+                        , arg = initialArg
+                        }
+                        checkInfo
+                    )
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorCheck typeProperties checkInfo =
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+        Just reduceAlwaysResult ->
+            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
+                let
+                    replacement : { description : String, fix : List Fix }
+                    replacement =
+                        case checkInfo.argsAfterFirst of
+                            -- fold (\_ -> identity)
+                            [] ->
+                                { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                                    ]
+                                }
+
+                            -- fold (\_ -> identity) initial
+                            _ :: [] ->
+                                { description = "`always` with the given initial accumulator"
+                                , fix =
+                                    [ Fix.replaceRangeBy
+                                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                                    ]
+                                }
+
+                            -- fully applied
+                            initialArg :: _ :: _ ->
+                                { description = "the given initial accumulator"
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                }
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                        , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        replacement.fix
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| The Folding/reducing checks
+
+    fold f initial empty
+    --> initial
+
+    fold (\_ soFar -> soFar) initial emptiable
+    --> initial
+
+which applies to for example
+
+    Graph.fold : (NodeContext n e -> b -> b) -> b -> Graph n e -> b
 
 but also functions like
 
@@ -7045,37 +7150,27 @@ Any other argument order is not supported:
     -- not simplified
 
 -}
-emptiableFoldChecks :
+emptiableFoldWithExtraArgChecks :
     TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
-emptiableFoldChecks emptiable =
+emptiableFoldWithExtraArgChecks emptiable =
     firstThatConstructsJust
-        [ foldToUnchangedAccumulatorCheck emptiable
-        , \checkInfo ->
-            case checkInfo.argsAfterFirst of
-                initialArg :: emptiableArg :: [] ->
-                    if emptiable.empty.is checkInfo.lookupTable emptiableArg then
-                        Just
-                            (returnsArgError
-                                (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
-                                { argRepresents = "initial accumulator"
-                                , arg = initialArg
-                                }
-                                checkInfo
-                            )
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
+        [ foldToUnchangedAccumulatorWithExtraArgCheck emptiable
+        , foldOnEmptyChecks emptiable
         ]
 
 
-foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
-foldToUnchangedAccumulatorCheck typeProperties checkInfo =
-    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+foldToUnchangedAccumulatorWithExtraArgCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
+    let
+        maybeReduceFunctionResult : Maybe (Node Expression)
+        maybeReduceFunctionResult =
+            checkInfo.firstArg
+                |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+    in
+    case maybeReduceFunctionResult of
         Just reduceAlwaysResult ->
             if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
                 let
@@ -7264,6 +7359,16 @@ dictMapChecks =
                 Nothing ->
                     Nothing
         ]
+
+
+dictFoldlChecks : CheckInfo -> Maybe (Error {})
+dictFoldlChecks =
+    emptiableFoldWithExtraArgChecks dictCollection
+
+
+dictFoldrChecks : CheckInfo -> Maybe (Error {})
+dictFoldrChecks =
+    emptiableFoldWithExtraArgChecks dictCollection
 
 
 subAndCmdBatchChecks :
