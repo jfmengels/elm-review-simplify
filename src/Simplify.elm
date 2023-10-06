@@ -1017,10 +1017,11 @@ Destructuring using case expressions
     List.map Tuple.second (Dict.toList dict)
     --> Dict.values dict
 
-    Dict.fold f initial Dict.empty
+    -- same for foldr
+    Dict.foldl f initial Dict.empty
     --> initial
 
-    Dict.fold (\_ soFar -> soFar) initial dict
+    Dict.foldl (\_ soFar -> soFar) initial dict
     --> initial
 
 
