@@ -9961,10 +9961,10 @@ a = List.filter (always True) x
 a = x
 """
                         ]
-        , test "should replace List.filter (\\x -> True) x by x" <|
+        , test "should replace List.filter (\\_ -> True) x by x" <|
             \() ->
                 """module A exposing (..)
-a = List.filter (\\x -> True) x
+a = List.filter (\\_ -> True) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -10041,10 +10041,10 @@ a = List.filter (always False) x
 a = []
 """
                         ]
-        , test "should replace List.filter (\\x -> False) x by []" <|
+        , test "should replace List.filter (\\_ -> False) x by []" <|
             \() ->
                 """module A exposing (..)
-a = List.filter (\\x -> False) x
+a = List.filter (\\_ -> False) x
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16487,11 +16487,11 @@ import Array
 a = array
 """
                         ]
-        , test "should replace Array.filter (\\x -> True) array by array" <|
+        , test "should replace Array.filter (\\_ -> True) array by array" <|
             \() ->
                 """module A exposing (..)
 import Array
-a = Array.filter (\\x -> True) array
+a = Array.filter (\\_ -> True) array
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -16577,11 +16577,11 @@ import Array
 a = Array.empty
 """
                         ]
-        , test "should replace Array.filter (\\x -> False) array by Array.empty" <|
+        , test "should replace Array.filter (\\_ -> False) array by Array.empty" <|
             \() ->
                 """module A exposing (..)
 import Array
-a = Array.filter (\\x -> False) array
+a = Array.filter (\\_ -> False) array
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -20676,11 +20676,11 @@ import Set
 a = set
 """
                         ]
-        , test "should replace Set.filter (\\x -> True) set by set" <|
+        , test "should replace Set.filter (\\_ -> True) set by set" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (\\x -> True) set
+a = Set.filter (\\_ -> True) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -20766,11 +20766,11 @@ import Set
 a = Set.empty
 """
                         ]
-        , test "should replace Set.filter (\\x -> False) set by Set.empty" <|
+        , test "should replace Set.filter (\\_ -> False) set by Set.empty" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.filter (\\x -> False) set
+a = Set.filter (\\_ -> False) set
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
