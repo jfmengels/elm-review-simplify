@@ -8721,7 +8721,7 @@ emptiableMapWithExtraArgChecks :
     -> Maybe (Error {})
 emptiableMapWithExtraArgChecks emptiable =
     firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck dictCollection
+        [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just alwaysResult ->
@@ -8729,7 +8729,7 @@ emptiableMapWithExtraArgChecks emptiable =
                         Just
                             (alwaysReturnsLastArgError
                                 (qualifiedToString checkInfo.fn ++ " with a function that maps to the unchanged value")
-                                dictCollection
+                                emptiable
                                 checkInfo
                             )
 
