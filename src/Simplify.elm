@@ -7340,25 +7340,7 @@ dictPartitionChecks =
 
 dictMapChecks : CheckInfo -> Maybe (Error {})
 dictMapChecks =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck dictCollection
-        , \checkInfo ->
-            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just alwaysResult ->
-                    if AstHelpers.isIdentity checkInfo.lookupTable alwaysResult then
-                        Just
-                            (alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with a function that maps to the unchanged value")
-                                dictCollection
-                                checkInfo
-                            )
-
-                    else
-                        Nothing
-
-                Nothing ->
-                    Nothing
-        ]
+    emptiableMapWithExtraArgChecks dictCollection
 
 
 dictFoldlChecks : CheckInfo -> Maybe (Error {})
@@ -8783,6 +8765,15 @@ subCollection =
     }
 
 
+{-| The map checks
+
+    map f empty --> empty
+
+    map identity emptiable --> emptiable
+
+If your mapping function also takes extra information like the key or index as an argument, use `emptiableMapWithExtraArgChecks`.
+
+-}
 emptiableMapChecks :
     TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
@@ -8809,6 +8800,41 @@ mapIdentityChecks mappable checkInfo =
 
     else
         Nothing
+
+
+{-| The map checks
+
+    map f empty --> empty
+
+    map (\_ v -> v) emptiable --> emptiable
+
+If your mapping function only takes one value as an argument, use `emptiableMapChecks`.
+
+-}
+emptiableMapWithExtraArgChecks :
+    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableMapWithExtraArgChecks emptiable =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck dictCollection
+        , \checkInfo ->
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                Just alwaysResult ->
+                    if AstHelpers.isIdentity checkInfo.lookupTable alwaysResult then
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with a function that maps to the unchanged value")
+                                dictCollection
+                                checkInfo
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+        ]
 
 
 wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
