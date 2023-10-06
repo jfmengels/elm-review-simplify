@@ -10860,6 +10860,54 @@ a = List.sum << List.singleton
 a = identity
 """
                         ]
+        , test "should replace List.sum [ a, 0, b ] by List.sum [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum [ b, 0, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sum on a list containing an irrelevant 0"
+                            , details = [ "Including 0 in the list does not change the result of this call. You can remove the 0 element." ]
+                            , under = "0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum [ b, c ]
+"""
+                        ]
+        , test "should replace List.sum [ a, 0 ] by List.sum [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum [ b, 0 ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sum on a list containing an irrelevant 0"
+                            , details = [ "Including 0 in the list does not change the result of this call. You can remove the 0 element." ]
+                            , under = "0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum [ b ]
+"""
+                        ]
+        , test "should replace List.sum [ 0, a ] by List.sum [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum [ 0, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sum on a list containing an irrelevant 0"
+                            , details = [ "Including 0 in the list does not change the result of this call. You can remove the 0 element." ]
+                            , under = "0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum [ b ]
+"""
+                        ]
         ]
 
 

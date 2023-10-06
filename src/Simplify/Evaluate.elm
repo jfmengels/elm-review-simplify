@@ -1,4 +1,4 @@
-module Simplify.Evaluate exposing (getBoolean, getInt, isAlwaysBoolean, isEqualToSomethingFunction)
+module Simplify.Evaluate exposing (getBoolean, getInt, getNumber, isAlwaysBoolean, isEqualToSomethingFunction)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -153,3 +153,31 @@ getInt resources baseNode =
 
         _ ->
             Nothing
+
+
+getNumber : Infer.Resources a -> Node Expression -> Maybe Float
+getNumber resources baseNode =
+    let
+        unparenthesized : Node Expression
+        unparenthesized =
+            AstHelpers.removeParens baseNode
+    in
+    case getInt resources unparenthesized of
+        Just int ->
+            Just (Basics.toFloat int)
+
+        Nothing ->
+            case unparenthesized of
+                Node variableRange (Expression.FunctionOrValue _ name) ->
+                    case
+                        ModuleNameLookupTable.moduleNameAt resources.lookupTable variableRange
+                            |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
+                    of
+                        Just (Expression.Floatable float) ->
+                            Just float
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
