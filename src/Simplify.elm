@@ -10162,7 +10162,7 @@ partitionOnEmptyChecks emptiable =
 
 partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 partitionWithConstantFunctionResult constantFunctionResult collection checkInfo =
-    case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
+    case Evaluate.getBoolean checkInfo constantFunctionResult of
         Determined True ->
             case secondArg checkInfo of
                 Just (Node listArgRange _) ->
