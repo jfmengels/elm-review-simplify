@@ -715,7 +715,7 @@ Destructuring using case expressions
     --> ( [], list )
 
     Tuple.first (List.partition f list)
-    --> List.filter f
+    --> List.filter f list
 
     List.take 0 list
     --> []
@@ -945,7 +945,7 @@ Destructuring using case expressions
     --> ( set, Set.empty )
 
     Tuple.first (Set.partition f set)
-    --> Set.filter f
+    --> Set.filter f set
 
     -- The following simplifications for Set.foldl also work for Set.foldr
     Set.foldl f initial Set.empty
@@ -1018,7 +1018,7 @@ Destructuring using case expressions
     --> ( Dict.empty, dict )
 
     Tuple.first (Dict.partition f dict)
-    --> Dict.filter f
+    --> Dict.filter f dict
 
     List.map Tuple.first (Dict.toList dict)
     --> Dict.keys dict
