@@ -66,6 +66,7 @@
 - `Dict.foldl (\_ soFar -> soFar) initial dict` to `initial` (same for `Dict.foldr`)
 - `Tuple.first (List.partition f list)` to `List.filter f list` (same for `Set.partition` and `Dict.partition`)
 - `List.sum [ a, 0, b ]` to `List.sum [ a, b ]`
+- `List.product [ a, 1, b ]` to `List.product [ a, b ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

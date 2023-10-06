@@ -635,6 +635,9 @@ Destructuring using case expressions
     List.product [ a ]
     --> a
 
+    List.product [ a, 1, b ]
+    --> List.product [ a, b ]
+
     List.minimum []
     --> Nothing
 
@@ -5685,6 +5688,7 @@ listProductChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
+        , callOnListWithIrrelevantEmptyElement multiplicativeNumberProperties
         ]
 
 
@@ -8129,11 +8133,26 @@ additiveNumberProperties =
     }
 
 
+multiplicativeNumberProperties : TypeProperties (EmptiableProperties ConstantProperties {})
+multiplicativeNumberProperties =
+    { represents = "number"
+    , empty = number1Constant
+    }
+
+
 number0Constant : ConstantProperties
 number0Constant =
     { description = Constant "0"
     , is = \res expr -> Evaluate.getNumber res expr == Just 0
     , asString = \_ -> "0"
+    }
+
+
+number1Constant : ConstantProperties
+number1Constant =
+    { description = Constant "1"
+    , is = \res expr -> Evaluate.getNumber res expr == Just 1
+    , asString = \_ -> "1"
     }
 
 
