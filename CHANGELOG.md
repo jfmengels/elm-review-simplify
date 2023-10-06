@@ -64,6 +64,7 @@
 - `Dict.remove k Dict.empty` to `Dict.empty`
 - `Dict.foldl f initial Dict.empty` to `initial` (same for `Dict.foldr`)
 - `Dict.foldl (\_ soFar -> soFar) initial dict` to `initial` (same for `Dict.foldr`)
+- `Tuple.first (List.partition f list)` to `List.filter` (same for `Set.partition` and `Dict.partition`)
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
