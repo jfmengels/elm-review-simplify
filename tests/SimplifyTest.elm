@@ -10978,6 +10978,54 @@ a = List.product << List.singleton
 a = identity
 """
                         ]
+        , test "should replace List.product [ a, 1, b ] by List.product [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ b, 1, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list containing an irrelevant 1"
+                            , details = [ "Including 1 in the list does not change the result of this call. You can remove the 1 element." ]
+                            , under = "1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product [ b, c ]
+"""
+                        ]
+        , test "should replace List.product [ a, 1 ] by List.product [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ b, 1 ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list containing an irrelevant 1"
+                            , details = [ "Including 1 in the list does not change the result of this call. You can remove the 1 element." ]
+                            , under = "1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product [ b ]
+"""
+                        ]
+        , test "should replace List.product [ 1, a ] by List.product [ a ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ 1, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list containing an irrelevant 1"
+                            , details = [ "Including 1 in the list does not change the result of this call. You can remove the 1 element." ]
+                            , under = "1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product [ b ]
+"""
+                        ]
         ]
 
 
