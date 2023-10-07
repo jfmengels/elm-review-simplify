@@ -705,6 +705,9 @@ Destructuring using case expressions
     List.all identity [ a, False, b ]
     --> False
 
+    List.all not [ a, True, b ]
+    --> False
+
     List.any f []
     --> True
 
@@ -712,6 +715,9 @@ Destructuring using case expressions
     --> False
 
     List.any identity [ a, True, b ]
+    --> True
+
+    List.any not [ a, False, b ]
     --> True
 
     List.any ((==) x) list
@@ -5976,12 +5982,7 @@ listAllChecks : CheckInfo -> Maybe (Error {})
 listAllChecks =
     firstThatConstructsJust
         [ emptiableAllChecks listCollection
-        , \checkInfo ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                onIndexableWithAbsorbingChecks ( listCollection, boolForAndProperties ) checkInfo
-
-            else
-                Nothing
+        , indexableAllChecks listCollection
         ]
 
 
@@ -6043,16 +6044,49 @@ emptiableAllChecks emptiable =
         ]
 
 
+indexableAllChecks : TypeProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+indexableAllChecks indexable =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                onIndexableWithAbsorbingChecks ( listCollection, boolForAndProperties ) checkInfo
+
+            else
+                Nothing
+        , \checkInfo ->
+            case AstHelpers.getSpecificValueOrFn Fn.Basics.not checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+                        Just elements ->
+                            if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements then
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with True will result in False"
+                                        , details =
+                                            [ "You can replace this call by False." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy checkInfo.parentRange
+                                            (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                                        ]
+                                    )
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        ]
+
+
 listAnyChecks : CheckInfo -> Maybe (Error {})
 listAnyChecks =
     firstThatConstructsJust
         [ emptiableAnyChecks listCollection
-        , \checkInfo ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                onIndexableWithAbsorbingChecks ( listCollection, boolForOrProperties ) checkInfo
-
-            else
-                Nothing
+        , indexableAnyChecks listCollection
         , \checkInfo ->
             case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
                 Nothing ->
@@ -6094,6 +6128,44 @@ emptiableAnyChecks emptiable =
                         )
 
                 _ ->
+                    Nothing
+        ]
+
+
+indexableAnyChecks : TypeProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+indexableAnyChecks indexable =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                onIndexableWithAbsorbingChecks ( indexable, boolForOrProperties ) checkInfo
+
+            else
+                Nothing
+        , \checkInfo ->
+            case AstHelpers.getSpecificValueOrFn Fn.Basics.not checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+                        Just elements ->
+                            if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements then
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with False will result in True"
+                                        , details =
+                                            [ "You can replace this call by True." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy checkInfo.parentRange
+                                            (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                                        ]
+                                    )
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
                     Nothing
         ]
 

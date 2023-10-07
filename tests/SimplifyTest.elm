@@ -13352,14 +13352,14 @@ a = List.all (always True)
 a = always True
 """
                         ]
-        , test "should not report List.all on list with False but non-identity function" <|
+        , test "should not report List.all on list with False but non-identity and non-not function" <|
             \() ->
                 """module A exposing (..)
 a = List.all f [ b, False, c ]
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report List.all on list with True and not False" <|
+        , test "should not report List.all identity on list with True and not False" <|
             \() ->
                 """module A exposing (..)
 a = List.all identity [ b, True, c ]
@@ -13375,6 +13375,29 @@ a = List.all identity [ b, False, c ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.all on a list with False will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not report List.all not on list with False and no True" <|
+            \() ->
+                """module A exposing (..)
+a = List.all not [ b, False, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.all not [ a, True, b ] by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.all not [ b, True, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with `not` on a list with True will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.all"
                             }
@@ -13498,14 +13521,14 @@ a = List.any (\\z -> x == y)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report List.any on list with True but non-identity function" <|
+        , test "should not report List.any on list with True but non-identity and non-not function" <|
             \() ->
                 """module A exposing (..)
 a = List.any f [ b, True, c ]
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report List.any on list with False and not True" <|
+        , test "should not report List.any identity on list with False and not True" <|
             \() ->
                 """module A exposing (..)
 a = List.any identity [ b, False, c ]
@@ -13521,6 +13544,29 @@ a = List.any identity [ b, True, c ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.any on a list with True will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should not report List.any not on list with True and no False" <|
+            \() ->
+                """module A exposing (..)
+a = List.any not [ b, True, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.any not [ a, False, b ] by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.any not [ b, False, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with `not` on a list with False will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.any"
                             }

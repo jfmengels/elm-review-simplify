@@ -72,6 +72,8 @@
 - `List.sum [ a, 0 / 0, b ]` to `0 / 0` when [`expectNaN`] is enabled
 - `List.all identity [ a, False, b ]` to `False`
 - `List.any identity [ a, True, b ]` to `True`
+- `List.all not [ a, True, b ]` to `False`
+- `List.any not [ a, False, b ]` to `True`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
