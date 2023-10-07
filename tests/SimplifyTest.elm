@@ -11058,6 +11058,77 @@ a = List.product [ 1, b ]
 a = List.product [ b ]
 """
                         ]
+        , test "should replace List.product [ a, 0, b ] by 0" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ a, 0, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list with 0 will result in 0"
+                            , details = [ "You can replace this call by 0." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace List.product (a :: 0 :: bs) by 0" <|
+            \() ->
+                """module A exposing (..)
+a = List.product (a :: 0 :: bs)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list with 0 will result in 0"
+                            , details = [ "You can replace this call by 0." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0
+"""
+                        ]
+        , test "should replace List.product [ a, 0.0, b ] by 0.0" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ a, 0.0, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list with 0 will result in 0"
+                            , details = [ "You can replace this call by 0." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0.0
+"""
+                        ]
+        , test "should not report List.product [ a, 0.0, 0, b ] when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ a, 0.0, 0, b ]
+"""
+                    |> Review.Test.run (rule (defaults |> Simplify.expectNaN))
+                    |> Review.Test.expectNoErrors
+        , test "should replace [ a, 0 / 0.0, b ] |> List.product by (0 / 0.0) when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = [ a, 0 / 0.0, b ] |> List.product
+"""
+                    |> Review.Test.run (rule (defaults |> Simplify.expectNaN))
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list with NaN will result in NaN"
+                            , details = [ "You can replace this call by (0 / 0)." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (0 / 0.0)
+"""
+                        ]
         ]
 
 

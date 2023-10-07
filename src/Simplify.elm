@@ -638,6 +638,14 @@ Destructuring using case expressions
     List.product [ a, 1, b ]
     --> List.product [ a, b ]
 
+    --  when `expectNaN` is not enabled
+    List.product [ a, 0, b ]
+    --> 0
+
+    -- when `expectNaN` is enabled
+    List.product [ a, 0 / 0, b ]
+    --> 0 / 0
+
     List.minimum []
     --> Nothing
 
@@ -5100,6 +5108,47 @@ findConsecutiveListLiterals firstListElement restOfListElements =
             []
 
 
+{-| Replace a call on a list containing an absorbing element to the absorbing element.
+See `AbsorbableProperties` for details.
+
+    operation ..args.. [ a, absorbing, b ]
+    --> absorbing
+
+For example
+
+    List.all identity [ a, False, b ]
+    --> False
+
+    List.any identity [ a, True, b ]
+    --> True
+
+    -- when `expectNaN` is not enabled
+    List.product [ a, 0, b ]
+    --> 0
+
+-}
+callOnListWithAbsorbingElement : AbsorbableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+callOnListWithAbsorbingElement absorbable checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just listArg ->
+            case findMap (getAbsorbingExpressionNode absorbable checkInfo) (listKnownElements checkInfo.lookupTable listArg) of
+                Just firstAbsorbingElement ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on a list with " ++ descriptionForIndefinite absorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite absorbable.absorbing.description
+                            , details = [ "You can replace this call by " ++ absorbable.absorbing.asString defaultQualifyResources ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceBySubExpressionFix checkInfo.parentRange firstAbsorbingElement)
+                        )
+
+                _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
 listConcatMapChecks : CheckInfo -> Maybe (Error {})
 listConcatMapChecks =
     firstThatConstructsJust
@@ -5689,6 +5738,12 @@ listProductChecks =
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
         , callOnListWithIrrelevantEmptyElement multiplicativeNumberProperties
+        , \checkInfo ->
+            if checkInfo.expectNaN then
+                callOnListWithAbsorbingElement multiplicativeNumberProperties checkInfo
+
+            else
+                callOnListWithAbsorbingElement multiplicativeNumberNotExpectingNaNProperties checkInfo
         ]
 
 
@@ -7998,6 +8053,61 @@ type alias CollectionProperties otherProperties =
     }
 
 
+{-| Properties of a type that under specific operations has a constant element that "annihilates"
+all others, which means any application with one such element results in that element:
+
+    a && False
+    --> False
+
+    False && a
+    --> False
+
+    List.all identity [ a, False, b ]
+    --> False
+
+    a || True
+    --> True
+
+    List.any identity [ a, True, b ]
+    --> True
+
+    Set.intersection Set.empty set
+    --> Set.empty
+
+    Set.intersection set Set.empty
+    --> Set.empty
+
+Even NaN falls into this category with +, \*, min, max:
+
+    10 10 * Basics.max 10 (0 / 0) + 10
+    --> 0 / 0 (NaN)
+
+    10 + Basics.min 10 (0 / 0) * 10
+    --> 0 / 0
+
+And some properties only hold when `expectNaN` is not enabled, e.g.
+
+    10 * 0
+    --> 0
+
+    List.product [ a, 0, b ]
+    --> 0
+
+    Basics.max a (1 / 0)
+    --> 1 / 0 (Infinity)
+
+    List.maximum [ a, 1 / 0, b ]
+    --> 1 / 0
+
+More info: <https://en.wikipedia.org/wiki/Absorbing_element>
+
+-}
+type alias AbsorbableProperties otherProperties =
+    { otherProperties
+        | absorbing : ConstantProperties
+    }
+
+
 {-| Common properties of a specific set of values for a type.
 
 Examples:
@@ -8049,6 +8159,15 @@ getEmptyExpressionNode :
     -> Maybe (Node Expression)
 getEmptyExpressionNode resources emptiable expressionNode =
     if emptiable.empty.is (extractInferResources resources) expressionNode then
+        Just expressionNode
+
+    else
+        Nothing
+
+
+getAbsorbingExpressionNode : AbsorbableProperties otherProperties -> Infer.Resources res -> Node Expression -> Maybe (Node Expression)
+getAbsorbingExpressionNode absorbable inferResources expressionNode =
+    if absorbable.absorbing.is (extractInferResources inferResources) expressionNode then
         Just expressionNode
 
     else
@@ -8133,10 +8252,43 @@ additiveNumberProperties =
     }
 
 
-multiplicativeNumberProperties : TypeProperties (EmptiableProperties ConstantProperties {})
+{-| Be aware that in elm, 0 is not absorbing for `(*)` (see `AbsorbableProperties`) because NaN can "overwrite" it.
+
+    0 * (0 / 0)
+    --> 0 / 0 (NaN)
+
+In fact, NaN _is_ an absorbing element for `(*)`.
+If `expectingNaN` is not enabled, use `multiplicativeNumberNotExpectingNaNProperties`.
+
+-}
+multiplicativeNumberProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 multiplicativeNumberProperties =
     { represents = "number"
     , empty = number1Constant
+    , absorbing = numberNaNConstant
+    }
+
+
+{-| If `expectingNaN` is enabled, 0 is not absorbing for `(*)` (see `AbsorbableProperties`) because NaN can "overwrite" it.
+
+    0 * (0 / 0)
+    --> 0 / 0 (NaN)
+
+If that's the case, use `multiplicativeNumberProperties`.
+
+Not having `expectingNaN` enabled however, 0 _is_ absorbing, so we can now simplify e.g.
+
+    List.product [ a, 0, b ]
+    --> 0
+
+(see `callOnListWithAbsorbingElement`)
+
+-}
+multiplicativeNumberNotExpectingNaNProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
+multiplicativeNumberNotExpectingNaNProperties =
+    { represents = "number"
+    , empty = number1Constant
+    , absorbing = number0Constant
     }
 
 
@@ -8153,6 +8305,22 @@ number1Constant =
     { description = Constant "1"
     , is = \res expr -> Evaluate.getNumber res expr == Just 1
     , asString = \_ -> "1"
+    }
+
+
+numberNaNConstant : ConstantProperties
+numberNaNConstant =
+    { description = Constant "NaN"
+    , is =
+        \res expr ->
+            case AstHelpers.removeParens expr of
+                Node _ (Expression.OperatorApplication "/" _ dividend divisor) ->
+                    (Evaluate.getNumber res dividend == Just 0)
+                        && (Evaluate.getNumber res divisor == Just 0)
+
+                _ ->
+                    False
+    , asString = \_ -> "(0 / 0)"
     }
 
 
