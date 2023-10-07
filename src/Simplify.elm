@@ -197,6 +197,9 @@ Destructuring using case expressions
     f >> always x
     --> always x
 
+    toFloat 1
+    --> 1
+
 
 ### Lambdas
 
@@ -2719,6 +2722,7 @@ functionCallChecks =
         , ( Fn.Basics.always, ( 2, basicsAlwaysChecks ) )
         , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
         , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
+        , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
         , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
         , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
         , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
@@ -4105,6 +4109,26 @@ isNegatableOperator op =
             Just "=="
 
         _ ->
+            Nothing
+
+
+basicsToFloatChecks : CheckInfo -> Maybe (Error {})
+basicsToFloatChecks checkInfo =
+    case Evaluate.getNumber checkInfo checkInfo.firstArg of
+        Just _ ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a literal number"
+                    , details =
+                        [ "A literal integers is considered as both an Int and a Float, there is therefore no need to explicitly convert it to a Float."
+                        , "You can replace this function call by the literal number."
+                        ]
+                    }
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                )
+
+        Nothing ->
             Nothing
 
 

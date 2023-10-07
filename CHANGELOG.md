@@ -78,6 +78,7 @@
 - `List.any not [ a, True, b ]` to `List.any not [ a, b ]`
 - `List.all identity [ a, True, b ]` to `List.all identity [ a, b ]`
 - `List.all not [ a, False, b ]` to `List.all not [ a, b ]`
+- `toFloat 1` to `1`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

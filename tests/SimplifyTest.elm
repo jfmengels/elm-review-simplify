@@ -14,6 +14,7 @@ all =
         , lambdaReduceTests
         , identityTests
         , alwaysTests
+        , toFloatTests
         , booleanTests
         , caseOfTests
         , booleanCaseOfTests
@@ -1033,6 +1034,77 @@ a = always g << f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always g
+"""
+                        ]
+        ]
+
+
+toFloatTests : Test
+toFloatTests =
+    describe "Basics.toFloat"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a = toFloat
+b = toFloat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify toFloat 1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = toFloat 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary toFloat on a literal number"
+                            , details =
+                                [ "A literal integers is considered as both an Int and a Float, there is therefore no need to explicitly convert it to a Float."
+                                , "You can replace this function call by the literal number."
+                                ]
+                            , under = "toFloat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should simplify toFloat -1 to -1" <|
+            \() ->
+                """module A exposing (..)
+a = toFloat -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary toFloat on a literal number"
+                            , details =
+                                [ "A literal integers is considered as both an Int and a Float, there is therefore no need to explicitly convert it to a Float."
+                                , "You can replace this function call by the literal number."
+                                ]
+                            , under = "toFloat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = -1
+"""
+                        ]
+        , test "should simplify toFloat 0x1 to 0x1" <|
+            \() ->
+                """module A exposing (..)
+a = toFloat 0x1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary toFloat on a literal number"
+                            , details =
+                                [ "A literal integers is considered as both an Int and a Float, there is therefore no need to explicitly convert it to a Float."
+                                , "You can replace this function call by the literal number."
+                                ]
+                            , under = "toFloat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0x1
 """
                         ]
         ]
