@@ -702,6 +702,9 @@ Destructuring using case expressions
     List.all (always True) list
     --> True
 
+    List.all identity [ a, False, b ]
+    --> False
+
     List.any f []
     --> True
 
@@ -5968,7 +5971,52 @@ foldAndSetToListCompositionChecks checkInfo =
 
 listAllChecks : CheckInfo -> Maybe (Error {})
 listAllChecks =
-    emptiableAllChecks listCollection
+    firstThatConstructsJust
+        [ emptiableAllChecks listCollection
+        , \checkInfo ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                onIndexableWithAbsorbingChecks ( listCollection, boolForAndProperties ) checkInfo
+
+            else
+                Nothing
+        ]
+
+
+{-| The all check
+
+    all identity (indexable containing absorbing)
+    --> absorbing
+
+So for example with `onIndexableWithAbsorbingChecks ( listCollection, boolForAndProperties )`
+
+    List.all identity [ a, False, b ]
+    --> False
+
+-}
+onIndexableWithAbsorbingChecks :
+    ( TypeProperties (IndexableProperties otherProperties), AbsorbableProperties elementOtherProperties )
+    -> CheckInfo
+    -> Maybe (Error {})
+onIndexableWithAbsorbingChecks ( indexable, elementAbsorbable ) checkInfo =
+    case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+        Just elements ->
+            case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements of
+                Just absorbingElement ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on a " ++ indexable.represents ++ " with " ++ descriptionForIndefinite elementAbsorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite elementAbsorbable.absorbing.description
+                            , details =
+                                [ "You can replace this call by " ++ elementAbsorbable.absorbing.asString defaultQualifyResources ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceBySubExpressionFix checkInfo.parentRange absorbingElement)
+                        )
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 emptiableAllChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
@@ -8544,7 +8592,7 @@ jsonDecoderFailingConstruct =
     }
 
 
-listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) }))))
+listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (IndexableProperties (FromListProperties { mapFn : ( ModuleName, String ) })))))
 listCollection =
     { represents = "list"
     , empty = listEmptyConstant
@@ -8554,6 +8602,7 @@ listCollection =
         }
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
+    , literalElements = \_ expr -> AstHelpers.getListLiteral expr
     , fromListLiteral =
         { description = "list literal"
         , getListRange = \_ expr -> AstHelpers.getListLiteralRange expr

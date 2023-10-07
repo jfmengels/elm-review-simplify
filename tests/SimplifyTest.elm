@@ -13352,6 +13352,36 @@ a = List.all (always True)
 a = always True
 """
                         ]
+        , test "should not report List.all on list with False but non-identity function" <|
+            \() ->
+                """module A exposing (..)
+a = List.all f [ b, False, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.all on list with True and not False" <|
+            \() ->
+                """module A exposing (..)
+a = List.all identity [ b, True, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.all identity [ a, False, b ] by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.all identity [ b, False, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all on a list with False will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]
 
 

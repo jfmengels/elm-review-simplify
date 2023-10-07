@@ -70,6 +70,7 @@
 - `List.product [ a, 0, b ]` to `0` when [`expectNaN`] is not enabled
 - `List.product [ a, 0 / 0, b ]` to `0 / 0` when [`expectNaN`] is enabled
 - `List.sum [ a, 0 / 0, b ]` to `0 / 0` when [`expectNaN`] is enabled
+- `List.all identity [ a, False, b ]` to `False`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
