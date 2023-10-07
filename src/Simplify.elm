@@ -8055,10 +8055,10 @@ all others, which means any application with one such element results in that el
 
 Even NaN falls into this category with +, \*, min, max:
 
-    10 10 * Basics.max 10 (0 / 0) + 10
+    10 * Basics.max 10 (0 / 0) + 10
     --> 0 / 0 (NaN)
 
-    10 + Basics.min 10 (0 / 0) * 10
+    10 - Basics.min 10 (0 / 0) * 10
     --> 0 / 0
 
 And some properties only hold when `expectNaN` is not enabled, e.g.
@@ -8073,7 +8073,7 @@ And some properties only hold when `expectNaN` is not enabled, e.g.
     --> 1 / 0 (Infinity)
 
     List.maximum [ a, 1 / 0, b ]
-    --> 1 / 0
+    --> Just (1 / 0)
 
 More info: <https://en.wikipedia.org/wiki/Absorbing_element>
 
