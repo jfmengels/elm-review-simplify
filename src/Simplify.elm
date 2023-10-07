@@ -5747,10 +5747,10 @@ listProductChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
-        , callOnListWithIrrelevantEmptyElement multiplicativeNumberProperties
+        , callOnListWithIrrelevantEmptyElement numberForMultiplyProperties
         , \checkInfo ->
             if checkInfo.expectNaN then
-                callOnListWithAbsorbingElement multiplicativeNumberProperties checkInfo
+                callOnListWithAbsorbingElement numberForMultiplyProperties checkInfo
 
             else
                 callOnListWithAbsorbingElement multiplicativeNumberNotExpectingNaNProperties checkInfo
@@ -8272,8 +8272,8 @@ In fact, NaN _is_ an absorbing element for `(*)`.
 If `expectingNaN` is not enabled, use `multiplicativeNumberNotExpectingNaNProperties`.
 
 -}
-multiplicativeNumberProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
-multiplicativeNumberProperties =
+numberForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
+numberForMultiplyProperties =
     { represents = "number"
     , empty = number1Constant
     , absorbing = numberNaNConstant
@@ -8285,7 +8285,7 @@ multiplicativeNumberProperties =
     0 * (0 / 0)
     --> 0 / 0 (NaN)
 
-If that's the case, use `multiplicativeNumberProperties`.
+If that's the case, use `numberForMultiplyProperties`.
 
 Not having `expectingNaN` enabled however, 0 _is_ absorbing, so we can now simplify e.g.
 
