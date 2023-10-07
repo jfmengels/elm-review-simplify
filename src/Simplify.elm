@@ -4104,6 +4104,50 @@ orChecks =
         ]
 
 
+andChecks : OperatorCheckInfo -> Maybe (Error {})
+andChecks =
+    firstThatConstructsJust
+        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptyBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
+        , \checkInfo -> findMap (\side -> operationWithAbsorbingBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
+        , findSimilarConditionsError
+        ]
+
+
+unnecessaryOperationWithEmptyBoolSideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+unnecessaryOperationWithEmptyBoolSideChecks forOperationProperties side checkInfo =
+    if forOperationProperties.empty.is (extractInferResources checkInfo) side.node then
+        Just
+            (Rule.errorWithFix
+                { message = "Unnecessary check for " ++ checkInfo.operator ++ " " ++ descriptionForIndefinite forOperationProperties.empty.description
+                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ forOperationProperties.represents ++ "." ]
+                }
+                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
+            )
+
+    else
+        Nothing
+
+
+operationWithAbsorbingBoolSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+operationWithAbsorbingBoolSideChecks forOperationProperties side checkInfo =
+    if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
+        Just
+            (Rule.errorWithFix
+                { message = "(" ++ checkInfo.operator ++ ") with any side being " ++ descriptionForIndefinite forOperationProperties.absorbing.description ++ " will result in " ++ descriptionForIndefinite forOperationProperties.absorbing.description
+                , details =
+                    [ "You can replace this operation by " ++ forOperationProperties.absorbing.asString defaultQualifyResources ++ "."
+                    , "Maybe you have hardcoded a value or mistyped a condition?"
+                    ]
+                }
+                checkInfo.parentRange
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
+            )
+
+    else
+        Nothing
+
+
 type RedundantConditionResolution
     = RemoveFrom Location
     | ReplaceByNoop Bool
@@ -4212,50 +4256,6 @@ listConditions operatorToLookFor redundantConditionResolution expressionNode =
 
         _ ->
             [ ( redundantConditionResolution, expressionNode ) ]
-
-
-andChecks : OperatorCheckInfo -> Maybe (Error {})
-andChecks =
-    firstThatConstructsJust
-        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptyBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
-        , \checkInfo -> findMap (\side -> operationWithAbsorbingBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
-        , findSimilarConditionsError
-        ]
-
-
-unnecessaryOperationWithEmptyBoolSideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
-unnecessaryOperationWithEmptyBoolSideChecks forOperationProperties side checkInfo =
-    if forOperationProperties.empty.is (extractInferResources checkInfo) side.node then
-        Just
-            (Rule.errorWithFix
-                { message = "Unnecessary check for " ++ checkInfo.operator ++ " " ++ descriptionForIndefinite forOperationProperties.empty.description
-                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ forOperationProperties.represents ++ "." ]
-                }
-                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
-            )
-
-    else
-        Nothing
-
-
-operationWithAbsorbingBoolSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
-operationWithAbsorbingBoolSideChecks forOperationProperties side checkInfo =
-    if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
-        Just
-            (Rule.errorWithFix
-                { message = "(" ++ checkInfo.operator ++ ") with any side being " ++ descriptionForIndefinite forOperationProperties.absorbing.description ++ " will result in " ++ descriptionForIndefinite forOperationProperties.absorbing.description
-                , details =
-                    [ "You can replace this operation by " ++ forOperationProperties.absorbing.asString defaultQualifyResources ++ "."
-                    , "Maybe you have hardcoded a value or mistyped a condition?"
-                    ]
-                }
-                checkInfo.parentRange
-                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
-            )
-
-    else
-        Nothing
 
 
 
