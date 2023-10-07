@@ -13374,7 +13374,7 @@ a = List.all identity [ b, False, c ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.all on a list with False will result in False"
+                            { message = "List.all with an identity function on a list with False will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "List.all"
                             }
@@ -13543,7 +13543,7 @@ a = List.any identity [ b, True, c ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.any on a list with True will result in True"
+                            { message = "List.any with an identity function on a list with True will result in True"
                             , details = [ "You can replace this call by True." ]
                             , under = "List.any"
                             }
