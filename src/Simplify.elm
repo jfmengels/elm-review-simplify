@@ -5727,10 +5727,10 @@ listSumChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
-        , callOnListWithIrrelevantEmptyElement additiveNumberProperties
+        , callOnListWithIrrelevantEmptyElement numberForAddProperties
         , \checkInfo ->
             if checkInfo.expectNaN then
-                callOnListWithAbsorbingElement additiveNumberProperties checkInfo
+                callOnListWithAbsorbingElement numberForAddProperties checkInfo
 
             else
                 Nothing
@@ -8255,8 +8255,8 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-additiveNumberProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
-additiveNumberProperties =
+numberForAddProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
+numberForAddProperties =
     { represents = "number"
     , empty = number0Constant
     , absorbing = numberNaNConstant
