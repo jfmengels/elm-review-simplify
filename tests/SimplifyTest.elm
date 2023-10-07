@@ -10924,6 +10924,22 @@ a = List.sum [ 0, b ]
 a = List.sum [ b ]
 """
                         ]
+        , test "should replace [ a, 0 / 0.0, b ] |> List.sum by (0 / 0.0) when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = [ a, 0 / 0.0, b ] |> List.sum
+"""
+                    |> Review.Test.run (rule (defaults |> Simplify.expectNaN))
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sum on a list with NaN will result in NaN"
+                            , details = [ "You can replace this call by (0 / 0)." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (0 / 0.0)
+"""
+                        ]
         ]
 
 
