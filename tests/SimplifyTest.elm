@@ -10876,6 +10876,22 @@ a = List.sum [ b, 0, c ]
 a = List.sum [ b, c ]
 """
                         ]
+        , test "should replace List.sum [ a, 0.0, b ] by List.sum [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum [ b, 0.0, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sum on a list containing an irrelevant 0"
+                            , details = [ "Including 0 in the list does not change the result of this call. You can remove the 0 element." ]
+                            , under = "0.0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum [ b, c ]
+"""
+                        ]
         , test "should replace List.sum [ a, 0 ] by List.sum [ a ]" <|
             \() ->
                 """module A exposing (..)
@@ -10989,6 +11005,22 @@ a = List.product [ b, 1, c ]
                             { message = "List.product on a list containing an irrelevant 1"
                             , details = [ "Including 1 in the list does not change the result of this call. You can remove the 1 element." ]
                             , under = "1"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product [ b, c ]
+"""
+                        ]
+        , test "should replace List.product [ a, 1.0, b ] by List.product [ a, b ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.product [ b, 1.0, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.product on a list containing an irrelevant 1"
+                            , details = [ "Including 1 in the list does not change the result of this call. You can remove the 1 element." ]
+                            , under = "1.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.product [ b, c ]
