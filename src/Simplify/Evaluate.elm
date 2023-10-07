@@ -168,6 +168,9 @@ getNumber resources baseNode =
 
         Nothing ->
             case unparenthesized of
+                Node _ (Expression.Floatable float) ->
+                    Just float
+
                 Node variableRange (Expression.FunctionOrValue _ name) ->
                     case
                         ModuleNameLookupTable.moduleNameAt resources.lookupTable variableRange
