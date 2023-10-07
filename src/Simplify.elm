@@ -5998,17 +5998,18 @@ So for example with `onIndexableWithAbsorbingChecks ( listCollection, boolForAnd
 
 -}
 onIndexableWithAbsorbingChecks :
-    ( TypeProperties (IndexableProperties otherProperties), AbsorbableProperties elementOtherProperties )
+    String
+    -> ( TypeProperties (IndexableProperties otherProperties), AbsorbableProperties elementOtherProperties )
     -> CheckInfo
     -> Maybe (Error {})
-onIndexableWithAbsorbingChecks ( indexable, elementAbsorbable ) checkInfo =
+onIndexableWithAbsorbingChecks situation ( indexable, elementAbsorbable ) checkInfo =
     case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
         Just elements ->
             case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements of
                 Just absorbingElement ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on a " ++ indexable.represents ++ " with " ++ descriptionForIndefinite elementAbsorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite elementAbsorbable.absorbing.description
+                            { message = situation ++ " on a " ++ indexable.represents ++ " with " ++ descriptionForIndefinite elementAbsorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite elementAbsorbable.absorbing.description
                             , details =
                                 [ "You can replace this call by " ++ elementAbsorbable.absorbing.asString defaultQualifyResources ++ "." ]
                             }
@@ -6049,7 +6050,9 @@ indexableAllChecks indexable =
     firstThatConstructsJust
         [ \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                onIndexableWithAbsorbingChecks ( listCollection, boolForAndProperties ) checkInfo
+                onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                    ( listCollection, boolForAndProperties )
+                    checkInfo
 
             else
                 Nothing
@@ -6137,7 +6140,9 @@ indexableAnyChecks indexable =
     firstThatConstructsJust
         [ \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                onIndexableWithAbsorbingChecks ( indexable, boolForOrProperties ) checkInfo
+                onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                    ( indexable, boolForOrProperties )
+                    checkInfo
 
             else
                 Nothing
