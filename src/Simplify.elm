@@ -8268,7 +8268,7 @@ numberForAddProperties =
     0 * (0 / 0)
     --> 0 / 0 (NaN)
 
-In fact, NaN _is_ an absorbing element for `(*)`.
+In fact, NaN is an absorbing element for `(*)`.
 If `expectingNaN` is not enabled, use `numberNotExpectingNaNForMultiplyProperties`.
 
 -}
