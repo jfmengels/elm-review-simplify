@@ -4098,8 +4098,8 @@ isNegatableOperator op =
 orChecks : OperatorCheckInfo -> Maybe (Error {})
 orChecks =
     firstThatConstructsJust
-        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptyBoolSideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
-        , \checkInfo -> findMap (\side -> operationWithAbsorbingBoolSideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
+        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptySideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
+        , \checkInfo -> findMap (\side -> operationWithAbsorbingSideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
@@ -4107,14 +4107,14 @@ orChecks =
 andChecks : OperatorCheckInfo -> Maybe (Error {})
 andChecks =
     firstThatConstructsJust
-        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptyBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
-        , \checkInfo -> findMap (\side -> operationWithAbsorbingBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
+        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptySideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
+        , \checkInfo -> findMap (\side -> operationWithAbsorbingSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
 
-unnecessaryOperationWithEmptyBoolSideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
-unnecessaryOperationWithEmptyBoolSideChecks forOperationProperties side checkInfo =
+unnecessaryOperationWithEmptySideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+unnecessaryOperationWithEmptySideChecks forOperationProperties side checkInfo =
     if forOperationProperties.empty.is (extractInferResources checkInfo) side.node then
         Just
             (Rule.errorWithFix
@@ -4129,8 +4129,8 @@ unnecessaryOperationWithEmptyBoolSideChecks forOperationProperties side checkInf
         Nothing
 
 
-operationWithAbsorbingBoolSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
-operationWithAbsorbingBoolSideChecks forOperationProperties side checkInfo =
+operationWithAbsorbingSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+operationWithAbsorbingSideChecks forOperationProperties side checkInfo =
     if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
         Just
             (Rule.errorWithFix
