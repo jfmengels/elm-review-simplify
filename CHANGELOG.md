@@ -82,6 +82,7 @@ Bug fixes:
 - Fixed an issue where `List.intersperse << List.singleton` would be fixed to `List.singleton`
 - Fixed an issue where e.g. `List.sortBy f << g` would be fixed to `g`
 - Fixed an issue where `Dict.partition (always (always True/False)) dict` would not be reported
+- Fixed an issue where `List.filterMap f [ a, Nothing, b ]` would be fixed to `List.filterMap f [ a, b ]`
 
 ## [2.1.2] - 2023-09-28
 
