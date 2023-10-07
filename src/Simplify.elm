@@ -4118,7 +4118,7 @@ unnecessaryOperationWithEmptySideChecks forOperationProperties side checkInfo =
     if forOperationProperties.empty.is (extractInferResources checkInfo) side.node then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary check for " ++ checkInfo.operator ++ " " ++ descriptionForIndefinite forOperationProperties.empty.description
+                { message = "Unnecessary " ++ checkInfo.operator ++ " " ++ descriptionForIndefinite forOperationProperties.empty.description
                 , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ forOperationProperties.represents ++ "." ]
                 }
                 (Range.combine [ checkInfo.operatorRange, Node.range side.node ])

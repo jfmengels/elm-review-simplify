@@ -1114,7 +1114,7 @@ a = False || x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary check for || False"
+                            { message = "Unnecessary || False"
                             , details = [ "You can replace this operation by the right bool." ]
                             , under = "False ||"
                             }
@@ -1130,7 +1130,7 @@ a = x || False
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary check for || False"
+                            { message = "Unnecessary || False"
                             , details = [ "You can replace this operation by the left bool." ]
                             , under = "|| False"
                             }
@@ -1146,7 +1146,7 @@ a = x || (False)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary check for || False"
+                            { message = "Unnecessary || False"
                             , details = [ "You can replace this operation by the left bool." ]
                             , under = "|| (False)"
                             }
@@ -1342,7 +1342,7 @@ a = True && x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary check for && True"
+                            { message = "Unnecessary && True"
                             , details = [ "You can replace this operation by the right bool." ]
                             , under = "True &&"
                             }
@@ -1358,7 +1358,7 @@ a = x && True
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary check for && True"
+                            { message = "Unnecessary && True"
                             , details = [ "You can replace this operation by the left bool." ]
                             , under = "&& True"
                             }
@@ -4428,7 +4428,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary check for && True"
+                            { message = "Unnecessary && True"
                             , details = [ "You can replace this operation by the right bool." ]
                             , under = "x &&"
                             }
