@@ -10486,6 +10486,13 @@ a = List.map f >> List.filterMap identity
 a = List.filterMap f
 """
                         ]
+        , test "should not report List.filterMap f [ a, Nothing, b ] with f not being an identity function" <|
+            \() ->
+                """module A exposing (..)
+a = List.filterMap f [ a, Nothing, b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace List.filterMap identity [ a, Nothing, b ] by List.filterMap identity [ a, b ]" <|
             \() ->
                 """module A exposing (..)
@@ -10494,7 +10501,7 @@ a = List.filterMap identity [ a, Nothing, b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.filterMap on a list containing an irrelevant Nothing"
+                            { message = "List.filterMap with an identity function on a list containing an irrelevant Nothing"
                             , details = [ "Including Nothing in the list does not change the result of this call. You can remove the Nothing element." ]
                             , under = "Nothing"
                             }
