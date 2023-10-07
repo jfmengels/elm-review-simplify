@@ -711,6 +711,9 @@ Destructuring using case expressions
     List.any (always False) list
     --> False
 
+    List.any identity [ a, True, b ]
+    --> True
+
     List.any ((==) x) list
     --> List.member x list
 
@@ -6044,6 +6047,12 @@ listAnyChecks : CheckInfo -> Maybe (Error {})
 listAnyChecks =
     firstThatConstructsJust
         [ emptiableAnyChecks listCollection
+        , \checkInfo ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                onIndexableWithAbsorbingChecks ( listCollection, boolForOrProperties ) checkInfo
+
+            else
+                Nothing
         , \checkInfo ->
             case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
                 Nothing ->

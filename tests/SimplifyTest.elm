@@ -13498,6 +13498,36 @@ a = List.any (\\z -> x == y)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report List.any on list with True but non-identity function" <|
+            \() ->
+                """module A exposing (..)
+a = List.any f [ b, True, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.any on list with False and not True" <|
+            \() ->
+                """module A exposing (..)
+a = List.any identity [ b, False, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.any identity [ a, True, b ] by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.any identity [ b, True, c ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any on a list with True will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
 
 
