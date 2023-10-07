@@ -5753,7 +5753,7 @@ listProductChecks =
                 callOnListWithAbsorbingElement numberForMultiplyProperties checkInfo
 
             else
-                callOnListWithAbsorbingElement multiplicativeNumberNotExpectingNaNProperties checkInfo
+                callOnListWithAbsorbingElement numberNotExpectingNaNForMultiplyProperties checkInfo
         ]
 
 
@@ -8269,7 +8269,7 @@ numberForAddProperties =
     --> 0 / 0 (NaN)
 
 In fact, NaN _is_ an absorbing element for `(*)`.
-If `expectingNaN` is not enabled, use `multiplicativeNumberNotExpectingNaNProperties`.
+If `expectingNaN` is not enabled, use `numberNotExpectingNaNForMultiplyProperties`.
 
 -}
 numberForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
@@ -8295,8 +8295,8 @@ Not having `expectingNaN` enabled however, 0 _is_ absorbing, so we can now simpl
 (see `callOnListWithAbsorbingElement`)
 
 -}
-multiplicativeNumberNotExpectingNaNProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
-multiplicativeNumberNotExpectingNaNProperties =
+numberNotExpectingNaNForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
+numberNotExpectingNaNForMultiplyProperties =
     { represents = "number"
     , empty = number1Constant
     , absorbing = number0Constant
