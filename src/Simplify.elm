@@ -4098,7 +4098,8 @@ isNegatableOperator op =
 orChecks : OperatorCheckInfo -> Maybe (Error {})
 orChecks =
     firstThatConstructsJust
-        [ \checkInfo -> findMap (\side -> orSideChecks side checkInfo) (operationSides checkInfo)
+        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptyBoolSideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
+        , \checkInfo -> findMap (\side -> operationWithAbsorbingBoolSideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
@@ -4211,36 +4212,6 @@ listConditions operatorToLookFor redundantConditionResolution expressionNode =
 
         _ ->
             [ ( redundantConditionResolution, expressionNode ) ]
-
-
-orSideChecks : { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
-orSideChecks side checkInfo =
-    case Evaluate.getBoolean checkInfo side.node of
-        Determined True ->
-            Just
-                (Rule.errorWithFix
-                    { message = "(||) with any side being True will result in True"
-                    , details =
-                        [ "You can replace this operation by True."
-                        , "Maybe you have hardcoded a value or mistyped a condition?"
-                        ]
-                    }
-                    checkInfo.parentRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
-                )
-
-        Determined False ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Unnecessary check for || False"
-                    , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " bool." ]
-                    }
-                    (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
-                )
-
-        Undetermined ->
-            Nothing
 
 
 andChecks : OperatorCheckInfo -> Maybe (Error {})
@@ -8266,6 +8237,14 @@ boolForAndProperties =
     { represents = "bool"
     , empty = boolTrueConstant
     , absorbing = boolFalseConstant
+    }
+
+
+boolForOrProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
+boolForOrProperties =
+    { represents = "bool"
+    , empty = boolFalseConstant
+    , absorbing = boolTrueConstant
     }
 
 
