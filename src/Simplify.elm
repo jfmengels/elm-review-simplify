@@ -3225,22 +3225,13 @@ checkIfMinusResultsInZero checkInfo =
 
 
 multiplyChecks : OperatorCheckInfo -> Maybe (Error {})
-multiplyChecks checkInfo =
-    findMap
-        (\side ->
-            case AstHelpers.getUncomputedNumberValue side.node of
-                Just number ->
-                    if number == 1 then
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Unnecessary multiplying by 1"
-                                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " number you multiplied by 1." ]
-                                }
-                                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
-                            )
-
-                    else if number == 0 then
+multiplyChecks =
+    firstThatConstructsJust
+        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptySideChecks numberForMultiplyProperties side checkInfo) (operationSides checkInfo)
+        , \checkInfo ->
+            findMap
+                (\side ->
+                    if numberNotExpectingNaNForMultiplyProperties.absorbing.is (extractInferResources checkInfo) side.node then
                         Just
                             (Rule.errorWithFix
                                 { message = "Multiplication by 0 should be replaced"
@@ -3264,11 +3255,9 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
 
                     else
                         Nothing
-
-                Nothing ->
-                    Nothing
-        )
-        (operationSides checkInfo)
+                )
+                (operationSides checkInfo)
+        ]
 
 
 operationSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression, otherDescription : String }
