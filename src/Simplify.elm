@@ -4246,39 +4246,45 @@ orSideChecks side checkInfo =
 andChecks : OperatorCheckInfo -> Maybe (Error {})
 andChecks =
     firstThatConstructsJust
-        [ \checkInfo -> findMap (\side -> andSideChecks side checkInfo) (operationSides checkInfo)
+        [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptyBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
+        , \checkInfo -> findMap (\side -> operationWithAbsorbingBoolSideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
         , findSimilarConditionsError
         ]
 
 
-andSideChecks : { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
-andSideChecks side checkInfo =
-    case Evaluate.getBoolean checkInfo side.node of
-        Determined True ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Unnecessary check for && True"
-                    , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " bool." ]
-                    }
-                    (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
-                )
+unnecessaryOperationWithEmptyBoolSideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+unnecessaryOperationWithEmptyBoolSideChecks forOperationProperties side checkInfo =
+    if forOperationProperties.empty.is (extractInferResources checkInfo) side.node then
+        Just
+            (Rule.errorWithFix
+                { message = "Unnecessary check for " ++ checkInfo.operator ++ " " ++ descriptionForIndefinite forOperationProperties.empty.description
+                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ forOperationProperties.represents ++ "." ]
+                }
+                (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.otherNode })
+            )
 
-        Determined False ->
-            Just
-                (Rule.errorWithFix
-                    { message = "(&&) with any side being False will result in False"
-                    , details =
-                        [ "You can replace this operation by False."
-                        , "Maybe you have hardcoded a value or mistyped a condition?"
-                        ]
-                    }
-                    checkInfo.parentRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
-                )
+    else
+        Nothing
 
-        Undetermined ->
-            Nothing
+
+operationWithAbsorbingBoolSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+operationWithAbsorbingBoolSideChecks forOperationProperties side checkInfo =
+    if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
+        Just
+            (Rule.errorWithFix
+                { message = "(" ++ checkInfo.operator ++ ") with any side being " ++ descriptionForIndefinite forOperationProperties.absorbing.description ++ " will result in " ++ descriptionForIndefinite forOperationProperties.absorbing.description
+                , details =
+                    [ "You can replace this operation by " ++ forOperationProperties.absorbing.asString defaultQualifyResources ++ "."
+                    , "Maybe you have hardcoded a value or mistyped a condition?"
+                    ]
+                }
+                checkInfo.parentRange
+                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node })
+            )
+
+    else
+        Nothing
 
 
 
@@ -8253,6 +8259,30 @@ extractInferResources resources =
 emptyAsString : QualifyResources a -> EmptiableProperties ConstantProperties otherProperties -> String
 emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
+
+
+boolForAndProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
+boolForAndProperties =
+    { represents = "bool"
+    , empty = boolTrueConstant
+    , absorbing = boolFalseConstant
+    }
+
+
+boolTrueConstant : ConstantProperties
+boolTrueConstant =
+    { description = Constant "True"
+    , is = \res expr -> Evaluate.getBoolean res expr == Determined True
+    , asString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res)
+    }
+
+
+boolFalseConstant : ConstantProperties
+boolFalseConstant =
+    { description = Constant "False"
+    , is = \res expr -> Evaluate.getBoolean res expr == Determined False
+    , asString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res)
+    }
 
 
 numberForAddProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
