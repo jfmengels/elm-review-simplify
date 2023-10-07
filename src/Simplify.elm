@@ -4983,7 +4983,7 @@ listConcatChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck listCollection
         , callOnWrapReturnsItsValueCheck listCollection
-        , callOnListWithIrrelevantEmptyElement listCollection
+        , callOnIndexableWithIrrelevantEmptyElement ( listCollection, listCollection )
         , \checkInfo ->
             case Node.value checkInfo.firstArg of
                 Expression.ListExpr list ->
@@ -5042,21 +5042,21 @@ listConcatCompositionChecks =
         ]
 
 
-callOnListWithIrrelevantEmptyElement :
-    EmptiableProperties (TypeSubsetProperties empty) otherProperties
+callOnIndexableWithIrrelevantEmptyElement :
+    ( TypeProperties (IndexableProperties otherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
     -> CheckInfo
     -> Maybe (Error {})
-callOnListWithIrrelevantEmptyElement emptiableElement checkInfo =
+callOnIndexableWithIrrelevantEmptyElement ( indexable, emptiableElement ) checkInfo =
     case fullyAppliedLastArg checkInfo of
-        Just listArg ->
-            case AstHelpers.getListLiteral listArg of
-                Just list ->
-                    case findMapNeighboring (getEmpty checkInfo emptiableElement) list of
+        Just indexableArg ->
+            case indexable.literalElements checkInfo.lookupTable indexableArg of
+                Just elements ->
+                    case findMapNeighboring (getEmpty checkInfo emptiableElement) elements of
                         Just emptyLiteralAndNeighbors ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a list containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
-                                    , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the list does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
+                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a " ++ indexable.represents ++ " containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
+                                    , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the " ++ indexable.represents ++ " does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
                                     }
                                     emptyLiteralAndNeighbors.found.range
                                     (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
@@ -5705,7 +5705,7 @@ listSumChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
-        , callOnListWithIrrelevantEmptyElement numberForAddProperties
+        , callOnIndexableWithIrrelevantEmptyElement ( listCollection, numberForAddProperties )
         , \checkInfo ->
             if checkInfo.expectNaN then
                 callOnListWithAbsorbingElement numberForAddProperties checkInfo
@@ -5725,7 +5725,7 @@ listProductChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
-        , callOnListWithIrrelevantEmptyElement numberForMultiplyProperties
+        , callOnIndexableWithIrrelevantEmptyElement ( listCollection, numberForMultiplyProperties )
         , \checkInfo ->
             if checkInfo.expectNaN then
                 callOnListWithAbsorbingElement numberForMultiplyProperties checkInfo
@@ -6178,7 +6178,7 @@ indexableAnyChecks indexable =
 listFilterMapChecks : CheckInfo -> Maybe (Error {})
 listFilterMapChecks =
     firstThatConstructsJust
-        [ callOnListWithIrrelevantEmptyElement maybeWithJustAsWrap
+        [ callOnIndexableWithIrrelevantEmptyElement ( listCollection, maybeWithJustAsWrap )
         , emptiableWrapperFilterMapChecks listCollection
         , \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
@@ -7464,7 +7464,7 @@ subAndCmdBatchChecks batchable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
-        , callOnListWithIrrelevantEmptyElement batchable
+        , callOnIndexableWithIrrelevantEmptyElement ( listCollection, batchable )
         ]
 
 
