@@ -629,6 +629,10 @@ Destructuring using case expressions
     List.sum [ a, 0, b ]
     --> List.sum [ a, b ]
 
+    -- when `expectNaN` is enabled
+    List.sum [ a, 0 / 0, b ]
+    --> 0 / 0
+
     List.product []
     --> 1
 
@@ -5724,6 +5728,12 @@ listSumChecks =
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
         , callOnListWithIrrelevantEmptyElement additiveNumberProperties
+        , \checkInfo ->
+            if checkInfo.expectNaN then
+                callOnListWithAbsorbingElement additiveNumberProperties checkInfo
+
+            else
+                Nothing
         ]
 
 
@@ -8245,10 +8255,11 @@ emptyAsString qualifyResources emptiable =
     emptiable.empty.asString (extractQualifyResources qualifyResources)
 
 
-additiveNumberProperties : TypeProperties (EmptiableProperties ConstantProperties {})
+additiveNumberProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 additiveNumberProperties =
     { represents = "number"
     , empty = number0Constant
+    , absorbing = numberNaNConstant
     }
 
 
