@@ -4158,13 +4158,13 @@ basicsToFloatChecks checkInfo =
 intToIntChecks : CheckInfo -> Maybe (Error {})
 intToIntChecks =
     firstThatConstructsJust
-        [ intToIntCheck
+        [ unnecessaryConversionToIntOnIntCheck
         , onCallToInverseReturnsItsArgumentCheck Fn.Basics.toFloat
         ]
 
 
-intToIntCheck : CheckInfo -> Maybe (Error {})
-intToIntCheck checkInfo =
+unnecessaryConversionToIntOnIntCheck : CheckInfo -> Maybe (Error {})
+unnecessaryConversionToIntOnIntCheck checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just _ ->
             Just
