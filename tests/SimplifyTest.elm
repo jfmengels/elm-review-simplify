@@ -18,6 +18,7 @@ all =
         , roundTests
         , ceilingTests
         , floorTests
+        , truncateTests
         , booleanTests
         , caseOfTests
         , booleanCaseOfTests
@@ -1414,6 +1415,109 @@ a = floor << toFloat
                             { message = "Basics.toFloat, then Basics.floor cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "floor"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        ]
+
+
+truncateTests : Test
+truncateTests =
+    describe "Basics.truncate"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a = truncate
+b = truncate n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify truncate 1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = truncate 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "truncate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should simplify truncate -1 to -1" <|
+            \() ->
+                """module A exposing (..)
+a = truncate -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "truncate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = -1
+"""
+                        ]
+        , test "should simplify truncate 0x1 to 0x1" <|
+            \() ->
+                """module A exposing (..)
+a = truncate 0x1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "truncate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0x1
+"""
+                        ]
+        , test "should simplify truncate <| toFloat <| n to n" <|
+            \() ->
+                """module A exposing (..)
+a = truncate <| toFloat <| n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.toFloat, then Basics.truncate cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.toFloat." ]
+                            , under = "truncate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify truncate << toFloat to identity" <|
+            \() ->
+                """module A exposing (..)
+a = truncate << toFloat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.toFloat, then Basics.truncate cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "truncate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
