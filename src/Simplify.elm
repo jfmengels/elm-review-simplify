@@ -4137,7 +4137,7 @@ isNegatableOperator op =
 
 basicsToFloatChecks : CheckInfo -> Maybe (Error {})
 basicsToFloatChecks checkInfo =
-    case Evaluate.getNumber checkInfo checkInfo.firstArg of
+    case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just _ ->
             Just
                 (Rule.errorWithFix

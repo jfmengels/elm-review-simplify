@@ -1111,6 +1111,13 @@ a = toFloat 0x1
 a = 0x1
 """
                         ]
+        , test "should not report toFloat 1.2" <|
+            \() ->
+                """module A exposing (..)
+a = toFloat 1.2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
