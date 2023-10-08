@@ -4171,7 +4171,7 @@ intToIntCheck checkInfo =
                 (Rule.errorWithFix
                     { message = "Unnecessary integer conversion on a literal integer"
                     , details =
-                        [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                        [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                         , "You can replace this function call by the literal integer."
                         ]
                     }
