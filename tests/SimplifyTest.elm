@@ -13366,13 +13366,22 @@ a = List.all f [ b, False, c ]
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report List.all identity on list with True and not False" <|
+        , test "should replace List.all identity [ a, True, b ] by List.all identity [ a, b ]" <|
             \() ->
                 """module A exposing (..)
 a = List.all identity [ b, True, c ]
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with an identity function on a list containing an irrelevant True"
+                            , details = [ "Including True in the list does not change the result of this call. You can remove the True element." ]
+                            , under = "True"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity [ b, c ]
+"""
+                        ]
         , test "should replace List.all identity [ a, False, b ] by False" <|
             \() ->
                 """module A exposing (..)
@@ -13389,13 +13398,22 @@ a = List.all identity [ b, False, c ]
 a = False
 """
                         ]
-        , test "should not report List.all not on list with False and no True" <|
+        , test "should replace List.all not [ a, False, b ] by List.all not [ a, b ]" <|
             \() ->
                 """module A exposing (..)
 a = List.all not [ b, False, c ]
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with `not` on a list containing an irrelevant False"
+                            , details = [ "Including False in the list does not change the result of this call. You can remove the False element." ]
+                            , under = "False"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all not [ b, c ]
+"""
+                        ]
         , test "should replace List.all not [ a, True, b ] by False" <|
             \() ->
                 """module A exposing (..)
@@ -13535,13 +13553,22 @@ a = List.any f [ b, True, c ]
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report List.any identity on list with False and not True" <|
+        , test "should replace List.any identity [ a, False, b ] and by List.any identity [ a, b ]" <|
             \() ->
                 """module A exposing (..)
 a = List.any identity [ b, False, c ]
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with an identity function on a list containing an irrelevant False"
+                            , details = [ "Including False in the list does not change the result of this call. You can remove the False element." ]
+                            , under = "False"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.any identity [ b, c ]
+"""
+                        ]
         , test "should replace List.any identity [ a, True, b ] by True" <|
             \() ->
                 """module A exposing (..)
@@ -13558,13 +13585,22 @@ a = List.any identity [ b, True, c ]
 a = True
 """
                         ]
-        , test "should not report List.any not on list with True and no False" <|
+        , test "should replace List.any not [ a, True, b ] by List.any not [ a, b ]" <|
             \() ->
                 """module A exposing (..)
 a = List.any not [ b, True, c ]
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with `not` on a list containing an irrelevant True"
+                            , details = [ "Including True in the list does not change the result of this call. You can remove the True element." ]
+                            , under = "True"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.any not [ b, c ]
+"""
+                        ]
         , test "should replace List.any not [ a, False, b ] by True" <|
             \() ->
                 """module A exposing (..)
