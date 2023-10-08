@@ -81,7 +81,8 @@
 - `toFloat 1` to `1`
 - `round 1` to `1`
 - `ceiling 1` to `1`
-- `round (toFloat n)` to `n` (and same for ceiling)
+- `floor 1` to `1`
+- `round (toFloat n)` to `n` (and same for ceiling, floor)
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

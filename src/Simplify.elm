@@ -206,7 +206,10 @@ Destructuring using case expressions
     ceiling 1
     --> 1
 
-    round (toFloat n) -- same for ceiling
+    floor 1
+    --> 1
+
+    round (toFloat n) -- same for ceiling, floor
     --> n
 
 
@@ -2734,6 +2737,7 @@ functionCallChecks =
         , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
         , ( Fn.Basics.round, ( 1, intToIntChecks ) )
         , ( Fn.Basics.ceiling, ( 1, intToIntChecks ) )
+        , ( Fn.Basics.floor, ( 1, intToIntChecks ) )
         , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
         , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
         , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
@@ -3038,6 +3042,7 @@ compositionIntoChecks =
         , ( Fn.Basics.not, ( 1, toggleCompositionChecks ) )
         , ( Fn.Basics.round, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
         , ( Fn.Basics.ceiling, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
+        , ( Fn.Basics.floor, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
         , ( Fn.Basics.negate, ( 1, toggleCompositionChecks ) )
         , ( Fn.String.reverse, ( 1, stringReverseCompositionChecks ) )
         , ( Fn.String.fromList, ( 1, stringFromListCompositionChecks ) )
