@@ -5071,7 +5071,7 @@ listConcatChecks =
         [ unnecessaryCallOnEmptyCheck listCollection
         , callOnWrapReturnsItsValueCheck listCollection
         , \checkInfo ->
-            callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
+            callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                 ( listCollection, listCollection )
                 checkInfo
         , \checkInfo ->
@@ -5132,22 +5132,22 @@ listConcatCompositionChecks =
         ]
 
 
-callOnIndexableWithIrrelevantEmptyElement :
+callOnFromListWithIrrelevantEmptyElement :
     String
-    -> ( TypeProperties (IndexableProperties otherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
+    -> ( TypeProperties (FromListProperties otherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
     -> CheckInfo
     -> Maybe (Error {})
-callOnIndexableWithIrrelevantEmptyElement situation ( indexable, emptiableElement ) checkInfo =
+callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, emptiableElement ) checkInfo =
     case fullyAppliedLastArg checkInfo of
-        Just indexableArg ->
-            case indexable.literalElements checkInfo.lookupTable indexableArg of
-                Just elements ->
-                    case findMapNeighboring (getEmpty checkInfo emptiableElement) elements of
+        Just collectionArg ->
+            case fromListGetLiteral constructibleFromList checkInfo.lookupTable collectionArg of
+                Just listLiteral ->
+                    case findMapNeighboring (getEmpty checkInfo emptiableElement) listLiteral.elements of
                         Just emptyLiteralAndNeighbors ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = situation ++ " on a " ++ indexable.represents ++ " containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
-                                    , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the " ++ indexable.represents ++ " does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
+                                    { message = situation ++ " on a " ++ constructibleFromList.represents ++ " containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
+                                    , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the " ++ constructibleFromList.represents ++ " does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
                                     }
                                     emptyLiteralAndNeighbors.found.range
                                     (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
@@ -5179,47 +5179,6 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
         _ ->
             []
-
-
-{-| Replace a call on a list containing an absorbing element to the absorbing element.
-See `AbsorbableProperties` for details.
-
-    operation ..args.. [ a, absorbing, b ]
-    --> absorbing
-
-For example
-
-    List.all identity [ a, False, b ]
-    --> False
-
-    List.any identity [ a, True, b ]
-    --> True
-
-    -- when `expectNaN` is not enabled
-    List.product [ a, 0, b ]
-    --> 0
-
--}
-callOnListWithAbsorbingElement : AbsorbableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-callOnListWithAbsorbingElement absorbable checkInfo =
-    case fullyAppliedLastArg checkInfo of
-        Just listArg ->
-            case findMap (getAbsorbingExpressionNode absorbable checkInfo) (listKnownElements checkInfo.lookupTable listArg) of
-                Just firstAbsorbingElement ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on a list with " ++ descriptionForIndefinite absorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite absorbable.absorbing.description
-                            , details = [ "You can replace this call by " ++ absorbable.absorbing.asString defaultQualifyResources ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange firstAbsorbingElement)
-                        )
-
-                _ ->
-                    Nothing
-
-        Nothing ->
-            Nothing
 
 
 listConcatMapChecks : CheckInfo -> Maybe (Error {})
@@ -5690,105 +5649,95 @@ listMemberChecks =
         [ callOnEmptyReturnsCheck
             { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
             listCollection
-        , \checkInfo ->
-            case secondArg checkInfo of
-                Just listArg ->
-                    let
-                        needleArg : Node Expression
-                        needleArg =
-                            checkInfo.firstArg
-
-                        needleRange : Range
-                        needleRange =
-                            Node.range needleArg
-                    in
-                    firstThatConstructsJust
-                        [ \() ->
-                            if checkInfo.expectNaN then
-                                Nothing
-
-                            else
-                                let
-                                    needleArgNormalized : Node Expression
-                                    needleArgNormalized =
-                                        Normalize.normalize checkInfo needleArg
-
-                                    isNeedle : Node Expression -> Bool
-                                    isNeedle element =
-                                        Normalize.compareWithoutNormalization
-                                            (Normalize.normalize checkInfo element)
-                                            needleArgNormalized
-                                            == Normalize.ConfirmedEquality
-                                in
-                                if List.any isNeedle (listKnownElements checkInfo.lookupTable listArg) then
-                                    Just
-                                        (resultsInConstantError
-                                            (qualifiedToString checkInfo.fn ++ " on a list which contains the given element")
-                                            (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
-                                            checkInfo
-                                        )
-
-                                else
-                                    Nothing
-                        , \() ->
-                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                                Just single ->
-                                    let
-                                        elementRange : Range
-                                        elementRange =
-                                            Node.range single.element
-                                    in
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " on an list with a single element is the same as directly checking for equality"
-                                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (List.concat
-                                                [ keepOnlyFix
-                                                    { parentRange = checkInfo.parentRange
-                                                    , keep = Range.combine [ needleRange, elementRange ]
-                                                    }
-                                                , [ Fix.replaceRangeBy
-                                                        (rangeBetweenExclusive ( needleRange, elementRange ))
-                                                        " == "
-                                                  ]
-                                                , parenthesizeIfNeededFix single.element
-                                                ]
-                                            )
-                                        )
-
-                                Nothing ->
-                                    Nothing
-                        ]
-                        ()
-
-                Nothing ->
-                    Nothing
+        , knownMemberChecks listCollection
+        , wrapperMemberChecks listCollection
         ]
 
 
-listKnownElements : ModuleNameLookupTable -> Node Expression -> List (Node Expression)
-listKnownElements lookupTable expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.ListExpr (el0 :: el1 :: el2Up) ->
-            el0 :: el1 :: el2Up
+wrapperMemberChecks : TypeProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperMemberChecks wrapper checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just wrapperArg ->
+            case wrapper.wrap.getValue checkInfo.lookupTable wrapperArg of
+                Just wrapValue ->
+                    let
+                        needleArgRange : Range
+                        needleArgRange =
+                            Node.range checkInfo.firstArg
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " are equal." ]
+                            }
+                            checkInfo.fnRange
+                            (List.concat
+                                [ keepOnlyFix
+                                    { parentRange = checkInfo.parentRange
+                                    , keep = Range.combine [ needleArgRange, Node.range wrapValue ]
+                                    }
+                                , [ Fix.replaceRangeBy
+                                        (rangeBetweenExclusive ( needleArgRange, Node.range wrapValue ))
+                                        " == "
+                                  ]
+                                , parenthesizeIfNeededFix wrapValue
+                                ]
+                            )
+                        )
 
-        Expression.OperatorApplication "::" _ head tail ->
-            case AstHelpers.getCollapsedCons tail of
                 Nothing ->
-                    [ head ]
+                    Nothing
 
-                Just collapsedCons ->
-                    head :: collapsedCons.consed
+        Nothing ->
+            Nothing
 
-        _ ->
-            case AstHelpers.getListSingleton lookupTable expressionNode of
-                Nothing ->
-                    []
 
-                Just singletonList ->
-                    [ singletonList.element ]
+knownMemberChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+knownMemberChecks collection checkInfo =
+    if checkInfo.expectNaN then
+        Nothing
+
+    else
+        case fullyAppliedLastArg checkInfo of
+            Just collectionArg ->
+                case collection.elements.get (extractInferResources checkInfo) collectionArg of
+                    Just collectionElements ->
+                        let
+                            needleArg : Node Expression
+                            needleArg =
+                                checkInfo.firstArg
+
+                            needleRange : Range
+                            needleRange =
+                                Node.range needleArg
+
+                            needleArgNormalized : Node Expression
+                            needleArgNormalized =
+                                Normalize.normalize checkInfo needleArg
+
+                            isNeedle : Node Expression -> Bool
+                            isNeedle element =
+                                Normalize.compareWithoutNormalization
+                                    (Normalize.normalize checkInfo element)
+                                    needleArgNormalized
+                                    == Normalize.ConfirmedEquality
+                        in
+                        if List.any isNeedle collectionElements.known then
+                            Just
+                                (resultsInConstantError
+                                    (qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " which contains the given element")
+                                    (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
+
+                    Nothing ->
+                        Nothing
+
+            Nothing ->
+                Nothing
 
 
 listSumChecks : CheckInfo -> Maybe (Error {})
@@ -5797,12 +5746,14 @@ listSumChecks =
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
         , \checkInfo ->
-            callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
+            callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                 ( listCollection, numberForAddProperties )
                 checkInfo
         , \checkInfo ->
             if checkInfo.expectNaN then
-                callOnListWithAbsorbingElement numberForAddProperties checkInfo
+                onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn)
+                    ( listCollection, numberForAddProperties )
+                    checkInfo
 
             else
                 Nothing
@@ -5820,15 +5771,19 @@ listProductChecks =
         [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
         , \checkInfo ->
-            callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
+            callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                 ( listCollection, numberForMultiplyProperties )
                 checkInfo
         , \checkInfo ->
             if checkInfo.expectNaN then
-                callOnListWithAbsorbingElement numberForMultiplyProperties checkInfo
+                onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn)
+                    ( listCollection, numberForMultiplyProperties )
+                    checkInfo
 
             else
-                callOnListWithAbsorbingElement numberNotExpectingNaNForMultiplyProperties checkInfo
+                onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn)
+                    ( listCollection, numberNotExpectingNaNForMultiplyProperties )
+                    checkInfo
         ]
 
 
@@ -6079,34 +6034,40 @@ listAllChecks : CheckInfo -> Maybe (Error {})
 listAllChecks =
     firstThatConstructsJust
         [ emptiableAllChecks listCollection
-        , indexableAllChecks listCollection
+        , collectionAllChecks listCollection
         ]
 
 
-{-| The all check
+{-| Replace a call on a collection containing an absorbing element to the absorbing element.
+See `AbsorbableProperties` for details.
 
-    all identity (indexable containing absorbing)
+    operation ..args.. (collection containing absorbing)
     --> absorbing
 
-So for example with `onIndexableWithAbsorbingChecks ( listCollection, boolForAndProperties )`
+So for example with `( listCollection, boolForAndProperties )`
+
+    List.product [ a, 0, b ]
+    --> 0
+
+with `( listCollection, numberNotExpectingNaNForMultiplyProperties )` and a check for identity
 
     List.all identity [ a, False, b ]
     --> False
 
 -}
-onIndexableWithAbsorbingChecks :
+onCollectionWithAbsorbingChecks :
     String
-    -> ( TypeProperties (IndexableProperties otherProperties), AbsorbableProperties elementOtherProperties )
+    -> ( TypeProperties (CollectionProperties otherProperties), AbsorbableProperties elementOtherProperties )
     -> CheckInfo
     -> Maybe (Error {})
-onIndexableWithAbsorbingChecks situation ( indexable, elementAbsorbable ) checkInfo =
-    case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+onCollectionWithAbsorbingChecks situation ( collection, elementAbsorbable ) checkInfo =
+    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
         Just elements ->
-            case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements of
+            case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements.known of
                 Just absorbingElement ->
                     Just
                         (Rule.errorWithFix
-                            { message = situation ++ " on a " ++ indexable.represents ++ " with " ++ descriptionForIndefinite elementAbsorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite elementAbsorbable.absorbing.description
+                            { message = situation ++ " on a " ++ collection.represents ++ " with " ++ descriptionForIndefinite elementAbsorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite elementAbsorbable.absorbing.description
                             , details =
                                 [ "You can replace this call by " ++ elementAbsorbable.absorbing.asString defaultQualifyResources ++ "." ]
                             }
@@ -6142,19 +6103,19 @@ emptiableAllChecks emptiable =
         ]
 
 
-indexableAllChecks : TypeProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-indexableAllChecks indexable =
+collectionAllChecks : TypeProperties (CollectionProperties (FromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionAllChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 firstThatConstructsJust
                     [ \() ->
-                        onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
-                            ( indexable, boolForAndProperties )
+                        onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( collection, boolForAndProperties )
                             checkInfo
                     , \() ->
-                        callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
-                            ( indexable, boolForAndProperties )
+                        callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( collection, boolForAndProperties )
                             checkInfo
                     ]
                     ()
@@ -6164,14 +6125,14 @@ indexableAllChecks indexable =
         , \checkInfo ->
             case AstHelpers.getSpecificValueOrFn Fn.Basics.not checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
-                    case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+                    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
                             firstThatConstructsJust
                                 [ \() ->
-                                    if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements then
+                                    if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements.known then
                                         Just
                                             (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with True will result in False"
+                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with True will result in False"
                                                 , details =
                                                     [ "You can replace this call by False." ]
                                                 }
@@ -6184,8 +6145,8 @@ indexableAllChecks indexable =
                                     else
                                         Nothing
                                 , \() ->
-                                    callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
-                                        ( indexable, { empty = boolFalseConstant } )
+                                    callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
+                                        ( collection, { empty = boolFalseConstant } )
                                         checkInfo
                                 ]
                                 ()
@@ -6202,7 +6163,7 @@ listAnyChecks : CheckInfo -> Maybe (Error {})
 listAnyChecks =
     firstThatConstructsJust
         [ emptiableAnyChecks listCollection
-        , indexableAnyChecks listCollection
+        , collectionAnyChecks listCollection
         , \checkInfo ->
             case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
                 Nothing ->
@@ -6248,19 +6209,19 @@ emptiableAnyChecks emptiable =
         ]
 
 
-indexableAnyChecks : TypeProperties (IndexableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-indexableAnyChecks indexable =
+collectionAnyChecks : TypeProperties (CollectionProperties (FromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionAnyChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 firstThatConstructsJust
                     [ \() ->
-                        onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
-                            ( indexable, boolForOrProperties )
+                        onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( collection, boolForOrProperties )
                             checkInfo
                     , \() ->
-                        callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
-                            ( indexable, boolForOrProperties )
+                        callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( collection, boolForOrProperties )
                             checkInfo
                     ]
                     ()
@@ -6270,14 +6231,14 @@ indexableAnyChecks indexable =
         , \checkInfo ->
             case AstHelpers.getSpecificValueOrFn Fn.Basics.not checkInfo.lookupTable checkInfo.firstArg of
                 Just _ ->
-                    case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+                    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
                             firstThatConstructsJust
                                 [ \() ->
-                                    if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements then
+                                    if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements.known then
                                         Just
                                             (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with False will result in True"
+                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with False will result in True"
                                                 , details =
                                                     [ "You can replace this call by True." ]
                                                 }
@@ -6290,8 +6251,8 @@ indexableAnyChecks indexable =
                                     else
                                         Nothing
                                 , \() ->
-                                    callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
-                                        ( indexable, { empty = boolTrueConstant } )
+                                    callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
+                                        ( collection, { empty = boolTrueConstant } )
                                         checkInfo
                                 ]
                                 ()
@@ -6312,7 +6273,7 @@ listFilterMapChecks =
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 firstThatConstructsJust
                     [ \() ->
-                        callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
+                        callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
                             ( listCollection, maybeWithJustAsWrap )
                             checkInfo
                     , \() ->
@@ -6630,7 +6591,7 @@ emptiableRepeatChecks collection checkInfo =
         Just intValue ->
             callWithNonPositiveIntCanBeReplacedByCheck
                 { int = intValue
-                , intDescription = collection.size.description
+                , intDescription = collection.elements.countDescription
                 , replacement = collection.empty.asString
                 }
                 checkInfo
@@ -6645,7 +6606,7 @@ wrapperRepeatChecks wrapper checkInfo =
         Just 1 ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.size.description ++ " 1 will result in " ++ qualifiedToString wrapper.wrap.fn
+                    { message = qualifiedToString checkInfo.fn ++ " with " ++ wrapper.elements.countDescription ++ " 1 will result in " ++ qualifiedToString wrapper.wrap.fn
                     , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
                     }
                     checkInfo.fnRange
@@ -6717,7 +6678,7 @@ arrayFoldrChecks =
     emptiableFoldChecks arrayCollection
 
 
-getChecks : TypeProperties (IndexableProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
+getChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
 getChecks collection =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } collection
@@ -6727,7 +6688,7 @@ getChecks collection =
         ]
 
 
-indexAccessChecks : TypeProperties (IndexableProperties otherProperties) -> CheckInfo -> Int -> Maybe (Error {})
+indexAccessChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Int -> Maybe (Error {})
 indexAccessChecks collection checkInfo n =
     if n < 0 then
         Just
@@ -6741,9 +6702,9 @@ indexAccessChecks collection checkInfo n =
             Just arg ->
                 firstThatConstructsJust
                     [ \() ->
-                        case collection.literalElements checkInfo.lookupTable arg of
+                        case collection.elements.get (extractInferResources checkInfo) arg of
                             Just literalElements ->
-                                case List.drop n literalElements |> List.head of
+                                case List.drop n literalElements.known |> List.head of
                                     Just element ->
                                         Just
                                             (Rule.errorWithFix
@@ -6759,14 +6720,18 @@ indexAccessChecks collection checkInfo n =
                                             )
 
                                     Nothing ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
-                                                , details = [ "You can replace this call by Nothing." ]
-                                                }
-                                                checkInfo.fnRange
-                                                [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)) ]
-                                            )
+                                        if literalElements.allKnown then
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return " ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
+                                                    , details = [ "You can replace this call by Nothing." ]
+                                                    }
+                                                    checkInfo.fnRange
+                                                    [ Fix.replaceRangeBy checkInfo.parentRange (qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)) ]
+                                                )
+
+                                        else
+                                            Nothing
 
                             Nothing ->
                                 Nothing
@@ -6851,7 +6816,7 @@ indexAccessChecks collection checkInfo n =
                 Nothing
 
 
-setChecks : TypeProperties (CollectionProperties (IndexableProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)))) -> CheckInfo -> Maybe (Error {})
+setChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
 setChecks collection =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck collection
@@ -6880,7 +6845,7 @@ setChecks collection =
 
 
 setOnKnownElementChecks :
-    TypeProperties (CollectionProperties (FromListProperties (IndexableProperties otherProperties)))
+    TypeProperties (CollectionProperties otherProperties)
     -> CheckInfo
     -> Int
     -> Range
@@ -6888,14 +6853,14 @@ setOnKnownElementChecks :
 setOnKnownElementChecks collection checkInfo n replacementArgRange =
     case thirdArg checkInfo of
         Just collectionArg ->
-            case collection.literalElements checkInfo.lookupTable collectionArg of
+            case collection.elements.get (extractInferResources checkInfo) collectionArg of
                 Just literalElements ->
-                    case List.drop n literalElements |> List.head of
+                    case List.drop n literalElements.known |> List.head of
                         Just element ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element in the " ++ collection.fromListLiteral.description
-                                    , details = [ "You can move the replacement argument directly into the " ++ collection.fromListLiteral.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " will replace a known element"
+                                    , details = [ "You can directly replace the element at the given index in the " ++ collection.represents ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg }
@@ -6904,14 +6869,18 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
                                 )
 
                         Nothing ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return the same given " ++ collection.represents
-                                    , details = [ "You can replace this call by the given " ++ collection.represents ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
-                                )
+                            if literalElements.allKnown then
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with an index out of bounds of the given " ++ collection.represents ++ " will always return the same given " ++ collection.represents
+                                        , details = [ "You can replace this call by the given " ++ collection.represents ++ "." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+                                    )
+
+                            else
+                                Nothing
 
                 Nothing ->
                     Nothing
@@ -7601,7 +7570,7 @@ subAndCmdBatchChecks batchable =
         [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
         , \checkInfo ->
-            callOnIndexableWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
+            callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
                 ( listCollection, batchable )
                 checkInfo
         ]
@@ -8275,19 +8244,15 @@ type alias WrapperProperties otherProperties =
     }
 
 
+{-| Properties of a type that can be constructed from a list, like String with String.fromList.
+-}
 type alias FromListProperties otherProperties =
     { otherProperties
-        | fromListLiteral :
+        | fromList :
             { description : String
-            , getListRange : ModuleNameLookupTable -> Node Expression -> Maybe Range
+            , getList : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
             }
         , unionLeftElementsStayOnTheLeft : Bool
-    }
-
-
-type alias IndexableProperties otherProperties =
-    { otherProperties
-        | literalElements : ModuleNameLookupTable -> Node Expression -> Maybe (List (Node Expression))
     }
 
 
@@ -8295,9 +8260,19 @@ type alias IndexableProperties otherProperties =
 -}
 type alias CollectionProperties otherProperties =
     { otherProperties
-        | size :
-            { description : String
-            , determine : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
+        | elements :
+            { countDescription : String
+            , determineCount : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
+            , get :
+                Infer.Resources {}
+                -> Node Expression
+                ->
+                    Maybe
+                        { known : List (Node Expression)
+                        , -- whether every contained element known.
+                          -- E.g. in x :: xs we just know the first, not all elements
+                          allKnown : Bool
+                        }
             }
     }
 
@@ -8421,6 +8396,21 @@ getAbsorbingExpressionNode absorbable inferResources expressionNode =
 
     else
         Nothing
+
+
+fromListGetLiteral : FromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
+fromListGetLiteral fromListProperties lookupTable expressionNode =
+    case fromListProperties.fromList.getList lookupTable expressionNode of
+        Just listExpressionNode ->
+            case AstHelpers.removeParens listExpressionNode of
+                Node listLiteralRange (Expression.ListExpr listElements) ->
+                    Just { range = listLiteralRange, elements = listElements }
+
+                _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 {-| Description of a set of values.
@@ -8817,20 +8807,20 @@ jsonDecoderFailingConstruct =
     }
 
 
-listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (IndexableProperties (FromListProperties { mapFn : ( ModuleName, String ) })))))
+listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) }))))
 listCollection =
     { represents = "list"
     , empty = listEmptyConstant
-    , size =
-        { description = "length"
-        , determine = listDetermineLength
+    , elements =
+        { get = listGetElements
+        , countDescription = "length"
+        , determineCount = listDetermineLength
         }
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
-    , literalElements = \_ expr -> AstHelpers.getListLiteral expr
-    , fromListLiteral =
+    , fromList =
         { description = "list literal"
-        , getListRange = \_ expr -> AstHelpers.getListLiteralRange expr
+        , getList = \_ listExpr -> Just listExpr
         }
     , unionLeftElementsStayOnTheLeft = True
     }
@@ -8857,39 +8847,68 @@ listSingletonConstruct =
     }
 
 
-listDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
-listDetermineLength resources expressionNode =
-    case AstHelpers.removeParens expressionNode of
-        Node _ (Expression.ListExpr list) ->
-            Just (Exactly (List.length list))
+listGetElements : Infer.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+listGetElements resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            expressionNode
+                |> AstHelpers.getListLiteral
+                |> Maybe.map (\list -> { known = list, allKnown = True })
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.List.singleton resources.lookupTable
+                |> Maybe.map (\singletonCall -> { known = [ singletonCall.firstArg ], allKnown = True })
+        , \expressionNode ->
+            case AstHelpers.removeParens expressionNode of
+                Node _ (Expression.OperatorApplication "::" _ head tail) ->
+                    case listGetElements resources tail of
+                        Just tailElements ->
+                            Just { known = head :: tailElements.known, allKnown = tailElements.allKnown }
 
-        Node _ (Expression.OperatorApplication "::" _ _ right) ->
-            case listDetermineLength resources right of
-                Just (Exactly n) ->
-                    Just (Exactly (n + 1))
+                        Nothing ->
+                            Just { known = [ head ], allKnown = False }
 
                 _ ->
-                    Just NotEmpty
+                    Nothing
+        ]
 
-        nonConsOrLiteral ->
-            Maybe.map (\_ -> Exactly 1) (AstHelpers.getSpecificFnCall Fn.List.singleton resources.lookupTable nonConsOrLiteral)
+
+listDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
+listDetermineLength resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            expressionNode
+                |> AstHelpers.getListLiteral
+                |> Maybe.map (\list -> Exactly (List.length list))
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.List.singleton resources.lookupTable
+                |> Maybe.map (\_ -> Exactly 1)
+        , \expressionNode ->
+            case AstHelpers.removeParens expressionNode of
+                Node _ (Expression.OperatorApplication "::" _ _ right) ->
+                    maybeCollectionSizeAdd1 (listDetermineLength resources right)
+
+                _ ->
+                    Nothing
+        ]
 
 
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {}))))
 stringCollection =
     { represents = "string"
     , empty = stringEmptyConstant
-    , size =
-        { description = "length"
-        , determine = \_ (Node _ expr) -> stringDetermineLength expr
+    , elements =
+        { countDescription = "length"
+        , determineCount = stringDetermineLength
+        , get = stringGetElements
         }
     , wrap = singleCharConstruct
-    , fromListLiteral =
+    , fromList =
         { description = "String.fromList call"
-        , getListRange =
+        , getList =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.String.fromList lookupTable expr
-                    |> Maybe.andThen (\stringFromListCall -> AstHelpers.getListLiteralRange stringFromListCall.firstArg)
+                AstHelpers.getSpecificFnCall Fn.String.fromList lookupTable expr |> Maybe.map .firstArg
         }
     , unionLeftElementsStayOnTheLeft = True
     }
@@ -8916,17 +8935,63 @@ singleCharConstruct =
     }
 
 
-stringDetermineLength : Expression -> Maybe CollectionSize
-stringDetermineLength expression =
-    case expression of
-        Expression.Literal string ->
-            Just (Exactly (String.length string))
+stringDetermineLength : Infer.Resources res -> Node Expression -> Maybe CollectionSize
+stringDetermineLength resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            case AstHelpers.removeParens expressionNode of
+                Node _ (Expression.Literal string) ->
+                    Just (Exactly (String.length string))
 
-        _ ->
-            Nothing
+                _ ->
+                    Nothing
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.String.fromChar resources.lookupTable
+                |> Maybe.map (\_ -> Exactly 1)
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.String.fromList resources.lookupTable
+                |> Maybe.andThen (\fromListCall -> listDetermineLength resources fromListCall.firstArg)
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.String.cons resources.lookupTable
+                |> Maybe.andThen
+                    (\consCall ->
+                        maybeCollectionSizeAdd1
+                            (Maybe.andThen (stringDetermineLength resources) (List.head consCall.argsAfterFirst))
+                    )
+        ]
 
 
-arrayCollection : TypeProperties (CollectionProperties (FromListProperties (IndexableProperties (EmptiableProperties ConstantProperties {}))))
+maybeCollectionSizeAdd1 : Maybe CollectionSize -> Maybe CollectionSize
+maybeCollectionSizeAdd1 collectionSize =
+    case collectionSize of
+        Nothing ->
+            Just NotEmpty
+
+        Just NotEmpty ->
+            Just NotEmpty
+
+        Just (Exactly tailLength) ->
+            Just (Exactly (1 + tailLength))
+
+
+stringGetElements : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+stringGetElements resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.String.fromChar resources.lookupTable
+                |> Maybe.map (\fromCharCall -> { known = [ fromCharCall.firstArg ], allKnown = True })
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.String.fromList resources.lookupTable
+                |> Maybe.andThen (\fromListCall -> listGetElements resources fromListCall.firstArg)
+        ]
+
+
+arrayCollection : TypeProperties (CollectionProperties (FromListProperties (EmptiableProperties ConstantProperties {})))
 arrayCollection =
     { represents = "array"
     , empty =
@@ -8938,27 +9003,43 @@ arrayCollection =
             \resources ->
                 qualifiedToString (qualify Fn.Array.empty resources)
         }
-    , size = { description = "length", determine = arrayDetermineSize }
-    , literalElements =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr
-                |> Maybe.andThen (\arrayFromListCall -> AstHelpers.getListLiteral arrayFromListCall.firstArg)
-    , fromListLiteral =
+    , elements =
+        { countDescription = "length"
+        , determineCount = arrayDetermineLength
+        , get = arrayGetElements
+        }
+    , fromList =
         { description = "Array.fromList call"
-        , getListRange =
+        , getList =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr
-                    |> Maybe.andThen (\call -> AstHelpers.getListLiteralRange call.firstArg)
+                AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr |> Maybe.map .firstArg
         }
     , unionLeftElementsStayOnTheLeft = True
     }
 
 
-arrayDetermineSize :
-    Infer.Resources a
-    -> Node Expression
-    -> Maybe CollectionSize
-arrayDetermineSize resources =
+arrayGetElements : Infer.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+arrayGetElements resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            case AstHelpers.getSpecificValueOrFn Fn.Array.empty resources.lookupTable expressionNode of
+                Just _ ->
+                    Just { known = [], allKnown = True }
+
+                Nothing ->
+                    Nothing
+        , \expressionNode ->
+            case AstHelpers.getSpecificFnCall Fn.Array.fromList resources.lookupTable expressionNode of
+                Just fromListCall ->
+                    listGetElements resources fromListCall.firstArg
+
+                Nothing ->
+                    Nothing
+        ]
+
+
+arrayDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
+arrayDetermineLength resources =
     firstThatConstructsJust
         [ \expressionNode ->
             case AstHelpers.getSpecificValueOrFn Fn.Array.empty resources.lookupTable expressionNode of
@@ -8990,6 +9071,14 @@ arrayDetermineSize resources =
 
                 Nothing ->
                     Nothing
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Array.push resources.lookupTable
+                |> Maybe.andThen
+                    (\pushCall ->
+                        maybeCollectionSizeAdd1
+                            (Maybe.andThen (arrayDetermineLength resources) (List.head pushCall.argsAfterFirst))
+                    )
         ]
 
 
@@ -9005,14 +9094,17 @@ setCollection =
             \resources ->
                 qualifiedToString (qualify Fn.Set.empty resources)
         }
-    , size = { description = "size", determine = setDetermineSize }
+    , elements =
+        { countDescription = "size"
+        , determineCount = setDetermineSize
+        , get = setGetElements
+        }
     , wrap = setSingletonConstruct
-    , fromListLiteral =
+    , fromList =
         { description = "Set.fromList call"
-        , getListRange =
+        , getList =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.Set.fromList lookupTable expr
-                    |> Maybe.andThen (\setFromListCall -> AstHelpers.getListLiteralRange setFromListCall.firstArg)
+                AstHelpers.getSpecificFnCall Fn.Set.fromList lookupTable expr |> Maybe.map .firstArg
         }
     , unionLeftElementsStayOnTheLeft = True
     }
@@ -9031,43 +9123,91 @@ setSingletonConstruct =
     }
 
 
-setDetermineSize :
-    Infer.Resources a
-    -> Node Expression
-    -> Maybe CollectionSize
-setDetermineSize resources =
+setGetElements : Infer.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+setGetElements resources =
     firstThatConstructsJust
         [ \expressionNode ->
             case AstHelpers.getSpecificValueOrFn Fn.Set.empty resources.lookupTable expressionNode of
                 Just _ ->
-                    Just (Exactly 0)
+                    Just { known = [], allKnown = True }
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
             case AstHelpers.getSpecificFnCall Fn.Set.singleton resources.lookupTable expressionNode of
-                Just _ ->
-                    Just (Exactly 1)
+                Just singletonCall ->
+                    Just { known = [ singletonCall.firstArg ], allKnown = True }
 
                 Nothing ->
                     Nothing
         , \expressionNode ->
             case AstHelpers.getSpecificFnCall Fn.Set.fromList resources.lookupTable expressionNode of
                 Just fromListCall ->
-                    case AstHelpers.getListLiteral fromListCall.firstArg of
-                        Just [] ->
-                            Just (Exactly 0)
+                    case listGetElements resources fromListCall.firstArg of
+                        Just listElements ->
+                            case traverse getComparableWithExpressionNode listElements.known of
+                                Just comparableElements ->
+                                    Just
+                                        { known = uniqueBy .comparable comparableElements |> List.map .expressionNode
+                                        , allKnown = listElements.allKnown
+                                        }
 
-                        Just (_ :: []) ->
-                            Just (Exactly 1)
-
-                        Just (el0 :: el1 :: el2Up) ->
-                            case traverse getComparableExpression (el0 :: el1 :: el2Up) of
                                 Nothing ->
-                                    Just NotEmpty
+                                    Nothing
 
-                                Just comparableExpressions ->
-                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+        ]
+
+
+getComparableWithExpressionNode : Node Expression -> Maybe { comparable : List Expression, expressionNode : Node Expression }
+getComparableWithExpressionNode expressionNode =
+    getComparableExpression expressionNode
+        |> Maybe.map (\comparable -> { comparable = comparable, expressionNode = expressionNode })
+
+
+setDetermineSize : Infer.Resources res -> Node Expression -> Maybe CollectionSize
+setDetermineSize resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificValueOrFn Fn.Set.empty resources.lookupTable
+                |> Maybe.map (\_ -> Exactly 0)
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Set.singleton resources.lookupTable
+                |> Maybe.map (\_ -> Exactly 1)
+        , \expressionNode ->
+            case AstHelpers.getSpecificFnCall Fn.Set.fromList resources.lookupTable expressionNode of
+                Just fromListCall ->
+                    case listGetElements resources fromListCall.firstArg of
+                        Just listElements ->
+                            if listElements.allKnown then
+                                case traverse getComparableExpression listElements.known of
+                                    Just comparableListElements ->
+                                        comparableListElements |> unique |> List.length |> Exactly |> Just
+
+                                    Nothing ->
+                                        case listElements.known of
+                                            [] ->
+                                                Nothing
+
+                                            _ :: [] ->
+                                                Just (Exactly 1)
+
+                                            _ :: _ :: _ ->
+                                                Just NotEmpty
+
+                            else
+                                case listElements.known of
+                                    [] ->
+                                        Nothing
+
+                                    _ :: _ ->
+                                        Just NotEmpty
 
                         Nothing ->
                             Nothing
@@ -9089,13 +9229,16 @@ dictCollection =
             \resources ->
                 qualifiedToString (qualify Fn.Dict.empty resources)
         }
-    , size = { description = "size", determine = dictDetermineSize }
-    , fromListLiteral =
+    , elements =
+        { countDescription = "size"
+        , determineCount = dictDetermineSize
+        , get = dictGetValues
+        }
+    , fromList =
         { description = "Dict.fromList call"
-        , getListRange =
+        , getList =
             \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.Dict.fromList lookupTable expr
-                    |> Maybe.andThen (\dictFromListCall -> AstHelpers.getListLiteralRange dictFromListCall.firstArg)
+                AstHelpers.getSpecificFnCall Fn.Dict.fromList lookupTable expr |> Maybe.map .firstArg
         }
     , unionLeftElementsStayOnTheLeft = False
     }
@@ -9108,41 +9251,49 @@ dictDetermineSize :
 dictDetermineSize resources =
     firstThatConstructsJust
         [ \expressionNode ->
-            case AstHelpers.getSpecificValueOrFn Fn.Dict.empty resources.lookupTable expressionNode of
-                Just _ ->
-                    Just (Exactly 0)
-
-                Nothing ->
-                    Nothing
+            expressionNode
+                |> AstHelpers.getSpecificValueOrFn Fn.Dict.empty resources.lookupTable
+                |> Maybe.map (\_ -> Exactly 0)
         , \expressionNode ->
-            case AstHelpers.getSpecificFnCall Fn.Dict.singleton resources.lookupTable expressionNode of
-                Just singletonCall ->
-                    case singletonCall.argsAfterFirst of
-                        _ :: [] ->
-                            Just (Exactly 1)
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Dict.singleton resources.lookupTable
+                |> Maybe.andThen
+                    (\singletonCall ->
+                        case singletonCall.argsAfterFirst of
+                            _ :: [] ->
+                                Just (Exactly 1)
 
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
+                            _ ->
+                                Nothing
+                    )
         , \expressionNode ->
             case AstHelpers.getSpecificFnCall Fn.Dict.fromList resources.lookupTable expressionNode of
                 Just fromListCall ->
-                    case AstHelpers.getListLiteral fromListCall.firstArg of
-                        Just [] ->
-                            Just (Exactly 0)
+                    case listGetElements resources fromListCall.firstArg of
+                        Just listElements ->
+                            if listElements.allKnown then
+                                case traverse getComparableExpressionInTupleFirst listElements.known of
+                                    Just comparableExpressions ->
+                                        comparableExpressions |> unique |> List.length |> Exactly |> Just
 
-                        Just (_ :: []) ->
-                            Just (Exactly 1)
+                                    Nothing ->
+                                        case listElements.known of
+                                            [] ->
+                                                Nothing
 
-                        Just (el0 :: el1 :: el2Up) ->
-                            case traverse getComparableExpressionInTupleFirst (el0 :: el1 :: el2Up) of
-                                Nothing ->
-                                    Just NotEmpty
+                                            _ :: [] ->
+                                                Just (Exactly 1)
 
-                                Just comparableExpressions ->
-                                    comparableExpressions |> unique |> List.length |> Exactly |> Just
+                                            _ :: _ :: _ ->
+                                                Just NotEmpty
+
+                            else
+                                case listElements.known of
+                                    [] ->
+                                        Nothing
+
+                                    _ :: _ ->
+                                        Just NotEmpty
 
                         Nothing ->
                             Nothing
@@ -9150,6 +9301,67 @@ dictDetermineSize resources =
                 _ ->
                     Nothing
         ]
+
+
+dictGetValues : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+dictGetValues resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificValueOrFn Fn.Dict.empty resources.lookupTable
+                |> Maybe.map (\_ -> { known = [], allKnown = True })
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Dict.singleton resources.lookupTable
+                |> Maybe.andThen
+                    (\singletonCall ->
+                        case singletonCall.argsAfterFirst of
+                            singletonValue :: [] ->
+                                Just { known = [ singletonValue ], allKnown = True }
+
+                            _ ->
+                                Nothing
+                    )
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Dict.fromList resources.lookupTable
+                |> Maybe.andThen
+                    (\fromListCall ->
+                        case listGetElements resources fromListCall.firstArg of
+                            Just listElements ->
+                                if listElements.allKnown then
+                                    case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
+                                        Just tuplesWithComparableKey ->
+                                            Just
+                                                { known = uniqueBy .comparableFirst tuplesWithComparableKey |> List.map .second
+                                                , allKnown = True
+                                                }
+
+                                        Nothing ->
+                                            Nothing
+
+                                else
+                                    Nothing
+
+                            Nothing ->
+                                Nothing
+                    )
+        ]
+
+
+getTupleWithComparableFirst : ModuleNameLookupTable -> Node Expression -> Maybe { comparableFirst : List Expression, second : Node Expression }
+getTupleWithComparableFirst lookupTable expressionNode =
+    case AstHelpers.getTuple2 expressionNode lookupTable of
+        Just tuple ->
+            case getComparableExpression tuple.first of
+                Just comparableFirst ->
+                    Just { comparableFirst = comparableFirst, second = tuple.second }
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 cmdCollection : TypeProperties (EmptiableProperties ConstantProperties {})
@@ -10481,28 +10693,28 @@ collectionUnionWithLiteralsChecks :
         }
     -> Maybe (Error {})
 collectionUnionWithLiteralsChecks operationInfo collection checkInfo =
-    case collection.fromListLiteral.getListRange checkInfo.lookupTable operationInfo.second of
-        Just literalListRangeSecond ->
-            case collection.fromListLiteral.getListRange checkInfo.lookupTable operationInfo.first of
-                Just literalListRangeFirst ->
+    case fromListGetLiteral collection checkInfo.lookupTable operationInfo.second of
+        Just literalListSecond ->
+            case fromListGetLiteral collection checkInfo.lookupTable operationInfo.first of
+                Just literalListFirst ->
                     Just
                         (Rule.errorWithFix
-                            { message = operationInfo.operation ++ " on " ++ collection.fromListLiteral.description ++ "s can be turned into a single " ++ collection.fromListLiteral.description
-                            , details = [ "Try moving all the elements into a single " ++ collection.fromListLiteral.description ++ "." ]
+                            { message = operationInfo.operation ++ " on " ++ collection.fromList.description ++ "s can be turned into a single " ++ collection.fromList.description
+                            , details = [ "Try moving all the elements into a single " ++ collection.fromList.description ++ "." ]
                             }
                             operationInfo.operationRange
                             (if collection.unionLeftElementsStayOnTheLeft then
                                 keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.second }
                                     ++ [ Fix.insertAt
-                                            (rangeWithoutBoundaries literalListRangeSecond).start
-                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeFirst) ++ ",")
+                                            (rangeWithoutBoundaries literalListSecond.range).start
+                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListFirst.range) ++ ",")
                                        ]
 
                              else
                                 keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.first }
                                     ++ [ Fix.insertAt
-                                            (rangeWithoutBoundaries literalListRangeFirst).start
-                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListRangeSecond) ++ ",")
+                                            (rangeWithoutBoundaries literalListFirst.range).start
+                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListSecond.range) ++ ",")
                                        ]
                             )
                         )
@@ -10548,7 +10760,7 @@ collectionMemberChecks collection =
 
 collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
-    case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
                 (resultsInConstantError
@@ -10571,12 +10783,12 @@ collectionIsEmptyChecks collection checkInfo =
 
 collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
-    case collection.size.determine (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly size) ->
             Just
                 (Rule.errorWithFix
-                    { message = "The " ++ collection.size.description ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
-                    , details = [ "The " ++ collection.size.description ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
+                    { message = "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
+                    , details = [ "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
                     }
                     checkInfo.fnRange
                     [ Fix.replaceRangeBy checkInfo.parentRange (String.fromInt size) ]
@@ -12129,21 +12341,31 @@ traverseHelp f list acc =
 
 unique : List a -> List a
 unique list =
-    uniqueHelp [] list []
+    uniqueBy identity list
 
 
-uniqueHelp : List a -> List a -> List a -> List a
-uniqueHelp existing remaining accumulator =
+uniqueBy : (a -> b) -> List a -> List a
+uniqueBy toAspectThatShouldBeUnique list =
+    uniqueByHelp toAspectThatShouldBeUnique [] list []
+
+
+uniqueByHelp : (a -> b) -> List b -> List a -> List a -> List a
+uniqueByHelp toAspectThatShouldBeUnique existing remaining accumulator =
     case remaining of
         [] ->
             List.reverse accumulator
 
         first :: rest ->
-            if List.member first existing then
-                uniqueHelp existing rest accumulator
+            let
+                firstAspect : b
+                firstAspect =
+                    toAspectThatShouldBeUnique first
+            in
+            if List.member firstAspect existing then
+                uniqueByHelp toAspectThatShouldBeUnique existing rest accumulator
 
             else
-                uniqueHelp (first :: existing) rest (first :: accumulator)
+                uniqueByHelp toAspectThatShouldBeUnique (firstAspect :: existing) rest (first :: accumulator)
 
 
 

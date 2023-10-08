@@ -9582,8 +9582,8 @@ a = List.member c (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            { message = "List.member on a singleton list is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton list are equal." ]
                             , under = "List.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9598,8 +9598,8 @@ a = List.member b (List.singleton b)
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            { message = "List.member on a singleton list is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton list are equal." ]
                             , under = "List.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9630,8 +9630,8 @@ a = List.member c [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            { message = "List.member on a singleton list is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton list are equal." ]
                             , under = "List.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9646,8 +9646,8 @@ a = List.member c <| [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            { message = "List.member on a singleton list is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton list are equal." ]
                             , under = "List.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9662,8 +9662,8 @@ a = List.member c [ f b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            { message = "List.member on a singleton list is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton list are equal." ]
                             , under = "List.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9678,8 +9678,8 @@ a = [ b ] |> List.member c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.member on an list with a single element is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the list element are equal." ]
+                            { message = "List.member on a singleton list is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton list are equal." ]
                             , under = "List.member"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -18944,8 +18944,8 @@ a = Array.set 1 x (Array.fromList [ b, c, d ])
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.set will replace a known element in the Array.fromList call"
-                            , details = [ "You can move the replacement argument directly into the Array.fromList call." ]
+                            { message = "Array.set will replace a known element"
+                            , details = [ "You can directly replace the element at the given index in the array." ]
                             , under = "Array.set"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
