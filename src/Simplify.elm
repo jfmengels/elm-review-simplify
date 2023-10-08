@@ -5134,7 +5134,10 @@ listConcatCompositionChecks =
 
 callOnFromListWithIrrelevantEmptyElement :
     String
-    -> ( TypeProperties (FromListProperties otherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
+    ->
+        ( TypeProperties (ConstructibleFromListProperties otherProperties)
+        , EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties
+        )
     -> CheckInfo
     -> Maybe (Error {})
 callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, emptiableElement ) checkInfo =
@@ -6103,7 +6106,7 @@ emptiableAllChecks emptiable =
         ]
 
 
-collectionAllChecks : TypeProperties (CollectionProperties (FromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionAllChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionAllChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -6209,7 +6212,7 @@ emptiableAnyChecks emptiable =
         ]
 
 
-collectionAnyChecks : TypeProperties (CollectionProperties (FromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionAnyChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionAnyChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -8246,7 +8249,7 @@ type alias WrapperProperties otherProperties =
 
 {-| Properties of a type that can be constructed from a list, like String with String.fromList.
 -}
-type alias FromListProperties otherProperties =
+type alias ConstructibleFromListProperties otherProperties =
     { otherProperties
         | fromList :
             { description : String
@@ -8398,9 +8401,9 @@ getAbsorbingExpressionNode absorbable inferResources expressionNode =
         Nothing
 
 
-fromListGetLiteral : FromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
-fromListGetLiteral fromListProperties lookupTable expressionNode =
-    case fromListProperties.fromList.getList lookupTable expressionNode of
+fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
+fromListGetLiteral constructibleFromList lookupTable expressionNode =
+    case constructibleFromList.fromList.getList lookupTable expressionNode of
         Just listExpressionNode ->
             case AstHelpers.removeParens listExpressionNode of
                 Node listLiteralRange (Expression.ListExpr listElements) ->
@@ -8807,7 +8810,7 @@ jsonDecoderFailingConstruct =
     }
 
 
-listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties { mapFn : ( ModuleName, String ) }))))
+listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties { mapFn : ( ModuleName, String ) }))))
 listCollection =
     { represents = "list"
     , empty = listEmptyConstant
@@ -8894,7 +8897,7 @@ listDetermineLength resources =
         ]
 
 
-stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (FromListProperties {}))))
+stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {}))))
 stringCollection =
     { represents = "string"
     , empty = stringEmptyConstant
@@ -8991,7 +8994,7 @@ stringGetElements resources =
         ]
 
 
-arrayCollection : TypeProperties (CollectionProperties (FromListProperties (EmptiableProperties ConstantProperties {})))
+arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties {})))
 arrayCollection =
     { represents = "array"
     , empty =
@@ -9082,7 +9085,7 @@ arrayDetermineLength resources =
         ]
 
 
-setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (FromListProperties {}))))
+setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties {}))))
 setCollection =
     { represents = "set"
     , empty =
@@ -9217,7 +9220,7 @@ setDetermineSize resources =
         ]
 
 
-dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (FromListProperties {})))
+dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {})))
 dictCollection =
     { represents = "dict"
     , empty =
@@ -10636,7 +10639,7 @@ collectionDiffChecks collection =
         ]
 
 
-collectionUnionChecks : TypeProperties (CollectionProperties (FromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -10684,7 +10687,7 @@ collectionUnionWithLiteralsChecks :
     , operationRange : Range
     , operation : String
     }
-    -> CollectionProperties (FromListProperties otherProperties)
+    -> CollectionProperties (ConstructibleFromListProperties otherProperties)
     ->
         { checkInfo
             | lookupTable : ModuleNameLookupTable
