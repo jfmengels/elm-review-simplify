@@ -1142,7 +1142,7 @@ a = round 1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "round"
@@ -1161,7 +1161,7 @@ a = round -1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "round"
@@ -1180,7 +1180,7 @@ a = round 0x1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "round"
@@ -1245,7 +1245,7 @@ a = ceiling 1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "ceiling"
@@ -1264,7 +1264,7 @@ a = ceiling -1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "ceiling"
@@ -1283,7 +1283,7 @@ a = ceiling 0x1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "ceiling"
@@ -1348,7 +1348,7 @@ a = floor 1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "floor"
@@ -1367,7 +1367,7 @@ a = floor -1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "floor"
@@ -1386,7 +1386,7 @@ a = floor 0x1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "floor"
@@ -1451,7 +1451,7 @@ a = truncate 1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "truncate"
@@ -1470,7 +1470,7 @@ a = truncate -1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "truncate"
@@ -1489,7 +1489,7 @@ a = truncate 0x1
                         [ Review.Test.error
                             { message = "Unnecessary integer conversion on a literal integer"
                             , details =
-                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                [ "A literal integer is already considered to be an Int which means converting it further is not necessary."
                                 , "You can replace this function call by the literal integer."
                                 ]
                             , under = "truncate"
