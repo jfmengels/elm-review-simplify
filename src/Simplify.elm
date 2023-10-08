@@ -4143,7 +4143,7 @@ basicsToFloatChecks checkInfo =
                 (Rule.errorWithFix
                     { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a literal number"
                     , details =
-                        [ "A literal integers is considered as both an Int and a Float, there is therefore no need to explicitly convert it to a Float."
+                        [ "A literal integer is considered a number which means it can be used as both an Int and a Float and there is no need to explicitly convert it to a Float."
                         , "You can replace this function call by the literal number."
                         ]
                     }
