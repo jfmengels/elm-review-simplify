@@ -203,7 +203,10 @@ Destructuring using case expressions
     round 1
     --> 1
 
-    round (toFloat n)
+    ceiling 1
+    --> 1
+
+    round (toFloat n) -- same for ceiling
     --> n
 
 
@@ -2729,7 +2732,8 @@ functionCallChecks =
         , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
         , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
         , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
-        , ( Fn.Basics.round, ( 1, basicsRoundChecks ) )
+        , ( Fn.Basics.round, ( 1, intToIntChecks ) )
+        , ( Fn.Basics.ceiling, ( 1, intToIntChecks ) )
         , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
         , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
         , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
@@ -3033,6 +3037,7 @@ compositionIntoChecks =
         [ ( Fn.Basics.always, ( 2, basicsAlwaysCompositionChecks ) )
         , ( Fn.Basics.not, ( 1, toggleCompositionChecks ) )
         , ( Fn.Basics.round, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
+        , ( Fn.Basics.ceiling, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
         , ( Fn.Basics.negate, ( 1, toggleCompositionChecks ) )
         , ( Fn.String.reverse, ( 1, stringReverseCompositionChecks ) )
         , ( Fn.String.fromList, ( 1, stringFromListCompositionChecks ) )
@@ -4140,8 +4145,8 @@ basicsToFloatChecks checkInfo =
             Nothing
 
 
-basicsRoundChecks : CheckInfo -> Maybe (Error {})
-basicsRoundChecks =
+intToIntChecks : CheckInfo -> Maybe (Error {})
+intToIntChecks =
     firstThatConstructsJust
         [ intToIntCheck
         , onCallToInverseReturnsItsArgumentCheck Fn.Basics.toFloat

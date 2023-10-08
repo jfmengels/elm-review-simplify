@@ -80,7 +80,8 @@
 - `List.all not [ a, False, b ]` to `List.all not [ a, b ]`
 - `toFloat 1` to `1`
 - `round 1` to `1`
-- `round (toFloat n)` to `n`
+- `ceiling 1` to `1`
+- `round (toFloat n)` to `n` (and same for ceiling)
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

@@ -16,6 +16,7 @@ all =
         , alwaysTests
         , toFloatTests
         , roundTests
+        , ceilingTests
         , booleanTests
         , caseOfTests
         , booleanCaseOfTests
@@ -1206,6 +1207,109 @@ a = round << toFloat
                             { message = "Basics.toFloat, then Basics.round cancels each other out"
                             , details = [ "You can replace this composition by identity." ]
                             , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        ]
+
+
+ceilingTests : Test
+ceilingTests =
+    describe "Basics.ceiling"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling
+b = ceiling n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify ceiling 1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "ceiling"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should simplify ceiling -1 to -1" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "ceiling"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = -1
+"""
+                        ]
+        , test "should simplify ceiling 0x1 to 0x1" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling 0x1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "ceiling"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0x1
+"""
+                        ]
+        , test "should simplify ceiling <| toFloat <| n to n" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling <| toFloat <| n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.toFloat, then Basics.ceiling cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.toFloat." ]
+                            , under = "ceiling"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify ceiling << toFloat to identity" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling << toFloat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.toFloat, then Basics.ceiling cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "ceiling"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
