@@ -74,6 +74,10 @@
 - `List.any identity [ a, True, b ]` to `True`
 - `List.all not [ a, True, b ]` to `False`
 - `List.any not [ a, False, b ]` to `True`
+- `List.any identity [ a, False, b ]` to `List.any identity [ a, b ]`
+- `List.any not [ a, True, b ]` to `List.any not [ a, b ]`
+- `List.all identity [ a, True, b ]` to `List.all identity [ a, b ]`
+- `List.all not [ a, False, b ]` to `List.all not [ a, b ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

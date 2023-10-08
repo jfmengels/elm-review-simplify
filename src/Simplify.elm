@@ -708,6 +708,12 @@ Destructuring using case expressions
     List.all not [ a, True, b ]
     --> False
 
+    List.all identity [ a, True, b ]
+    --> List.all identity [ a, b ]
+
+    List.all not [ a, False, b ]
+    --> List.all not [ a, b ]
+
     List.any f []
     --> True
 
@@ -719,6 +725,12 @@ Destructuring using case expressions
 
     List.any not [ a, False, b ]
     --> True
+
+    List.any identity [ a, False, b ]
+    --> List.any identity [ a, b ]
+
+    List.any not [ a, True, b ]
+    --> List.any not [ a, b ]
 
     List.any ((==) x) list
     --> List.member x list
@@ -6060,9 +6072,17 @@ indexableAllChecks indexable =
     firstThatConstructsJust
         [ \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
-                    ( listCollection, boolForAndProperties )
-                    checkInfo
+                firstThatConstructsJust
+                    [ \() ->
+                        onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( indexable, boolForAndProperties )
+                            checkInfo
+                    , \() ->
+                        callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( indexable, boolForAndProperties )
+                            checkInfo
+                    ]
+                    ()
 
             else
                 Nothing
@@ -6071,21 +6091,29 @@ indexableAllChecks indexable =
                 Just _ ->
                     case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
-                            if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements then
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with True will result in False"
-                                        , details =
-                                            [ "You can replace this call by False." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange
-                                            (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
-                                        ]
-                                    )
+                            firstThatConstructsJust
+                                [ \() ->
+                                    if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements then
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with True will result in False"
+                                                , details =
+                                                    [ "You can replace this call by False." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                                    (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                                                ]
+                                            )
 
-                            else
-                                Nothing
+                                    else
+                                        Nothing
+                                , \() ->
+                                    callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
+                                        ( indexable, { empty = boolFalseConstant } )
+                                        checkInfo
+                                ]
+                                ()
 
                         Nothing ->
                             Nothing
@@ -6150,9 +6178,17 @@ indexableAnyChecks indexable =
     firstThatConstructsJust
         [ \checkInfo ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
-                    ( indexable, boolForOrProperties )
-                    checkInfo
+                firstThatConstructsJust
+                    [ \() ->
+                        onIndexableWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( indexable, boolForOrProperties )
+                            checkInfo
+                    , \() ->
+                        callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
+                            ( indexable, boolForOrProperties )
+                            checkInfo
+                    ]
+                    ()
 
             else
                 Nothing
@@ -6161,21 +6197,29 @@ indexableAnyChecks indexable =
                 Just _ ->
                     case Maybe.andThen (indexable.literalElements checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
-                            if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements then
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with False will result in True"
-                                        , details =
-                                            [ "You can replace this call by True." ]
-                                        }
-                                        checkInfo.fnRange
-                                        [ Fix.replaceRangeBy checkInfo.parentRange
-                                            (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
-                                        ]
-                                    )
+                            firstThatConstructsJust
+                                [ \() ->
+                                    if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements then
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ indexable.represents ++ " with False will result in True"
+                                                , details =
+                                                    [ "You can replace this call by True." ]
+                                                }
+                                                checkInfo.fnRange
+                                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                                    (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                                                ]
+                                            )
 
-                            else
-                                Nothing
+                                    else
+                                        Nothing
+                                , \() ->
+                                    callOnIndexableWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
+                                        ( indexable, { empty = boolTrueConstant } )
+                                        checkInfo
+                                ]
+                                ()
 
                         Nothing ->
                             Nothing
