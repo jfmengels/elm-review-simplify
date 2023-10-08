@@ -5710,10 +5710,6 @@ knownMemberChecks collection checkInfo =
                             needleArg =
                                 checkInfo.firstArg
 
-                            needleRange : Range
-                            needleRange =
-                                Node.range needleArg
-
                             needleArgNormalized : Node Expression
                             needleArgNormalized =
                                 Normalize.normalize checkInfo needleArg
