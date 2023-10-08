@@ -8456,6 +8456,13 @@ a = List.concatMap f []
 a = []
 """
                         ]
+        , test "should not report List.concatMap f [ a, [], b ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.concatMap f [ a, [], b ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace List.concatMap (always []) x by []" <|
             \() ->
                 """module A exposing (..)
