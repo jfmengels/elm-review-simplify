@@ -13900,6 +13900,22 @@ a = List.all identity [ b, False, c ]
 a = False
 """
                         ]
+        , test "should replace List.all identity (a :: False :: bs) by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.all identity (b :: False :: cs)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with an identity function on a list with False will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should replace List.all not [ a, False, b ] by List.all not [ a, b ]" <|
             \() ->
                 """module A exposing (..)
