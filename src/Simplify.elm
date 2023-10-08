@@ -200,6 +200,12 @@ Destructuring using case expressions
     toFloat 1
     --> 1
 
+    round 1
+    --> 1
+
+    round (toFloat n)
+    --> n
+
 
 ### Lambdas
 
@@ -2723,6 +2729,7 @@ functionCallChecks =
         , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
         , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
         , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
+        , ( Fn.Basics.round, ( 1, basicsRoundChecks ) )
         , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
         , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
         , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
@@ -3025,6 +3032,7 @@ compositionIntoChecks =
     Dict.fromList
         [ ( Fn.Basics.always, ( 2, basicsAlwaysCompositionChecks ) )
         , ( Fn.Basics.not, ( 1, toggleCompositionChecks ) )
+        , ( Fn.Basics.round, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
         , ( Fn.Basics.negate, ( 1, toggleCompositionChecks ) )
         , ( Fn.String.reverse, ( 1, stringReverseCompositionChecks ) )
         , ( Fn.String.fromList, ( 1, stringFromListCompositionChecks ) )
@@ -4122,6 +4130,34 @@ basicsToFloatChecks checkInfo =
                     , details =
                         [ "A literal integers is considered as both an Int and a Float, there is therefore no need to explicitly convert it to a Float."
                         , "You can replace this function call by the literal number."
+                        ]
+                    }
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                )
+
+        Nothing ->
+            Nothing
+
+
+basicsRoundChecks : CheckInfo -> Maybe (Error {})
+basicsRoundChecks =
+    firstThatConstructsJust
+        [ intToIntCheck
+        , onCallToInverseReturnsItsArgumentCheck Fn.Basics.toFloat
+        ]
+
+
+intToIntCheck : CheckInfo -> Maybe (Error {})
+intToIntCheck checkInfo =
+    case Evaluate.getInt checkInfo checkInfo.firstArg of
+        Just _ ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Unnecessary integer conversion on a literal integer"
+                    , details =
+                        [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                        , "You can replace this function call by the literal integer."
                         ]
                     }
                     checkInfo.fnRange

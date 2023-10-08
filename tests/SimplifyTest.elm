@@ -15,6 +15,7 @@ all =
         , identityTests
         , alwaysTests
         , toFloatTests
+        , roundTests
         , booleanTests
         , caseOfTests
         , booleanCaseOfTests
@@ -1105,6 +1106,109 @@ a = toFloat 0x1
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0x1
+"""
+                        ]
+        ]
+
+
+roundTests : Test
+roundTests =
+    describe "Basics.round"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a = round
+b = round n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify round 1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = round 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
+        , test "should simplify round -1 to -1" <|
+            \() ->
+                """module A exposing (..)
+a = round -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = -1
+"""
+                        ]
+        , test "should simplify round 0x1 to 0x1" <|
+            \() ->
+                """module A exposing (..)
+a = round 0x1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary integer conversion on a literal integer"
+                            , details =
+                                [ "Literal integers are already considered to be integers and it is therefore not necessary to convert them further."
+                                , "You can replace this function call by the literal integer."
+                                ]
+                            , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 0x1
+"""
+                        ]
+        , test "should simplify round <| toFloat <| n to n" <|
+            \() ->
+                """module A exposing (..)
+a = round <| toFloat <| n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.toFloat, then Basics.round cancels each other out"
+                            , details = [ "You can replace this call by the argument given to Basics.toFloat." ]
+                            , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        , test "should simplify round << toFloat to identity" <|
+            \() ->
+                """module A exposing (..)
+a = round << toFloat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.toFloat, then Basics.round cancels each other out"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
 """
                         ]
         ]
