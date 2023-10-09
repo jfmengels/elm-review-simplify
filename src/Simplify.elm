@@ -2762,7 +2762,7 @@ functionCallChecks =
         , ( Fn.Result.withDefault, ( 2, withDefaultChecks resultWithOkAsWrap ) )
         , ( Fn.Result.toMaybe, ( 1, unwrapToMaybeChecks resultWithOkAsWrap ) )
         , ( Fn.Result.fromMaybe, ( 2, resultFromMaybeChecks ) )
-        , ( Fn.List.append, ( 2, collectionUnionChecks listCollection ) )
+        , ( Fn.List.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } listCollection ) )
         , ( Fn.List.head, ( 1, listHeadChecks ) )
         , ( Fn.List.tail, ( 1, listTailChecks ) )
         , ( Fn.List.member, ( 2, listMemberChecks ) )
@@ -2807,7 +2807,7 @@ functionCallChecks =
         , ( Fn.Array.length, ( 1, arrayLengthChecks ) )
         , ( Fn.Array.repeat, ( 2, arrayRepeatChecks ) )
         , ( Fn.Array.initialize, ( 2, arrayInitializeChecks ) )
-        , ( Fn.Array.append, ( 2, collectionUnionChecks arrayCollection ) )
+        , ( Fn.Array.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } arrayCollection ) )
         , ( Fn.Array.get, ( 2, getChecks arrayCollection ) )
         , ( Fn.Array.set, ( 3, setChecks arrayCollection ) )
         , ( Fn.Array.foldl, ( 3, arrayFoldlChecks ) )
@@ -2823,7 +2823,7 @@ functionCallChecks =
         , ( Fn.Set.partition, ( 2, collectionPartitionChecks setCollection ) )
         , ( Fn.Set.intersect, ( 2, collectionIntersectChecks setCollection ) )
         , ( Fn.Set.diff, ( 2, collectionDiffChecks setCollection ) )
-        , ( Fn.Set.union, ( 2, collectionUnionChecks setCollection ) )
+        , ( Fn.Set.union, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection ) )
         , ( Fn.Set.insert, ( 2, collectionInsertChecks setCollection ) )
         , ( Fn.Set.foldl, ( 3, setFoldlChecks ) )
         , ( Fn.Set.foldr, ( 3, setFoldrChecks ) )
@@ -2838,7 +2838,7 @@ functionCallChecks =
         , ( Fn.Dict.map, ( 2, dictMapChecks ) )
         , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
         , ( Fn.Dict.diff, ( 2, collectionDiffChecks dictCollection ) )
-        , ( Fn.Dict.union, ( 2, collectionUnionChecks dictCollection ) )
+        , ( Fn.Dict.union, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection ) )
         , ( Fn.Dict.foldl, ( 3, dictFoldlChecks ) )
         , ( Fn.Dict.foldr, ( 3, dictFoldrChecks ) )
         , ( Fn.String.toList, ( 1, stringToListChecks ) )
@@ -2855,7 +2855,7 @@ functionCallChecks =
         , ( Fn.String.slice, ( 3, stringSliceChecks ) )
         , ( Fn.String.left, ( 2, stringLeftChecks ) )
         , ( Fn.String.right, ( 2, stringRightChecks ) )
-        , ( Fn.String.append, ( 2, collectionUnionChecks stringCollection ) )
+        , ( Fn.String.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } stringCollection ) )
         , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
         , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
         , ( Fn.Platform.Cmd.batch, ( 1, subAndCmdBatchChecks cmdCollection ) )
@@ -3438,6 +3438,7 @@ plusplusChecks =
             findMap (\side -> appendEmptyCheck side listCollection checkInfo) (operationSides checkInfo)
         , \checkInfo ->
             collectionUnionWithLiteralsChecks
+                { leftElementsStayOnTheLeft = True }
                 { first = checkInfo.left
                 , second = checkInfo.right
                 , operationRange = checkInfo.operatorRange
@@ -3447,6 +3448,7 @@ plusplusChecks =
                 checkInfo
         , \checkInfo ->
             collectionUnionWithLiteralsChecks
+                { leftElementsStayOnTheLeft = True }
                 { first = checkInfo.left
                 , second = checkInfo.right
                 , operationRange = checkInfo.operatorRange
@@ -8248,7 +8250,6 @@ type alias WrapperProperties otherProperties =
 type alias ConstructibleFromListProperties otherProperties =
     { otherProperties
         | fromList : ConstructionFromListProperties
-        , unionLeftElementsStayOnTheLeft : Bool
     }
 
 
@@ -8825,7 +8826,6 @@ listCollection =
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
     , fromList = listFromListProperties
-    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -8915,7 +8915,6 @@ stringCollection =
         }
     , wrap = singleCharConstruct
     , fromList = stringFromListProperties
-    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -9015,7 +9014,6 @@ arrayCollection =
         , get = arrayGetElements
         }
     , fromList = arrayFromListProperties
-    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -9115,7 +9113,6 @@ setCollection =
         }
     , wrap = setSingletonConstruct
     , fromList = setFromListProperties
-    , unionLeftElementsStayOnTheLeft = True
     }
 
 
@@ -9257,7 +9254,6 @@ dictCollection =
         , get = dictGetValues
         }
     , fromList = dictFromListProperties
-    , unionLeftElementsStayOnTheLeft = False
     }
 
 
@@ -10680,8 +10676,8 @@ collectionDiffChecks collection =
         ]
 
 
-collectionUnionChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
-collectionUnionChecks collection =
+collectionUnionChecks : { leftElementsStayOnTheLeft : Bool } -> TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks config collection =
     firstThatConstructsJust
         [ \checkInfo ->
             if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
@@ -10708,7 +10704,7 @@ collectionUnionChecks collection =
                             )
 
                     else
-                        collectionUnionWithLiteralsChecks
+                        collectionUnionWithLiteralsChecks config
                             { first = checkInfo.firstArg
                             , second = secondArg_
                             , operationRange = checkInfo.fnRange
@@ -10723,11 +10719,13 @@ collectionUnionChecks collection =
 
 
 collectionUnionWithLiteralsChecks :
-    { first : Node Expression
-    , second : Node Expression
-    , operationRange : Range
-    , operation : String
-    }
+    { leftElementsStayOnTheLeft : Bool }
+    ->
+        { first : Node Expression
+        , second : Node Expression
+        , operationRange : Range
+        , operation : String
+        }
     -> CollectionProperties (ConstructibleFromListProperties otherProperties)
     ->
         { checkInfo
@@ -10736,7 +10734,7 @@ collectionUnionWithLiteralsChecks :
             , parentRange : Range
         }
     -> Maybe (Error {})
-collectionUnionWithLiteralsChecks operationInfo collection checkInfo =
+collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
     case fromListGetLiteral collection checkInfo.lookupTable operationInfo.second of
         Just literalListSecond ->
             case fromListGetLiteral collection checkInfo.lookupTable operationInfo.first of
@@ -10747,7 +10745,7 @@ collectionUnionWithLiteralsChecks operationInfo collection checkInfo =
                             , details = [ "Try moving all the elements into a single " ++ collection.fromList.description ++ "." ]
                             }
                             operationInfo.operationRange
-                            (if collection.unionLeftElementsStayOnTheLeft then
+                            (if config.leftElementsStayOnTheLeft then
                                 keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.second }
                                     ++ [ Fix.insertAt
                                             (rangeWithoutBoundaries literalListSecond.range).start
