@@ -8246,17 +8246,27 @@ type alias WrapperProperties otherProperties =
 
 
 {-| Properties of a type that can be constructed from a list, like String with String.fromList.
+See `ConstructionFromList`
 -}
 type alias ConstructibleFromListProperties otherProperties =
     { otherProperties
-        | fromList : ConstructionFromListProperties
+        | fromList : ConstructionFromList
     }
 
 
-type alias ConstructionFromListProperties =
-    { description : String
-    , getList : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-    }
+{-| How the type can be constructed from a list.
+
+  - `ConstructionAsList`: the type is an alias to a list, like
+      - `type alias Forest a = List (Tree a)`
+      - `type alias TreePath = List Index`
+      - `type alias Options = List Option`
+  - `ConstructionFromListCall`: the type can be constructed using a function that takes one list as the only argument, like
+      - String.fromList : List Char -> String\`
+
+-}
+type ConstructionFromList
+    = ConstructionAsList
+    | ConstructionFromListCall ( ModuleName, String )
 
 
 {-| Properties of a type with with multiple elements.
@@ -8403,17 +8413,27 @@ getAbsorbingExpressionNode absorbable inferResources expressionNode =
 
 fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
 fromListGetLiteral constructibleFromList lookupTable expressionNode =
-    case constructibleFromList.fromList.getList lookupTable expressionNode of
-        Just listExpressionNode ->
-            case AstHelpers.removeParens listExpressionNode of
+    case constructibleFromList.fromList of
+        ConstructionAsList ->
+            case AstHelpers.removeParens expressionNode of
                 Node listLiteralRange (Expression.ListExpr listElements) ->
                     Just { range = listLiteralRange, elements = listElements }
 
                 _ ->
                     Nothing
 
-        Nothing ->
-            Nothing
+        ConstructionFromListCall fromListFn ->
+            case AstHelpers.getSpecificFnCall fromListFn lookupTable expressionNode of
+                Just fromListCall ->
+                    case AstHelpers.removeParens fromListCall.firstArg of
+                        Node listLiteralRange (Expression.ListExpr listElements) ->
+                            Just { range = listLiteralRange, elements = listElements }
+
+                        _ ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
 
 
 {-| Description of a set of values.
@@ -8825,14 +8845,7 @@ listCollection =
         }
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
-    , fromList = listFromListProperties
-    }
-
-
-listFromListProperties : ConstructionFromListProperties
-listFromListProperties =
-    { description = "list literal"
-    , getList = \_ listExpr -> Just listExpr
+    , fromList = ConstructionAsList
     }
 
 
@@ -8914,16 +8927,7 @@ stringCollection =
         , get = stringGetElements
         }
     , wrap = singleCharConstruct
-    , fromList = stringFromListProperties
-    }
-
-
-stringFromListProperties : ConstructionFromListProperties
-stringFromListProperties =
-    { description = "String.fromList call"
-    , getList =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFnCall Fn.String.fromList lookupTable expr |> Maybe.map .firstArg
+    , fromList = ConstructionFromListCall Fn.String.fromList
     }
 
 
@@ -9013,7 +9017,7 @@ arrayCollection =
         , determineCount = arrayDetermineLength
         , get = arrayGetElements
         }
-    , fromList = arrayFromListProperties
+    , fromList = ConstructionFromListCall Fn.Array.fromList
     }
 
 
@@ -9026,15 +9030,6 @@ arrayEmptyConstantProperties =
     , asString =
         \resources ->
             qualifiedToString (qualify Fn.Array.empty resources)
-    }
-
-
-arrayFromListProperties : ConstructionFromListProperties
-arrayFromListProperties =
-    { description = "Array.fromList call"
-    , getList =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
@@ -9112,7 +9107,7 @@ setCollection =
         , get = setGetElements
         }
     , wrap = setSingletonConstruct
-    , fromList = setFromListProperties
+    , fromList = ConstructionFromListCall Fn.Set.fromList
     }
 
 
@@ -9125,15 +9120,6 @@ setEmptyConstantProperties =
     , asString =
         \resources ->
             qualifiedToString (qualify Fn.Set.empty resources)
-    }
-
-
-setFromListProperties : ConstructionFromListProperties
-setFromListProperties =
-    { description = "Set.fromList call"
-    , getList =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFnCall Fn.Set.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
@@ -9253,7 +9239,7 @@ dictCollection =
         , determineCount = dictDetermineSize
         , get = dictGetValues
         }
-    , fromList = dictFromListProperties
+    , fromList = ConstructionFromListCall Fn.Dict.fromList
     }
 
 
@@ -9266,15 +9252,6 @@ dictEmptyConstantProperties =
     , asString =
         \resources ->
             qualifiedToString (qualify Fn.Dict.empty resources)
-    }
-
-
-dictFromListProperties : ConstructionFromListProperties
-dictFromListProperties =
-    { description = "Dict.fromList call"
-    , getList =
-        \lookupTable expr ->
-            AstHelpers.getSpecificFnCall Fn.Dict.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
@@ -10739,10 +10716,20 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
         Just literalListSecond ->
             case fromListGetLiteral collection checkInfo.lookupTable operationInfo.first of
                 Just literalListFirst ->
+                    let
+                        fromListLiteralDescription : String
+                        fromListLiteralDescription =
+                            case collection.fromList of
+                                ConstructionAsList ->
+                                    "list literal"
+
+                                ConstructionFromListCall fn ->
+                                    qualifiedToString fn ++ " call"
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = operationInfo.operation ++ " on " ++ collection.fromList.description ++ "s can be turned into a single " ++ collection.fromList.description
-                            , details = [ "Try moving all the elements into a single " ++ collection.fromList.description ++ "." ]
+                            { message = operationInfo.operation ++ " on " ++ fromListLiteralDescription ++ "s can be turned into a single " ++ fromListLiteralDescription
+                            , details = [ "Try moving all the elements into a single " ++ fromListLiteralDescription ++ "." ]
                             }
                             operationInfo.operationRange
                             (if config.leftElementsStayOnTheLeft then
