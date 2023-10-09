@@ -1,4 +1,4 @@
-module SimplifyTest exposing (all)
+module Simplify.BasicsTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
@@ -7,7 +7,7 @@ import TestHelpers exposing (ruleWithDefaults)
 
 all : Test
 all =
-    describe "Simplify"
+    describe "Basics"
         [ identityTests
         , alwaysTests
         , toFloatTests
