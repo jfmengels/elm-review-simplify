@@ -9271,9 +9271,9 @@ dictDetermineSize resources =
                     case listGetElements resources fromListCall.firstArg of
                         Just listElements ->
                             if listElements.allKnown then
-                                case traverse getComparableExpressionInTupleFirst listElements.known of
-                                    Just comparableExpressions ->
-                                        comparableExpressions |> unique |> List.length |> Exactly |> Just
+                                case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
+                                    Just comparableKeyExpressions ->
+                                        comparableKeyExpressions |> uniqueBy .comparableFirst |> List.length |> Exactly |> Just
 
                                     Nothing ->
                                         case listElements.known of
@@ -12141,16 +12141,6 @@ sameInAllBranches getSpecific baseExpressionNode =
 
                 _ ->
                     Undetermined
-
-
-getComparableExpressionInTupleFirst : Node Expression -> Maybe (List Expression)
-getComparableExpressionInTupleFirst expressionNode =
-    case AstHelpers.getTuple2Literal expressionNode of
-        Just tuple ->
-            getComparableExpression tuple.first
-
-        Nothing ->
-            Nothing
 
 
 getComparableExpression : Node Expression -> Maybe (List Expression)
