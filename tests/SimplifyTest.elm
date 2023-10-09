@@ -1,9 +1,9 @@
 module SimplifyTest exposing (all)
 
-import Review.Rule exposing (Rule)
 import Review.Test
-import Simplify exposing (defaults, expectNaN, ignoreCaseOfForTypes, rule)
+import Simplify exposing (defaults, ignoreCaseOfForTypes, rule)
 import Test exposing (Test, describe, test)
+import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
 
 
 all : Test
@@ -48,16 +48,6 @@ all =
         , letTests
         , pipelineTests
         ]
-
-
-ruleWithDefaults : Rule
-ruleWithDefaults =
-    rule defaults
-
-
-ruleExpectingNaN : Rule
-ruleExpectingNaN =
-    rule (expectNaN defaults)
 
 
 
