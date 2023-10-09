@@ -8247,11 +8247,14 @@ type alias WrapperProperties otherProperties =
 -}
 type alias ConstructibleFromListProperties otherProperties =
     { otherProperties
-        | fromList :
-            { description : String
-            , getList : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-            }
+        | fromList : ConstructionFromListProperties
         , unionLeftElementsStayOnTheLeft : Bool
+    }
+
+
+type alias ConstructionFromListProperties =
+    { description : String
+    , getList : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
     }
 
 
@@ -8817,11 +8820,15 @@ listCollection =
         }
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
-    , fromList =
-        { description = "list literal"
-        , getList = \_ listExpr -> Just listExpr
-        }
+    , fromList = listFromListProperties
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+listFromListProperties : ConstructionFromListProperties
+listFromListProperties =
+    { description = "list literal"
+    , getList = \_ listExpr -> Just listExpr
     }
 
 
@@ -8903,13 +8910,17 @@ stringCollection =
         , get = stringGetElements
         }
     , wrap = singleCharConstruct
-    , fromList =
-        { description = "String.fromList call"
-        , getList =
-            \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.String.fromList lookupTable expr |> Maybe.map .firstArg
-        }
+    , fromList = stringFromListProperties
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+stringFromListProperties : ConstructionFromListProperties
+stringFromListProperties =
+    { description = "String.fromList call"
+    , getList =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFnCall Fn.String.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
@@ -9007,13 +9018,17 @@ arrayCollection =
         , determineCount = arrayDetermineLength
         , get = arrayGetElements
         }
-    , fromList =
-        { description = "Array.fromList call"
-        , getList =
-            \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr |> Maybe.map .firstArg
-        }
+    , fromList = arrayFromListProperties
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+arrayFromListProperties : ConstructionFromListProperties
+arrayFromListProperties =
+    { description = "Array.fromList call"
+    , getList =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFnCall Fn.Array.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
@@ -9099,13 +9114,17 @@ setCollection =
         , get = setGetElements
         }
     , wrap = setSingletonConstruct
-    , fromList =
-        { description = "Set.fromList call"
-        , getList =
-            \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.Set.fromList lookupTable expr |> Maybe.map .firstArg
-        }
+    , fromList = setFromListProperties
     , unionLeftElementsStayOnTheLeft = True
+    }
+
+
+setFromListProperties : ConstructionFromListProperties
+setFromListProperties =
+    { description = "Set.fromList call"
+    , getList =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFnCall Fn.Set.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
@@ -9233,13 +9252,17 @@ dictCollection =
         , determineCount = dictDetermineSize
         , get = dictGetValues
         }
-    , fromList =
-        { description = "Dict.fromList call"
-        , getList =
-            \lookupTable expr ->
-                AstHelpers.getSpecificFnCall Fn.Dict.fromList lookupTable expr |> Maybe.map .firstArg
-        }
+    , fromList = dictFromListProperties
     , unionLeftElementsStayOnTheLeft = False
+    }
+
+
+dictFromListProperties : ConstructionFromListProperties
+dictFromListProperties =
+    { description = "Dict.fromList call"
+    , getList =
+        \lookupTable expr ->
+            AstHelpers.getSpecificFnCall Fn.Dict.fromList lookupTable expr |> Maybe.map .firstArg
     }
 
 
